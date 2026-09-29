@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.orow{display:flex;align-items:center;gap:var(--sp-3);height:52px;padding:0 var(--sp-4);
+      border-bottom:1px solid var(--c-separator)}
+.orow .chk{flex:0 0 auto}
+.orow .ic{width:22px;flex:0 0 22px;display:grid;place-items:center;color:var(--c-label-tertiary)}
+.orow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.orow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orow .z{font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.orow .rev{color:var(--c-label-tertiary);display:grid;place-items:center;width:22px}
+.sheet{width:480px;background:var(--c-content-bg);border:1px solid var(--c-hairline);border-radius:11px;
+       box-shadow:var(--shadow-pop);padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2)}
+.sheet h2{margin:0;font-size:var(--fs-title3);font-weight:600}
+.sheet .rows{border:1px solid var(--c-separator);border-radius:var(--r-sm);overflow:hidden;
+             font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.sheet .rows div{display:flex;gap:var(--sp-2);align-items:center;padding:5px var(--sp-2);border-bottom:1px solid var(--c-separator)}
+.sheet .rows div:last-child{border-bottom:0}
+.sheet .rows .p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;
+                direction:rtl;text-align:left;unicode-bidi:plaintext}
+.sheet .rows .z{margin-left:auto;white-space:nowrap}
+.sheet .acts{display:flex;gap:var(--sp-2);justify-content:flex-end}</style></head>
+<body>
+
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>46 个应用 · 合计 47.1 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span>已装应用</span><span class="on">卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="list">
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-sparkles"></use></svg></span>
+          <div class="m"><b>com.ghostwriter.Gone</b><span>~/Library/Caches/com.ghostwriter.Gone · 在已装应用里找不到 com.ghostwriter.Gone</span></div>
+          <span class="badge warn">谨慎</span><span class="z">20 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>io.supergloss.Bleed</b><span>~/Library/Application Support/io.supergloss.Bleed · 在已装应用里找不到 io.supergloss.Bleed</span></div>
+          <span class="badge warn">谨慎</span><span class="z">8 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-list"></use></svg></span>
+          <div class="m"><b>com.northwind.Atlas.savedState</b><span>~/Library/Saved Application State/com.northwind.Atlas.savedState · 在已装应用里找不到 com.northwind.Atlas</span></div>
+          <span class="badge warn">谨慎</span><span class="z">8 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-power"></use></svg></span>
+          <div class="m"><b>com.abcwyc.pi-agent</b><span>~/Library/Application Support/com.abcwyc.pi-agent · 在已装应用里找不到 com.abcwyc.pi-agent</span></div>
+          <span class="badge warn">谨慎</span><span class="z">8 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-lock"></use></svg></span>
+          <div class="m"><b>com.Breakpad.crash_report_sender.plist</b><span>~/Library/Preferences/com.Breakpad.crash_report_sender.plist · 在已装应用里找不到 com.Breakpad.crash_report_sender</span></div>
+          <span class="badge warn">谨慎</span><span class="z">4 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="orow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-term"></use></svg></span>
+          <div class="m"><b>co.buzzsurf.Rewind</b><span>~/Library/Application Support/co.buzzsurf.Rewind · 在已装应用里找不到 co.buzzsurf.Rewind</span></div>
+          <span class="badge warn">谨慎</span><span class="z">4 KB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">可疑残留 6 项 · 已选 0 项 · 0 字节</b>
+          <span>反向判断只认反向域名形态的归属线索，全部默认不勾选</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>反查残留</span>
+        <span class="btn destructive lg disabled">移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>卸载后遗症 = 正向扫描的逆问题。</b>
+正向问"这个应用的文件在哪"，反向问"这些文件是谁的"。判定一律偏保守——宁可漏报，不可错报：
+只认反向域名形态（≥3 段点分、每段 ≥2 字符、总长 ≥10）；<b>com.apple.*</b> 永不入选（系统组件的缓存在 /System 里，
+本来就没有"对应的已安装应用"）；派生标识算它主人的（<b>com.foo.Bar.Updater / .Helper</b>）；
+末段是 UUID 的先剥掉再判形态（<b>MMCleaner.ExclusionStoreTests.&lt;uuid&gt;</b> 是每次运行换一个的实例产物，不是应用标识）；
+<b>Containers / Group Containers</b> 整条清单跳过（目录名是随机标识，没有名称可判）；系统域默认不扫。
+所以这一屏的结论只是"高度可疑"：<b>每一项默认不勾选</b>，删除按钮在勾上之前是禁用的。</div>
+</div>
+
+<div class="artboard">
+<div class="sheet mm-screen">
+  <h2>把 6 项可疑残留移入废纸篓？</h2>
+  <div class="note">这些条目在本机已安装的应用里找不到对应包名，但「找不到」不等于「没在用」——
+    装在别的卷、或包名与磁盘名不同形的应用也会被判成可疑。请逐条核对路径。</div>
+  <div class="rows">
+    <div><svg class="i"><use href="#i-sparkles"></use></svg><span class="p">/Users/lee/Library/Caches/com.ghostwriter.Gone</span><span class="z">20 KB</span></div>
+    <div><svg class="i"><use href="#i-box"></use></svg><span class="p">/Users/lee/Library/Application Support/io.supergloss.Bleed</span><span class="z">8 KB</span></div>
+    <div><svg class="i"><use href="#i-list"></use></svg><span class="p">/Users/lee/Library/Saved Application State/com.northwind.Atlas.savedState</span><span class="z">8 KB</span></div>
+    <div><svg class="i"><use href="#i-power"></use></svg><span class="p">/Users/lee/Library/Application Support/co.buzzsurf.Rewind</span><span class="z">8 KB</span></div>
+    <div><svg class="i"><use href="#i-lock"></use></svg><span class="p">/Users/lee/Library/Preferences/com.Breakpad.crash_report_sender.plist</span><span class="z">4 KB</span></div>
+    <div><svg class="i"><use href="#i-term"></use></svg><span class="p">/Users/lee/Library/Logs/dev.lumen.Pixelforge</span><span class="z">4 KB</span></div>
+  </div>
+  <div class="acts"><span class="btn">取消</span><span class="btn destructive">移入废纸篓</span></div>
+</div>
+<div class="cap"><b>确认面板逐条列路径与大小</b>，不做"合计一行"的省略——用户在这里要判断的是每一项，不是一个总数。
+这里<b>故意不沿用列表里的 <code>~/Library</code> 缩写</b>：列表要扫读，缩写省掉的是每个人都不需要看的用户名；
+确认面板要核对的是"到底删哪一条"，绝对路径才能直接粘进终端去看。所以 <code>displayPath</code> 只进列表行，
+<code>path</code> 才进确认面板。按钮文案用「移入废纸篓」而不是「卸载」：只清残留时撤回提示写"已卸载"是假话，
+toast 的动词由 <b>lastOperationTrashedApps</b> 决定。同样地，操作栏在还没反查过时写
+<b>「尚未反查」</b>而不是"0 项"——"0 项"读起来等于"这里干净"。</div>
+</div>
+
+</body></html>

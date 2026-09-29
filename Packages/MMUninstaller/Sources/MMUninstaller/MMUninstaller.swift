@@ -778,7 +778,7 @@ struct OrphanRow: View {
     var body: some View {
         MMItemRow(
             title: item.name,
-            subtitle: "\(item.path) · 在已装应用里找不到 \(item.owner)",
+            subtitle: "\(item.displayPath) · 在已装应用里找不到 \(item.owner)",
             value: MMFormat.bytes(item.size),
             risk: .caution,
             systemImage: item.category.icon,

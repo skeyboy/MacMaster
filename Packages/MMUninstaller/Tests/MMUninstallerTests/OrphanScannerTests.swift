@@ -38,6 +38,10 @@ final class OrphanScannerTests: XCTestCase {
         XCTAssertEqual(found.map(\.name), ["com.ghostwriter.Gone"])
         XCTAssertEqual(found.first?.category, .cache)
         XCTAssertEqual(found.first?.owner, "com.ghostwriter.Gone")
+        // 展示路径相对 home 缩写：绝对路径会把尾部那个真正的标识挤进截断里。
+        XCTAssertTrue(found.first!.displayPath.hasPrefix("~/Library/Caches/"),
+                      found.first!.displayPath)
+        XCTAssertFalse(found.first!.path.hasPrefix("~"))
     }
 
     /// 系统组件的缓存在磁盘上永远"没有对应的已安装应用"——应用就在 /System 里。

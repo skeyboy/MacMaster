@@ -21,12 +21,26 @@ public struct InstalledAppIdentity: Sendable {
 public struct OrphanCandidate: Identifiable, Sendable {
     public let id: String
     public let path: String
+    /// 相对 home 的展示写法（`~/Library/Caches/…`）。绝对路径留给删除；
+    /// 展示用绝对路径会把真正要看的那段（尾部的标识）挤进截断里。
+    public let displayPath: String
     public let name: String
     public let category: ResidualCategory
     /// 归属线索：磁盘上这个名字看起来属于谁。
     public let owner: String
     /// 未测量时为 nil，交给 UI 显示"测量中"，不写 0。
     public var size: UInt64?
+
+    public init(path: String, displayPath: String, name: String, category: ResidualCategory,
+                owner: String, size: UInt64? = nil) {
+        self.id = path
+        self.path = path
+        self.displayPath = displayPath
+        self.name = name
+        self.category = category
+        self.owner = owner
+        self.size = size
+    }
 }
 
 public enum OrphanScanner {
@@ -68,7 +82,8 @@ public enum OrphanScanner {
                     let path = root == "/" ? child : "\(root)/\(child)"
                     guard seen.insert(path).inserted else { continue }
                     guard let candidate = judge(
-                        fileName: child, path: path, category: entry.category, against: owners
+                        fileName: child, path: path, category: entry.category,
+                        home: options.home, against: owners
                     ) else { continue }
                     found.append(candidate)
                 }
@@ -81,6 +96,7 @@ public enum OrphanScanner {
         fileName: String,
         path: String,
         category: ResidualCategory,
+        home: String,
         against owners: OwnerIndex
     ) -> OrphanCandidate? {
         guard fileName.count >= minNameLength, !fileName.hasPrefix(".") else { return nil }
@@ -107,7 +123,8 @@ public enum OrphanScanner {
         if owners.owns(ownerKey) { return nil }
 
         return OrphanCandidate(
-            id: path, path: path, name: fileName, category: category, owner: identity, size: nil
+            path: path, displayPath: ResidualCollector.display(path, home: home),
+            name: fileName, category: category, owner: identity, size: nil
         )
     }
 

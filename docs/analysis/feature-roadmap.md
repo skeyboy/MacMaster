@@ -130,6 +130,11 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 确认面板逐条列路径与大小，动词按实际操作走：只清残留时撤回提示说"已卸载"是假话，
 因此 toast 文案由 `lastOperationTrashedApps` 决定。
 
+**两套路径，不是笔误**：列表行用 `displayPath`（`~/Library/Caches/…`，home 缩写），
+确认面板用 `path`（绝对路径）。列表要扫读，被缩掉的那段是每个人都不需要看的用户名；
+确认面板要回答的是"到底删哪一条"，绝对路径才能直接粘进终端核对。
+`OrphanCandidate` 因此同时带这两个字段，`judge` 多收一个 `home:`。
+
 **新增验证钩子**：`MM_UNINSTALL_PANE=apps|orphans` 选分段，
 `MM_ORPHAN_FIXTURE_HOME=/tmp/...` 把反查的 home 换成夹具目录并自动全选 + 打开确认面板。
 后者硬性只接受 `/tmp` 前缀，否则写 stderr 并忽略——验证钩子指向真实主目录的话，
