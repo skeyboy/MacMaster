@@ -21,7 +21,7 @@ public struct GuardianView: View {
         VStack(spacing: 0) {
             // 副标题不写"实时"：这一屏是点"刷新"时测一次，不是常驻监听。
             // 卡头另有"测量于 …"标采样时刻，两处口径必须一致。
-            MMPageHeader("隐私守护", subtitle: "摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理") {
+            MMPageHeader("隐私守护", subtitle: "摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理") {
                 Button("刷新") { Task { await vm.loadAll() } }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -32,6 +32,7 @@ public struct GuardianView: View {
                         readErrorBanner
                     }
                     occupancyCard
+                    tccCard
                     loginItemsCard
                     activityCard
                 }
@@ -111,6 +112,94 @@ public struct GuardianView: View {
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
+    }
+
+    // MARK: - 敏感权限授权（P3.2，TCC 只读视图）
+
+    private var tccCard: some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: MMMetric.iconSmall))
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Text("敏感权限授权").font(.headline)
+                Spacer()
+                Text("SQLite 只读查询 · 不写库不提权")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+            }
+
+            switch vm.tccState {
+            case nil:
+                MMSkeletonRow(nameWidth: 120, valueWidth: 72)
+                MMSkeletonRow(nameWidth: 120, valueWidth: 72)
+            case .unreadable(let detail):
+                // 读不到 ≠ 没有授权：这一档不画列表，只给原因 + 引导。
+                MMEmptyState(
+                    systemImage: "lock.fill",
+                    title: TCCCopyTable.unreadableTitle,
+                    detail: detail + "\n\n" + TCCCopyTable.unreadableGuide
+                ) {
+                    Button("打开系统设置 · 完全磁盘访问") {
+                        MMReveal.openSystemSettings(pane: "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles")
+                    }
+                    .controlSize(.small)
+                }
+                .frame(minHeight: 140)
+            case .emptyRead:
+                MMEmptyState(
+                    systemImage: "checkmark.shield",
+                    title: "相关服务没有授权记录",
+                    detail: "两个 TCC 库都读取成功，查询返回 0 行——这次是「查到了没有」，不是「没查到」。"
+                )
+                .frame(minHeight: 120)
+            case .partial(let rows, let note):
+                partialStrip(note)
+                tccRowsList(rows)
+            case .loaded(let rows):
+                tccRowsList(rows)
+            }
+
+            HStack(alignment: .top, spacing: MMGap.xs) {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                Text(TCCCopyTable.valueLegend)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(MMGap.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
+        )
+    }
+
+    /// 部分可读警示条：点名没读到的库。列表只覆盖读到的那部分，必须说破，
+    /// 否则用户会把"用户级没有"读成"整机没有"。
+    private func partialStrip(_ note: String) -> some View {
+        HStack(alignment: .top, spacing: MMGap.sm) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.caption)
+                .foregroundStyle(MMColor.caution)
+            Text(note)
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.caution, 0.10), in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+    }
+
+    private func tccRowsList(_ rows: [TCCDisplayRow]) -> some View {
+        // partial 档允许 0 行（那由 partialStrip 解释"清单不完整"），loaded 档不会为空。
+        ForEach(rows) { row in
+            TCCAuthorizationRow(row: row)
+        }
     }
 
     // MARK: - 登录项
@@ -220,6 +309,8 @@ final class GuardianViewModel: ObservableObject {
     @Published var activities: [ActivityItem] = []
     /// 摄像头/麦克风占用档位；空字典 = 还在测。
     @Published var deviceUsage: [DeviceUsageKind: DeviceUsageState] = [:]
+    /// TCC 授权视图状态；nil = 还在测。
+    @Published var tccState: TCCViewerState?
     /// 上次完成测量的时刻（"测量于 …"），读数会过期，不写"实时"。
     @Published var measuredAt: Date?
     /// 目录/解析读取失败原文（读侧不静默）。
@@ -242,10 +333,25 @@ final class GuardianViewModel: ObservableObject {
         return result.overrides
     }()
 
+    /// 仅供无头截图逐档核对渲染（同上写法）：只接受 `rows|unreadable|empty` 单值；
+    /// 含非法值时整个钩子作废并写 stderr。`rows` 档注入的全是 com.example.* 合成行。
+    static let tccFixtureState: TCCViewerState? = {
+        guard let raw = ProcessInfo.processInfo.environment["MM_TCC_FIXTURE"],
+              raw.isEmpty == false else { return nil }
+        let result = TCCFixture.parse(raw)
+        if !result.rejected.isEmpty {
+            FileHandle.standardError.write(
+                "MM_TCC_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），只接受 rows|unreadable|empty，整个钩子已忽略\n".data(using: .utf8)!)
+            return nil
+        }
+        return result.state
+    }()
+
     func loadAll() async {
         // 占用检测最先：它是进程内读数（微秒级），不该排在 `log show` 这类
         // 秒级子进程扫描之后——"此刻有没有人用摄像头"晚一秒回答都算失真。
         await loadDeviceUsage()
+        await loadTCC()
         await loadLoginItems()
         await loadActivity()
     }
@@ -258,6 +364,20 @@ final class GuardianViewModel: ObservableObject {
         for (kind, state) in overrides { states[kind] = state }
         deviceUsage = states
         measuredAt = Date()
+    }
+
+    func loadTCC() async {
+        if let fixture = Self.tccFixtureState {
+            // 夹具只顶替展示状态：真库照样读一次（失败也无妨），保证探针调用路径
+            // 不被截图流程悄悄绕过。
+            _ = await Task.detached(priority: .utility) { TCCProbe.snapshot() }.value
+            tccState = fixture
+            return
+        }
+        let report = await Task.detached(priority: .userInitiated) {
+            TCCProbe.snapshot()
+        }.value
+        tccState = TCCViewer.build(outcomes: report.outcomes, rows: report.rows)
     }
 
     func loadLoginItems() async {
@@ -374,6 +494,51 @@ struct DeviceUsageRow: View {
         case .idle: MMColor.safe
         case .indeterminate, .deviceAbsent: MMColor.secondaryLabel
         }
+    }
+}
+
+// MARK: - 授权行（敏感权限授权卡）
+
+struct TCCAuthorizationRow: View {
+    let row: TCCDisplayRow
+
+    var body: some View {
+        let copy = TCCCopyTable.copy(for: row.status)
+        HStack(alignment: .center, spacing: MMGap.md) {
+            Image(systemName: row.serviceImage)
+                .font(.system(size: MMMetric.iconSmall))
+                .foregroundStyle(MMColor.secondaryLabel)
+                .frame(width: MMMetric.iconRow)
+            VStack(alignment: .leading, spacing: MMGap.xxs) {
+                Text(row.appName).font(.body.weight(.medium)).lineLimit(1)
+                // 原始 client（bundle id / 路径）永远在副行：解析出的名字要有出处可查。
+                Text(row.client)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer(minLength: MMGap.sm)
+            VStack(alignment: .trailing, spacing: MMGap.xs) {
+                MMBadge(copy.badge, tint: copy.grantsAccess ? MMColor.informational : MMColor.secondaryLabel)
+                Text(row.serviceName)
+                    .font(.caption2)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+            }
+            VStack(alignment: .trailing, spacing: MMGap.xs) {
+                Text(row.source.displayName)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Text(row.lastModified.map(MMFormat.dateTime) ?? "—")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(MMColor.tertiaryLabel)
+            }
+            .frame(width: 84, alignment: .trailing)
+        }
+        .frame(minHeight: MMMetric.rowRegular)
+        .padding(.horizontal, MMGap.md)
+        .padding(.vertical, MMGap.xs)
+        .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
 }
 

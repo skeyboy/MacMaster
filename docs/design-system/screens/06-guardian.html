@@ -27,7 +27,23 @@
 .login .ic{width:22px;flex:0 0 22px;display:grid;place-items:center;color:var(--c-label-tertiary)}
 .login .nm{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .login .sub{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
-            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}</style></head>
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
+/* TCC 授权行（P3.2）：服务图标 + 应用名/原始 client 双行 + 状态徽章 + 来源/时间列 */
+.trow{display:flex;align-items:center;gap:var(--sp-3);min-height:44px;padding:var(--sp-2) var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.trow:last-child{border-bottom:0}
+.trow .ic{width:20px;flex:0 0 20px;display:grid;place-items:center;color:var(--c-label-secondary)}
+.trow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.trow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .m span{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .r{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 84px;
+         font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+/* 部分可读警示条：点名读不到的库，列表只覆盖读到的部分 */
+.strip{display:flex;gap:var(--sp-2);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
+       font-size:var(--fs-caption);color:var(--c-label-secondary);background:var(--c-warning-soft);
+       border-bottom:1px solid var(--c-separator)}
+.foot-note{padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6}</style></head>
 <body>
 
 <div class="artboard">
@@ -63,7 +79,7 @@
 
     <main class="content">
       <div class="toolbar">
-        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理</p></div>
+        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理</p></div>
         <div class="sp"></div>
         <span class="t-cap">测量于 10:24:07</span>
         <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
@@ -123,6 +139,38 @@
 
           <section>
             <div class="row-h" style="margin-bottom:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-shield"></use></svg>
+              <span class="section-title">敏感权限授权</span>
+              <span class="t-cap">SQLite 只读查询 · 不写库不提权</span>
+            </div>
+            <div class="card card-flush" style="padding:0">
+              <!-- 部分可读：系统级库打不开也要点名，绝不能让用户把"用户级没有"读成"整机没有" -->
+              <div class="strip"><svg class="i"><use href="#i-warn"></use></svg>
+                <span>系统级库读不到：open 被拒：Operation not permitted（errno 1）；sqlite rc=23 authorization denied ——清单可能不完整</span></div>
+              <!-- 示例数据行（实机形态见下方"读不到"artboard） -->
+              <div class="trow"><span class="ic"><svg class="i"><use href="#i-mic"></use></svg></span>
+                <div class="m"><b>Example Denoise</b><span>com.example.denoise</span></div>
+                <span class="badge info">已允许</span>
+                <div class="r"><span>麦克风 · 用户级</span><span class="t-num">2026-09-27 21:33</span></div></div>
+              <div class="trow"><span class="ic"><svg class="i"><use href="#i-camera"></use></svg></span>
+                <div class="m"><b>Example Classroom</b><span>com.example.classroom</span></div>
+                <span class="badge info">部分允许</span>
+                <div class="r"><span>摄像头 · 用户级</span><span class="t-num">2026-09-26 18:20</span></div></div>
+              <div class="trow"><span class="ic"><svg class="i"><use href="#i-eye"></use></svg></span>
+                <div class="m"><b>Example Recorder</b><span>com.example.recorder</span></div>
+                <span class="badge readonly">未知值 (1)</span>
+                <div class="r"><span>屏幕录制 · 系统级</span><span class="t-num">—</span></div></div>
+              <div class="trow"><span class="ic"><svg class="i"><use href="#i-lock"></use></svg></span>
+                <div class="m"><b>/opt/example/bin/ghost</b><span>路径型 client · 名称解析失败就显示原始串</span></div>
+                <span class="badge readonly">已拒绝</span>
+                <div class="r"><span>麦克风 · 用户级</span><span class="t-num">2026-09-20 09:02</span></div></div>
+              <div class="foot-note">状态取自 TCC 数据库 auth_value：<b style="font-weight:600">0 拒绝 / 2 允许 / 3 部分允许 / 4 已禁用</b>；
+                表外值（含旧系统的 1）如实标「未知值 (N)」，不当成允许。</div>
+            </div>
+          </section>
+
+          <section>
+            <div class="row-h" style="margin-bottom:var(--sp-2)">
               <svg class="i" style="color:var(--c-warning)"><use href="#i-power"></use></svg>
               <span class="section-title">登录项 <span class="count">6 项</span></span>
               <div class="sp"></div>
@@ -173,7 +221,7 @@
 
     <main class="content">
       <div class="toolbar">
-        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理</p></div>
+        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理</p></div>
         <div class="sp"></div>
         <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
       </div>
@@ -195,6 +243,69 @@
       </div>
     </main>
   </div>
+</div>
+</div>
+
+<div class="artboard">
+<div class="cap"><b>06c · 敏感权限授权（P3.2 新增卡）—— 本机当前的真实形态是"读不到"。</b>
+macOS 27 实测：用户级 TCC.db 目录对无「完全磁盘访问」的进程报 <b>ENOENT（被系统隐藏，不是"不存在"）</b>；
+系统级 TCC.db 在 open(2) 层报 <b>EPERM</b>、sqlite 报 <b>rc=23 authorization denied</b>（Unix 权限位 o+r 也拦得住，
+FIFO 与 immutable URI 都绕不开）。两个库都打不开时，这一卡必须停留在
+<b>"读不到 · 原因"</b>档——列一个空列表会被读成"没有应用持有权限"，是最危险的假通过；
+错误原文（errno / strerror / sqlite 码）逐库展示，动作只有"被带去系统设置"，<b>不写库、不提权</b>。
+系统级库存着屏幕录制/辅助功能/键盘监听，即便授予 FDA 后用户级可读，系统级仍可能始终读不到——
+届时是"部分可读"档：列表 + 点名没读到的库（见 06 主屏卡片顶部警示条）。"查到了没有"（可读且 0 行）
+与"没查到"（读不到）是两个不同文案，右边第二张卡演示前者。依据与全部实测原文见
+docs/analysis/guardian-tcc.md。</div>
+<div style="display:flex;gap:22px;align-items:flex-start">
+<div class="win mm-screen" style="height:auto;width:560px">
+  <div class="body-row" style="min-height:0">
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>敏感权限授权</h1><p>SQLite 只读查询 · 不写库不提权</p></div>
+        <div class="sp"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
+      </div>
+      <div class="scroll" style="padding-bottom:var(--sp-3)">
+        <div class="card card-flush" style="padding:0">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);padding:var(--sp-6) var(--sp-5);text-align:center">
+            <span style="width:52px;height:52px;border-radius:10px;background:var(--c-neutral-soft);display:grid;place-items:center">
+              <svg class="i" style="width:26px;height:26px;color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg></span>
+            <b style="font-size:var(--fs-headline);font-weight:600">读不到 · 需要完全磁盘访问</b>
+            <span class="note" style="max-width:420px">用户级库读不到：open 返回 ENOENT（errno 2）——路径不存在或被系统对无「完全磁盘访问」的进程隐藏；sqlite rc=14<br>
+              系统级库读不到：open 被拒：Operation not permitted（errno 1）；sqlite rc=23 authorization denied</span>
+            <span class="note" style="max-width:420px">本卡片只读查询 TCC 数据库，绝不写入、绝不申请提权。授予「完全磁盘访问」后可尝试读取用户级库；系统级库另受系统保护，可能始终读不到。</span>
+            <span class="btn sm borderless">打开系统设置 · 完全磁盘访问</span>
+          </div>
+          <div class="foot-note">状态取自 auth_value：0 拒绝 / 2 允许 / 3 部分允许 / 4 已禁用；表外值如实标「未知值」，不当成允许。</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="win mm-screen" style="height:auto;width:560px">
+  <div class="body-row" style="min-height:0">
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>敏感权限授权</h1><p>SQLite 只读查询 · 不写库不提权</p></div>
+        <div class="sp"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
+      </div>
+      <div class="scroll" style="padding-bottom:var(--sp-3)">
+        <div class="card card-flush" style="padding:0">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);padding:var(--sp-6) var(--sp-5);text-align:center">
+            <span style="width:52px;height:52px;border-radius:10px;background:var(--c-neutral-soft);display:grid;place-items:center">
+              <svg class="i" style="width:26px;height:26px;color:var(--c-label-tertiary)"><use href="#i-shield-check"></use></svg></span>
+            <b style="font-size:var(--fs-headline);font-weight:600">相关服务没有授权记录</b>
+            <span class="note" style="max-width:420px">两个 TCC 库都读取成功，查询返回 0 行——这次是「查到了没有」，不是「没查到」。
+              （只有全部库可读才允许出现本档；有任何库没读到都降为"部分可读 + 清单可能不完整"。）</span>
+          </div>
+          <div class="foot-note">状态取自 auth_value：0 拒绝 / 2 允许 / 3 部分允许 / 4 已禁用；表外值如实标「未知值」，不当成允许。</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
 </div>
 </div>
 
