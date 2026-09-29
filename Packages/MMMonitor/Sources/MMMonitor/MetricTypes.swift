@@ -222,6 +222,10 @@ public struct MetricSnapshot: Equatable, Sendable {
     public var networkUpBytesPerSecond: Double?
     public var sampledAt: Date
 
+    /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
+    /// 说成一个具体原因（host_statistics64 失败、IOKit 错误码……）的地方都得先看这个。
+    public var hasSampled: Bool { sampledAt != .distantPast }
+
     public static let empty = MetricSnapshot(
         totalCPU: nil,
         perCoreCPU: [],

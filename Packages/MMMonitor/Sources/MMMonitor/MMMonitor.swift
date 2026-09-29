@@ -22,9 +22,16 @@ public struct MonitorView: View {
 
     public init() {}
 
+    /// 首次采样前 sampledAt 还是 `.distantPast` 哨兵，直接格式化会渲染成
+    /// "上次采样 0001-01-01 08:05"——那是把"还没测过"说成一个真实时刻。
+    private var headerSubtitle: String {
+        guard menuBar.snapshot.hasSampled else { return "尚未完成首次采样" }
+        return "上次采样 \(MMFormat.dateTime(menuBar.snapshot.sampledAt)) · 实时更新"
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
-            MMPageHeader("系统监控", subtitle: "上次采样 \(MMFormat.dateTime(menuBar.snapshot.sampledAt)) · 实时更新") {
+            MMPageHeader("系统监控", subtitle: headerSubtitle) {
                 Toggle("菜单栏监控", isOn: Binding(
                     get: { menuBar.isEnabled },
                     set: { $0 ? menuBar.enable() : menuBar.disable() }
@@ -125,8 +132,12 @@ public struct MonitorView: View {
                 MMKeyRow("Swap", memory.swapAvailable
                     ? "\(MMFormat.bytes(memory.swapUsedBytes)) / \(MMFormat.bytes(memory.swapTotalBytes))"
                     : "—")
-            } else {
+            } else if menuBar.snapshot.hasSampled {
                 Text("内存读数不可用（host_statistics64 失败），显示 —。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            } else {
+                Text("尚未完成首次采样，这里还没有内存读数。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }
@@ -148,7 +159,10 @@ public struct MonitorView: View {
             if processes.isEmpty && !processLoadFailed {
                 ForEach(0..<4, id: \.self) { _ in MMSkeletonRow() }
             } else if processLoadFailed {
-                MMEmptyState(systemImage: "exclamationmark.triangle", title: "进程列表读取失败", detail: nil)
+                // 不猜原因：proc_listallpids 返回 0 和"每个 proc_pidinfo 都失败"都会走到这里，
+                // 代码没有把两者分开。说清楚下一步做什么就够了。
+                MMEmptyState(systemImage: "exclamationmark.triangle", title: "进程列表读取失败",
+                             detail: "枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。")
             } else {
                 ForEach(processes.prefix(10)) { proc in
                     HStack(spacing: MMGap.md) {
