@@ -54,6 +54,9 @@ public struct DiskAnalyzerView: View {
     @State private var currentItems: [DiskTreeNode] = []
     @State private var scanStore: DiskScanStore?
     @State private var largeFiles: [DiskTreeNode] = []
+    /// 扫描完从整棵树里挑出的"值得看一眼"条目；重扫会重新算。
+    @State private var findings: [DiskInsights.Finding] = []
+    @State private var findingsDismissed = false
     @State private var nameFilter = ""
     /// 标记待处理的目录/文件：Treemap 上 ⌘ 点击打点，底部统一结算。
     @State private var marked: [String: DiskTreeNode] = [:]
@@ -75,6 +78,7 @@ public struct DiskAnalyzerView: View {
                 scanningView
             } else if let result = scanResult {
                 breadcrumbBar
+                findingsPanel
                 Divider()
                 HStack(spacing: 0) {
                     mainColumn
@@ -254,6 +258,92 @@ public struct DiskAnalyzerView: View {
         .frame(height: 34)
         .background(MMColor.contentBackground)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// 「值得看一眼」：扫描完出现在面包屑下面，可以收起，重扫会重新算。
+    /// 只列互不嵌套的条目，所以"合计"是真的能加的，不是把各级大小叠一遍。
+    @ViewBuilder
+    private var findingsPanel: some View {
+        if !findingsDismissed, !findings.isEmpty {
+            let total = findings.reduce(UInt64(0)) { $0 + $1.size }
+            VStack(alignment: .leading, spacing: MMGap.xs) {
+                HStack(spacing: MMGap.sm) {
+                    Image(systemName: "lightbulb")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                    Text("值得看一眼 · \(findings.count) 项 · 合计 \(MMFormat.bytes(total))")
+                        .font(.caption.weight(.semibold))
+                    Spacer(minLength: MMGap.sm)
+                    Button {
+                        findingsDismissed = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                    }
+                    .buttonStyle(.plain)
+                    .help("收起，重新扫描后会再出现")
+                }
+
+                ForEach(findings) { finding in
+                    HStack(spacing: MMGap.sm) {
+                        MMBadge(finding.kind.label, tint: kindTint(finding.kind))
+                        // 中段截断：这些名字的头尾才有辨识度（"马里奥赛车8 豪华版…中文60帧"），
+                        // 尾部截断会把游戏名后面全吃掉，只剩一串编号。
+                        Text(finding.name)
+                            .font(.callout)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .layoutPriority(1)
+                        Text(finding.reason)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: MMGap.sm)
+                        Text(MMFormat.bytes(finding.size))
+                            .font(.callout.monospaced())
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .frame(minWidth: 72, alignment: .trailing)
+                        Button {
+                            reveal(finding)
+                        } label: {
+                            Image(systemName: "arrow.right.circle")
+                                .font(.caption)
+                                .foregroundStyle(MMColor.secondaryLabel)
+                        }
+                        .buttonStyle(.plain)
+                        .help("在树里选中它")
+                    }
+                    .padding(.vertical, MMGap.xxs)
+                    .contentShape(Rectangle())
+                    .onTapGesture { reveal(finding) }
+                }
+            }
+            .padding(.horizontal, MMGap.md)
+            .padding(.vertical, MMGap.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MMColor.cardBackground)
+            .overlay(alignment: .bottom) { Divider() }
+        }
+    }
+
+    private func kindTint(_ kind: DiskInsights.Finding.Kind) -> Color {
+        switch kind {
+        case .reclaimable: MMColor.safe
+        case .stale: MMColor.caution
+        case .largeFile: MMColor.informational
+        }
+    }
+
+    /// 选中这条发现；父层已经在导航栈里就顺带切过去，让它在当前层可见。
+    private func reveal(_ finding: DiskInsights.Finding) {
+        guard let node = node(atPath: finding.path) else { return }
+        let parent = (finding.path as NSString).deletingLastPathComponent
+        if let index = navigationStack.firstIndex(of: parent), index != navigationStack.count - 1 {
+            navigateTo(index: index)
+        }
+        selected = node
     }
 
     private var breadcrumbTrail: some View {
@@ -935,6 +1025,8 @@ public struct DiskAnalyzerView: View {
             self.selected = nil
             self.trashFailures = []
             self.largeFiles = Array(output.largeFilesList.prefix(100))
+            self.findings = DiskInsights.worthALook(root: output.topItems, now: Date())
+            self.findingsDismissed = false
             self.apply(children: output.topItems, for: rootPath)
             self.applySelectionHook()
             self.scanDuration = Date().timeIntervalSince(scanStartTime)
@@ -952,6 +1044,9 @@ struct DiskTreeNode: Identifiable, Sendable {
     var children: [DiskTreeNode]
     var category: NodeCategory = .other
     var reclaim: ReclaimReason? = nil
+    /// nil 表示这一层没量到时间，"久未触碰"就不能成立——
+    /// 缺数不等于新，也不等于旧。
+    var modificationDate: Date? = nil
 }
 
 /// 完整扫描结果驻留在引用类型里：@State 只持有有界渲染窗口，
@@ -1069,6 +1164,9 @@ enum DiskScanner {
         let path: String
         let isDirectory: Bool
         let size: UInt64
+        /// 目录自身的 mtime 就是"上一次有人在这里增删东西"的时间，
+        /// 「值得看一眼」的久未触碰判定用的正是它，不是子项的最大 mtime。
+        let modificationDate: Date
     }
 
     private static let maxDepth = 20
@@ -1153,7 +1251,8 @@ enum DiskScanner {
         let size = children.reduce(UInt64(0)) { $0 + $1.size }
         return DiskTreeNode(
             id: entry.path, name: entry.name, path: entry.path,
-            size: size, isDirectory: true, children: children
+            size: size, isDirectory: true, children: children,
+            modificationDate: entry.modificationDate
         )
     }
 
@@ -1187,7 +1286,8 @@ enum DiskScanner {
             } else {
                 result.append(DiskTreeNode(
                     id: entry.path, name: entry.name, path: entry.path,
-                    size: entry.size, isDirectory: false, children: []
+                    size: entry.size, isDirectory: false, children: [],
+                    modificationDate: entry.modificationDate
                 ))
             }
         }
@@ -1199,7 +1299,8 @@ enum DiskScanner {
                 result.append(DiskTreeNode(
                     id: dir.path, name: dir.name, path: dir.path,
                     size: deepSize(path: dir.path, remainingDepth: 3, ledger: ledger),
-                    isDirectory: true, children: []
+                    isDirectory: true, children: [],
+                    modificationDate: dir.modificationDate
                 ))
             }
             return result
@@ -1264,7 +1365,11 @@ enum DiskScanner {
             // 目录大小由子节点求和得出。
 
             entries.append(FileEntry(
-                name: name, path: fullPath, isDirectory: isDirectory, size: size
+                name: name, path: fullPath, isDirectory: isDirectory, size: size,
+                modificationDate: Date(
+                    timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec)
+                        + Double(info.st_mtimespec.tv_nsec) / 1_000_000_000
+                )
             ))
         }
         return entries
