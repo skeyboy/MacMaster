@@ -17,5 +17,10 @@ let package = Package(
             name: "MMCleaner",
             dependencies: ["MMCore", "MMFileScanner", "MMUI"]
         ),
+        .testTarget(
+            name: "MMCleanerTests",
+            dependencies: ["MMCleaner", "MMCore", "MMFileScanner", "MMUI"],
+            path: "Tests/MMCleanerTests"
+        ),
     ]
 )

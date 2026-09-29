@@ -22,7 +22,8 @@ public struct CleanerModule: ModuleRegistrable {
 final class CleanerModel: ObservableObject {
     @Published var categories: [CacheCategory] = []
     @Published var selectedIDs: Set<String> = []
-    @Published var excludedPaths: Set<String> = []
+    /// 排除名单（持久化）。`CleanerExclusionStore` 是唯一真源，这里只是可观察的快照。
+    @Published var excludedEntries: [CleanerExclusionEntry] = []
     @Published var isScanning = false
     @Published var isCleaning = false
     @Published var progress: CacheScanProgress?
@@ -33,23 +34,44 @@ final class CleanerModel: ObservableObject {
     @Published var expandedCategories: Set<String> = []
     @Published var expandedSubItemPath: String?
     @Published var children: [String: [CacheFileEntry]] = [:]
+    /// 4.6 的只读报告：APFS 可清除空间 + Time Machine 本地快照。只展示，不删除。
+    @Published var spaceReadout: SystemSpaceReadout?
+    @Published var isLoadingSpaceReadout = false
 
     private var scanTask: Task<Void, Never>?
     private let cancellation = CancellationFlag()
+    private let exclusionStore: CleanerExclusionStore
+
+    init(exclusionStore: CleanerExclusionStore = CleanerExclusionStore()) {
+        self.exclusionStore = exclusionStore
+        self.excludedEntries = exclusionStore.entries()
+    }
+
+    /// 明细条目是否已被排除。判定走存储的同一口径，界面与扫描才不会一边算 excluded、
+    /// 一边照样把它算进合计。
+    func isExcluded(_ path: String) -> Bool {
+        excludedEntries.contains { CleanerExclusionStore.matches(path, exclusion: $0.path) }
+    }
 
     var inaccessiblePaths: [String] {
         categories.flatMap(\.inaccessiblePaths)
     }
 
+    /// "可释放"只能说真的能释放的那部分：只读档没有删除入口，
+    /// 把它的体积算进可释放数字就是把用户带偏。
     var measuredTotal: UInt64 {
-        categories.reduce(0) { sum, category in sum + category.scannedSize }
+        categories.filter(\.risk.allowsDeletion).reduce(0) { $0 + $1.scannedSize }
+    }
+
+    var readOnlyTotal: UInt64 {
+        categories.filter { !$0.risk.allowsDeletion }.reduce(0) { $0 + $1.scannedSize }
     }
 
     /// 只有"允许删除且被勾选、且未被排除"的字节才会真的动磁盘。
     var selectedSize: UInt64 {
         var total: UInt64 = 0
         for category in categories where selectedIDs.contains(category.id) && category.risk.allowsDeletion {
-            for item in category.subItems where !excludedPaths.contains(item.path) {
+            for item in category.subItems where !isExcluded(item.path) {
                 total += item.size ?? 0
             }
         }
@@ -64,7 +86,7 @@ final class CleanerModel: ObservableObject {
         var paths: [String] = []
         for category in categories where selectedIDs.contains(category.id) && category.risk.allowsDeletion {
             paths.append(contentsOf: category.subItems
-                .filter { !excludedPaths.contains($0.path) }
+                .filter { !isExcluded($0.path) }
                 .map(\.path))
         }
         return paths
@@ -79,6 +101,14 @@ final class CleanerModel: ObservableObject {
         return scope
     }
 
+    /// 扫描真正消费的排除清单：设置页的永久排除目录 + 清理页逐条排除的持久化名单。
+    /// 少了后半段，"排除"就只是个视觉状态，下一轮扫描照样把字节算回来。
+    func excludedPathsForScan(settings: AppSettings) -> [String] {
+        var merged = settings.excludedFolderPaths
+        merged.append(contentsOf: excludedEntries.map(\.path))
+        return Array(Set(merged)).sorted()
+    }
+
     func scan(settings: AppSettings) {
         scanTask?.cancel()
         cancellation.reset()
@@ -86,7 +116,7 @@ final class CleanerModel: ObservableObject {
         progress = nil
         isPartial = false
         let scope = scope(from: settings)
-        let exclusions = settings.excludedFolderPaths
+        let exclusions = excludedPathsForScan(settings: settings)
         // 闭包在后台 actor 上被反复调用，强引用标志本身而不是 self：
         // 用 `self?.isCancelled ?? true` 会在模型释放的瞬间把整轮扫描判成已取消。
         let cancellation = self.cancellation
@@ -144,11 +174,24 @@ final class CleanerModel: ObservableObject {
     }
 
     func toggleExclusion(_ path: String) {
-        if excludedPaths.contains(path) {
-            excludedPaths.remove(path)
-        } else {
-            excludedPaths.insert(path)
+        if exclusionStore.remove(path: path) {
+            excludedEntries = exclusionStore.entries()
+            return
         }
+        // 新的排除默认就是"按扫描到的明细条目排除"。
+        addExclusion(path, source: .scannedItem)
+    }
+
+    @discardableResult
+    func addExclusion(_ path: String, source: CleanerExclusionSource) -> Bool {
+        guard exclusionStore.add(path: path, source: source) else { return false }
+        excludedEntries = exclusionStore.entries()
+        return true
+    }
+
+    func removeExclusion(_ path: String) {
+        guard exclusionStore.remove(path: path) else { return }
+        excludedEntries = exclusionStore.entries()
     }
 
     func toggleCategoryExpanded(_ category: CacheCategory) {
@@ -174,6 +217,7 @@ final class CleanerModel: ObservableObject {
         isCleaning = true
         Task { [weak self] in
             guard let self else { return }
+            // 唯一删除出口：FileTrashService 负责废纸篓、操作记录与逐条失败上报。
             let result = await FileTrashService.shared.moveToTrash(paths: paths)
             self.lastResult = result
             self.failures = result.operation.failures
@@ -187,8 +231,22 @@ final class CleanerModel: ObservableObject {
                     self.selectedIDs.remove(self.categories[index].id)
                 }
             }
-            self.excludedPaths = self.excludedPaths.filter { !cleaned.contains($0) }
+            // 条目已经不存在了，排除记录留着只会变成点不开的幽灵行。
+            self.exclusionStore.remove(paths: cleaned)
+            self.excludedEntries = self.exclusionStore.entries()
             self.isCleaning = false
+        }
+    }
+
+    /// 4.6：只读地把可清除空间与本地快照读一遍。
+    /// tmutil 要起子进程，所以整段放在 actor 里，主线程只接结果。
+    func loadSpaceReadout() {
+        guard !isLoadingSpaceReadout else { return }
+        isLoadingSpaceReadout = true
+        Task { [weak self] in
+            let readout = await SystemSpaceReporter().readout()
+            self?.spaceReadout = readout
+            self?.isLoadingSpaceReadout = false
         }
     }
 
@@ -292,6 +350,10 @@ public struct CleanerView: View {
             if model.categories.isEmpty, !model.isScanning {
                 model.scan(settings: settings)
             }
+            // 只读报告与清理扫描互不依赖，进页面顺手读一次即可；要更新用区块里的刷新按钮。
+            if model.spaceReadout == nil {
+                model.loadSpaceReadout()
+            }
             if ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil {
                 showConfirm = true
             }
@@ -373,6 +435,13 @@ public struct CleanerView: View {
                     }
                     .padding(.horizontal, MMGap.md)
                     .padding(.vertical, MMGap.sm)
+
+                    // 4.6：APFS 可清除空间与本地快照。整块只读，没有任何删除入口。
+                    ReadOnlySpaceReportSection(
+                        readout: model.spaceReadout,
+                        isLoading: model.isLoadingSpaceReadout,
+                        onRefresh: { model.loadSpaceReadout() }
+                    )
                 }
                 // 必须显式给宽：LazyVStack 在 ScrollView 里会按最宽子项的
                 // 理想宽度排版，整张表就会横向溢出、右侧说明文字被裁掉。
@@ -483,7 +552,7 @@ public struct CleanerView: View {
 
     @ViewBuilder
     private func subItemRow(_ item: CacheSubItem, category: CacheCategory) -> some View {
-        let isExcluded = model.excludedPaths.contains(item.path)
+        let isExcluded = model.isExcluded(item.path)
         HStack(spacing: MMGap.sm) {
             Button {
                 model.loadChildren(of: item)
@@ -517,10 +586,11 @@ public struct CleanerView: View {
                 .frame(minWidth: 72, alignment: .trailing)
 
             if category.risk.allowsDeletion {
-                Button(isExcluded ? "恢复" : "排除") { model.toggleExclusion(item.path) }
+                Button(isExcluded ? "已排除" : "排除") { model.toggleExclusion(item.path) }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .help(isExcluded ? "重新计入清理范围" : "本次不清理此项")
+                    .help(isExcluded ? "已写入排除名单，重启后依然生效；在名单里可恢复"
+                                     : "加入排除名单，之后每次扫描都不再计入")
             }
         }
         .padding(.leading, MMGap.xl + MMGap.sm)
@@ -565,8 +635,8 @@ public struct CleanerView: View {
                 ? "扫描未完成，数字只包含已扫到的部分"
                 : "未勾选项不会被修改"
         ) {
-            Button("排除名单 (\(model.excludedPaths.count))") { showExclusions = true }
-                .disabled(model.excludedPaths.isEmpty)
+            Button("排除名单 (\(model.excludedEntries.count))") { showExclusions = true }
+                .disabled(model.excludedEntries.isEmpty && settings.excludedFolderPaths.isEmpty)
         } trailing: {
             Button(model.isCleaning ? "清理中…" : "清理已选 \(model.selectedDeletableCount) 类") {
                 if settings.confirmBeforeDelete {
@@ -648,50 +718,101 @@ public struct CleanerView: View {
     private var exclusionSheet: some View {
         VStack(alignment: .leading, spacing: MMGap.md) {
             Text("排除名单").font(.headline)
-            Text("被排除的目录不会计入清理范围，也不会被删除。加入这里只影响本次会话之外的扫描范围。")
+            Text("名单里的目录与条目不会计入清理范围，也不会被删除；重启后依然生效。")
                 .font(.caption)
                 .foregroundStyle(MMColor.secondaryLabel)
 
-            if settings.excludedFolderPaths.isEmpty {
-                Text("尚无永久排除的目录")
-                    .font(.callout)
-                    .foregroundStyle(MMColor.tertiaryLabel)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, MMGap.lg)
-            } else {
-                List {
-                    ForEach(settings.excludedFolderPaths, id: \.self) { path in
-                        HStack {
-                            Text((path as NSString).abbreviatingWithTildeInPath)
-                                .font(.callout.monospaced())
-                                .lineLimit(1)
-                            Spacer()
-                            Button("移除") {
-                                settings.excludedFolderPaths.removeAll { $0 == path }
+            // 两块来源分开列：清理页逐条排除的走本模块的持久化存储，
+            // 设置页选定的永久目录仍由 MMCore.AppSettings 持有。
+            VStack(alignment: .leading, spacing: MMGap.xs) {
+                Text("本页面排除的条目").font(.caption.weight(.semibold))
+                    .foregroundStyle(MMColor.secondaryLabel)
+                if model.excludedEntries.isEmpty {
+                    Text("尚无逐条排除的条目")
+                        .font(.callout).foregroundStyle(MMColor.tertiaryLabel)
+                        .padding(.vertical, MMGap.sm)
+                } else {
+                    // 逐条删除 + 显示来源，是这份名单能不能被信任的关键：
+                    // 只显示数量、只能整体清空的话，用户找不到那条被误排除的条目。
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: MMGap.xxs) {
+                            ForEach(model.excludedEntries) { entry in
+                                HStack(spacing: MMGap.sm) {
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Text((entry.path as NSString).abbreviatingWithTildeInPath)
+                                            .font(.callout.monospaced())
+                                            .lineLimit(1).truncationMode(.middle)
+                                        Text("\(entry.source.label) · \(MMFormat.dateTime(entry.addedAt))")
+                                            .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
+                                    }
+                                    Spacer(minLength: MMGap.sm)
+                                    Button("恢复") {
+                                        model.removeExclusion(entry.path)
+                                        model.scan(settings: settings)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .controlSize(.small)
+                                    .help("从排除名单移除并重新扫描")
+                                    MMRowAction(systemImage: "folder", help: "在访达中打开") {
+                                        MMReveal.open(entry.path)
+                                    }
+                                }
+                                .padding(.vertical, MMGap.xxs)
                             }
-                            .buttonStyle(.borderless)
                         }
                     }
+                    .frame(height: 150)
                 }
-                .frame(height: 180)
             }
+            .padding(MMGap.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control))
+            .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
-            Button {
-                let panel = NSOpenPanel()
-                panel.canChooseDirectories = true
-                panel.canChooseFiles = false
-                panel.allowsMultipleSelection = true
-                if panel.runModal() == .OK {
-                    for url in panel.urls where !settings.excludedFolderPaths.contains(url.path) {
-                        settings.excludedFolderPaths.append(url.path)
+            VStack(alignment: .leading, spacing: MMGap.xs) {
+                Text("设置里永久排除的目录").font(.caption.weight(.semibold))
+                    .foregroundStyle(MMColor.secondaryLabel)
+                if settings.excludedFolderPaths.isEmpty {
+                    Text("尚无永久排除的目录")
+                        .font(.callout)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, MMGap.md)
+                } else {
+                    List {
+                        ForEach(settings.excludedFolderPaths, id: \.self) { path in
+                            HStack {
+                                Text((path as NSString).abbreviatingWithTildeInPath)
+                                    .font(.callout.monospaced())
+                                    .lineLimit(1)
+                                Spacer()
+                                Button("移除") {
+                                    settings.excludedFolderPaths.removeAll { $0 == path }
+                                    model.scan(settings: settings)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                        }
                     }
-                    model.scan(settings: settings)
+                    .frame(height: 110)
                 }
-            } label: {
-                Label("添加目录…", systemImage: "plus")
             }
 
             HStack {
+                Button {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = false
+                    panel.allowsMultipleSelection = true
+                    guard panel.runModal() == .OK else { return }
+                    // 写进本模块的持久化名单并标来源，下一轮扫描就真的少扫这些子树。
+                    for url in panel.urls {
+                        model.addExclusion(url.path, source: .chosenFolder)
+                    }
+                    model.scan(settings: settings)
+                } label: {
+                    Label("添加目录…", systemImage: "plus")
+                }
                 Spacer()
                 Button("完成") { showExclusions = false }
                     .keyboardShortcut(.defaultAction)
@@ -708,6 +829,10 @@ public struct CleanerView: View {
         } else {
             parts.append("已扫描 \(model.categories.count) 类")
             parts.append("可释放 \(MMFormat.bytes(model.measuredTotal))")
+            if model.readOnlyTotal > 0 {
+                // 只读档没有删除入口，混进"可释放"里就是一个假数字，单独报。
+                parts.append("另有 \(MMFormat.bytes(model.readOnlyTotal)) 只读")
+            }
             if let scannedAt = model.scannedAt {
                 parts.append(MMFormat.dateTime(scannedAt))
             }

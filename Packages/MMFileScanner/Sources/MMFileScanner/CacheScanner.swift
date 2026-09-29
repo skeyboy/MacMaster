@@ -127,12 +127,45 @@ public struct CacheScanReport {
     }
 }
 
+/// 系统给"当前这个登录用户"分配的 per-user 缓存目录，也就是
+/// `getconf DARWIN_USER_CACHE_DIR` 的返回值（形如 `/var/folders/ab/xxxx/C/`）。
+///
+/// 4.1 的可删除类别只挂在这个目录下面：它是唯一一个"既是系统缓存、
+/// 又确定属于当前用户"的位置。取不到就什么都别扫——退化成
+/// `/private/var/folders/*/*/C` 会把别人的、以及守护账号的同名目录列成
+/// "可安全清理"，而那些文件属主不是当前用户，删除注定失败。
+///
+/// 注意系统返回的是 `/var` 开头的别名路径，枚举回来是 `/private/var`：
+/// 一律交给 `CacheScanner.standardize` 的 `resolvingSymlinksInPath` 口径，别处不另拼一套。
+public enum DarwinCachePaths {
+    public static func userCacheDirectory() -> String? {
+        let size = confstr(_CS_DARWIN_USER_CACHE_DIR, nil, 0)
+        guard size > 1 else { return nil }
+        var buffer = [CChar](repeating: 0, count: size)
+        guard confstr(_CS_DARWIN_USER_CACHE_DIR, &buffer, size) > 0 else { return nil }
+        let path = String(cString: buffer)
+        return path.isEmpty ? nil : path
+    }
+}
+
 public actor CacheScanner {
     /// 可注入的"家目录"，让类别路径能在临时目录里整棵树验证。
     private let home: String
+    /// `/private/var/folders` 的根。只读类别用它列出守护账号的那批目录。
+    private let varRoot: String
+    /// 系统级 `/Library`。只读类别用它，单测里换成临时目录才不会量到真机。
+    private let systemLibrary: String
+    /// 当前用户的 per-user 缓存目录；nil 表示拿不到，4.1 的类别就不声明任何路径。
+    private let userCacheRoot: String?
 
-    public init(home: String = NSHomeDirectory()) {
+    public init(home: String = NSHomeDirectory(),
+                varRoot: String = "/private/var/folders",
+                systemLibrary: String = "/Library",
+                userCacheRoot: String? = DarwinCachePaths.userCacheDirectory()) {
         self.home = home
+        self.varRoot = varRoot
+        self.systemLibrary = systemLibrary
+        self.userCacheRoot = userCacheRoot
     }
 
     /// 兼容旧调用点（概览页只要一个总量）。新代码用带进度的 `scan`。
@@ -145,13 +178,19 @@ public actor CacheScanner {
                      shouldContinue: @escaping @Sendable () -> Bool = { true },
                      progress: (@Sendable (CacheScanProgress) -> Void)? = nil) async -> CacheScanReport {
         let started = Date()
-        let enabled = Self.categories(home: home).filter { scope.allows($0.scope) }
+        let enabled = Self.categories(home: home, varRoot: varRoot,
+                                      systemLibrary: systemLibrary,
+                                      userCacheRoot: userCacheRoot)
+            .filter { scope.allows($0.scope) }
         let exclusions = excludedFolderPaths.map { Self.standardize($0) }
+        // 通配展开每轮只算一次并复用：类别清单的 `claimed` 与逐类别测量用的是同一批路径，
+        // 各算一遍会把同一层目录重复列出来。
+        let resolvedPaths = enabled.map { category in
+            category.paths.flatMap { Self.expand(glob: $0) }
+        }
         // 每个类别都声明自己"拥有"哪些绝对路径。父目录扫描时跳过这些子树，
         // 否则 ~/Library/Caches 会把 Safari 缓存算两遍，两个类别相加就大于真实可释放量。
-        let claimed: Set<String> = Set(enabled.flatMap { category in
-            category.paths.flatMap { Self.expand(glob: $0) }
-        }.map { Self.standardize($0) })
+        let claimed: Set<String> = Set(resolvedPaths.flatMap { $0 }.map { Self.standardize($0) })
 
         var result: [CacheCategory] = []
         var processed = 0
@@ -159,7 +198,7 @@ public actor CacheScanner {
 
         for (index, category) in enabled.enumerated() {
             guard shouldContinue() else { complete = false; break }
-            let resolved = category.paths.flatMap { Self.expand(glob: $0) }
+            let resolved = resolvedPaths[index]
             var filled = category
             var subItems: [CacheSubItem] = []
             var inaccessible: [String] = []
@@ -234,19 +273,25 @@ public actor CacheScanner {
         return report.categories.first { $0.id == category.id } ?? category
     }
 
-    private static func expand(glob: String) -> [String] {
+    /// 单层通配展开：`*` 只替换**一层**目录名，多个 `*` 从左到右逐层展开。
+    /// （旧实现只处理最左边一个 `*`，剩下的 `*` 会当字面量留在路径里，
+    /// 于是 `a/*/*/C` 这类glob 静默匹配不到任何东西。）
+    static func expand(glob: String) -> [String] {
         guard glob.contains("*") else { return [glob] }
         let parts = glob.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
-        guard let star = parts.firstIndex(of: "*"), star + 1 < parts.count else { return [glob] }
+        guard let star = parts.firstIndex(of: "*") else { return [glob] }
         let parent = parts.prefix(star).joined(separator: "/")
         guard let names = try? FileManager.default.contentsOfDirectory(
             at: URL(fileURLWithPath: parent), includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else { return [] }
         let suffix = parts[(star + 1)...].joined(separator: "/")
+        // 一个 `*` 只代表**一层**目录名，所以剩余部分还要继续展开：
+        // /private/var/folders 的 per-user 缓存是 `<2 字符>/<16 字符>/<uid 目录>/com.apple.xxx`，
+        // 只展开最左边那个 `*` 会把后面的 `*` 当字面量留在路径里，永远匹配不到任何条目。
         return names
             .filter { !$0.lastPathComponent.hasPrefix(".") }
-            .map { "\($0.path)/\(suffix)" }
+            .flatMap { expand(glob: "\($0.path)/\(suffix)") }
             .sorted()
     }
 
@@ -379,8 +424,27 @@ public actor CacheScanner {
 
     // MARK: - 类别清单
 
-    static func categories(home: String) -> [CacheCategory] {
-        [
+    /// 类别清单的**不变量**：同一个绝对路径只能被一个类别计入。
+    /// 新增类别时必须检查它是否与已有类别的路径互为祖先/后代（扫描时靠 `claimed`
+    /// 集合挖子树来保证不重复计数），否则界面上的"可释放 X GB"就会虚高。
+    static func categories(home: String,
+                           varRoot: String = "/private/var/folders",
+                           systemLibrary: String = "/Library",
+                           userCacheRoot: String? = nil) -> [CacheCategory] {
+        // 拿不到当前用户的 per-user 缓存目录时，4.1 的四个类别声明空路径：
+        // 空路径不计量、不进默认可选，也不会误扫到别人的 bucket。
+        let userCache = userCacheRoot.map { $0.hasSuffix("/") ? String($0.dropLast()) : $0 }
+        func perUser(_ names: [String]) -> [String] {
+            guard let userCache else { return [] }
+            return names.map { "\(userCache)/\($0)" }
+        }
+        // 每个 GUI 应用在这个缓存目录里都有自己的 bucket，里面可能再放一份
+        // 自己编译的着色器库。`*` 只代表一层目录名，展开后按应用逐个成条目。
+        func perUserNested(_ names: [String]) -> [String] {
+            guard let userCache else { return [] }
+            return names.map { "\(userCache)/*/\($0)" }
+        }
+        return [
             CacheCategory(
                 id: "system_cache", name: "系统缓存",
                 subtitle: "~/Library/Caches · 不含下方单列的类别",
@@ -402,6 +466,53 @@ public actor CacheScanner {
                 subtitle: "~/.Trash",
                 iconName: "trash", risk: .safe, scope: .systemCache,
                 paths: ["\(home)/.Trash"]
+            ),
+
+            // MARK: 非显性系统缓存（4.1：当前用户的 per-user 缓存目录）
+            //
+            // 这些目录 Finder 与「关于本机」都不显示，但 Apple Silicon 上 Metal 着色器库
+            // 常年能吃到 GB 级。叶子名一律用**精确目录名**，不用前缀通配，
+            // 免得扫进同层的用户状态目录；每个应用自己那份（`<bucket>/<bundle id>/com.apple.metalfe`）
+            // 用一层 `*` 单独展开，它和上面那份不是祖先/后代关系，不会重复计数。
+            CacheCategory(
+                id: "var_metal_cache", name: "GPU 与 Metal 着色器缓存",
+                subtitle: "系统缓存目录 · metalfe · gpuarchiver",
+                iconName: "memorychip", risk: .safe, scope: .systemCache,
+                paths: perUser([
+                    "com.apple.metalfe",
+                    "com.apple.gpuarchiver",
+                    "com.apple.opencl",
+                ]) + perUserNested(["com.apple.metalfe", "com.apple.gpuarchiver"])
+            ),
+            CacheCategory(
+                id: "var_icon_preview_cache", name: "QuickLook 与图标服务缓存",
+                subtitle: "系统缓存目录 · QuickLook · iconservices · helpd",
+                iconName: "photo.stack", risk: .safe, scope: .systemCache,
+                paths: perUser([
+                    "com.apple.QuickLook.thumbnailcache",
+                    "com.apple.QuickLookUIFramework.QLPreviewGenerationExtension",
+                    "com.apple.quicklook.QuickLookUIService",
+                    "com.apple.iconservices",
+                    "com.apple.iconservicesagent",
+                    "com.apple.helpd",
+                ])
+            ),
+            CacheCategory(
+                id: "var_geo_cache", name: "地图瓦片缓存",
+                subtitle: "系统缓存目录 · GeoServices · 清理后需重新联网下载",
+                iconName: "map", risk: .caution, scope: .systemCache,
+                paths: perUser([
+                    "com.apple.GEO",
+                    "com.apple.geod",
+                ])
+            ),
+            CacheCategory(
+                id: "var_photo_analysis_cache", name: "照片分析与视觉搜索缓存",
+                subtitle: "系统缓存目录 · photoanalysisd · 清理后会重新分析",
+                iconName: "photo.on.rectangle.angled", risk: .caution, scope: .systemCache,
+                paths: perUser([
+                    "com.apple.photoanalysisd",
+                ])
             ),
             CacheCategory(
                 id: "logs", name: "应用日志",
@@ -452,6 +563,9 @@ public actor CacheScanner {
                 id: "sandbox_container_cache", name: "沙盒容器缓存",
                 subtitle: "~/Library/Containers/*/Data/Library/Caches",
                 iconName: "shippingbox", risk: .caution, scope: .appCache,
+                // 只取容器里的 `Data/Library/Caches`，不碰容器根：容器根含用户文档、
+                // 登录态与未同步数据，整目录只能是谨慎档。`*` 按容器逐个展开成条目，
+                // 这样用户能看到到底是哪个应用的缓存在占空间。
                 paths: ["\(home)/Library/Containers/*/Data/Library/Caches"]
             ),
             CacheCategory(
@@ -459,6 +573,15 @@ public actor CacheScanner {
                 subtitle: "~/Library/Mail · 需要完全磁盘访问",
                 iconName: "envelope", risk: .caution, scope: .appCache,
                 paths: ["\(home)/Library/Mail", "\(home)/Library/Caches/com.apple.mail"]
+            ),
+            // 需要 root 的两处一律只读：/Library/Caches 里是系统守护进程与其它用户的缓存，
+            // /private/var/folders/zz 是 _windowserver 等守护账号的 per-user 目录。
+            // 界面不给删除入口，也不进默认可选清单。
+            CacheCategory(
+                id: "privileged_cache", name: "系统级缓存（需管理员权限）",
+                subtitle: "/Library/Caches · /private/var/folders 守护账号目录 · 仅供查看",
+                iconName: "lock.folder", risk: .readOnly, scope: .systemCache,
+                paths: ["\(systemLibrary)/Caches", "\(varRoot)/zz"]
             ),
             CacheCategory(
                 id: "system_logs", name: "系统日志",
