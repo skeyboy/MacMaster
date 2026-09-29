@@ -1,0 +1,19 @@
+# 构建产物
+.build/
+build/
+DerivedData/
+*.dmg
+*.xcarchive
+
+# SPM / Xcode 本地状态
+.swiftpm/
+*.xcuserstate
+xcuserdata/
+
+# 系统文件
+.DS_Store
+
+# 第三方参考仓库克隆（各自带 .git 与独立许可证，不纳入本仓库）
+docs/github-references/
+docs/Mole/
+docs/lemon-cleaner/
