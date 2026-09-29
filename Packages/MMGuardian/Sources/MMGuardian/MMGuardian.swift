@@ -231,10 +231,12 @@ public struct GuardianView: View {
                 .frame(minHeight: 120)
             } else {
                 ForEach(vm.loginItems) { item in
-                    LoginItemRow(item: item) {
+                    LoginItemRow(item: item, anomaly: vm.loginAudit.anomalies[item.path]) {
                         Task { await vm.toggle(item) }
                     }
                 }
+
+                auditFooter
             }
         }
         .padding(MMGap.md)
@@ -243,6 +245,51 @@ public struct GuardianView: View {
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
+    }
+
+    /// 核对结果的脚注。不可核对时必须显式说"这一轮没对表"——
+    /// 没有徽章的列表读起来像"全部正常"，那是最省事也最假的一种呈现。
+    @ViewBuilder
+    private var auditFooter: some View {
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            if !vm.loginAudit.determinate {
+                HStack(alignment: .top, spacing: MMGap.xs) {
+                    Image(systemName: "questionmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                    Text(vm.loginAudit.reason.map(LoginItemAnomalyCopy.indeterminateNote)
+                         ?? LoginItemAnomalyCopy.indeterminateNote("尚未执行"))
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                if !vm.loginAudit.orphanLabels.isEmpty {
+                    HStack(alignment: .top, spacing: MMGap.xs) {
+                        Image(systemName: "exclamationmark.arrow.triangle.2.circlepath")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.caution)
+                        Text("launchd 里还挂着 \(vm.loginAudit.orphanLabels.count) 个非苹果标签，五个已知 LaunchAgents/Daemons 目录都找不到它们的 plist："
+                             + vm.loginAudit.orphanLabels.prefix(6).joined(separator: "、")
+                             + (vm.loginAudit.orphanLabels.count > 6 ? " 等" : "")
+                             + "。" + LoginItemAnomalyCopy.orphanNote)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                HStack(alignment: .top, spacing: MMGap.xs) {
+                    Image(systemName: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                    Text(LoginItemAnomalyCopy.footnote)
+                        .font(.caption)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.top, MMGap.xs)
     }
 
     // MARK: - 系统活动
@@ -306,6 +353,8 @@ public struct GuardianView: View {
 @MainActor
 final class GuardianViewModel: ObservableObject {
     @Published var loginItems: [LoginItem] = []
+    /// 磁盘清单 × launchd 快照的交叉核对结果；`.indeterminate` = 还没跑过。
+    @Published var loginAudit: LoginItemAudit = .indeterminate
     @Published var activities: [ActivityItem] = []
     /// 摄像头/麦克风占用档位；空字典 = 还在测。
     @Published var deviceUsage: [DeviceUsageKind: DeviceUsageState] = [:]
@@ -382,10 +431,17 @@ final class GuardianViewModel: ObservableObject {
 
     func loadLoginItems() async {
         let report = await Task.detached {
-            LoginItemScanner.scan()
+            // 磁盘清单和 launchd 快照一起取：分两次 await 会让界面短暂出现
+            // "有清单、没核对"的中间态，那一屏看起来就像"核对过、一切正常"。
+            let scan = LoginItemScanner.scan()
+            let snapshot = LaunchctlRunner.listSnapshot()
+            return (scan, LoginItemAuditor.audit(items: scan.items, snapshot: snapshot) { path in
+                FileManager.default.fileExists(atPath: path)
+            })
         }.value
-        loginItems = report.items
-        scanErrors = report.readErrors
+        loginItems = report.0.items
+        scanErrors = report.0.readErrors
+        loginAudit = report.1
     }
 
     func loadActivity() async {
@@ -412,6 +468,7 @@ final class GuardianViewModel: ObservableObject {
 
 struct LoginItemRow: View {
     let item: LoginItem
+    let anomaly: LoginItemAnomaly?
     let onToggle: () -> Void
 
     var body: some View {
@@ -427,6 +484,19 @@ struct LoginItemRow: View {
                     .foregroundStyle(MMColor.secondaryLabel)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                if item.fileKind == .renamedDisabled || anomaly != nil {
+                    HStack(spacing: MMGap.xs) {
+                        if item.fileKind == .renamedDisabled {
+                            // 停用有两种做法：写 Disabled 键，和把文件改名。后者 launchd
+                            // 根本不读，混在一起说"已关闭"会让人以为改个键就能恢复。
+                            MMBadge("改名停用", tint: MMColor.secondaryLabel, systemImage: "doc.badge.ellipsis")
+                        }
+                        if let anomaly {
+                            let copy = LoginItemAnomalyCopy.badge(anomaly)
+                            MMBadge(copy.text, tint: anomalyTint, systemImage: "exclamationmark.arrow.triangle.2.circlepath")
+                        }
+                    }
+                }
             }
             Spacer(minLength: MMGap.sm)
             if item.isWritable {
@@ -442,10 +512,14 @@ struct LoginItemRow: View {
                 .controlSize(.small)
             }
         }
-        .frame(height: MMMetric.rowRegular)
+        .frame(height: item.fileKind == .renamedDisabled || anomaly != nil
+               ? MMMetric.rowRegular + MMGap.sm : MMMetric.rowRegular)
         .padding(.horizontal, MMGap.md)
         .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
+
+    /// 这三条都是"两处记录对不上"，不是"确认坏了"：用 caution，绝不借红色。
+    private var anomalyTint: Color { MMColor.caution }
 }
 
 // MARK: - 占用行（当前占用卡）

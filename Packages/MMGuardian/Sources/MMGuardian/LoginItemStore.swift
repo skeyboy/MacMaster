@@ -14,6 +14,14 @@ import MMCore
 
 // MARK: - 数据模型
 
+/// 条目是以什么形态停用的。`renamedDisabled` = 文件被改名成 `<label>.disabled`：
+/// launchd 只加载 `*.plist`，改名本身就是一种停用手段（第三方清理工具常见做法），
+/// 但它绕过了 Disabled 键，界面上必须和"正常关着"区分开——恢复方式完全不同。
+public enum LoginItemFileKind: String, Sendable, Equatable {
+    case plist
+    case renamedDisabled
+}
+
 public struct LoginItem: Identifiable, Equatable, Sendable {
     public let id: String        // = path
     public let name: String
@@ -21,14 +29,17 @@ public struct LoginItem: Identifiable, Equatable, Sendable {
     public let domain: LaunchDomain
     public let enabled: Bool
     public let icon: String
+    public let fileKind: LoginItemFileKind
 
-    public init(name: String, path: String, domain: LaunchDomain, enabled: Bool, icon: String) {
+    public init(name: String, path: String, domain: LaunchDomain, enabled: Bool, icon: String,
+                fileKind: LoginItemFileKind = .plist) {
         self.id = path
         self.name = name
         self.path = path
         self.domain = domain
         self.enabled = enabled
         self.icon = icon
+        self.fileKind = fileKind
     }
 
     /// Equatable 只比 id + enabled：扫描后同名项的开关状态变化要能被 diff 到。
@@ -80,16 +91,21 @@ public enum LoginItemScanner {
                 continue
             }
             // 已知坑：目录枚举逐项取，路径比较先归一化符号链接。
-            for file in files where file.hasSuffix(".plist") {
+            for file in files where file.hasSuffix(".plist") || file.hasSuffix(".disabled") {
                 let path = "\(dir)/\(file)"
+                let isRenamedDisabled = file.hasSuffix(".disabled")
                 do {
                     let dict = try readPlist(at: path)
+                    let keySaysDisabled = dict["Disabled"] as? Bool ?? false
                     items.append(LoginItem(
                         name: dict["Label"] as? String ?? file,
                         path: path,
                         domain: domain,
-                        enabled: !(dict["Disabled"] as? Bool ?? false),
-                        icon: iconForDomain(domain)
+                        // 改名停用一律算"停用"：launchd 根本不会加载它，
+                        // 哪怕 plist 里的 Disabled 键还是 false。
+                        enabled: isRenamedDisabled ? false : !keySaysDisabled,
+                        icon: iconForDomain(domain),
+                        fileKind: isRenamedDisabled ? .renamedDisabled : .plist
                     ))
                 } catch {
                     readErrors.append("解析 \(path) 失败：\(error.localizedDescription)")
@@ -178,6 +194,16 @@ public enum LoginItemStore {
                 path: item.path,
                 message: "路径不在用户 LaunchAgents 目录内，拒绝写入（疑似伪装前缀或符号链接逃逸）。",
                 code: "POLICY"
+            )
+        }
+        // 改名停用的条目不走"写 Disabled 键"这条路：它压根不是 .plist，
+        // 写进去 launchd 也不会看，反而留下一个"以为开了其实没开"的假状态。
+        guard item.fileKind == .plist else {
+            return TrashFailure(
+                path: item.path,
+                message: "这个条目是靠把文件改名成 .disabled 停用的，launchd 只看 *.plist。"
+                    + "恢复需要把文件名改回去（\(item.path) 去掉结尾的 .disabled），MacMaster 不代做改名。",
+                code: "RENAME-MANAGED"
             )
         }
 
@@ -353,5 +379,34 @@ public enum LaunchctlRunner {
                 : "exit \(process.terminationStatus)：\(errText)"
         }
         return errText.isEmpty ? nil : "launchctl 警告：\(errText)"
+    }
+
+    /// 只读快照：跑 `launchctl list` 并把输出交给解析层。
+    /// 这是纯查询——不 load/unload/enable/disable 任何东西。
+    /// 任何一步失败都换成 `.unavailable(原因)`，让上层显式说"这一轮没核对成"。
+    public static func listSnapshot() -> LaunchdSnapshot {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = ["list"]
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+        do {
+            try process.run()
+        } catch {
+            return .unavailable(reason: "无法启动 launchctl：\((error as NSError).localizedDescription)")
+        }
+        process.waitUntilExit()
+        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        guard process.terminationStatus == 0 else {
+            let errText = String(data: errData, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return .unavailable(reason: "launchctl list exit \(process.terminationStatus)"
+                + (errText.isEmpty ? "" : "：\(errText)"))
+        }
+        let text = String(data: outData, encoding: .utf8) ?? ""
+        return LaunchctlListParser.parse(text)
     }
 }

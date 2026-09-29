@@ -73,14 +73,14 @@
 | 项 | 状态 | 依据 |
 |---|---|---|
 | 3.1 设备占用指示 | ✅ 已落地 | `MMGuardian/DeviceUsage.swift` + `DeviceUsageProbe.swift`，见「P3.1 落地」节 |
-| 3.2 TCC 授权只读视图 | 🟡 进行中 | 另一条线上正在做，结论以 `docs/analysis/guardian-tcc.md` 为准 |
-| 3.3 登录项完整度 | 🟡 部分 | `LoginItemStore.swift` 已有 launchctl 交叉且非零退出码不再被 `try?` 吞掉；**"plist 在但没加载""运行中但找不到 plist" 两类异常标注仍未做**（全仓搜不到对应代码） |
+| 3.2 TCC 授权只读视图 | ✅ 已落地 | `MMGuardian/TCCAuthorization.swift` + `TCCProbe.swift`（只读 `SQLITE_OPEN_READONLY`，半读即整库判不可读），见「P3.2 落地」节 |
+| 3.3 登录项异常标注 | ✅ 已落地 | `MMGuardian/LoginItemAudit.swift`：磁盘 plist × `launchctl list` 快照交叉，三类异常徽章 + 孤儿标签脚注，见「P3.3 落地」节 |
 | 3.4 菜单栏指标 | ✅ 已落地 | `MMMonitor.swift:71` 每核 CPU、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分 / compressed / `AppleSmartBattery` / IOReport |
 | 3.5 不再写系统域 `Disabled` | ✅ 已落地 | `LaunchItemPolicy.swift:5` 明确"永远不尝试写 Disabled 键"，用户域改写走 throwing API（`LoginItemStore.swift:158-188`） |
 | 4.1 非显性系统缓存 | ✅ 已落地 | `CacheScanner.swift:475-485`（metalfe / gpuarchiver），QuickLook、iconservices、GeoServices、photoanalysisd 同文件内共 13 处 |
 | 4.2 沙盒容器内缓存 | ✅ 已落地 | `CacheScanner.swift:564-569` 走 `~/Library/Containers/*/Data/Library/Caches` 通配 |
 | 4.3 开发工具缓存走 owner 命令 | ⬜ 未做 | 全仓搜不到 `go clean -modcache` / `cargo` / `brew autoremove`；这条是**执行第三方命令**，风险最高，动之前要先定"进程状态未知时拒绝执行"的判据 |
-| 4.4 安装包残留查找 | 🟡 进行中 | 另一条线上正在做 |
+| 4.4 安装包残留查找 | ✅ 已落地 | `MMFileScanner/InstallerScanner.swift` 内容嗅探（koly / xar! / EOCD 中央目录）+ `UserFolderCleanView` 区块，见「P4.4 落地」节 |
 | 4.5 白名单持久化 | ✅ 已落地 | `CleanerExclusionStore`（`MMCleaner.swift:25-53`）已是唯一真源，表里那句"当前是会话级内存态"过期了 |
 | 4.6 purgeable / 本地快照只读报告 | ✅ 已落地 | `ReadOnlySpaceReport.swift`，读不到时整块说明原因，不显示 0 冒充事实 |
 
@@ -334,3 +334,43 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 `.xip` 的 `AB C1 AD FE` 魔数按公开格式资料实现，本机没有 .xip 样本实证；对不上只会降级成
 `nameOnly`（安全方向的误差）。`installerInaccessibleRoots` 的真机渲染没截到——
 那四个家目录子项在 TCC 保护下都能枚举，模拟"读不到"要指真实目录，风险大于收益。
+
+## P3.3 落地：登录项异常标注（磁盘 plist × launchd 快照）
+
+**做了什么**：`MMGuardian/LoginItemAudit.swift`（纯逻辑，无 IO）+ `LoginItemStore` 的
+只读 `LaunchctlRunner.listSnapshot()` + `LoginItemRow` 的徽章行 + 卡片脚注。
+把原来"列表里有个开关"升级成"两处记录对不上时点名"。
+
+**三类判定，全部只报不一致、不报坏了**：
+- `plistNotLoaded`：plist 在磁盘上且没写 `Disabled`，但当前 GUI 会话的 `launchctl list` 里没有它；
+- `disabledButLoaded`：写着 `Disabled=true` 却仍在加载；
+- `orphanLoaded`：launchd 里有标签，五个已知 LaunchAgents/Daemons 目录都找不到 plist。
+
+**判据边界（写进代码注释，也写进文案）**：
+- `LaunchDaemons` 不参与交叉——GUI 域的 `launchctl list` 本来就看不见它们，
+  否则每个守护进程都会被误标成"没加载"。
+- `.disabled` 改名的文件由文件名管，不再叠一枚"没加载"（launchd 根本不读它，
+  两枚徽章只会互相解释不掉）；同时 `toggle` 对这类文件直接拒绝写入并回
+  `RENAME-MANAGED`，不做任何文件写尝试。
+- `userPreferences`（旧 `loginitems.plist` 兼容条目）不判。
+- 解析器一个标签都没解析出来时返回 `.unavailable` 而不是空集合——
+  空集合会让"所有 plist 都没加载"成为下一帧的"事实"。
+
+**真机数字（本机 17 项，readErrors=0）**：异常 3 条，全是 `plistNotLoaded`
+（`/Library/LaunchAgents/com.sogou.SogouServices.plist`、`com.sogou.SogouTaskManager.plist`、
+`~/Library/LaunchAgents/com.pnuts.jenkins.plist`）。孤儿标签**候选 101 个，其中 99 个是
+`com.apple.*`**——不排除苹果标签等于把 2 条真正该看的埋进 99 条噪音里，
+所以只列非苹果自家的 2 条（`com.ollama.ollama`、`com.postgresapp.Postgres2LoginHelper`），
+并在旁边写明"SMAppService 注册的登录项本来就不落这些目录，不一定是残留"。
+
+**还原度**：设计稿 `06-guardian.html` 的登录项区块同步补上「改名停用」「没在当前会话里加载」
+两枚徽章与脚注，`render.sh` 重渲染后与实机截图逐行对齐（徽章文案、颜色档位、脚注两段一致）。
+
+### 没能验证到的部分
+
+`disabledButLoaded` 与 `orphanLoaded` 两类徽章**没有真机渲染截图**——本机没有制造这两种状态
+而不写真实 LaunchAgents 的办法，只有单元测试覆盖判定逻辑。
+`launchctl list` 失败/超时导致的 `.indeterminate` 脚注同样只在测试里走过。
+截图窗口锁在 1100×700（`.defaultSize` 与自动保存帧都不受控），登录项卡整卡高于视口，
+所以脚注是靠"临时把该卡提到首位 + 脚注单独成卡"截到的；两处补丁均为 `TEMP-CAPTURE`，
+提交前已全部回退并复查过（全仓 `grep TEMP-CAPTURE` 无命中）。

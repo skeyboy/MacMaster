@@ -21,10 +21,14 @@
               overflow:hidden;text-overflow:ellipsis}
 .urow .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
 .urow .r small{font-size:var(--fs-caption);color:var(--c-label-tertiary)}
-.login{display:flex;align-items:center;gap:var(--sp-3);height:44px;padding:0 var(--sp-3);
+.login{display:flex;align-items:center;gap:var(--sp-3);min-height:44px;padding:8px var(--sp-3);
        border-bottom:1px solid var(--c-separator)}
 .login:last-child{border-bottom:0}
 .login .ic{width:22px;flex:0 0 22px;display:grid;place-items:center;color:var(--c-label-tertiary)}
+.login .stack{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.login .stack .nm{flex:none}
+.login .stack .sub{max-width:100%}
+.login .stack .badge{align-self:flex-start}
 .login .nm{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .login .sub{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
             white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}
@@ -172,19 +176,43 @@
           <section>
             <div class="row-h" style="margin-bottom:var(--sp-2)">
               <svg class="i" style="color:var(--c-warning)"><use href="#i-power"></use></svg>
-              <span class="section-title">登录项 <span class="count">6 项</span></span>
+              <span class="section-title">登录项 <span class="count">17 项</span></span>
               <div class="sp"></div>
               <span class="btn sm borderless">打开系统设置 · 登录项</span>
             </div>
             <div class="card card-flush" style="padding:0">
               <div class="login"><svg class="i ic"><use href="#i-box"></use></svg>
-                <span class="nm">WeChatHelper</span>
-                <span class="sub">~/Library/LaunchAgents/com.tencent.xin.wechathelper.plist</span>
+                <span class="stack"><span class="nm">com.codex.clean-project-build-artifacts</span>
+                <span class="sub">~/Library/LaunchAgents/com.codex.clean-project-build-artifacts.disabled</span>
+                <span class="badge readonly"><svg class="i"><use href="#i-lock"></use></svg>改名停用</span></span>
+                <span class="sw"></span></div>
+              <div class="login"><svg class="i ic"><use href="#i-box"></use></svg>
+                <span class="stack"><span class="nm">com.pnuts.jenkins</span>
+                <span class="sub">~/Library/LaunchAgents/com.pnuts.jenkins.plist</span>
+                <span class="badge warn"><svg class="i"><use href="#i-refresh"></use></svg>没在当前会话里加载</span></span>
                 <span class="sw on"></span></div>
               <div class="login"><svg class="i ic"><use href="#i-lock"></use></svg>
-                <span class="nm">com.apple.installserver.framework</span>
-                <span class="sub">/System/Library/LaunchAgents/…plist</span>
-                <span class="badge readonly"><svg class="i"><use href="#i-lock"></use></svg>只读</span></div>
+                <span class="stack"><span class="nm">com.sogou.SogouServices</span>
+                <span class="sub">/Library/LaunchAgents/com.sogou.SogouServices.plist</span>
+                <span class="badge warn"><svg class="i"><use href="#i-refresh"></use></svg>没在当前会话里加载</span></span>
+                <span class="badge readonly"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+                <span class="btn sm borderless">在系统设置中管理</span></div>
+              <div class="login"><svg class="i ic"><use href="#i-lock"></use></svg>
+                <span class="stack"><span class="nm">com.docker.socket</span>
+                <span class="sub">/Library/LaunchDaemons/com.docker.socket.plist</span></span>
+                <span class="badge readonly"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+                <span class="btn sm borderless">在系统设置中管理</span></div>
+              <div class="foot-note" style="border-top:1px solid var(--c-separator)">
+                <div class="row-h" style="gap:6px;align-items:flex-start">
+                  <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-refresh"></use></svg>
+                  <span>launchd 里还挂着 2 个非苹果标签。五个已知 LaunchAgents/Daemons 目录都找不到它们的 plist：
+                  com.ollama.ollama、com.postgresapp.Postgres2LoginHelper。不一定是残留：新版 SMAppService
+                  注册的登录项本来就不落这些目录。只列非苹果自家的标签（苹果的落盘位置枚举不全，列出来会把该看的埋掉）。</span></div>
+                <div class="row-h" style="gap:6px;align-items:flex-start;margin-top:4px">
+                  <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+                  <span>「没在当前会话里加载」不等于坏了：按需启动的 Agent 在第一次被触发之前本来就不在 launchctl
+                  列表里。这里只报「磁盘上有什么」和「launchd 当前认了什么」对不上的地方，不替你下结论。</span></div>
+              </div>
             </div>
           </section>
 
