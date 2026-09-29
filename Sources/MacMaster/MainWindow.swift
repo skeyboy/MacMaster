@@ -655,9 +655,13 @@ struct DashboardView: View {
             Spacer(minLength: MMGap.sm)
             if operation.isUndone {
                 MMBadge("已撤回", tint: MMColor.secondaryLabel)
-            } else {
+            } else if operation.canUndo {
                 Button("撤回") { Task { await model.undo(operation) } }
                     .buttonStyle(.borderless).controlSize(.small)
+            } else {
+                // 记录还在，但废纸篓里的那个文件已经不在了。按钮该在这里消失，
+                // 而不是等用户按下去才拿到一个错误。
+                MMBadge("废纸篓已清空", tint: MMColor.tertiaryLabel)
             }
         }
         .padding(.horizontal, MMGap.lg)
@@ -665,7 +669,9 @@ struct DashboardView: View {
     }
 
     private func recentSubtitle(_ operation: TrashOperation) -> String {
-        var text = MMFormat.relative(operation.timestamp) + " · \(MMFormat.count(operation.fileCount)) 个文件"
+        // 卡片只有 ~330pt 宽，"N 个文件"加上失败数就会被截掉尾巴，
+        // 而失败数恰恰是最不该看不见的一段。统一用"项"。
+        var text = MMFormat.relative(operation.timestamp) + " · \(MMFormat.count(operation.fileCount)) 项"
         if operation.failures.isEmpty == false {
             text += " · \(operation.failures.count) 项失败"
         }

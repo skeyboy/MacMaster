@@ -7,7 +7,25 @@ public final class FileTrashService: ObservableObject {
 
     @Published public private(set) var trashHistory: [TrashOperation] = []
 
-    private init() {}
+    /// 落盘位置。nil 表示这台机器上拿不到 Application Support，历史只在内存里。
+    private let store: TrashHistoryStore?
+
+    /// 内存与磁盘共用同一个上限，避免出现"磁盘上还有、界面上没有"的两套真相。
+    static let historyLimit = 20
+
+    private convenience init() {
+        self.init(store: TrashHistoryStore.default())
+    }
+
+    /// 注入 store 才能单测：默认那条路径是真实的 `~/Library/Application Support`。
+    init(store: TrashHistoryStore?) {
+        self.store = store
+        if let store {
+            // 一条都不删：「最近操作」是台账，不是待办清单。废纸篓已经被倒空的
+            // 那条照样列出来，由界面用"废纸篓已清空"说明它为什么没有撤回按钮。
+            trashHistory = store.load()
+        }
+    }
 
     public func moveToTrash(paths: [String]) async -> TrashResult {
         var movedFiles: [TrashRecord] = []
@@ -33,10 +51,7 @@ public final class FileTrashService: ObservableObject {
             files: movedFiles,
             failures: failures
         )
-        trashHistory.insert(operation, at: 0)
-        if trashHistory.count > 20 {
-            trashHistory.removeLast(trashHistory.count - 20)
-        }
+        record(.inserted(operation))
 
         return TrashResult(operation: operation)
     }
@@ -78,8 +93,28 @@ public final class FileTrashService: ObservableObject {
             }
         }
 
-        trashHistory[opIndex] = operation.markedUndone()
+        record(.replaced(index: opIndex, with: operation.markedUndone()))
         return UndoResult(restoredCount: restoredCount, failures: failures)
+    }
+
+    /// 历史与磁盘只通过这一个出口改动，两边就不会各说各话。
+    private func record(_ change: Change) {
+        switch change {
+        case .inserted(let operation):
+            trashHistory.insert(operation, at: 0)
+            if trashHistory.count > Self.historyLimit {
+                trashHistory.removeLast(trashHistory.count - Self.historyLimit)
+            }
+        case .replaced(let index, let operation):
+            guard trashHistory.indices.contains(index) else { return }
+            trashHistory[index] = operation
+        }
+        store?.save(trashHistory)
+    }
+
+    private enum Change {
+        case inserted(TrashOperation)
+        case replaced(index: Int, with: TrashOperation)
     }
 
     /// 实际占用的块数，不是标称大小：APFS 压缩和稀疏文件的标称大小会把"释放了多少"夸大。
@@ -108,7 +143,7 @@ public struct TrashRecord: Codable {
     }
 }
 
-public struct TrashOperation: Identifiable {
+public struct TrashOperation: Identifiable, Codable {
     public let id: UUID
     public let timestamp: Date
     public let files: [TrashRecord]
@@ -120,6 +155,16 @@ public struct TrashOperation: Identifiable {
     }
 
     public var fileCount: Int { files.count }
+
+    /// 记录还在，但废纸篓里的那个文件已经不在了（用户倒过垃圾，或自己移回去过）。
+    /// 这不是失败，是事实：撤回按钮该消失，而不是等用户按下去才拿到一个错误。
+    public var canUndo: Bool {
+        guard isUndone == false else { return false }
+        return files.contains { file in
+            guard let trashPath = file.trashPath else { return false }
+            return FileManager.default.fileExists(atPath: trashPath)
+        }
+    }
 
     init(id: UUID, timestamp: Date, files: [TrashRecord], failures: [TrashFailure]) {
         self.id = id
@@ -138,7 +183,7 @@ public struct TrashOperation: Identifiable {
 
 /// 删除失败必须逐条上报。旧实现把错误拼成一句字符串，界面就只能整段塞进
 /// 一个 Text 里；路径与错误码分开才能做成设计稿那种"路径 + EPERM"的清单。
-public struct TrashFailure: Hashable, Identifiable, Sendable {
+public struct TrashFailure: Hashable, Identifiable, Sendable, Codable {
     public var id: String { path }
     public let path: String
     public let message: String
