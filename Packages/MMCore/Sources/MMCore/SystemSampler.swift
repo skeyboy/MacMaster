@@ -161,13 +161,18 @@ public enum SystemSampler {
 
     /// 用 allocated（实际占块）而不是 apparent（标称大小）：APFS 压缩与稀疏文件的
     /// 标称大小会把用户带偏。目录本身不重复计。
+    ///
+    /// 不跳过隐藏项。`options: [.skipsHiddenFiles]` 看着只是省掉 `.DS_Store`，
+    /// 实际会把整个以点开头的目录一起剪掉——cargo 的 registry 体积几乎全在
+    /// `index.crates.io-*/.cache/` 底下，本机因此被报成 12 KB（实测 75 MB）。
+    /// 一个"能回收多少"的读数错四倍数量级，比慢一点严重得多。
     public static func directoryBytes(_ path: String) -> UInt64? {
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         guard let enumerator = FileManager.default.enumerator(
             at: url,
             includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey, .totalFileAllocatedSizeKey],
-            options: [.skipsHiddenFiles],
+            options: [],
             errorHandler: { _, _ in true }
         ) else { return nil }
 
