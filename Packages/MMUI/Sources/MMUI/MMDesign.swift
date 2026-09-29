@@ -101,22 +101,24 @@ public enum MMFormat {
     private static let byte: ByteCountFormatter = {
         let f = ByteCountFormatter()
         f.countStyle = .file
-        f.allowedUnits = [.useKB, .useMB, .useGB, .useTB]
+        // 必须有 useBytes：否则几百字节的真实体积会被四舍五入成 "0 KB"，
+        // 在清理工具里读起来等于"这里没有东西"，而它明明占着空间。
+        f.allowedUnits = [.useBytes, .useKB, .useMB, .useGB, .useTB]
         return f
     }()
 
     /// 大小未测出时显示"测量中"，绝不显示误导性的 "0 字节"。
-    /// 真量到 0 才说 "0 字节"：ByteCountFormatter 会把它写成 "Zero KB"，
+    /// 真量到 0 也要说清：ByteCountFormatter 会把它写成 "Zero KB"，
     /// 中文界面里读起来像坏了。
     public static func bytes(_ value: UInt64?) -> String {
         guard let value else { return "测量中" }
-        guard value != 0 else { return "0 字节" }
+        guard value >= 1000 else { return "\(value) 字节" }
         return byte.string(fromByteCount: Int64(value))
     }
 
     public static func bytes(_ value: Int64?) -> String {
         guard let value else { return "测量中" }
-        guard value != 0 else { return "0 字节" }
+        guard value >= 1000 else { return "\(value) 字节" }
         return byte.string(fromByteCount: value)
     }
 

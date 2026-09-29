@@ -41,6 +41,17 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual(MMFormat.percent(0.004), "0.4%", "0.4% 不能塌成 0%")
     }
 
+    func testSubKilobyteNeverReadsAsZero() {
+        // .file 口径下 1 KB = 1000 字节；低于这个门槛必须自己拼中文单位，
+        // 否则 ByteCountFormatter 给出 "8 bytes"（中英混排）或 "0 KB"（读起来像空目录）。
+        XCTAssertEqual(MMFormat.bytes(UInt64(8)), "8 字节")
+        XCTAssertEqual(MMFormat.bytes(UInt64(0)), "0 字节")
+        XCTAssertEqual(MMFormat.bytes(Int64(999)), "999 字节")
+        XCTAssertFalse(MMFormat.bytes(UInt64(999)).contains("0 KB"))
+        XCTAssertTrue(MMFormat.bytes(UInt64(1000)).contains("KB"))
+        XCTAssertEqual(MMFormat.bytes(Optional<UInt64>.none), "测量中")
+    }
+
     // MARK: 采样器产出的数值经格式化后的显示口径
 
     func testSnapshotRateFormatsThroughMMFormat() {
