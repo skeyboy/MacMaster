@@ -23,8 +23,25 @@ public struct DiskAnalyzerView: View {
         case list = "列表"
         case large = "大文件"
         var id: String { rawValue }
+
+        /// MM_OPEN_TAB=tree|list|large：只用于逐屏截图核对设计稿，
+        /// 正常启动不会带这个变量。
+        var hookKey: String {
+            switch self {
+            case .treemap: "tree"
+            case .list: "list"
+            case .large: "large"
+            }
+        }
+
+        init?(hookKey: String) {
+            guard let match = Self.allCases.first(where: { $0.hookKey == hookKey }) else { return nil }
+            self = match
+        }
     }
 
+    @State private var mode: ViewMode =
+        ViewMode(hookKey: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .treemap
     @State private var selected: DiskTreeNode?
     @State private var scanResult: DiskScanResult?
     @State private var isScanning = false
@@ -37,7 +54,6 @@ public struct DiskAnalyzerView: View {
     @State private var currentItems: [DiskTreeNode] = []
     @State private var scanStore: DiskScanStore?
     @State private var largeFiles: [DiskTreeNode] = []
-    @State private var mode: ViewMode = .treemap
     @State private var nameFilter = ""
     /// 标记待处理的目录/文件：Treemap 上 ⌘ 点击打点，底部统一结算。
     @State private var marked: [String: DiskTreeNode] = [:]
@@ -312,7 +328,7 @@ public struct DiskAnalyzerView: View {
             }
             .layoutPriority(1)
             Spacer(minLength: MMGap.sm)
-            Text("面积 = 实际占用（st_blocks × 512）· 双击下钻 · ⌘点击标记")
+            Text("面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记")
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
                 .lineLimit(1)
@@ -334,18 +350,30 @@ public struct DiskAnalyzerView: View {
     }
 
     private var listView: some View {
-        ScrollView {
-            LazyVStack(spacing: MMGap.xxs) {
-                // visibleItems 存入时已按大小排序，body 里不再重排
-                ForEach(visibleItems) { node in
-                    nodeRow(node)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selected = node }
-                        .onTapGesture(count: 2) { drill(path: node.path) }
-                        .contextMenu { rowMenu(node) }
+        Group {
+            if visibleItems.isEmpty {
+                MMEmptyState(
+                    systemImage: "tray",
+                    title: nameFilter.isEmpty ? "这一层是空的" : "没有匹配「\(nameFilter)」的条目",
+                    detail: nameFilter.isEmpty
+                        ? "空目录不猜体积：切到别层或返回上一级继续看。"
+                        : "筛选只作用于当前这一层，返回上一级或清空筛选框可看全量。"
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: MMGap.xxs) {
+                        // visibleItems 存入时已按大小排序，body 里不再重排
+                        ForEach(visibleItems) { node in
+                            nodeRow(node)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selected = node }
+                                .onTapGesture(count: 2) { drill(path: node.path) }
+                                .contextMenu { rowMenu(node) }
+                        }
+                    }
+                    .padding(MMGap.md)
                 }
             }
-            .padding(MMGap.md)
         }
     }
 
@@ -403,17 +431,27 @@ public struct DiskAnalyzerView: View {
     }
 
     private var largeFilesList: some View {
-        ScrollView {
-            LazyVStack(spacing: 4) {
-                // largeFiles 存入时已按大小排序，body 里不再重排
-                ForEach(largeFiles) { file in
-                    nodeRow(file)
-                        .contentShape(Rectangle())
-                        .onTapGesture { selected = file }
-                        .contextMenu { rowMenu(file) }
+        Group {
+            if largeFiles.isEmpty {
+                MMEmptyState(
+                    systemImage: "doc.zipper",
+                    title: "这次扫描里没有大于 \(MMFormat.compactBytes(DiskScanner.largeFileThreshold)) 的文件",
+                    detail: "门槛按单个文件的实际磁盘占用计算。切到「列表」可以看到全部条目。"
+                )
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 4) {
+                        // largeFiles 存入时已按大小排序，body 里不再重排
+                        ForEach(largeFiles) { file in
+                            nodeRow(file)
+                                .contentShape(Rectangle())
+                                .onTapGesture { selected = file }
+                                .contextMenu { rowMenu(file) }
+                        }
+                    }
+                    .padding()
                 }
             }
-            .padding()
         }
     }
 
@@ -676,6 +714,8 @@ public struct DiskAnalyzerView: View {
 
     /// 仅供截图验证：MM_DISK_SELECT 给一个路径，展开它所在的一层并选中，
     /// 这样详情面板能在没有任何人工点击的情况下被拍到。
+    /// 配合 MM_SHOW_CONFIRM 还会把该项标记进确认面板——验证时请指向
+    /// /tmp 下的夹具文件，别指向真实数据。
     private func applySelectionHook() {
         guard let target = ProcessInfo.processInfo.environment["MM_DISK_SELECT"],
               !target.isEmpty else { return }
@@ -685,6 +725,19 @@ public struct DiskAnalyzerView: View {
             openDirectory(at: parent)
         }
         selected = node(atPath: target)
+        guard let node = selected else { return }
+        if ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil,
+           risk(of: node.path).allowsDeletion {
+            marked[node.path] = node
+            showMarkConfirm = true
+        }
+        // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
+        // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
+        if ProcessInfo.processInfo.environment["MM_SHOW_TOAST"] != nil, node.size > 0 {
+            trashedCount = 1
+            trashedSize = node.size
+            undoSeconds = 15
+        }
     }
 
     private var markConfirmSheet: some View {
@@ -1001,6 +1054,10 @@ struct DiskScanResult {
 }
 
 enum DiskScanner {
+    /// 「大文件」页的门槛：单个文件的实际磁盘占用超过它才算大。
+    /// 空态文案要引用同一个值，别在两处各写一遍 10 MB。
+    static let largeFileThreshold: UInt64 = 10 * 1024 * 1024
+
     struct ScanOutput {
         let topItems: [DiskTreeNode]
         let largeFilesList: [DiskTreeNode]
@@ -1237,7 +1294,7 @@ enum DiskScanner {
                 collect(node.children, fileCount: &fileCount, largeFiles: &largeFiles)
             } else {
                 fileCount += 1
-                if node.size > 10 * 1024 * 1024 { largeFiles.append(node) }
+                if node.size > DiskScanner.largeFileThreshold { largeFiles.append(node) }
             }
         }
     }
