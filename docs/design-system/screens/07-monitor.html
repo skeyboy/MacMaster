@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+/* —— 以下结构样式逐条对齐 MMMonitor.swift 的实现 —— */
+/* 页面卡片：MMMonitor 私有 card() = underPage 底 + 12pt 内边距 + 8 圆角 + separator 描边，
+   卡头 = 16pt 次级色图标 + headline 标题，卡内元素间距 8pt */
+.mcard{background:var(--c-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
+       padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)}
+.mcard .hd{display:flex;align-items:center;gap:var(--sp-2);line-height:16px}
+.mcard .hd .i{color:var(--c-label-secondary)}
+.mcard .hd b{font-size:var(--fs-headline);font-weight:600}
+/* 顶部读数：MMStatItem = underPage 底 + 6 圆角 + 8/12 内边距，caption 标题 + title3 数值
+   （实机整卡实测 50pt 含描边：caption 13 / title3 18 / 纵向 padding 8+8） */
+.stat{flex:1;min-width:0;background:var(--c-under-page);border:1px solid var(--c-separator);
+      border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);display:flex;flex-direction:column;gap:2px}
+.stat .k{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:13px}
+.stat .v{font-size:var(--fs-title3);line-height:18px;font-variant-numeric:tabular-nums;white-space:nowrap;
+         overflow:hidden;text-overflow:ellipsis}
+/* 每核行：28pt 高，标签列 56pt、数值列 60pt 右对齐，进度条 6pt 胶囊（实机行距 36 = 28 + 8）。
+   数值是 .callout.monospacedDigit()——系统字 + 等宽数字，不是等宽字体，别用 --font-mono */
+.crow{display:flex;align-items:center;gap:var(--sp-3);height:var(--row-h-compact);line-height:15px}
+.crow .nm{width:56px;flex:0 0 56px;font-size:var(--fs-callout);color:var(--c-label-secondary)}
+.crow .num{width:60px;flex:0 0 60px;text-align:right;
+           font-size:var(--fs-callout);font-variant-numeric:tabular-nums}
+.crow.hi .num{color:var(--c-danger)}
+/* 占用条：轨道 fillActive；nil = 只画轨道（空槽），不是 0% 的短条 */
+.corebar{flex:1;height:6px;border-radius:var(--r-pill);background:var(--c-fill-active);overflow:hidden}
+.corebar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--c-accent)}
+.corebar.hi i{background:var(--c-danger)}
+/* 键值行（MMKeyRow）：标签列 80pt，值左对齐；monospaced:true 才走等宽字体（.callout.monospaced()）。
+   实机行距实测 ≈24 = 16 行高（值用 .body）+ 8 卡内间距，所以这里显式压 line-height，不用全局 1.45 */
+.mrow{display:grid;grid-template-columns:80px 1fr;column-gap:var(--sp-3);align-items:baseline;line-height:16px}
+.mrow dt{font-size:var(--fs-callout);color:var(--c-label-secondary)}
+.mrow dd{margin:0;font-size:var(--fs-body)}
+.mrow dd.mono{font-family:var(--font-mono);font-size:var(--fs-callout)}
+/* 卡内一句次级说明（降级原因 / 不可用文案）：caption 次级色，占满整行 */
+.reason{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.5}
+/* 进程行：28pt 高、白药丸底（contentBackground）+ 6 圆角 + 12 横向内边距 */
+.prow{display:flex;align-items:center;gap:var(--sp-3);height:var(--row-h-compact);line-height:16px;
+      padding:0 var(--sp-3);background:var(--c-content-bg);border-radius:var(--r-sm)}
+.prow .nm{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+/* 两个数值都是 .caption.monospacedDigit()：系统字 + 等宽数字 */
+.prow .m{font-size:var(--fs-caption);font-variant-numeric:tabular-nums;
+         color:var(--c-label-secondary);white-space:nowrap}
+.prow .b{width:80px;flex:0 0 80px;text-align:right}
+/* 骨架行（MMSkeletonRow）：44pt 高，15 方块 + 120 短条 + …… + 56 短条 */
+.srow{display:flex;align-items:center;gap:var(--sp-2);height:var(--row-h-regular);padding:0 var(--sp-3)}
+.srow .a{width:15px;height:15px;border-radius:var(--r-xs);background:var(--c-fill-active);flex:0 0 15px}
+.srow .n{width:120px;height:10px;border-radius:3px;background:var(--c-fill-active)}
+.srow .v{width:56px;height:10px;border-radius:3px;background:var(--c-fill-active);margin-left:auto}
+/* 空态/失败态（MMEmptyState）：52 环 + headline 标题，detail 可为空 */
+.mempty{display:flex;flex-direction:column;align-items:center;gap:var(--sp-3);
+        padding:var(--sp-6);text-align:center}
+.mempty .glyph{width:52px;height:52px;border-radius:var(--r-lg);background:var(--c-fill-active);
+               display:grid;place-items:center;color:var(--c-label-tertiary)}
+.mempty .glyph .i{width:26px;height:26px;flex-basis:26px}
+.mempty b{font-size:var(--fs-headline);font-weight:600}
+.iconbtn{width:28px;height:28px;border:1px solid var(--c-hairline);border-radius:var(--r-sm);
+         background:var(--c-content-bg);display:grid;place-items:center;color:var(--c-label)}
+.kvcol{display:flex;flex-direction:column;gap:var(--sp-2)}
+/* D 稿：一张卡 + 卡外设计标注成组（标注不是界面文案，卡内只画代码真实渲染的内容） */
+.dgrp{display:flex;flex-direction:column;gap:var(--sp-1)}</style></head>
+<body>
+
+<!-- ==================== A. 正常态（实机 1100×700 首屏，已逐像素核对） ==================== -->
+<div class="artboard">
+<div class="cap"><b>07 · 系统监控 —— A 正常态首屏（本稿数值取自实机截图 /tmp/mmshot/70-monitor-real.png，
+2026-09-30 03:16，Mac mini M4 / 10 核 / 24 GB，深色模式实机；本稿按设计系统浅色档重绘）。</b>
+结构照抄 <code>MonitorView</code>：MMPageHeader（46pt）→ ScrollView（16pt 边距、16pt 块间距）内
+<b>读数条 → 每核 CPU → 磁盘 IO → 内存 → 进程 TOP 10</b> 五块，<b>没有底部动作条</b>——本页只读、
+不改动磁盘，MMActionBar 在这里是多余的。窗口固定 1100×700。
+<b>折叠位置如实交代：</b>实机首屏里磁盘 IO 卡<b>完整可见</b>（卡底实测收在 y≈684），
+"内存"和"进程"两卡<b>整卡都在折叠线以下</b>——实机连内存卡卡头都看不到。
+本稿标题栏按设计令牌 38pt 画（实机 52），视口比实机多露约 14pt，内存卡只露出 <b>≈13px 的卡顶描边</b>；
+那截按 <b>35% 透明度</b>画，是"折叠线以下内容的标注约定"，<b>不是实机裁切位</b>，
+滚到底的真实形态见 B 稿（而不是把窗口画高）。
+措辞口径三条：<b>①</b> 页头副标题是 <b>"上次采样 yyyy-MM-dd HH:mm · 实时更新"</b>，采样节拍由
+MenuBarManager 后台 Task 驱动，取 <code>MMFormat.dateTime(snapshot.sampledAt)</code>；
+<b>②</b> 所有百分比走 <code>MenuBarManager.percentText</code>——<b>量不出来是 "—"，绝不是 0%</b>；
+<b>③</b> 进程一栏的 CPU 是<b>累计 CPU 秒</b>（pti_total_user + pti_total_system），所以文案是
+<b>"CPU 时间 mm:ss"</b> 而不是 "CPU 45%"——瞬时百分比这个口径旧实现读错过，这里刻意保留纠正后的说法。
+每核 ≥85% 时进度条与数值同时转 destructive 红（A 稿取的是 03:16 那次采样，本机样本最高 78.0%，故全蓝；
+<b>红档已在 04:07 的实机截图里拍到过</b>——核 7~10 同时 92.1%~95.1%，条与数字一起转红，形态与 D1b 一致）。
+<b>实机像素核对（逐条量过 /tmp/mmshot/70-monitor-real.png，1100×700 @1x）：</b>读数卡整卡 <b>≈50pt</b>（含描边）、
+每核行距 <b>36pt</b>（28 行高 + 8 卡内间距）、进度条轨道 <b>x 317→1000（683pt 宽）× 6pt 高</b>、
+MMKeyRow 行距 <b>≈24pt</b>（16 行高 + 8 卡内间距）、页头 contentBackground 底 <b>97pt 处收口 + 1px 分隔线</b>、
+滚动区内边距 <b>16pt</b>、卡内边距 <b>12pt</b>——本稿这些值全部对齐。
+两处<b>全站骨架层</b>的偏差不在本页修：实机侧栏 <b>220pt</b>（设计令牌 216，分隔线实测 x=220）、
+实机标题栏 <b>52pt</b>（设计令牌 38，黑线实测 y=52，故本稿折叠线比实机晚露出约 14pt）。
+另有一处<b>本稿沿用、但已判定为设计稿错误</b>的画法：实机侧栏底部是
+<b>磁盘容量行（"Macintosh HD" + "2%" + 红色容量条）+ 带边框的「设置」按钮</b>，
+不是本稿画的"分隔线 + 设置 nav-item"；侧栏数字尾巴（2.4 GB / 46）也是骨架示例数据，非实机读数。
+为不与 01–06 六张稿制造第七种侧栏，本页先保持一致——<b>本稿判定：设计稿该改</b>，修在全站骨架层。
+<b>对应实机视图：</b><code>MonitorView</code>（MMMonitor.swift）正常态首屏；
+本稿未覆盖的状态（内存/进程卡完整形态、首帧、全部降级分支）在 B/C/D 稿。</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统监控</h1><p>上次采样 2026-09-30 03:16 · 实时更新</p></div>
+        <div class="sp"></div>
+        <span class="t-body" style="white-space:nowrap">菜单栏监控</span><span class="sw on"></span>
+      </div>
+
+      <div class="scroll">
+        <div class="stack" style="gap:var(--sp-4)">
+
+          <div class="row-h" style="gap:var(--sp-3)">
+            <div class="stat"><span class="k">CPU 总占用</span><span class="v">35.8%</span></div>
+            <div class="stat"><span class="k">内存</span><span class="v">80.2%</span></div>
+            <div class="stat"><span class="k">磁盘 读</span><span class="v">1.9 MB/s</span></div>
+            <div class="stat"><span class="k">磁盘 写</span><span class="v">293.3 KB/s</span></div>
+          </div>
+
+          <section class="mcard">
+            <div class="hd"><svg class="i"><use href="#i-cpu"></use></svg><b>每核 CPU</b></div>
+            <div class="crow"><span class="nm">核 1</span><span class="corebar"><i style="width:17.5%"></i></span><span class="num">17.5%</span></div>
+            <div class="crow"><span class="nm">核 2</span><span class="corebar"><i style="width:14.0%"></i></span><span class="num">14.0%</span></div>
+            <div class="crow"><span class="nm">核 3</span><span class="corebar"><i style="width:7.7%"></i></span><span class="num">7.7%</span></div>
+            <div class="crow"><span class="nm">核 4</span><span class="corebar"><i style="width:4.8%"></i></span><span class="num">4.8%</span></div>
+            <div class="crow"><span class="nm">核 5</span><span class="corebar"><i style="width:2.4%"></i></span><span class="num">2.4%</span></div>
+            <div class="crow"><span class="nm">核 6</span><span class="corebar"><i style="width:2.4%"></i></span><span class="num">2.4%</span></div>
+            <div class="crow"><span class="nm">核 7</span><span class="corebar"><i style="width:74.2%"></i></span><span class="num">74.2%</span></div>
+            <div class="crow"><span class="nm">核 8</span><span class="corebar"><i style="width:77.9%"></i></span><span class="num">77.9%</span></div>
+            <div class="crow"><span class="nm">核 9</span><span class="corebar"><i style="width:78.0%"></i></span><span class="num">78.0%</span></div>
+            <div class="crow"><span class="nm">核 10</span><span class="corebar"><i style="width:77.5%"></i></span><span class="num">77.5%</span></div>
+          </section>
+
+          <section class="mcard">
+            <div class="hd"><svg class="i"><use href="#i-disk"></use></svg><b>磁盘 IO</b></div>
+            <div class="mrow"><dt>读取</dt><dd class="mono">1.9 MB/s</dd></div>
+            <div class="mrow"><dt>写入</dt><dd class="mono">293.3 KB/s</dd></div>
+          </section>
+
+          <section class="mcard" style="opacity:.35">
+            <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+            <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ==================== B. 折叠线以下（内存卡 + 进程卡 正常态） ==================== -->
+<div class="artboard">
+<div class="cap"><b>B 正常态下半屏（把 A 稿滚到底的形态；<b style="color:var(--c-danger)">实机未能截到</b>——
+MMMonitor 没有任何内容钩子，主窗口固定 1100×700，本代理不发合成滚动事件，故此稿按代码逐元素重绘，
+数值为按本机 <code>vm_stat</code> / <code>sysctl vm.swapusage</code> 折算的示例）。</b>
+本稿按<b>卡片完整尺寸展开</b>绘制（真实窗口固定 1100×700，滚到底时这两卡同屏、磁盘 IO 卡只剩底边），
+不假装是一个自洽的视口。
+<b>内存卡的口径写死在卡里</b>：已用 = 活动 + 联动保留 + 压缩（<code>MemoryMetrics.usedBytes</code>，
+与 MMCore.SystemSampler 同式），<b>不含 inactive</b>——可回收的空闲页算进占用就是虚报；
+"压缩"取 <code>compressor_page_count × 页大小</code>（压缩器池的物理占用），不取 external_page_count，
+两种口径数字不同、不许混。Swap 只在 <code>swapAvailable</code> 为真时显示 "已用 / 总量"，
+读不到 sysctl 时该行显示 "—"，不显示 "0 字节 / 0 字节"。
+<b>进程卡</b>的动作只有一个图标按钮 <code>arrow.clockwise</code>（重新枚举），没有"结束进程"这类写操作——
+本页是只读监控。行内两个数值：<b>"CPU 时间 mm:ss"</b>（累计 CPU 秒，<code>MMFormat.duration</code>，
+非有限值或负数显示 <code>--:--</code>）与虚拟内存 <code>MMFormat.bytes</code>（右对齐 80pt 列）。
+名称读不到时回落为 <code>pid:NNN</code>，不猜应用名。
+<b>对应实机视图：</b>MonitorView 的 memoryCard + processCard 完整形态（滚动到底）。
+<b>本稿未覆盖的状态：</b>两卡各自的降级分支（见 D 稿）与真实滚动的中间过渡帧。</div>
+<div class="win mm-screen" style="height:auto">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统监控</h1><p>上次采样 2026-09-30 03:16 · 实时更新</p></div>
+        <div class="sp"></div>
+        <span class="t-body" style="white-space:nowrap">菜单栏监控</span><span class="sw on"></span>
+      </div>
+
+      <div class="scroll">
+        <section class="mcard">
+          <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+          <div class="kvcol">
+            <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
+            <div class="mrow"><dt>活动</dt><dd>4.5 GB</dd></div>
+            <div class="mrow"><dt>联动保留(wired)</dt><dd>3.0 GB</dd></div>
+            <div class="mrow"><dt>压缩</dt><dd>13.2 GB</dd></div>
+            <div class="mrow"><dt>Swap</dt><dd>26.9 GB / 27.9 GB</dd></div>
+          </div>
+        </section>
+
+        <section class="mcard">
+          <div class="hd"><svg class="i"><use href="#i-list"></use></svg><b>进程 TOP 10</b></div>
+          <div class="row-h" style="gap:var(--sp-2)"><span class="iconbtn"><svg class="i"><use href="#i-refresh"></use></svg></span></div>
+          <div class="prow"><span class="nm">Chrome Helper</span><span class="m">CPU 时间 41:07</span><span class="m b">1.42 GB</span></div>
+          <div class="prow"><span class="nm">Xcode</span><span class="m">CPU 时间 33:52</span><span class="m b">3.1 GB</span></div>
+          <div class="prow"><span class="nm">WindowServer</span><span class="m">CPU 时间 28:14</span><span class="m b">712 MB</span></div>
+          <div class="prow"><span class="nm">idea</span><span class="m">CPU 时间 19:40</span><span class="m b">2.4 GB</span></div>
+          <div class="prow"><span class="nm">Code Helper</span><span class="m">CPU 时间 12:03</span><span class="m b">986 MB</span></div>
+          <div class="prow"><span class="nm">Safari</span><span class="m">CPU 时间 08:55</span><span class="m b">1.1 GB</span></div>
+          <div class="prow"><span class="nm">mds_stores</span><span class="m">CPU 时间 06:31</span><span class="m b">268 MB</span></div>
+          <div class="prow"><span class="nm">kernel_task</span><span class="m">CPU 时间 05:18</span><span class="m b">1.9 GB</span></div>
+          <div class="prow"><span class="nm">Finder</span><span class="m">CPU 时间 03:44</span><span class="m b">344 MB</span></div>
+          <div class="prow"><span class="nm">pid:4417</span><span class="m">CPU 时间 02:09</span><span class="m b">58 MB</span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ==================== C. 首帧 / 采样中（骨架态） ==================== -->
+<div class="artboard">
+<div class="cap"><b>C 采样中（<code>SystemMetricSampler.tick()</code> 第一次落地的形态；代码里真实存在，
+但实机截图时已划过，未能截到）。</b>
+这一档不是"占位假数据"，它就是第一次采样的真实输出：<b>CPU 与速率是差分量，首帧没有上一组计数器 → 一律 nil</b>；
+内存是瞬时量 → 首帧就有数。所以本稿刻意画成
+<b>"内存 80.2% 有数、CPU 总占用 —、每核 10 行全是空槽、磁盘 读/写 —"</b>：
+空槽（只画 fillActive 轨道）是"不知道"，短蓝条是"确实接近 0"，<b>两者必须是两种形状</b>，
+这是本项目"测量诚实"红线在图元层的落法。磁盘 IO 卡此时状态仍是 <code>.ok</code>（读到了计数器、只是还没法差分），
+所以<b>不显示原因行</b>——只有 <code>.unavailable</code> 才点名原因（见 D 稿）。
+进程卡此时是 <code>processes.isEmpty && !processLoadFailed</code> → <b>4 条 MMSkeletonRow</b>
+（44pt 高、不给假数字），但它和内存卡一样落在折叠线以下，<b>700pt 的真实视口里看不到</b>；
+骨架形态在 D 稿按 1:1 尺寸单独画出。本稿底部与 A 稿取<b>同一裁切位置</b>：内存卡只露出 ≈13px 的
+卡顶描边（35% 透明度标注约定），<b>"已用 20.7 GB / 25.8 GB" 这一行在视口里其实看不见</b>——
+但它是首帧的真值不是占位（内存是瞬时量，首帧就有数），完整形态在 B 稿。
+<b>本稿之上还有一帧 <code>MetricSnapshot.empty</code></b>（<code>@StateObject</code> 初值，
+<code>enable()</code> 起采样前的那一瞬）：页头副标题显示 <b>"尚未完成首次采样"</b>、每核 CPU 退化成
+<b>一个 "—"</b>（见 D1）、磁盘 IO 卡带原因行 <b>"尚未完成首次采样"</b>（见 D2）、
+内存卡走 D3a 那句。<b>这一帧原本会把页头渲染成 "上次采样 0001-01-01 08:05 · 实时更新"</b>
+（<code>.distantPast</code> 经 <code>MMFormat.dateTime</code>，本机 Asia/Shanghai 实测
+<code>timeIntervalSince1970 = -62135769600</code>）——把"还不知道"写成一个公元 1 年的具体时刻是虚报精度，
+<b>已改</b>：<code>MetricSnapshot.hasSampled</code> 做闸，页头与内存卡共用同一判据。
+稿子只如实画出实有形态，不替实现遮掩；改之前长什么样记在 <code>docs/analysis/fidelity-monitor.md</code>。
+<b>对应实机视图：</b>MonitorView 在 <code>MenuBarManager.enable()</code> 后第一个 tick 落地时的形态
+（本代理无法在采样前抢拍首帧，按代码逐元素重绘）。</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统监控</h1><p>上次采样 2026-09-30 03:16 · 实时更新</p></div>
+        <div class="sp"></div>
+        <span class="t-body" style="white-space:nowrap">菜单栏监控</span><span class="sw on"></span>
+      </div>
+
+      <div class="scroll">
+        <div class="row-h" style="gap:var(--sp-3)">
+          <div class="stat"><span class="k">CPU 总占用</span><span class="v">—</span></div>
+          <div class="stat"><span class="k">内存</span><span class="v">80.2%</span></div>
+          <div class="stat"><span class="k">磁盘 读</span><span class="v">—</span></div>
+          <div class="stat"><span class="k">磁盘 写</span><span class="v">—</span></div>
+        </div>
+
+        <section class="mcard">
+          <div class="hd"><svg class="i"><use href="#i-cpu"></use></svg><b>每核 CPU</b></div>
+          <div class="crow"><span class="nm">核 1</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 2</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 3</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 4</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 5</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 6</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 7</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 8</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 9</span><span class="corebar"></span><span class="num">—</span></div>
+          <div class="crow"><span class="nm">核 10</span><span class="corebar"></span><span class="num">—</span></div>
+        </section>
+
+        <section class="mcard">
+          <div class="hd"><svg class="i"><use href="#i-disk"></use></svg><b>磁盘 IO</b></div>
+          <div class="mrow"><dt>读取</dt><dd class="mono">—</dd></div>
+          <div class="mrow"><dt>写入</dt><dd class="mono">—</dd></div>
+        </section>
+
+        <!-- 折叠线：与 A 稿同一裁切位置。首帧内存是瞬时量、有数，所以露出的这行是真值，
+             不是占位；进程卡完全在视口外，本稿不假装看得见它。 -->
+        <section class="mcard" style="opacity:.35">
+          <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+          <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ==================== D. 降级态合集（读不到就说读不到） ==================== -->
+<div class="artboard">
+<div class="cap"><b>D 降级态合集（卡片级示意，非整窗；七张卡都对应代码里已实现的分支，
+但本机无法构造触发条件、也没有内容钩子，实机均未截到）。</b>
+本页"读不到"的总话术：<b>值位显示 "—"，带原因的分支（磁盘 IO、内存不可用）用一行 caption 说清为什么读不到</b>，
+不静默、不塌成 0、不写"正常/安全"——D4 是唯一没做到这点的分支，见下。
+卡片标题一律用代码里的原文（"每核 CPU"／"磁盘 IO"／"内存"／"进程 TOP 10"），
+<b>卡外的灰字是设计标注，不是界面文案</b>；卡内除代码真实渲染的内容外不放任何多余行。
+<b>D1 每核 CPU 整列为空</b>（<code>perCoreCPU.isEmpty</code>，即 <code>host_processor_info</code> 一次都没返回过）：
+卡里只有一行<b>左对齐</b>的 "—"（card 的 VStack 是 .leading），<b>不画 10 行空槽</b>——
+10 行空槽是"有 10 个核、每个都没差分出来"（见 C 稿），一行 "—" 是"连核数都不知道"，两者信息量不同。
+<b>D1b 单核未差分</b>：perCoreCPU 元素级 nil（首帧/计数器回绕），同一卡里三种形状并存。
+<b>D2 磁盘 IO 不可用</b>：两行仍是 "—"，下面把 <code>DiskIOStatus.unavailable(reason:)</code> 的<b>原文</b>整行显示，
+reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machErrorString</code> 转成人话），
+全部四种原文＋初始帧那句见卡外标注；<code>MetricSnapshot.empty</code> 的初始 reason 是"尚未完成首次采样"。
+<b>D3 内存读数不可用</b>（<code>snapshot.memory == nil</code>）：整卡只留一句 caption。
+这句原本有个缺陷——它把"还没采到"也说成"host_statistics64 失败"，而 <code>MetricSnapshot.empty</code>
+与采样首帧都会走到这里。<b>已改</b>：按 <code>snapshot.hasSampled</code>（<code>sampledAt != .distantPast</code>）
+分流，未采样走 D3a 那句"尚未完成首次采样"。
+<b>D3b Swap 单行降级</b>（<code>swapAvailable == false</code>）：只有 Swap 行显示 "—"，代码不给这行配原因。
+<b>D4 进程列表读取失败</b>（<code>proc_listallpids</code> 返回 ≤0 或结果为空）：MMEmptyState，
+标题"进程列表读取失败"。detail 原本传 nil（既没说原因也没说下一步）——<b>已改</b>为一句不带猜测的
+"枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。"；两条失败路径在代码里没区分，
+所以文案不指名哪一个。<b>仍未做：</b>把失败原因读出来分档上报（需要 <code>topProcesses()</code> 返回结果枚举）。
+<b>D5 进程枚举返回中</b>：4 条 <code>MMSkeletonRow</code>（15pt 方块 + 120pt 短条 + 56pt 短条，行高 44pt），
+<b>骨架期一个数字都不给</b>——它和 D4 是两种状态："还在等"与"等砸了"，都不许画成空列表。
+<b>顶部读数条与卡内共用同一批 Optional</b>，所以降级时 "CPU 总占用 —" 与卡内空槽必然同时出现，
+不存在"读数条有数、卡里没数"的分裂态。
+<b>对应实机视图：</b>MonitorView 各分支的卡片级形态；<b>本稿未覆盖的状态：</b>菜单栏下拉菜单
+（MenuDelegate，属菜单栏表面而非本页）、阈值系统通知（MenuBarManager 通知逻辑）。</div>
+<div class="win mm-screen" style="height:auto;width:780px">
+  <div class="body-row" style="min-height:0">
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统监控</h1><p>卡片级示意 · 本页头是画布容器，副标题非实机文案</p></div>
+        <div class="sp"></div>
+        <span class="t-body" style="white-space:nowrap">菜单栏监控</span><span class="sw on"></span>
+      </div>
+      <div class="scroll" style="padding-bottom:var(--sp-4)">
+        <div class="stack">
+
+          <div class="dgrp">
+            <div class="note">D1 · 每核 CPU 整列为空（perCoreCPU.isEmpty，连核数都不知道）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-cpu"></use></svg><b>每核 CPU</b></div>
+              <span class="t-callout" style="color:var(--c-label-secondary)">—</span>
+            </section>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D1b · 核数已知、部分核这一帧没差分出来（perCoreCPU 元素级 nil：首帧 / 计数器回绕）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-cpu"></use></svg><b>每核 CPU</b></div>
+              <div class="crow"><span class="nm">核 1</span><span class="corebar hi"><i style="width:91.4%"></i></span><span class="num">91.4%</span></div>
+              <div class="crow"><span class="nm">核 2</span><span class="corebar"><i style="width:2.0%"></i></span><span class="num">2.0%</span></div>
+              <div class="crow"><span class="nm">核 3</span><span class="corebar"></span><span class="num">—</span></div>
+              <div class="crow"><span class="nm">核 4</span><span class="corebar"><i style="width:0.5%"></i></span><span class="num">0.5%</span></div>
+            </section>
+            <div class="note">同一卡里三种形状：红条 = ≥85%（条与数值同时转 destructive）；
+              蓝条哪怕只有 0.5% 也是"测到了"；空槽 = 该核这一帧没差分出来，显示 "—"。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D2 · 磁盘 IO 不可用（DiskIOStatus.unavailable(reason:)，本卡展示四种原文之一）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-disk"></use></svg><b>磁盘 IO</b></div>
+              <div class="kvcol">
+                <div class="mrow"><dt>读取</dt><dd class="mono">—</dd></div>
+                <div class="mrow"><dt>写入</dt><dd class="mono">—</dd></div>
+              </div>
+              <span class="reason">所有磁盘驱动均未暴露 Statistics 字典（可能被沙盒/权限限制）</span>
+            </section>
+            <div class="note">reason 由 DiskIOReader 现拼（IOKit 错误码经 machErrorString 转成人话），其余三种原文：
+              「IOServiceMatching("IOBlockStorageDriver") 返回空，无法枚举磁盘统计」／
+              「枚举 IOBlockStorageDriver 失败：&lt;machErrorString&gt;」／
+              「未发现任何 IOBlockStorageDriver 设备」；MetricSnapshot.empty 的初始帧是「尚未完成首次采样」。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D3 · 内存读数不可用（snapshot.memory == nil · <b>已采样</b>）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+              <span class="reason">内存读数不可用（host_statistics64 失败），显示 —。</span>
+            </section>
+            <div class="note">这句点名了失败源，所以只有<b>真的采过一帧、那一帧没拿到内存读数</b>时才许出现。
+              曾经它把首帧前也吞进来（判定：实现该改）——现已按 <code>snapshot.hasSampled</code> 分流，见 D3a。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D3a · 首帧之前（MetricSnapshot.empty，sampledAt == .distantPast）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+              <span class="reason">尚未完成首次采样，这里还没有内存读数。</span>
+            </section>
+            <div class="note">同一张卡的另一分支：还没采过，就不该把责任推给 host_statistics64。
+              页头副标题在这一帧同步显示"尚未完成首次采样"。<b>本卡不是实机照片</b>：MonitorView 的
+              <code>.onAppear</code> 会立刻 <code>enable()</code>，这一帧只存在于进程启动后的第一个
+              runloop tick，抢拍不到，按代码逐元素重绘；判据 <code>hasSampled</code> 有单测钉住
+              （<code>SampledAtSentinelTests</code>）。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D3b · Swap 读不到的单行降级（swapAvailable == false，sysctl VM_SWAPUSAGE 异常环境）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-mem"></use></svg><b>内存</b></div>
+              <div class="kvcol">
+                <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
+                <div class="mrow"><dt>活动</dt><dd>4.5 GB</dd></div>
+                <div class="mrow"><dt>联动保留(wired)</dt><dd>3.0 GB</dd></div>
+                <div class="mrow"><dt>压缩</dt><dd>13.2 GB</dd></div>
+                <div class="mrow"><dt>Swap</dt><dd>—</dd></div>
+              </div>
+            </section>
+            <div class="note">只有 Swap 这一行降级为 "—"，其余四行照常显示，代码不给这行配原因文案；反过来
+              swapAvailable == true 且真实读到 0 时，MMFormat.bytes 对 &lt;1000 字节特判、原样输出
+              "0 字节 / 0 字节"，这不算降级。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D4 · 进程列表读取失败（topProcesses() 返回空）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-list"></use></svg><b>进程 TOP 10</b></div>
+              <div class="row-h" style="gap:var(--sp-2)"><span class="iconbtn"><svg class="i"><use href="#i-refresh"></use></svg></span></div>
+              <div class="mempty">
+                <span class="glyph"><svg class="i"><use href="#i-warn"></use></svg></span>
+                <b>进程列表读取失败</b>
+                <span class="t-sub" style="max-width:340px">枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。</span>
+              </div>
+            </section>
+            <div class="note">detail 过去传的是 nil，卡里只有图标 + 一行标题，"为什么失败"和"下一步做什么"
+              都没交代。现在补的是<b>不带猜测的原因句</b>：proc_listallpids 返回 ≤0 和"每个 proc_pidinfo 都失败"
+              两条路径在代码里没有区分，所以文案只说"没拿到任何结果"，不指名哪一个——指错了比不说更糟。
+              重试指引指向卡顶那个已经存在的刷新按钮（本稿画的就是它）。<b>本卡同样不是实机照片</b>：
+              本机 <code>topProcesses()</code> 从来没失败过，也没有钩子能让它失败，形态按代码重绘。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">D5 · 进程枚举返回中（processes.isEmpty &amp;&amp; !processLoadFailed）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-list"></use></svg><b>进程 TOP 10</b></div>
+              <div class="row-h" style="gap:var(--sp-2)"><span class="iconbtn"><svg class="i"><use href="#i-refresh"></use></svg></span></div>
+              <div class="srow"><span class="a"></span><span class="n"></span><span class="v"></span></div>
+              <div class="srow"><span class="a"></span><span class="n"></span><span class="v"></span></div>
+              <div class="srow"><span class="a"></span><span class="n"></span><span class="v"></span></div>
+              <div class="srow"><span class="a"></span><span class="n"></span><span class="v"></span></div>
+            </section>
+            <div class="note">4 条固定骨架，一个数字都不给；它和 D4 是两种状态（还在等 / 等砸了），
+              两者都不许画成空列表——空列表在只读监控页里读起来等于"这台机没有进程"。</div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+</body></html>

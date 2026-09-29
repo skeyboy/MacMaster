@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+/* 页头下方的分段页签行：VStack 默认居中，maxWidth 340 */
+.segbar{display:flex;justify-content:center;padding:var(--sp-2) var(--sp-4);
+        border-bottom:1px solid var(--c-separator);background:var(--c-content-bg)}
+.segbar .seg{max-width:340px;width:100%;justify-content:center}
+/* 重复文件/浏览器缓存页签顶部的口径行（44pt） */
+.headline-row{display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-4);
+              min-height:44px;background:var(--c-content-bg)}
+.headline-row .hl{font-size:var(--fs-callout);color:var(--c-label-secondary);flex:1;min-width:0;
+                  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* 降级横幅（MMPermissionBanner）：橙 10% 底，锁图标，无跳转按钮（settingsPane=nil） */
+.permbar{display:flex;gap:var(--sp-2);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
+         background:var(--c-warning-soft);border-bottom:1px solid var(--c-separator)}
+.permbar .tt{font-size:var(--fs-callout);font-weight:600}
+.permbar .dt{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.5}
+/* 扫描进度（MMScanProgress）：动作 + 进度条 + 已处理/当前路径；estimatedRemaining 恒 nil，无"剩余约" */
+.prog{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+      background:var(--c-content-bg)}
+.prog .l1{display:flex;align-items:baseline;gap:var(--sp-2);font-size:var(--fs-callout)}
+.prog .l2{display:flex;align-items:baseline;gap:var(--sp-2);font-size:var(--fs-caption);
+          color:var(--c-label-secondary)}
+.prog .l2 > span:first-child{white-space:nowrap}
+.prog .l2 .p{color:var(--c-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* 骨架行（MMSkeletonRow）：15 方块 + 120 名条 + 56 值条，44pt 行高 */
+.skel{display:flex;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-3)}
+.skel i{display:block;background:var(--c-fill-active);border-radius:3px}
+.skel .sq{width:15px;height:15px;border-radius:var(--r-xs);flex:0 0 15px}
+.skel .nm{width:120px;height:10px}
+.skel .vl{width:56px;height:10px;margin-left:auto}
+/* 重复分组卡（DuplicateGroupRow）：圆角 8 描边卡，头行 44 + 展开的文件行 */
+.gcard{border:1px solid var(--c-separator);border-radius:var(--r-md);background:var(--c-content-bg);
+       overflow:hidden}
+.gcard .ghd{display:flex;align-items:center;gap:var(--sp-2);height:44px;padding:0 var(--sp-3)}
+.gcard .ghd .cv{color:var(--c-label-tertiary);width:10px;flex:0 0 10px}
+.gcard .ghd .ic{color:var(--c-warning)}
+.gcard .ghd b{font-size:var(--fs-body);font-weight:500}
+.gcard .ghd .sz{font-size:var(--fs-caption);color:var(--c-label-secondary);font-variant-numeric:tabular-nums}
+.gcard .ghd .free{font-size:var(--fs-callout);font-weight:600;color:var(--c-accent);
+                  font-variant-numeric:tabular-nums;min-width:110px;text-align:right}
+.frow{display:flex;align-items:center;gap:var(--sp-2);height:44px;
+      padding:0 var(--sp-3) 0 calc(var(--sp-3) + var(--sp-4));border-top:1px solid var(--c-separator)}
+.frow.sel{background:var(--c-accent-soft)}
+.frow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.frow .m b{font-weight:400;font-size:var(--fs-callout);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .m span{font-size:var(--fs-caption);color:var(--c-label-tertiary);white-space:nowrap;
+              overflow:hidden;text-overflow:ellipsis}
+.frow .rel{font-size:var(--fs-caption);color:var(--c-label-secondary);width:72px;flex:0 0 72px;text-align:right}
+.frow .sz{font-size:var(--fs-callout);font-variant-numeric:tabular-nums;min-width:72px;text-align:right}
+/* 浏览器缓存行（BrowserCacheRowView）：值列 minWidth 72，nil 显示"测量中" */
+.brow{display:flex;align-items:center;gap:var(--sp-3);height:44px;padding:0 var(--sp-3)}
+.brow .ic{color:var(--c-accent);width:16px;flex:0 0 16px;display:grid;place-items:center}
+.brow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.brow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);white-space:nowrap;
+              overflow:hidden;text-overflow:ellipsis}
+.brow .sz{font-size:var(--fs-callout);font-variant-numeric:tabular-nums;color:var(--c-label-secondary);
+          min-width:72px;text-align:right}
+/* 系统状态行（SystemCheckRow）：图标着色 = risk.color；只读档徽章带锁 */
+.srow{display:flex;align-items:center;gap:var(--sp-3);height:44px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.srow:last-child{border-bottom:0}
+.srow .ic{width:16px;flex:0 0 16px;display:grid;place-items:center}
+.srow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.srow .m b{font-weight:500;font-size:var(--fs-body)}
+.srow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.4}
+.srow .val{font-size:var(--fs-callout);font-variant-numeric:tabular-nums;color:var(--c-label-secondary);
+           min-width:110px;text-align:right;white-space:nowrap}
+/* 撤回回执（MMUndoToast）：actionBar 顶部浮层，8s 自动消失；实机不传 secondsRemaining，无倒计时数字 */
+.toast{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);max-width:460px;
+       background:rgba(0,0,0,.86);border:1px solid rgba(255,255,255,.10);border-radius:var(--r-md);
+       box-shadow:0 12px 24px rgba(0,0,0,.22);color:#fff;font-size:var(--fs-callout)}
+.toast .dt{font-size:var(--fs-caption);color:rgba(255,255,255,.65)}
+.toast .act{margin-left:auto;color:#fff;font-size:var(--fs-callout)}
+.toast .sep{color:rgba(255,255,255,.35)}
+/* 失败回执（MMFailurePanel）：橙 10% 底；summary 传 nil 时不占行 */
+.failp{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-2) var(--sp-4);
+       background:var(--c-warning-soft);border-top:1px solid var(--c-separator)}
+.failp .frow1{display:flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-caption);
+              font-family:var(--font-mono);color:var(--c-label)}
+.failp .frow1 .msg{font-family:var(--font);font-size:9px;color:var(--c-label-secondary)}
+.failp .frow1 .code{margin-left:auto;font-size:9px;color:var(--c-label-tertiary)}
+.chk.dis{opacity:.4}
+.badge.lockbadge svg{width:9px;height:9px;flex-basis:9px}
+/* 开发工具缓存行（DevToolCacheRow）：图标 + 左列四行文本 + 右列三行，行高随文本自适应，不是 44pt 固定行 */
+.drow{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.drow:last-child{border-bottom:0}
+.drow .ic{color:var(--c-label-secondary);width:16px;flex:0 0 16px;display:grid;place-items:center}
+.drow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.drow .m .t{display:flex;align-items:baseline;gap:var(--sp-1)}
+.drow .m .t b{font-weight:500;font-size:var(--fs-body)}
+.drow .m .t span{font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.drow .m .p{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .m .w,.drow .m .cv{font-size:var(--fs-caption);line-height:1.45}
+.drow .m .w{color:var(--c-label-tertiary)}
+.drow .m .cv{color:var(--c-label-secondary)}
+.drow .m .cv.caution{color:var(--c-warning)}
+.drow .r{display:flex;flex-direction:column;align-items:flex-end;gap:var(--sp-1);flex:0 0 auto}
+.drow .r .sz{font-size:var(--fs-callout);font-variant-numeric:tabular-nums}
+.drow .r .sz.nil{color:var(--c-label-secondary)}
+.drow .r .acts{display:flex;align-items:center;gap:var(--sp-1)}
+/* 页脚说明（DevToolCacheCopy.footnote）：info.circle + caption，tertiaryLabel */
+.dfoot{display:flex;gap:var(--sp-1);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
+       font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.5}</style></head>
+<body>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08 · 系统优化 —— 实机默认首屏（重复文件页签 · 未扫描）。</b>
+本页是 <b>Packages/MMOptimizer/MMOptimizer.swift · OptimizerView</b> 的逐字还原：页头
+MMPageHeader("系统优化")，副标题绑 <b>diagnostics.updatedAt</b>——它只在"系统状态"页签被打开过
+（.task 触发 refresh）之后才有值，所以<b>默认首屏页头只有标题一行，没有副标题</b>，这不是稿子漏画。
+页签为分段控件（重复文件 / 浏览器缓存 / 系统状态 / 开发工具，maxWidth 340 居中），默认落在重复文件
+（可用 MM_OPEN_TAB=browser|status|devtools 逐屏截图核对）。顶行口径文案 + 「查找重复文件」；
+空态文案两档由 hasScanned 决定：<b>未扫 = "还未开始检测"</b>，扫过没找到 = "没有发现内容完全相同的文件"，
+绝不混用。范围行是硬编码的 Documents / Downloads / Desktop 三个目录，逐字照抄。
+底部 MMActionBar 常驻：未勾选时"移到废纸篓"置灰（disabled），说明句是"未勾选的文件不会被改动。"
+（本板未画的：扫描中进度与骨架、caveat 横幅、结果列表见 08b；撤回 toast 与失败回执见 08d。）</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content" style="min-width:0">
+      <!-- MMPageHeader：subtitle=nil 时 p 整行不渲染 -->
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1></div>
+      </div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+
+      <!-- 顶行：headline（未扫档）+「查找重复文件」（magnifyingglass，bordered） -->
+      <div class="headline-row">
+        <span class="hl">按文件内容比对，不看文件名。</span>
+        <span class="btn"><svg class="i"><use href="#i-search"></use></svg>查找重复文件</span>
+      </div>
+
+      <!-- MMEmptyState(doc.on.doc)：detail = scannedScope，未扫时不追加"本次比对 N 个候选"句 -->
+      <div class="scroll" style="flex:1;justify-content:center">
+        <div class="empty" style="padding:0">
+          <span class="glyph"><svg class="i i-22"><use href="#i-docs"></use></svg></span>
+          <b style="font-size:var(--fs-headline);font-weight:600">还未开始检测</b>
+          <span class="t-sub" style="max-width:340px">检测范围：Documents / Downloads / Desktop。判定前会读完整个文件，内容不完全相同的不会被列在这里。</span>
+        </div>
+      </div>
+
+      <!-- MMActionBar：summary「已选 0 项」；borderedProminent+tint(.red) 在 disabled 下整组 40% 不透明 -->
+      <div class="actionbar">
+        <div class="sum"><b>已选 0 项</b><span>未勾选的文件不会被改动。</span></div>
+        <div style="margin-left:auto;display:flex;gap:var(--sp-2);align-items:center">
+          <span class="btn">打开废纸篓</span>
+          <span class="btn destructive disabled">移到废纸篓</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08b · 重复文件 —— 扫描完成、有结果、勾选待删。</b>
+headline 拼接式逐字照抄："<b>N 组 · M 个文件内容完全相同 · 每组保留一份后可释放 X</b>"。
+caveat 横幅（MMPermissionBanner）标题固定"部分文件没能参与判定"，detail 由
+"N 个文件读取失败，未参与判定"/"N 个仅有云端占位的文件已跳过"用"；"连接——
+<b>读失败与云端占位跳过的文件没有参与判定，结果只覆盖读到的部分</b>，这条必须挂在列表上方而不是收进提示音。
+分组卡头行：chevron + doc.on.doc（橙）+ "N 个文件内容相同" + "单文件大小 × 个数" + 徽章"谨慎"
+（MMBadge(risk:.caution)，重复文件永远不是"安全"）+ 右端蓝色"可释放 X"（= 大小 ×(个数−1)）。
+展开后的文件行：勾选=删除候选；<b>"需保留"徽章只出现在一组里唯一未勾且其余全勾的那份上</b>
+（isKeepRequired），它的复选框禁用——一组必须留下一份，这是硬约束不是建议。
+修改时间是 RelativeDateTimeFormatter 短格式（"刚刚 / N 天前 / N 年前"），行尾 folder 图标 =
+"在访达中显示"（help 文案）。操作栏随勾选变化："已选 3 项 · 858 MB" + "被勾选的文件会先移入废纸篓，可撤回。"
+（本板示例数据为虚构；真实数字来自 SHA-256 全文件比对。）</div>
+<div class="win mm-screen" style="height:auto">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row" style="min-height:0">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content" style="min-width:0">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1></div>
+      </div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+
+      <div class="headline-row">
+        <span class="hl">3 组 · 9 个文件内容完全相同 · 每组保留一份后可释放 3.7 GB</span>
+        <span class="btn"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+
+      <!-- caveatText 两档同时命中：读取失败 + 云端占位跳过 -->
+      <div class="permbar">
+        <svg class="i" style="color:var(--c-warning);margin-top:1px"><use href="#i-lock"></use></svg>
+        <div style="min-width:0"><div class="tt">部分文件没能参与判定</div>
+          <div class="dt">2 个文件读取失败，未参与判定；1 个仅有云端占位的文件已跳过。</div></div>
+      </div>
+
+      <div class="scroll" style="gap:var(--sp-2)">
+        <!-- 组 1：展开，3/4 勾选，最早修改的那份被硬约束为"需保留" -->
+        <div class="gcard">
+          <div class="ghd">
+            <svg class="i cv"><use href="#i-chev-d"></use></svg>
+            <svg class="i ic"><use href="#i-docs"></use></svg>
+            <b>4 个文件内容相同</b><span class="sz">286 MB × 4</span>
+            <span style="margin-left:auto"></span>
+            <span class="badge warn">谨慎</span>
+            <span class="free">可释放 858 MB</span>
+          </div>
+          <div class="frow">
+            <span class="chk dis" title="需保留：组内唯一未勾项，复选框禁用"></span>
+            <div class="m"><b>项目复盘.pdf</b><span>/Users/lee/Documents/工作</span></div>
+            <span class="badge">需保留</span>
+            <span class="rel">2 年前</span><span class="sz">286 MB</span>
+            <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          </div>
+          <div class="frow sel">
+            <span class="chk on">✓</span>
+            <div class="m"><b>项目复盘 2.pdf</b><span>/Users/lee/Downloads</span></div>
+            <span class="rel">3 天前</span><span class="sz">286 MB</span>
+            <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          </div>
+          <div class="frow sel">
+            <span class="chk on">✓</span>
+            <div class="m"><b>项目复盘-最终.pdf</b><span>/Users/lee/Documents/归档</span></div>
+            <span class="rel">刚刚</span><span class="sz">286 MB</span>
+            <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          </div>
+          <div class="frow sel">
+            <span class="chk on">✓</span>
+            <div class="m"><b>项目复盘(1).pdf</b><span>/Users/lee/Desktop</span></div>
+            <span class="rel">1 年前</span><span class="sz">286 MB</span>
+            <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          </div>
+        </div>
+        <!-- 组 2 / 组 3：折叠 -->
+        <div class="gcard">
+          <div class="ghd">
+            <svg class="i cv"><use href="#i-chev-r"></use></svg>
+            <svg class="i ic"><use href="#i-docs"></use></svg>
+            <b>3 个文件内容相同</b><span class="sz">1.4 GB × 3</span>
+            <span style="margin-left:auto"></span>
+            <span class="badge warn">谨慎</span>
+            <span class="free">可释放 2.8 GB</span>
+          </div>
+        </div>
+        <div class="gcard">
+          <div class="ghd">
+            <svg class="i cv"><use href="#i-chev-r"></use></svg>
+            <svg class="i ic"><use href="#i-docs"></use></svg>
+            <b>2 个文件内容相同</b><span class="sz">96.4 MB × 2</span>
+            <span style="margin-left:auto"></span>
+            <span class="badge warn">谨慎</span>
+            <span class="free">可释放 96.4 MB</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actionbar">
+        <div class="sum"><b>已选 3 项 · 858 MB</b><span>被勾选的文件会先移入废纸篓，可撤回。</span></div>
+        <div style="margin-left:auto;display:flex;gap:var(--sp-2);align-items:center">
+          <span class="btn">打开废纸篓</span>
+          <span class="btn destructive">移到废纸篓</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08c · 左：重复文件扫描中（骨架 + 进度）；右：浏览器缓存页签。</b>
+<b>扫描中</b>：headline 换成"正在按内容比对，未完成前不会给出结果。"，出现"停止"按钮、"重新扫描"置灰；
+MMScanProgress 的 action 取扫描器阶段原文（<b>归类候选 / 抽样比对 / 逐字节校验</b>），
+优化页调用时 estimatedRemaining 恒为 nil、total=0 时 fraction 也为 nil——
+<b>所以这一行永远没有"剩余约"，进度条可能是百分比、也可能是不确定型，不存在假百分比</b>。
+结果区在"扫描中且还没有分组"时铺 6 条 MMSkeletonRow：不给假数字。
+<b>浏览器缓存</b>：进页签即自动 scanIfNeeded（"量一次不到一秒，比摆一个请先点扫描的空态有用"），
+顶行只有"重新扫描"（扫描中置灰，<b>没有停止按钮</b>——与重复文件页签不同）。
+只探测 ~/Library/Caches 下 Safari/Chrome/Firefox/Edge 四个目录，存在且非空才列行；
+headline 为"N 个缓存目录 · 合计 X"，<b>有目录没量到时追加"（N 个目录没读到，未计入）"</b>——
+合计只加量到的，不拿 0 凑。size=nil 的行值列显示"<b>测量中</b>"（MMFormat.bytes 对 nil 的原文），
+help 文案："目录存在，但体积没能读出来；不是 0 字节。"它排在末位（nil 按 0 参与排序），
+但绝不与"0 字节"混同。每行动作只有"位置"（访达显示）与"移到废纸篓"（bordered 小按钮红字），
+不碰历史记录/密码/Cookie（空态 detail 原文）。空列表两档："正在统计缓存体积…"/"没有发现可清理的浏览器缓存"。</div>
+<div style="display:flex;gap:22px;align-items:flex-start">
+
+<div class="win mm-screen" style="height:auto;width:510px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1></div>
+      </div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="headline-row">
+        <span class="hl">正在按内容比对，未完成前不会给出结果。</span>
+        <span class="btn">停止</span>
+        <span class="btn disabled"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+      <div class="prog">
+        <div class="l1"><span>逐字节校验</span></div>
+        <div class="bar"><i style="width:62%"></i></div>
+        <div class="l2"><span>已处理 1,842 项</span><span>·</span><span class="p">~/Downloads/设计资料/项目复盘-最终.pdf</span></div>
+      </div>
+      <div style="border-top:1px solid var(--c-separator)">
+        <div class="skel"><i class="sq"></i><i class="nm"></i><i class="vl"></i></div>
+        <div class="skel"><i class="sq"></i><i class="nm" style="width:172px"></i><i class="vl"></i></div>
+        <div class="skel"><i class="sq"></i><i class="nm"></i><i class="vl"></i></div>
+        <div class="skel"><i class="sq"></i><i class="nm" style="width:140px"></i><i class="vl"></i></div>
+        <div class="skel"><i class="sq"></i><i class="nm"></i><i class="vl"></i></div>
+        <div class="skel"><i class="sq"></i><i class="nm" style="width:172px"></i><i class="vl"></i></div>
+      </div>
+      <div class="actionbar">
+        <div class="sum"><b>已选 0 项</b><span>未勾选的文件不会被改动。</span></div>
+        <div style="margin-left:auto;display:flex;gap:var(--sp-2);align-items:center">
+          <span class="btn">打开废纸篓</span>
+          <span class="btn destructive disabled">移到废纸篓</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="win mm-screen" style="height:auto;width:510px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1></div>
+      </div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span class="on">浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="headline-row">
+        <span class="hl">4 个缓存目录 · 合计 3.7 GB（1 个目录没读到，未计入）</span>
+        <span class="btn"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+      <div style="border-bottom:1px solid var(--c-separator)"></div>
+      <div class="scroll" style="gap:var(--sp-1);padding:var(--sp-2)">
+        <div class="brow"><span class="ic"><svg class="i"><use href="#i-net"></use></svg></span>
+          <div class="m"><b>Chrome</b><span>网页缓存 · ~/Library/Caches/Google/Chrome</span></div>
+          <span class="btn sm borderless"><svg class="i"><use href="#i-folder"></use></svg>位置</span>
+          <span class="sz">2.4 GB</span>
+          <span class="btn sm" style="color:var(--c-danger)"><svg class="i"><use href="#i-box"></use></svg>移到废纸篓</span></div>
+        <div style="border-bottom:1px solid var(--c-separator)"></div>
+        <div class="brow"><span class="ic"><svg class="i"><use href="#i-net"></use></svg></span>
+          <div class="m"><b>Safari</b><span>网页缓存 · ~/Library/Caches/com.apple.Safari</span></div>
+          <span class="btn sm borderless"><svg class="i"><use href="#i-folder"></use></svg>位置</span>
+          <span class="sz">1.1 GB</span>
+          <span class="btn sm" style="color:var(--c-danger)"><svg class="i"><use href="#i-box"></use></svg>移到废纸篓</span></div>
+        <div style="border-bottom:1px solid var(--c-separator)"></div>
+        <div class="brow"><span class="ic"><svg class="i"><use href="#i-net"></use></svg></span>
+          <div class="m"><b>Firefox</b><span>网页缓存 · ~/Library/Caches/Firefox</span></div>
+          <span class="btn sm borderless"><svg class="i"><use href="#i-folder"></use></svg>位置</span>
+          <span class="sz">214 MB</span>
+          <span class="btn sm" style="color:var(--c-danger)"><svg class="i"><use href="#i-box"></use></svg>移到废纸篓</span></div>
+        <div style="border-bottom:1px solid var(--c-separator)"></div>
+        <!-- size=nil：显示"测量中"，排末位但绝不显示 0 -->
+        <div class="brow"><span class="ic"><svg class="i"><use href="#i-net"></use></svg></span>
+          <div class="m"><b>Edge</b><span>网页缓存 · ~/Library/Caches/Microsoft Edge</span></div>
+          <span class="btn sm borderless"><svg class="i"><use href="#i-folder"></use></svg>位置</span>
+          <span class="sz">测量中</span>
+          <span class="btn sm" style="color:var(--c-danger)"><svg class="i"><use href="#i-box"></use></svg>移到废纸篓</span></div>
+        <div style="border-bottom:1px solid var(--c-separator)"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08d · 系统状态页签（左：读数正常）与"没量到"档（右）+ 删除回执组件。</b>
+这一页是本页头副标题的唯一来源：refresh() 成功后 updatedAt="上次检测 yyyy-MM-dd HH:mm"，
+<b>只有来过这一页，08/08b/08c 的页头才会多出那行副标题</b>。进页签即自动检测（.task），
+检测中 checks 为空时整页只有一个居中 ProgressView——没有假数据。
+三行都遵守"读不到 ≠ 0"：内存行的口径来自 MMOptimizer 自己的 DashboardMemory
+（host_statistics64 失败 → used=nil → 值列"—" + note"vm_statistics64 没读数，这里不猜占用；显示 —。"；
+sysctl vm.swapusage 失败 → note"交换空间读数不可用（sysctl vm.swapusage 失败），显示 —。"，本稿未画第三档）；
+磁盘行读不到卷 → 值"—" + note"未能读取卷信息（容量键未返回），不显示 0。"；
+废纸篓行用 directoryBytes 而非 trashBytes（后者把没量到折成 0），nil → 值"—"。
+<b>没量到的行徽章一律"只读"（MMBadge(risk:.readOnly)，灰底 + 锁）</b>，不给绿色的"安全"。
+正常档：内存 = (active+wired+compressed)/总量口径的"已用 / 总量"，压力 &gt;85% 转"谨慎"；
+磁盘 usedRatio &gt;90% 转"谨慎"；废纸篓 &gt;5 GB 转"谨慎"，否则"只读"——
+它永远不提供"清空"按钮（note 原文："清空废纸篓会同时丢掉撤回入口，所以这里只带你过去，不代你清空。"）。
+行右动作："查看"跳系统监控/磁盘分析（MMNavigation），"打开"在访达显示 ~/.Trash，行尾圆形刷新重测。
+下方两个回执组件同属本页：MMUndoToast 浮在操作栏上方 8 秒（调用处不传 secondsRemaining，<b>没有倒计时数字</b>）；
+MMFailurePanel 逐条列失败路径 + 错误原文 + 错误码，超过 4 条折叠成"另有 N 项失败"（示例数据为虚构）。</div>
+<div style="display:flex;gap:22px;align-items:flex-start">
+
+<div class="win mm-screen" style="height:auto;width:510px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1><p>上次检测 2026-09-30 10:24</p></div>
+      </div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span></span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="srow"><span class="ic" style="color:var(--c-success)"><svg class="i"><use href="#i-mem"></use></svg></span>
+          <div class="m"><b>内存占用</b><span>已使用交换空间 2.3 GB，关掉占内存大的应用才会回落</span></div>
+          <span class="val">7.4 GB / 16 GB</span><span class="badge safe">安全</span>
+          <span class="btn sm">查看</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+        <div class="srow"><span class="ic" style="color:var(--c-success)"><svg class="i"><use href="#i-disk"></use></svg></span>
+          <div class="m"><b>磁盘可用</b><span>已用 78.4% · Macintosh HD 容量 994.6 GB</span></div>
+          <span class="val">214.3 GB</span><span class="badge safe">安全</span>
+          <span class="btn sm">查看</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+        <div class="srow"><span class="ic" style="color:var(--c-label-secondary)"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>废纸篓占用</b><span>清空废纸篓会同时丢掉撤回入口，所以这里只带你过去，不代你清空。</span></div>
+          <span class="val">4.1 GB</span><span class="badge readonly lockbadge"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+          <span class="btn sm">打开</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="win mm-screen" style="height:auto;width:510px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统优化</h1><p>上次检测 2026-09-30 10:24</p></div>
+      </div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span></span></div>
+      <!-- 三行全部没量到：值列一律"—"，徽章一律"只读"，note 点名失败源。绝不渲染成"0 / 正常" -->
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="srow"><span class="ic" style="color:var(--c-label-secondary)"><svg class="i"><use href="#i-mem"></use></svg></span>
+          <div class="m"><b>内存占用</b><span>vm_statistics64 没读数，这里不猜占用；显示 —。</span></div>
+          <span class="val">—</span><span class="badge readonly lockbadge"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+          <span class="btn sm">查看</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+        <div class="srow"><span class="ic" style="color:var(--c-label-secondary)"><svg class="i"><use href="#i-disk"></use></svg></span>
+          <div class="m"><b>磁盘可用</b><span>未能读取卷信息（容量键未返回），不显示 0。</span></div>
+          <span class="val">—</span><span class="badge readonly lockbadge"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+          <span class="btn sm">查看</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+        <div class="srow"><span class="ic" style="color:var(--c-label-secondary)"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>废纸篓占用</b><span>清空废纸篓会同时丢掉撤回入口，所以这里只带你过去，不代你清空。</span></div>
+          <span class="val">—</span><span class="badge readonly lockbadge"><svg class="i"><use href="#i-lock"></use></svg>只读</span>
+          <span class="btn sm">打开</span>
+          <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-refresh"></use></svg></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+</div>
+
+<!-- 回执组件实物：toast 浮在 actionbar 上沿；failurePanel 挂在列表与 actionbar 之间 -->
+<div style="display:flex;flex-direction:column;gap:var(--sp-2);width:calc(var(--win-w) - 56px);margin-top:var(--sp-4)">
+  <div style="display:flex;justify-content:center">
+    <div class="toast">
+      <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+      <b style="font-weight:500">已移到废纸篓 · 3 个文件</b><span class="dt">858 MB</span>
+      <span class="act">撤回</span><span class="sep">|</span><span class="act">打开废纸篓</span>
+    </div>
+  </div>
+  <div class="failp" style="border:1px solid var(--c-separator);border-radius:var(--r-md)">
+    <div class="row-h"><span class="badge warn">2 项失败</span><span style="margin-left:auto"></span>
+      <span class="btn sm borderless">忽略</span></div>
+    <div class="frow1"><svg class="i" style="color:var(--c-danger)"><use href="#i-x"></use></svg>
+      <span>/Users/lee/Downloads/项目复盘 2.pdf</span>
+      <span class="msg">操作不被允许</span><span class="code">EPERM 1</span></div>
+    <div class="frow1"><svg class="i" style="color:var(--c-danger)"><use href="#i-x"></use></svg>
+      <span>/Users/lee/Documents/归档/项目复盘-最终.pdf</span>
+      <span class="msg">文件已不在原位置</span><span class="code">NSFileWriteFailure 517</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08e · 开发工具页签 —— 只报不执行（DevToolCacheView / P4.3）。</b>
+上面那块是<b>实机截图逐字还原</b>（MM_OPEN_TAB=devtools 冷启动，无合成点击）：本机只出现了"位置不存在"和
+"在用"两档，六行里五行没量到、只有 Cargo 有数字。这里刻意把"没量到"写成 <b>—</b> 而不是 0 B：
+目录不存在不等于"0 字节可清理"，caveat 那一行会把这层意思说破。右列三行自上而下是
+<b>大小 / 定位来源徽章 / 动作</b>——来源徽章两档必须分开：环境变量的值只有"绝对路径、不含 ..、不含换行"
+才敢用（否则一个 GOMODCACHE=../../etc 就能把清理变成越界删除），合格时显示"按 X 定位"，
+回落到默认位置时显示"按默认位置 · 未向工具求证"并带问号，<b>不能读成"这就是工具实际在用的那个"</b>。
+动作只有"拷贝 &lt;owner 命令&gt;"和"显示"（在访达揭示），<b>没有任何删除入口</b>：MacMaster 不执行第三方二进制，
+pip 那行连拷贝按钮都没有（owner 没有清理子命令 → ownerCommand=nil → 只剩"显示"）。
+徽章优先级：没装 &gt; 目录状态，所以"未安装"会盖掉"位置不存在"。caveat 的橙色（caution）
+只给"没装"和"读不动"，"目录不存在"保持灰——全橙会把六行都染成告警，用户分不清哪条真读不到。
+本屏没有 MMActionBar，页脚只有一句 info.circle 说明；进页签才测量（.task），测量前整页只有一个居中
+ProgressView。<b>下方那块是本机没跑出来的两档（未安装 / 读不到），按代码推演画的，不是实机照片。</b>
+（页头副标题仍来自系统状态页签，见 08d；本页签自己那句"上次盘点"在 DevToolCacheModel.updatedAt 里，
+当前 UI 未展示——这是已知的未接上，不是稿子漏画。）</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row" style="min-height:0">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">1.27 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+    </aside>
+
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span></span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>Go 模块缓存</b><span>位置不存在</span></div>
+            <div class="p">~/go/pkg/mod</div>
+            <div class="w">里面的包是只读的、还互相共享硬链接，删掉之后 go 自己的视图不会同步。这条命令删的是根目录本身，所以跑之前要确认根不是符号链接——否则它会顺着链接删到别处。</div>
+            <div class="cv">这个位置不存在——不是「0 字节可清理」，是这台机器上它还没被写过。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 go clean -modcache</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>Go 构建缓存</b><span>位置不存在</span></div>
+            <div class="p">~/Library/Caches/go-build</div>
+            <div class="w">owner 有按时间保留最近用过的条目的能力（-trim），整目录 rm 会把热缓存一起清掉，下次全量重编。</div>
+            <div class="cv">这个位置不存在——不是「0 字节可清理」，是这台机器上它还没被写过。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 go clean -cache</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>Cargo 包缓存</b><span>在用</span></div>
+            <div class="p">~/.cargo/registry</div>
+            <div class="w">registry 里的 .crate 是可重下的下载缓存；但 cargo 自带并没有清缓存的子命令，cargo-cache 是第三方扩展。</div>
+          </div>
+          <div class="r"><span class="sz">78.6 MB</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 cargo cache -O</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>Homebrew 下载缓存</b><span>位置不存在</span></div>
+            <div class="p">~/Library/Caches/Homebrew</div>
+            <div class="w">这个目录只是瓶子的下载缓存，rm 是安全的；但真正占空间的多半是旧版本 formula，只有 brew 自己知道哪些还在依赖链上。先 -n 预览再决定。</div>
+            <div class="cv">这个位置不存在——不是「0 字节可清理」，是这台机器上它还没被写过。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 brew cleanup -n</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>npm 缓存</b><span>位置不存在</span></div>
+            <div class="p">~/.npm/_cacache</div>
+            <div class="w">verify 会校验内容寻址存储并回收失效项，比整目录 rm 准；rm 之后首次安装要全量重下。</div>
+            <div class="cv">这个位置不存在——不是「0 字节可清理」，是这台机器上它还没被写过。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 npm cache verify</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>pip HTTP 缓存</b><span>位置不存在</span></div>
+            <div class="p">~/Library/Caches/pip</div>
+            <div class="w">pip 没有清理子命令，删目录是安全的；下次装包重新下载。</div>
+            <div class="cv">这个位置不存在——不是「0 字节可清理」，是这台机器上它还没被写过。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+
+        <div class="dfoot"><svg class="i"><use href="#i-info"></use></svg>
+          <span>这一屏不删任何东西：MacMaster 不执行第三方二进制，只报位置和命令。命令拷进终端由你决定跑不跑。</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 本机没跑出来的两档：按代码推演，非实机照片 -->
+<div class="win mm-screen" style="height:auto;width:660px;margin-top:var(--sp-4)">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">推演档 · 未安装 / 读不到</span></div>
+  </div>
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span></span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>npm 缓存</b><span>未安装</span></div>
+            <div class="p">~/.npm/_cacache</div>
+            <div class="w">verify 会校验内容寻址存储并回收失效项，比整目录 rm 准；rm 之后首次安装要全量重下。</div>
+            <div class="cv caution">PATH 里没找到 npm：位置是按默认规则算出来的，也没法跑 owner 命令。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly"><svg class="i"><use href="#i-q-c"></use></svg>按默认位置 · 未向工具求证</span>
+            <div class="acts"><span class="btn sm">拷贝 npm cache verify</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
+          <div class="m">
+            <div class="t"><b>Cargo 包缓存</b><span>读不到</span></div>
+            <div class="p">~/.cargo/registry</div>
+            <div class="w">registry 里的 .crate 是可重下的下载缓存；但 cargo 自带并没有清缓存的子命令，cargo-cache 是第三方扩展。</div>
+            <div class="cv caution">读不动这个位置，所以大小和状态都不知道；下面不显示数字。</div>
+          </div>
+          <div class="r"><span class="sz nil">—</span>
+            <span class="badge readonly">按 CARGO_HOME 定位</span>
+            <div class="acts"><span class="btn sm">拷贝 cargo cache -O</span><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+</body></html>

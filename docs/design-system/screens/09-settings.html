@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:500px}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+/* ---------- 设置 sheet（500pt 宽，实机为主窗口 .sheet，高固定 400pt、Form 内滚动；稿按内容展开） ---------- */
+.sheet{width:500px;height:auto;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
+       border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden;display:flex;flex-direction:column}
+.sheet-head{height:46px;flex:0 0 46px;display:flex;align-items:center;gap:var(--sp-3);
+            padding:0 var(--sp-4);background:var(--c-content-bg);border-bottom:1px solid var(--c-separator)}
+.sheet-head h1{margin:0;font-size:var(--fs-title3);font-weight:600;letter-spacing:-.2px}
+.sheet-head .x{margin-left:auto;color:var(--c-label-secondary);display:grid;place-items:center}
+/* 顶部四 tab 分段控件：Picker(.segmented).labelsHidden，横向 padding = MMGap.lg */
+.tabs{padding:var(--sp-3) var(--sp-4) var(--sp-3)}
+.tabs .seg{display:flex;width:100%}
+.tabs .seg span{flex:1;justify-content:center}
+.hairline{height:1px;background:var(--c-separator)}
+/* ---------- grouped Form ---------- */
+.form{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-5)}
+.fsec{display:flex;flex-direction:column;gap:6px}
+.ftitle{font-size:var(--fs-headline);font-weight:600;padding-left:2px}
+.fgroup{background:var(--c-card-bg);border:1px solid var(--c-separator);border-radius:var(--r-lg);overflow:hidden}
+.frow{display:flex;align-items:center;gap:var(--sp-2);min-height:38px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);font-size:var(--fs-body)}
+.frow:last-child{border-bottom:0}
+.frow .sp{margin-left:auto}
+/* 节内脚注：Form 里的 .font(.caption) Text，按行渲染在组框内 */
+.fcap{padding:8px var(--sp-3);border-bottom:1px solid var(--c-separator);font-size:var(--fs-caption);
+      color:var(--c-label-secondary);line-height:1.55}
+.fcap:last-child{border-bottom:0}
+.fcap.caution{color:var(--c-warning)}
+/* 组框内的链接式按钮（grouped Form 里 Button 默认渲染为彩色文字行） */
+.fbtn{display:flex;align-items:center;gap:6px;min-height:36px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);font-size:var(--fs-body);color:var(--c-accent)}
+.fbtn.destr{color:var(--c-danger)}
+.fbtn.disabled{opacity:.4}
+/* 排除项路径行：folder.badge.minus + 中间截断路径 + xmark.circle.fill */
+.exrow .path{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+             flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exrow .rm{color:var(--c-label-secondary);display:grid;place-items:center;flex:0 0 auto}
+/* ---------- 关于页 ---------- */
+.about{flex:1;display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);
+       padding:var(--sp-6) var(--sp-4) var(--sp-4);text-align:center}
+.about .appic{color:var(--c-accent)}
+.about .nm{font-size:var(--fs-title2);font-weight:600;letter-spacing:-.2px}
+.about .ver{font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.about .meta{width:320px;background:var(--c-content-bg);border:1px solid var(--c-separator);
+             border-radius:var(--r-md);padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-1)}
+.krow{display:flex;align-items:baseline;gap:var(--sp-3);font-size:var(--fs-body);text-align:left}
+.krow .k{width:80px;flex:0 0 80px;font-size:var(--fs-callout);color:var(--c-label-secondary)}
+/* ---------- 确认弹层（confirmationDialog 画成居中浮层） ---------- */
+.sheet-wrap{position:relative;display:flex}
+.sheet-wrap .scrim{border-radius:11px}
+.dialog{width:400px}
+.dialog .acts{justify-content:flex-end}</style></head>
+<body>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09a · 设置 —— 通用 tab（SettingsView.generalSettings）。</b>
+对应实机：主窗口侧边栏「设置」或 ⌘, 弹出的 <b>500×400 sheet</b>（MainWindow 的 .sheet），顶部是
+MMPageHeader「设置」+ 右上关闭钮（xmark.circle.fill），下面 Picker(.segmented) 四 tab，再往下
+Form(.grouped)。稿子把 sheet 单独浮出画、高度按内容展开；<b>实机高度固定 400pt，装不下的部分在
+Form 内滚动</b>。「开机自动启动」读的是 <b>SMAppService 的真实 status</b>（syncFromSystem 后回写
+AppSettings，不由存储单方面宣称），默认关。没画的态：注册失败时整条灰色脚注会换成<b>橙色错误原文</b>
+（"登录项操作失败：&lt;error&gt;。当前为 ad-hoc 签名的手工打包构建…正式签名打包后此功能方可稳定生效"）。
+界面语言由 Localization 自己的 @AppStorage 持久化（默认简体中文），与 AppSettings 无关。</div>
+<div class="sheet mm-screen">
+  <div class="sheet-head"><h1>设置</h1>
+    <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
+  <div class="tabs"><span class="seg">
+    <span class="on">通用</span><span>监控</span><span>清理</span><span>关于</span></span></div>
+  <div class="hairline"></div>
+  <div class="form">
+    <section class="fsec">
+      <div class="ftitle">语言</div>
+      <div class="fgroup">
+        <div class="frow"><span>界面语言</span><span class="sp"></span>
+          <span class="seg"><span class="on">简体中文</span><span>English</span></span></div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">启动</div>
+      <div class="fgroup">
+        <div class="frow"><span>开机自动启动</span><span class="sp"></span><span class="sw"></span></div>
+        <div class="fcap">通过 macOS 登录项（SMAppService）注册，状态以系统真实记录为准</div>
+        <div class="frow"><span>启动时最小化到菜单栏</span><span class="sp"></span><span class="sw"></span></div>
+        <div class="fcap">下次启动时主窗口不弹出，仅保留菜单栏图标；点击菜单栏「打开 MacMaster...」可恢复窗口</div>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09b · 设置 —— 监控 tab（monitorSettings）。</b>
+三个菜单栏指标开关 + 刷新频率分段（1/2/5 秒，AppSettings 把取值锁死在 allowedMonitorIntervals，
+非法值回落到默认 2 秒）+ 两个通知开关。全部画成<b>出厂默认</b>：指标全开、间隔 2 秒、通知全开
+（builtinDefaults 逐字对上）。此页<b>没有任何采样读数</b>，所以不存在"上次采样时间"行——它只存
+间隔和开关，真实采样发生在系统监控模块与 MenuBarManager，把"间隔"画成"实时读数"是本稿刻意避开
+的错。脚注里的阈值文案（CPU ≥ 85% / 内存 ≥ 90%、5 分钟冷却）是静态说明文字，改动需与实现同步核对。
+<b>行首不加图标：</b>实机这三行是裸 <code>Toggle("显示 CPU 使用率", …)</code>，SwiftUI 在
+<code>.grouped</code> Form 里不会给标题前插符号；本稿早期版本给它们配了 cpu/mem/net 图标，那是稿子
+自己加的，已按实机去掉——<b>本页所有开关行都没有行首图标</b>（09a/09c 同样如此）。</div>
+<div class="sheet mm-screen">
+  <div class="sheet-head"><h1>设置</h1>
+    <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
+  <div class="tabs"><span class="seg">
+    <span>通用</span><span class="on">监控</span><span>清理</span><span>关于</span></span></div>
+  <div class="hairline"></div>
+  <div class="form">
+    <section class="fsec">
+      <div class="ftitle">菜单栏监控</div>
+      <div class="fgroup">
+        <div class="frow"><span>显示 CPU 使用率</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>显示内存使用率</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>显示网络速度</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="fcap">修改后立即影响菜单栏显示</div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">刷新频率</div>
+      <div class="fgroup">
+        <div class="frow"><span>更新间隔</span><span class="sp"></span>
+          <span class="seg"><span>1 秒</span><span class="on">2 秒</span><span>5 秒</span></span></div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">通知</div>
+      <div class="fgroup">
+        <div class="frow"><span>CPU 使用率过高时通知</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>内存不足时通知</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="fcap">CPU ≥ 85% 或内存 ≥ 90% 时发送系统通知（跨阈值触发，5 分钟冷却）</div>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09c · 设置 —— 清理 tab（cleanerSettings），含「删除历史」区块。</b>
+扫描范围四开关与安全两开关全按出厂默认（builtinDefaults 全 true）。<b>「台账条目 3 / 20」里的 3
+是示例数</b>：实机 N = TrashHistoryStore 成功 load 出来的条数，上限 20 由
+FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"查过、确实没有"，属正常档</b>，
+但此时「清空删除历史」置灰（disabled，本板画的是有记录的启用态）；historyFileURL 为 nil 时
+（拿不到 Application Support）「在访达中显示台账文件」整行不出现，脚注降级为橙色
+"未能定位台账文件：这台机器拿不到 Application Support，记录只在内存里，退出即消失。"——
+<b>只读降级态本稿没画</b>，但档位必须照代码存在。排除项两条路径是示例：实机默认为空列表，
+只剩「添加排除文件夹...」按钮加脚注；NSOpenPanel（prompt「添加」、message
+"选择要排除、不被清理扫描的文件夹"）是系统面板，不入稿。</div>
+<div class="sheet mm-screen">
+  <div class="sheet-head"><h1>设置</h1>
+    <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
+  <div class="tabs"><span class="seg">
+    <span>通用</span><span>监控</span><span class="on">清理</span><span>关于</span></span></div>
+  <div class="hairline"></div>
+  <div class="form">
+    <section class="fsec">
+      <div class="ftitle">扫描范围</div>
+      <div class="fgroup">
+        <div class="frow"><span>系统缓存</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>应用缓存</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>日志文件</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>临时文件</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="fcap">设置已持久化；清理模块接入这些开关后生效</div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">安全</div>
+      <div class="fgroup">
+        <div class="frow"><span>删除前确认</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="frow"><span>允许撤回操作</span><span class="sp"></span><span class="sw on"></span></div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">删除历史</div>
+      <div class="fgroup">
+        <div class="frow"><span>台账条目</span><span class="sp"></span>
+          <span class="t-num" style="color:var(--c-label-secondary)">3 / 20</span></div>
+        <div class="fbtn"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示台账文件</div>
+        <div class="fcap">记的是被移入废纸篓的绝对路径与大小，只写在本机这个文件里，不上传。</div>
+        <div class="fbtn destr"><svg class="i"><use href="#i-warn"></use></svg>清空删除历史</div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">排除项</div>
+      <div class="fgroup">
+        <div class="fbtn"><svg class="i"><use href="#i-plus"></use></svg>添加排除文件夹...</div>
+        <div class="frow exrow"><svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          <span class="path">~/Library/CloudStorage/OnePersonalDrive/工作…/项目资料</span>
+          <span class="rm"><svg class="i"><use href="#i-no-c"></use></svg></span></div>
+        <div class="frow exrow"><svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
+          <span class="path">/Volumes/ExampleSSD/DesignSource</span>
+          <span class="rm"><svg class="i"><use href="#i-no-c"></use></svg></span></div>
+        <div class="fcap">排除的文件夹将不会被扫描（清理模块消费该列表后生效）</div>
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09d · 设置 —— 关于 tab（aboutView）。</b>
+纯展示 + 两个动作。<b>「版本 1.0.0 (1)」是 Info.plist 读不到时的兜底值</b>，装机版以
+CFBundleShortVersionString / CFBundleVersion 实际值为准。<b>「反馈问题」是 disabled 的
+.bordered 按钮</b>（help："项目内未配置真实的反馈邮箱或仓库地址，暂不启用"），台账卡里"反馈"
+一行也如实写"未配置官方渠道"——不做虚构链接是本页的底线，稿子不得给它加 hover/可点态。
+「检查更新」的弹窗态没在本板画：alert 标题「检查更新」、正文
+"已是最新版本（x.y.z（n)。\n当前构建未配置更新服务器，此检查仅读取本机 Info.plist。"、
+按钮「好」——<b>没有更新服务器，它只报本机版本，不宣称"检查过了全网最新"</b>。
+macbook.and.iphone 精灵图标是近似自绘（icons.js 无此符号），实机直接换 SF Symbol。</div>
+<div class="sheet mm-screen">
+  <div class="sheet-head"><h1>设置</h1>
+    <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
+  <div class="tabs"><span class="seg">
+    <span>通用</span><span>监控</span><span>清理</span><span class="on">关于</span></span></div>
+  <div class="hairline"></div>
+  <div class="about">
+    <svg class="i appic" viewBox="0 0 16 16" style="width:48px;height:48px;flex-basis:48px">
+      <path d="M2.2 3.6h6.2c.4 0 .8.3.8.8v5.2H1.4V4.4c0-.4.4-.8.8-.8z"/>
+      <path d="M.6 11.2h9.8l.6 1.8H0z"/>
+      <path d="M12.3 5.4h2c.5 0 .9.4.9.9v6c0 .5-.4.9-.9.9h-2c-.5 0-.9-.4-.9-.9v-6c0-.5.4-.9.9-.9z"/>
+      <path d="M12.9 11.3h1"/>
+    </svg>
+    <div class="row-h" style="flex-direction:column;gap:2px">
+      <span class="nm">MacMaster</span>
+      <span class="ver">版本 1.0.0 (1)</span>
+    </div>
+    <div class="meta">
+      <div class="krow"><span class="k">开发者</span><span>MacMaster Team</span></div>
+      <div class="krow"><span class="k">许可</span><span>MIT License</span></div>
+      <div class="krow"><span class="k">反馈</span><span>未配置官方渠道</span></div>
+    </div>
+    <div class="sp" style="flex:1"></div>
+    <div class="row-h" style="gap:var(--sp-3)">
+      <span class="btn">检查更新</span>
+      <span class="btn disabled" title="项目内未配置真实的反馈邮箱或仓库地址，暂不启用">反馈问题</span>
+    </div>
+    <span class="note">「反馈问题」暂不可用：项目与文档中未找到官方反馈渠道地址，不做虚构链接</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09e · 清理 tab —— 「清空删除历史」确认态（confirmationDialog）。</b>
+点 09c 的红色「清空删除历史」后置 confirmClearHistory = true 弹出。实机是 macOS 的
+confirmationDialog（自窗口底部滑入的卡片），稿子按居中浮层画以便看清层级。<b>按钮文案里的条数
+与台账 N 同源</b>（"清空 3 条记录" 的 3 = trashHistory.count，示例值）；「取消」role: .cancel。
+说明文字逐字照抄 SettingsView.swift —— 它承诺的就是代码事实：<b>只删记录，不碰废纸篓里的文件；
+代价是「最近操作」里的撤回入口一并消失</b>（FileTrashService.clearHistory 走同一个 record(.cleared)
+出口，内存与磁盘台账同步清空）。台账为 0 时到不了这个弹窗（按钮已置灰），所以弹窗里不存在
+"清空 0 条" 的形态。</div>
+<div class="sheet-wrap">
+<div class="sheet mm-screen">
+  <div class="sheet-head"><h1>设置</h1>
+    <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
+  <div class="tabs"><span class="seg">
+    <span>通用</span><span>监控</span><span class="on">清理</span><span>关于</span></span></div>
+  <div class="hairline"></div>
+  <div class="form">
+    <section class="fsec">
+      <div class="ftitle">删除历史</div>
+      <div class="fgroup">
+        <div class="frow"><span>台账条目</span><span class="sp"></span>
+          <span class="t-num" style="color:var(--c-label-secondary)">3 / 20</span></div>
+        <div class="fbtn"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示台账文件</div>
+        <div class="fcap">记的是被移入废纸篓的绝对路径与大小，只写在本机这个文件里，不上传。</div>
+        <div class="fbtn destr"><svg class="i"><use href="#i-warn"></use></svg>清空删除历史</div>
+      </div>
+    </section>
+  </div>
+  <div class="scrim">
+    <div class="dialog mm-screen">
+      <h3>清空删除历史？</h3>
+      <p>只删记录，不碰废纸篓里的文件。清空后「最近操作」里的撤回入口一并消失——没有记录就不知道该把哪个文件放回哪儿。</p>
+      <div class="acts">
+        <span class="btn destructive">清空 3 条记录</span>
+        <span class="btn">取消</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</body></html>
