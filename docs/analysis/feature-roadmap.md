@@ -267,3 +267,70 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 **"正在被使用"这一档只在夹具里渲染过，没有真机正分支**；摄像头分支的 `running==1`
 按头文件语义实现，需要在带摄像头的机器上复验。组合设备歧义同理（本机那台
 "Mac mini扬声器"读到的是 0，触发不了）。
+
+## P3.2 落地：敏感权限授权只读视图（TCC）
+
+**做了什么**：`MMGuardian/TCCAuthorization.swift`（纯判定 + 文案 + 夹具解析）、
+`TCCProbe.swift`（唯一碰系统调用的一层）、`MMGuardian.swift` 的 `tccCard`。
+只读打开两个 `TCC.db`（`SQLITE_OPEN_READONLY`，无 `CREATE`/`READWRITE`），
+`SELECT service, client, client_type, auth_value, last_modified FROM access WHERE service IN (五个 tracked 服务)`，
+绝不写库、绝不 sudo、不提权。
+
+**本机实测（复核过，不是转述）**：
+- 用户级 `~/Library/Application Support/com.apple.TCC/` → `ls` 直接 `No such file or directory`，
+  `sqlite3` 报 `unable to open database file`；
+- 系统级 `/Library/Application Support/com.apple.TCC/TCC.db` → `authorization denied`。
+所以"读不到"是这台机器的常态档，状态机把它当第一等公民设计，而不是边角分支。
+
+**口径**（`TCCViewerState` 四档 + 测量中）：
+- `.unreadable` 逐库带 errno/strerror 与 sqlite 原文；ENOENT 单独措辞成"不存在或被系统对无
+  「完全磁盘访问」的进程隐藏"——无 FDA 时目录是被隐形的，谎报成"没有这个库"就是假话。
+- `.emptyRead`（"没有授权记录"）只有在没有任何一个库处于 unreadable 时才允许出现；
+  有库没读到就降成 `.partial(rows:[], unreadableNote:)`，并点名是哪个库。
+- `auth_value` 只映射 0/2/3/4；`1` 和一切表外值都是"未知值 (N)"，永不猜成"允许"。
+- 探针层不做单元测试：拿夹具 db 测它只能证明 sqlite 能用，证明不了真 TCC 库的可读性。
+
+**新增验证钩子**：`MM_TCC_FIXTURE=rows|unreadable|empty`。`rows` 档注入的全是 `com.example.*`
+合成行，与真实数据一眼可分。
+
+### 没能验证到的部分
+
+"授 FDA 之后能读到"这条没验证——无头环境里没法替用户点系统设置那个开关。
+所以 `.loaded` / `.partial` 两档只在合成夹具下渲染过，真机两库都打不开。
+`emptyRead` 同理：这台机器上从没真的读到过 0 行。
+
+## P4.4 落地：安装包残留查找（DMG / PKG / MPKG / XIP + 按内容嗅探的 ZIP）
+
+**做了什么**：`MMFileScanner/InstallerScanner.swift`（actor，512 行，纯只读）+
+`UserFolderCleanView` 的「安装包残留」区块。口径来自 Mole `bin/installer.sh:41-119`，
+但实现换成内容嗅探：只读文件头/尾的 magic bytes 与 ZIP 中央目录的条目名，
+**不解压、不写文件、不执行被扫描对象**（Mole 那边是 `unzip -l`，会 spawn 第三方进程）。
+
+**证据分两档，绝不合并**：
+- `.verified`：UDIF 尾块 `koly`（版本 1-8 + headerSize=512，大端）、`xar!` 头、
+  XIP 签名信封 `AB C1 AD FE`、或 ZIP 中央目录里出现顶层 `<Name>.app/`；
+- `.nameOnly`：只有扩展名对得上、内容没能核实（读不动 / 太小 / 不认识的变体）。
+  UI 上是橙色问号徽章「仅按名称识别」，绝不借用绿/蓝。
+- `.zip` 是唯一"判不了就不列"的例外：普通 zip 太常见，宁可漏报不错报。
+
+**接入既有安全管线**：与用户文件夹清理共用 `FileTrashService`（移入废纸篓、可撤回），
+默认全部不勾选；`size == nil` 渲染"测量中"。
+
+**新增验证钩子**：`MM_INSTALLER_FIXTURE_DIR`，只接受 `/tmp` 或 `/private/tmp` 前缀
+（非法值写 stderr 后忽略），且必须同时给 `MM_SHOW_CONFIRM` 才会自动勾选并弹确认面板。
+这一屏的删除按钮是真删文件，钩子的防护必须比别屏更严。
+
+### 复核时改出来的两件事
+
+1. **深度上限必须写在页面上**。`maxDepth=2` 意味着"根目录 + 一层子目录"，更深处根本没看。
+   空结果最容易骗人的地方就是"没看过"被读成"没有"——所以区块里加了一条常驻范围声明：
+   「扫描范围：~/Desktop、~/Downloads、~/Documents、~/Public · 只查这些位置本身及其一层子目录，
+   更深的目录本轮没有查看」。这条按 `report.scannedRoots` 实际值渲染，夹具模式下不会谎称扫了家目录。
+2. `~` 缩写写成 `"~" + path.dropFirst(home.count)` 会产出 `~/Desktop`（双波浪）。
+   正确是 `~/" + dropFirst(home.count + 1)`。真机截图放大才看得出来，肉眼在小字上会漏。
+
+### 没能验证到的部分
+
+`.xip` 的 `AB C1 AD FE` 魔数按公开格式资料实现，本机没有 .xip 样本实证；对不上只会降级成
+`nameOnly`（安全方向的误差）。`installerInaccessibleRoots` 的真机渲染没截到——
+那四个家目录子项在 TCC 保护下都能枚举，模拟"读不到"要指真实目录，风险大于收益。
