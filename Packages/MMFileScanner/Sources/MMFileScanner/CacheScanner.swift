@@ -548,7 +548,11 @@ public actor CacheScanner {
             ),
             CacheCategory(
                 id: "dev_cache", name: "开发工具缓存",
-                subtitle: "DerivedData · npm · pip · Go build · Homebrew",
+                // 交叉引用不是装饰：这一屏说"删了它"，「系统优化 → 开发工具」说
+                // "这几处该由 owner 自己清"。两处口径必须互相指得过去。
+                // 长度要克制：MMItemRow 的副标题是 lineLimit(1) + 中间截断，
+                // 写长了被截掉的正好是后半句，等于没写。
+                subtitle: "DerivedData · npm · pip · Go build · Homebrew · 另有工具自带的清理命令",
                 iconName: "hammer", risk: .caution, scope: .appCache,
                 paths: [
                     "\(home)/Library/Developer/Xcode/DerivedData",

@@ -275,7 +275,9 @@ public struct CleanerView: View {
     @ObservedObject private var settings = AppSettings.shared
     @StateObject private var model = CleanerModel()
     @State private var filter: CleanerFilter = .all
-    @State private var search = ""
+    /// MM_CLEANER_FILTER 只是给搜索框一个初值（和用户在框里打字是同一个状态），
+    /// 供无头截图把某个类别单独留在视口里——不用合成键盘输入，那会逃逸到别的 app。
+    @State private var search = ProcessInfo.processInfo.environment["MM_CLEANER_FILTER"] ?? ""
     @State private var showConfirm = false
     @State private var showExclusions = false
     @State private var toastSeconds = 0
