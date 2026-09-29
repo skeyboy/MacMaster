@@ -1,6 +1,16 @@
 import SwiftUI
 import AppKit
 
+/// 全树名称过滤的两级表态（对齐 disktree 的"匹配保色、祖先退色"）：
+/// 命中块保留原始分类色，含命中的祖先退色。色相回答"这是什么"，
+/// 保色/退色回答"它是不是命中本身"——两个维度不能互相污染。
+public enum TreemapMatchTier: Sendable {
+    /// 名称直接命中（或位于命中目录之内）：保色。
+    case matched
+    /// 自身未命中、子树里含命中：退色，面积按命中体积而非自身占用。
+    case containsMatch
+}
+
 public struct TreemapItem: Identifiable {
     public let id: String
     public let name: String
@@ -10,10 +20,12 @@ public struct TreemapItem: Identifiable {
     public let isDirectory: Bool
     /// 斜纹通道：这一块（或它所在的祖先）被判定为可清理。
     public let reclaimable: Bool
+    /// nil = 名称过滤未启用，按常规画法；非 nil = 过滤布局里的两级之一。
+    public let matchTier: TreemapMatchTier?
 
     public init(id: String, name: String, value: Double, color: Color = .blue,
                 children: [TreemapItem] = [], isDirectory: Bool = false,
-                reclaimable: Bool = false) {
+                reclaimable: Bool = false, matchTier: TreemapMatchTier? = nil) {
         self.id = id
         self.name = name
         self.value = value
@@ -21,6 +33,7 @@ public struct TreemapItem: Identifiable {
         self.children = children
         self.isDirectory = isDirectory
         self.reclaimable = reclaimable
+        self.matchTier = matchTier
     }
 }
 
@@ -131,7 +144,11 @@ public enum TreemapLayout {
         guard total > 0, rect.width >= options.minTile, rect.height >= options.minTile else { return }
 
         var tiles = Array(sorted.prefix(options.childCap(at: depth)))
-        let overflow = sorted.dropFirst(options.maxChildren)
+        // 溢出必须按本层的 childCap 切，不是按 depth 0 的 maxChildren：
+        // 深层 cap 更小（24、6、4…），用错基准会把 cap 与 maxChildren
+        // 之间的块静默丢掉，"其余"块也不再面积守恒——全树过滤按命中体积
+        // 重排后依赖这块面积诚实。
+        let overflow = sorted.dropFirst(options.childCap(at: depth))
         if !overflow.isEmpty {
             let restValue = overflow.reduce(0) { $0 + $1.value }
             tiles.append(TreemapItem(
@@ -405,6 +422,17 @@ public struct TreemapView: View {
         return best?.item
     }
 
+    /// 过滤两级的不透明度：「保色」就是常规分档亮度（匹配项与不过滤时长得一样，
+    /// 不会引入第二种"命中色"）；「退色」把不透明度砍到约一半但保留色相，
+    /// 让含命中的祖先明确低一级。hover 仍回到全亮——临时退色的块不该读不出内容。
+    static func fillOpacity(for tier: TreemapMatchTier?, depth: Int, isHovered: Bool) -> Double {
+        if isHovered { return 1 }
+        switch tier {
+        case nil, .matched: return depth == 0 ? 0.9 : 0.75
+        case .containsMatch: return depth == 0 ? 0.38 : 0.30
+        }
+    }
+
     /// 45° 斜线铺满矩形，裁到块的圆角轮廓里。
     private func strokeHatch(in context: inout GraphicsContext, path: Path, rect: CGRect,
                              color: Color, spacing: CGFloat, lineWidth: CGFloat) {
@@ -433,9 +461,10 @@ public struct TreemapView: View {
         let isHovered = hoveredID == cell.item.id
         let isMarked = markedIDs.contains(cell.item.id)
         let isSelected = selectedID == cell.item.id
-        let dimming = cell.depth == 0 ? 0.9 : 0.75
         let path = Path(roundedRect: rect, cornerRadius: 3)
-        context.fill(path, with: .color(cell.item.color.opacity(isHovered ? 1 : dimming)))
+        context.fill(path, with: .color(cell.item.color.opacity(
+            Self.fillOpacity(for: cell.item.matchTier, depth: cell.depth, isHovered: isHovered)
+        )))
 
         // 可清理 = 斜纹（对应设计稿图例里的"可清理（斜纹）"）。用同色系暗纹，
         // 它是属性；标记用亮白斜纹 + 勾标，它是意图。两者不能撞车，所以

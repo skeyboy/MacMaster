@@ -80,11 +80,13 @@ public struct DiskAnalyzerView: View {
             if isScanning && scanResult == nil {
                 scanningView
             } else if let result = scanResult {
-                breadcrumbBar
+                // 每帧只算一次全树过滤，面包屑、treemap、列表共用同一份结果。
+                let filtered = filterResult
+                breadcrumbBar(filtered: filtered)
                 findingsPanel
                 Divider()
                 HStack(spacing: 0) {
-                    mainColumn
+                    mainColumn(filtered: filtered)
                     if let node = selected {
                         Divider()
                         inspector(node: node)
@@ -126,6 +128,10 @@ public struct DiskAnalyzerView: View {
             if let raw = env["MM_DISK_DEPTH"], let depth = Int(raw), (1...4).contains(depth) {
                 drawDepth = depth
             }
+            // 截图验证过滤态：没有真键盘可用时，用变量把名称过滤预置进输入框。
+            if let filter = env["MM_DISK_FILTER"], !filter.isEmpty {
+                nameFilter = filter
+            }
             guard scanResult == nil, let root = env["MM_DISK_SCAN"], !root.isEmpty else { return }
             await scan(rootPath: (root as NSString).expandingTildeInPath)
         }
@@ -144,6 +150,7 @@ public struct DiskAnalyzerView: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 132)
                 .disabled(mode == .large)
+                .help("全树匹配：含命中后代的目录以命中体积出现；清除后立刻回到原始布局")
 
             Button {
                 if let path = navigationStack.last { Task { await doNavigate(path: path) } }
@@ -248,11 +255,19 @@ public struct DiskAnalyzerView: View {
         return "\(elapsed / 60) 分 \(elapsed % 60) 秒"
     }
 
-    private var breadcrumbBar: some View {
+    private func breadcrumbBar(filtered: DiskTreeFilter.Result?) -> some View {
         HStack(spacing: MMGap.sm) {
             breadcrumbTrail
 
             Spacer(minLength: MMGap.md)
+
+            // 没扫到深度的目录：判不了是否命中。既不画进布局（面积编不出来），
+            // 也不装死——数量和占用如实报在这里，"未测量"绝不能被读成"零命中"。
+            if let filtered, filtered.indeterminateCount > 0 {
+                MMBadge("判不了 \(filtered.indeterminateCount) 个目录 · 占用 \(MMFormat.bytes(filtered.indeterminateBytes))",
+                        tint: MMColor.caution, systemImage: "questionmark.folder")
+                    .help("这些目录超出了扫描深度，只知道占用、不知道里面有没有匹配项")
+            }
 
             if !marked.isEmpty {
                 let plan = removalPlan
@@ -372,17 +387,17 @@ public struct DiskAnalyzerView: View {
         )
     }
 
-    private var mainColumn: some View {
+    private func mainColumn(filtered: DiskTreeFilter.Result?) -> some View {
         VStack(spacing: 0) {
-            content
+            content(filtered: filtered)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if mode == .treemap { legend }
+            if mode == .treemap { legend(filtered: filtered) }
         }
         .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private var content: some View {
+    private func content(filtered: DiskTreeFilter.Result?) -> some View {
         if isScanning {
             // 单层枚举没有进度可估（不知道总量），只给不确定态指示
             VStack(spacing: MMGap.sm) {
@@ -397,16 +412,16 @@ public struct DiskAnalyzerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             switch mode {
-            case .treemap: treemapView
-            case .list: listView
+            case .treemap: treemapView(filtered: filtered)
+            case .list: listView(filtered: filtered)
             case .large: largeFilesList
             }
         }
     }
 
-    private var treemapView: some View {
+    private func treemapView(filtered: DiskTreeFilter.Result?) -> some View {
         TreemapView(
-            items: visibleItems.map { treemapItem(for: $0, depth: 0) },
+            items: treemapInputItems(filtered: filtered),
             options: treemapOptions,
             markedIDs: Set(marked.keys),
             selectedID: selected?.path,
@@ -419,13 +434,38 @@ public struct DiskAnalyzerView: View {
             }
         )
         .padding(MMGap.sm)
+        .overlay {
+            // 过滤后一个命中都没有：treemap 会变成整片空白，必须说清楚
+            // 是"量过了没有"还是"有目录判不了"。
+            if let filtered, filtered.nodes.isEmpty {
+                MMEmptyState(
+                    systemImage: "magnifyingglass",
+                    title: "没有匹配「\(nameFilter)」的条目",
+                    detail: filtered.indeterminateCount > 0
+                        ? "已测量的部分没有命中；另有 \(filtered.indeterminateCount) 个目录超出扫描深度，是否命中判不了。"
+                        : "全树口径：这一层及其已测量的子树里都没有命中。清空筛选框即回到原始布局。"
+                )
+            }
+        }
         .help("Tab 聚焦后可用方向键移动选中块，回门下钻，空格标记，Esc 返回上一层")
+    }
+
+    /// treemap 的输入：过滤态走全树命中（面积 = 命中体积，含命中的祖先保留分支），
+    /// 否则走原来的渲染窗口。过滤为空（nil）就是原始布局——
+    /// 残状态在结构上就不存在：没有任何"过滤后数据"被留在外面。
+    private func treemapInputItems(filtered: DiskTreeFilter.Result?) -> [TreemapItem] {
+        if let filtered {
+            // 不预先截窗：命中排序按命中体积，第 201 个命中也可能是大答案。
+            // 渲染规模由布局引擎的 childCap + "其余"合并兜底。
+            return filtered.nodes.map { treemapItem(for: $0, depth: 0) }
+        }
+        return visibleItems.map { treemapItem(for: $0, depth: 0) }
     }
 
     /// 图例说明的是读法，不是配色表：色相=种类，斜纹=可清理。
     /// 窄窗口下先保住色块和纹样（它们是解码图形所必需的），
     /// 让右侧那句说明截断，而不是把色块挤没。
-    private var legend: some View {
+    private func legend(filtered: DiskTreeFilter.Result?) -> some View {
         HStack(spacing: MMGap.md) {
             ForEach(NodeCategory.allCases, id: \.self) { category in
                 swatch(label: category.displayName, fill: category.color)
@@ -454,7 +494,11 @@ public struct DiskAnalyzerView: View {
                 .layoutPriority(2)
             }
 
-            Text("面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记")
+            // 过滤态下面积口径变了（命中体积而非总占用），图例必须跟着改口，
+            // 否则"实色/淡色"两级没有第二个地方能查到含义。
+            Text(filtered == nil
+                 ? "面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记"
+                 : "过滤中：面积 = 命中占用 · 实色 = 命中 · 淡色 = 含命中的祖先")
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
                 .lineLimit(1)
@@ -475,15 +519,55 @@ public struct DiskAnalyzerView: View {
         }
     }
 
-    private var listView: some View {
+    private func listView(filtered: DiskTreeFilter.Result?) -> some View {
         Group {
-            if visibleItems.isEmpty {
+            if let filtered {
+                if filtered.nodes.isEmpty && filtered.indeterminateCount == 0 {
+                    MMEmptyState(
+                        systemImage: "tray",
+                        title: "没有匹配「\(nameFilter)」的条目",
+                        detail: "全树口径：这一层及其已测量的子树里都没有命中。清空筛选框可看全量。"
+                    )
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: MMGap.xxs) {
+                            // filtered.nodes 已按命中体积降序，body 里不再重排
+                            ForEach(filtered.nodes, id: \.id) { hit in
+                                nodeRow(hit.node, displaySize: hit.matchedBytes,
+                                        total: filtered.matchedBytesTotal)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture { selected = hit.node }
+                                    .onTapGesture(count: 2) { drill(path: hit.node.path) }
+                                    .contextMenu { rowMenu(hit.node) }
+                            }
+                            if filtered.indeterminateCount > 0 {
+                                HStack(spacing: MMGap.sm) {
+                                    Image(systemName: "questionmark.folder")
+                                        .font(.caption)
+                                        .foregroundStyle(MMColor.caution)
+                                        .frame(width: MMGap.xxl)
+                                    Text("另有 \(filtered.indeterminateCount) 个目录超出扫描深度，是否命中判不了")
+                                        .font(.caption)
+                                        .foregroundStyle(MMColor.secondaryLabel)
+                                        .lineLimit(1)
+                                    Spacer(minLength: MMGap.sm)
+                                    Text(MMFormat.bytes(filtered.indeterminateBytes))
+                                        .font(.caption.monospacedDigit())
+                                        .foregroundStyle(MMColor.secondaryLabel)
+                                        .frame(width: 78, alignment: .trailing)
+                                }
+                                .padding(.horizontal, MMGap.sm)
+                                .frame(height: MMMetric.rowCompact)
+                            }
+                        }
+                        .padding(MMGap.md)
+                    }
+                }
+            } else if visibleItems.isEmpty {
                 MMEmptyState(
                     systemImage: "tray",
-                    title: nameFilter.isEmpty ? "这一层是空的" : "没有匹配「\(nameFilter)」的条目",
-                    detail: nameFilter.isEmpty
-                        ? "空目录不猜体积：切到别层或返回上一级继续看。"
-                        : "筛选只作用于当前这一层，返回上一级或清空筛选框可看全量。"
+                    title: "这一层是空的",
+                    detail: "空目录不猜体积：切到别层或返回上一级继续看。"
                 )
             } else {
                 ScrollView {
@@ -503,8 +587,12 @@ public struct DiskAnalyzerView: View {
         }
     }
 
-    private func nodeRow(_ node: DiskTreeNode) -> some View {
-        let share = levelTotal > 0 ? Double(node.size) / Double(levelTotal) : 0
+    /// `displaySize`/`total` 只在全树过滤态传入：那一栏写的是"命中体积"，
+    /// 占比的分母是命中总量——原始占用仍在详情面板里，两处不互相冒充。
+    private func nodeRow(_ node: DiskTreeNode, displaySize: UInt64? = nil, total: UInt64? = nil) -> some View {
+        let size = displaySize ?? node.size
+        let denominator = total ?? levelTotal
+        let share = denominator > 0 ? Double(size) / Double(denominator) : 0
         return HStack(spacing: MMGap.sm) {
             Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
                 .font(.system(size: MMGap.lg))
@@ -529,7 +617,7 @@ public struct DiskAnalyzerView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(MMColor.tertiaryLabel)
                 .frame(width: 44, alignment: .trailing)
-            Text(MMFormat.bytes(node.size))
+            Text(MMFormat.bytes(size))
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(MMColor.secondaryLabel)
                 .frame(width: 78, alignment: .trailing)
@@ -713,23 +801,53 @@ public struct DiskAnalyzerView: View {
     /// 嵌套 treemap 的输入：只带上布局真正会画的子块，
     /// 每层的数量上限和 TreemapLayoutOptions 保持一致，避免白构造。
     private func treemapItem(for node: DiskTreeNode, depth: Int) -> TreemapItem {
-        var children: [TreemapItem] = []
-        if node.isDirectory, depth + 1 < treemapOptions.maxDepth {
-            children = node.children
-                .filter { $0.size > 0 }
-                .sorted { $0.size > $1.size }
-                .prefix(treemapOptions.childCap(at: depth + 1))
-                .map { treemapItem(for: $0, depth: depth + 1) }
-        }
         return TreemapItem(
             id: node.id,
             name: node.name,
             value: Double(node.size),
             color: TreemapPalette.shade(node.category.color, depth: depth),
-            children: children,
+            children: rawChildItems(of: node, depth: depth),
             isDirectory: node.isDirectory,
             reclaimable: node.reclaim != nil
         )
+    }
+
+    /// 过滤态映射：块面积 = 全树命中体积（不是目录自身占用）。
+    /// 自身命中的目录子树原样展示；含命中的祖先只保留命中分支，
+    /// tier 透传给 TreemapView 画"匹配保色、祖先退色"两级。
+    private func treemapItem(for filtered: DiskTreeFilter.Node, depth: Int) -> TreemapItem {
+        var children: [TreemapItem] = []
+        if depth + 1 < treemapOptions.maxDepth {
+            switch filtered.children {
+            case nil:
+                children = rawChildItems(of: filtered.node, depth: depth)
+            case let branches?:
+                children = branches
+                    .filter { $0.matchedBytes > 0 }
+                    .prefix(treemapOptions.childCap(at: depth + 1))
+                    .map { treemapItem(for: $0, depth: depth + 1) }
+            }
+        }
+        return TreemapItem(
+            id: filtered.node.id,
+            name: filtered.node.name,
+            value: Double(filtered.matchedBytes),
+            color: TreemapPalette.shade(filtered.node.category.color, depth: depth),
+            children: children,
+            isDirectory: filtered.node.isDirectory,
+            reclaimable: filtered.node.reclaim != nil,
+            matchTier: filtered.tier == .matched ? .matched : .containsMatch
+        )
+    }
+
+    /// 未剪枝的子层映射；命中目录的内部是上下文，不再按名字过滤。
+    private func rawChildItems(of node: DiskTreeNode, depth: Int) -> [TreemapItem] {
+        guard node.isDirectory, depth + 1 < treemapOptions.maxDepth else { return [] }
+        return node.children
+            .filter { $0.size > 0 }
+            .sorted { $0.size > $1.size }
+            .prefix(treemapOptions.childCap(at: depth + 1))
+            .map { treemapItem(for: $0, depth: depth + 1) }
     }
 
     private var treemapOptions: TreemapLayoutOptions {
@@ -771,10 +889,18 @@ public struct DiskAnalyzerView: View {
 
     // MARK: - 选中、标记与删除
 
-    private var visibleItems: [DiskTreeNode] {
-        guard !nameFilter.isEmpty else { return currentItems }
-        return currentItems.filter { $0.name.localizedCaseInsensitiveContains(nameFilter) }
+    // MARK: - 全树名称过滤
+
+    /// 渲染窗口本身不参与过滤：过滤读的是当前层的完整数据，
+    /// 否则第 201 项之后的命中会被"其余"块吞掉，图上根本看不见。
+    private var filterResult: DiskTreeFilter.Result? {
+        guard !nameFilter.isEmpty, mode != .large else { return nil }
+        return DiskTreeFilter.apply(scanStore?.currentChildren ?? currentItems, filter: nameFilter)
     }
+
+    /// 未过滤时的当前层条目。过滤启用后 treemap 与列表都不再读它——
+    /// 过滤为空（nil）就是原始布局，不存在"清掉过滤还留着痕迹"的状态。
+    private var visibleItems: [DiskTreeNode] { currentItems }
 
     /// 标记 → 删除计划的唯一裁决入口。确认面板、面包屑上的徽标、"删完还剩多少"的
     /// 投影必须都读它，否则同一屏会出现两个对不上的总数。
@@ -1165,6 +1291,10 @@ struct DiskTreeNode: Identifiable, Sendable {
     /// nil 表示这一层没量到时间，"久未触碰"就不能成立——
     /// 缺数不等于新，也不等于旧。
     var modificationDate: Date? = nil
+    /// false 表示子树没有逐层枚举过（触达深度上限后只做了求和兜底），
+    /// 里面有谁、叫什么都不知道。全树名称过滤据此把"判不了"和
+    /// "量过、确实没命中"分开上报，绝不把前者折叠成零命中。
+    var descendantsMeasured: Bool = true
 }
 
 /// 完整扫描结果驻留在引用类型里：@State 只持有有界渲染窗口，
@@ -1418,7 +1548,9 @@ enum DiskScanner {
                     id: dir.path, name: dir.name, path: dir.path,
                     size: deepSize(path: dir.path, remainingDepth: 3, ledger: ledger),
                     isDirectory: true, children: [],
-                    modificationDate: dir.modificationDate
+                    modificationDate: dir.modificationDate,
+                    // 触达深度上限：字节量到了，名字没枚举过。
+                    descendantsMeasured: false
                 ))
             }
             return result
