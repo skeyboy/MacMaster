@@ -11,9 +11,25 @@ struct CleanerContainerView: View {
         case system = "系统分析"
 
         var id: String { rawValue }
+
+        /// MM_OPEN_TAB=cache|folders|system：只用于逐屏截图核对设计稿，
+        /// 正常启动不会带这个变量。
+        var hookKey: String {
+            switch self {
+            case .cache: "cache"
+            case .userFolders: "folders"
+            case .system: "system"
+            }
+        }
+
+        init?(hookKey: String) {
+            guard let match = Self.allCases.first(where: { $0.hookKey == hookKey }) else { return nil }
+            self = match
+        }
     }
 
-    @State private var tab: Tab = .cache
+    @State private var tab: Tab =
+        Tab(hookKey: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .cache
 
     var body: some View {
         VStack(spacing: 0) {

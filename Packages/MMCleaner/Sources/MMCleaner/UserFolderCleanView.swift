@@ -1,6 +1,7 @@
 import SwiftUI
 import MMCore
 import MMFileScanner
+import MMUI
 
 /// Task 1 UI：用户文件夹「先查看、再手动勾选」。
 /// 与缓存页的默认全选相反，这里所有条目初始状态都是未选中，
@@ -17,21 +18,33 @@ struct UserFolderCleanView: View {
     @State private var scanningPath = ""
     @State private var scannedFileCount = 0
     @State private var lastResult: TrashResult?
-    @State private var showUndoToast = false
+    @State private var lastFailures: [TrashFailure] = []
+    @State private var toastSeconds = 0
     @State private var showConfirmAlert = false
     @State private var scanTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
-            if isScanning && folders.isEmpty {
-                scanProgressView
-            } else if !hasScanned {
-                emptyView
-            } else {
-                folderList
+            MMPageHeader("用户文件夹", subtitle: headerSubtitle) {
+                Button {
+                    startScan()
+                } label: {
+                    Label(isScanning ? "扫描中…" : "重新扫描", systemImage: "arrow.clockwise")
+                }
+                .disabled(isScanning || isCleaning)
             }
+
+            content
+
+            if !lastFailures.isEmpty {
+                MMFailurePanel(
+                    summary: lastResult.map { "已回收 \(MMFormat.bytes($0.totalSize))" },
+                    lastFailures
+                ) {
+                    lastFailures = []
+                }
+            }
+
             Divider()
             actionBar
         }
@@ -41,178 +54,156 @@ struct UserFolderCleanView: View {
                 Task { await cleanSelected() }
             }
         } message: {
-            Text("共 \(cleanTargets.count) 项，约 \(formatSize(selectedSize))。\n选中的内容将移入废纸篓（可撤回），不会永久删除。")
+            Text("共 \(cleanTargets.count) 项，约 \(MMFormat.bytes(selectedSize))。\n选中的内容将移入废纸篓（可撤回），不会永久删除。")
         }
         .overlay(alignment: .bottom) {
-            if showUndoToast && lastResult != nil {
-                undoToast
-                    .padding(.bottom, 60)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            if let result = lastResult, toastSeconds > 0 {
+                MMUndoToast(
+                    message: "已将 \(result.successCount) 项移入废纸篓",
+                    detail: MMFormat.bytes(result.totalSize),
+                    secondsRemaining: toastSeconds,
+                    onUndo: { Task { await undoClean() } },
+                    onRevealTrash: { MMReveal.openDirectory(NSHomeDirectory() + "/.Trash") }
+                )
+                .padding(.bottom, MMMetric.actionBar + MMGap.md)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring, value: showUndoToast)
+        .animation(.spring(duration: 0.3), value: toastSeconds)
+        .task(id: toastSeconds) {
+            guard toastSeconds > 0 else { return }
+            try? await Task.sleep(for: .seconds(1))
+            toastSeconds -= 1
+        }
+        // 仅供截图验证：合成点击会逃到别的应用，扫描结果态没有别的办法进入。
+        .task {
+            guard ProcessInfo.processInfo.environment["MM_AUTO_SCAN"] != nil else { return }
+            if !hasScanned, !isScanning { startScan() }
+        }
+        .onChange(of: hasScanned) { _, scanned in
+            guard scanned, ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil else { return }
+            // 勾最小的那个文件夹：这条路径只为把确认弹窗截出来，
+            // 万一被误触发，损失也要是"几乎为零"而不是整个文稿目录。
+            if let smallest = folders.filter(\.isAccessible).min(by: { $0.size < $1.size }) {
+                selectedPaths = [smallest.path]
+                showConfirmAlert = true
+            }
+        }
     }
 
-    private var header: some View {
-        HStack {
-            Image(systemName: "folder.badge.person.crop")
-                .font(.largeTitle)
-                .foregroundStyle(.purple)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("用户文件夹")
-                    .font(.title2.bold())
-                Text("桌面、文稿、下载等个人目录。默认全部未选中——只有你逐项勾选的内容才会被清理，且只移入废纸篓。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            if !selectedPaths.isEmpty {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("已选 \(cleanTargets.count) 项")
-                        .font(.title3.bold())
-                        .foregroundStyle(Color.orange)
-                    Text(formatSize(selectedSize))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+    private var headerSubtitle: String {
+        if isScanning { return "扫描中…" }
+        guard hasScanned else { return "尚未扫描" }
+        let total = folders.reduce(UInt64(0)) { $0 + $1.size }
+        let inaccessible = folders.filter { !$0.isAccessible }.count
+        var text = "\(folders.count) 个文件夹 · \(MMFormat.bytes(total))"
+        if inaccessible > 0 { text += " · \(inaccessible) 个无访问权限" }
+        return text
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isScanning && folders.isEmpty {
+            VStack(spacing: 0) {
+                MMScanProgress(
+                    action: "正在扫描用户文件夹",
+                    currentPath: scanningPath.isEmpty ? nil : scanningPath,
+                    processedCount: scannedFileCount,
+                    estimatedRemaining: nil,
+                    progress: nil
+                )
+                Divider()
+                ForEach(0..<6, id: \.self) { _ in
+                    MMSkeletonRow(nameWidth: 120, valueWidth: 72)
+                }
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button("取消扫描") { scanTask?.cancel() }
+                        .padding(.bottom, MMGap.md)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(MMColor.contentBackground)
+        } else if !hasScanned {
+            MMEmptyState(
+                systemImage: "folder.badge.person.crop",
+                title: "扫描桌面 / 文稿 / 下载 / 图片 / 影片 / 音乐",
+                detail: "受 macOS 隐私保护，首次访问可能需要在系统弹窗中允许。默认全部未选中，只有逐项勾选的内容才会被清理。",
+                action: AnyView(
+                    Button {
+                        startScan()
+                    } label: {
+                        Label("扫描用户文件夹", systemImage: "magnifyingglass")
+                    }
+                    .buttonStyle(.borderedProminent)
+                )
+            )
+        } else {
+            folderTable
         }
-        .padding()
     }
 
-    private var emptyView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "folder.badge.questionmark")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("扫描你的桌面 / 文稿 / 下载 / 图片 / 影片 / 音乐")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text("受 macOS 隐私保护，首次访问可能需要在系统弹窗中允许")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            Button {
-                startScan()
-            } label: {
-                Label("扫描用户文件夹", systemImage: "magnifyingglass")
-            }
-            .buttonStyle(.borderedProminent)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var scanProgressView: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            ProgressView()
-                .controlSize(.large)
-            Text("正在扫描用户文件夹...")
-                .font(.headline)
-            if !scanningPath.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "folder")
-                        .font(.caption)
-                    Text(scanningPath)
-                        .font(.caption)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+    private var folderTable: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(folders) { folder in
+                        UserFolderSection(
+                            folder: folder,
+                            isSelected: selectionBinding(for: folder.path),
+                            isExpanded: expandedFolderPath == folder.path,
+                            children: folderChildren[folder.path] ?? [],
+                            isLoadingChildren: childrenLoadingPath == folder.path,
+                            childSelection: selectionBinding(for:),
+                            onToggleExpand: { toggleExpand(folder: folder) }
+                        )
+                        Divider().padding(.leading, MMGap.md)
+                    }
+                    HStack(alignment: .top, spacing: MMGap.xs) {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                        Text("清理一律移入废纸篓，可在「最近操作」中撤回；未勾选的内容不会被读取之外的任何修改。")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, MMGap.md)
+                    .padding(.vertical, MMGap.sm)
                 }
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: 400)
+                // 必须显式给宽：LazyVStack 在 ScrollView 里会按最宽子项的理想宽度
+                // 排版，整张表就会横向溢出、右侧数值被裁掉。
+                .frame(width: proxy.size.width - MMGap.lg * 2)
+                .background(MMColor.contentBackground)
+                .overlay(RoundedRectangle(cornerRadius: MMRadius.card).stroke(MMColor.separator))
+                .padding(.horizontal, MMGap.lg)
+                .padding(.vertical, MMGap.lg)
             }
-            Text("已遍历 \(scannedFileCount) 个条目")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Button("取消扫描") {
-                scanTask?.cancel()
-            }
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var folderList: some View {
-        ScrollView {
-            LazyVStack(spacing: 8) {
-                ForEach(folders) { folder in
-                    UserFolderSection(
-                        folder: folder,
-                        selectedPaths: selectedPaths,
-                        isSelected: selectedPaths.contains(folder.path),
-                        isExpanded: expandedFolderPath == folder.path,
-                        children: folderChildren[folder.path] ?? [],
-                        isLoadingChildren: childrenLoadingPath == folder.path,
-                        onToggleSelect: {
-                            toggleSelection(folder.path)
-                        },
-                        onToggleExpand: {
-                            toggleExpand(folder: folder)
-                        },
-                        onToggleChildSelect: { path in
-                            toggleSelection(path)
-                        },
-                        onOpenInFinder: { path in
-                            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
-                        }
-                    )
-                }
-            }
-            .padding()
         }
     }
 
     private var actionBar: some View {
-        HStack {
-            Button {
-                startScan()
-            } label: {
-                Label(isScanning ? "扫描中..." : "重新扫描", systemImage: "arrow.clockwise")
-            }
-            .disabled(isScanning || isCleaning)
-
-            Spacer()
-
-            if !selectedPaths.isEmpty {
-                Text("未勾选的内容绝不会被清理")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button {
+        MMActionBar(
+            summary: "已选 \(cleanTargets.count) 项 · \(MMFormat.bytes(selectedSize))",
+            note: isScanning ? "扫描未完成，数字只包含已扫到的部分" : "未勾选的内容绝不会被清理"
+        ) {
+            Button("清理选中 \(cleanTargets.count) 项") {
                 showConfirmAlert = true
-            } label: {
-                Label(isCleaning ? "清理中..." : "清理选中 (\(cleanTargets.count))", systemImage: "trash")
             }
             .buttonStyle(.borderedProminent)
-            .tint(.red)
+            .tint(MMColor.destructive)
             .disabled(cleanTargets.isEmpty || isScanning || isCleaning)
         }
-        .padding()
     }
 
-    @ViewBuilder
-    private var undoToast: some View {
-        if let result = lastResult {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Text("已将 \(result.successCount) 项移入废纸篓（约 \(formatSize(result.totalSize))）")
-                    .font(.body.weight(.medium))
-                Spacer()
-                Button("撤回") {
-                    Task { await undoClean() }
-                }
-                .buttonStyle(.bordered)
-                .tint(.orange)
+    private func selectionBinding(for path: String) -> Binding<Bool> {
+        Binding(
+            get: { selectedPaths.contains(path) },
+            set: { on in
+                if on { selectedPaths.insert(path) } else { selectedPaths.remove(path) }
             }
-            .padding()
-            .background(.ultraThinMaterial)
-            .clipShape(.rect(cornerRadius: 12))
-            .shadow(radius: 8)
-            .padding(.horizontal)
-        }
+        )
     }
 
     // MARK: - 选中项计算
@@ -250,14 +241,6 @@ struct UserFolderCleanView: View {
     }
 
     // MARK: - 动作
-
-    private func toggleSelection(_ path: String) {
-        if selectedPaths.contains(path) {
-            selectedPaths.remove(path)
-        } else {
-            selectedPaths.insert(path)
-        }
-    }
 
     private func toggleExpand(folder: UserFolderInfo) {
         if expandedFolderPath == folder.path {
@@ -323,14 +306,13 @@ struct UserFolderCleanView: View {
 
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         lastResult = result
-        showUndoToast = true
+        lastFailures = result.operation.failures
+        // 一项都没搬动就别弹"已移入废纸篓"，失败清单已经在面板里说清楚了。
+        if result.successCount > 0 { toastSeconds = 15 }
 
         await applyCleaned(paths)
         selectedPaths = []
         isCleaning = false
-
-        try? await Task.sleep(for: .seconds(15))
-        showUndoToast = false
     }
 
     /// 就地更新状态：整删的顶层文件夹重新统计（此时目录为空，很快），
@@ -367,153 +349,76 @@ struct UserFolderCleanView: View {
 
     private func undoClean() async {
         _ = await FileTrashService.shared.undoLastOperation()
-        showUndoToast = false
+        toastSeconds = 0
         startScan()
     }
 
-    private func formatSize(_ bytes: UInt64) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-    }
 }
 
-/// 单个用户文件夹卡片：醒目展示「是否被选中清理」，可展开查看子项并逐项勾选。
+/// 单个用户文件夹行：勾选 + 展开查看子项并逐项勾选。
+/// 默认不勾选，与缓存页的"安全档预选"相反——个人目录里没有可自动重建的东西。
 struct UserFolderSection: View {
     let folder: UserFolderInfo
-    let selectedPaths: Set<String>
-    let isSelected: Bool
+    @Binding var isSelected: Bool
     let isExpanded: Bool
     let children: [UserFolderChild]
     let isLoadingChildren: Bool
-    let onToggleSelect: () -> Void
+    let childSelection: (String) -> Binding<Bool>
     let onToggleExpand: () -> Void
-    let onToggleChildSelect: (String) -> Void
-    let onOpenInFinder: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                selectBox(enabled: folder.isAccessible, isSelected: isSelected, action: onToggleSelect)
-
-                Image(systemName: folder.iconName)
-                    .font(.title3)
-                    .foregroundStyle(folder.isAccessible ? .purple : Color.secondary)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(folder.name)
-                            .font(.body.weight(.medium))
-                        if !folder.isAccessible {
-                            Text("无访问权限")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 1)
-                                .background(Color(nsColor: .controlBackgroundColor))
-                                .clipShape(.capsule)
-                                .overlay(Capsule().stroke(Color.secondary.opacity(0.4), lineWidth: 1))
-                        }
-                    }
-                    if folder.isAccessible {
-                        Text("\(folder.fileCount) 个文件 · 修改于 \(formatDate(folder.modificationDate))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("macOS 隐私保护（TCC）阻止访问，请在「系统设置 → 隐私与安全性」中授权")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+        MMItemRow(
+            title: folder.name,
+            subtitle: folder.isAccessible
+                ? "\(folder.fileCount) 个文件 · 修改于 \(formatDate(folder.modificationDate))"
+                : "macOS 隐私保护（TCC）阻止访问，请在「系统设置 → 隐私与安全性」中授权",
+            value: MMFormat.bytes(folder.size),
+            systemImage: folder.iconName,
+            isSelectable: folder.isAccessible,
+            isSelected: $isSelected
+        ) {
+            HStack(spacing: MMGap.sm) {
+                if !folder.isAccessible {
+                    MMBadge("无权限", tint: MMColor.caution, systemImage: "lock")
                 }
-
-                Spacer()
-
-                if isSelected {
-                    Text("已选择清理")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.orange)
+                MMRowAction(
+                    systemImage: isExpanded ? "chevron.down" : "chevron.right",
+                    help: isExpanded ? "收起子项" : "展开子项"
+                ) {
+                    onToggleExpand()
                 }
-
-                Text(formatSize(folder.size))
-                    .font(.body.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(isSelected ? Color.orange : .secondary)
-
-                Button(action: onToggleExpand) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 12)
-                }
-                .buttonStyle(.plain)
                 .disabled(!folder.isAccessible)
-
-                Button {
-                    onOpenInFinder(folder.path)
-                } label: {
-                    Image(systemName: "folder")
-                        .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.mini)
-                .help("在访达中打开")
-            }
-
-            if isExpanded {
-                Divider().padding(.leading, 40)
-                VStack(spacing: 0) {
-                    if isLoadingChildren {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("正在统计子项...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.leading, 40)
-                        .padding(.vertical, 6)
-                    } else {
-                        ForEach(children) { child in
-                            UserFolderChildRow(
-                                child: child,
-                                isSelected: selectedPaths.contains(child.path),
-                                onToggleSelect: { onToggleChildSelect(child.path) },
-                                onOpenInFinder: { onOpenInFinder(child.path) }
-                            )
-                        }
-                        if children.isEmpty {
-                            Text("无内容")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                                .padding(.leading, 40)
-                                .padding(.vertical, 4)
-                        }
-                    }
-                }
+                MMRowAction(systemImage: "folder", help: "在访达中打开") { MMReveal.open(folder.path) }
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(isSelected ? Color.orange.opacity(0.08) : Color(nsColor: .controlBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(isSelected ? Color.orange.opacity(0.5) : .clear, lineWidth: 1.5)
-        )
-    }
+        .background(isSelected ? MMColor.soft(MMColor.accent, 0.08) : .clear)
 
-    @ViewBuilder
-    private func selectBox(enabled: Bool, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        if enabled {
-            Button(action: action) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.green : Color.secondary)
-                    .font(.title3)
+        if isExpanded {
+            if isLoadingChildren {
+                HStack(spacing: MMGap.sm) {
+                    ProgressView().controlSize(.small)
+                    Text("正在统计子项…")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                }
+                .padding(.leading, MMGap.xl * 2 + MMGap.sm)
+                .frame(height: MMMetric.rowCompact, alignment: .leading)
+            } else {
+                ForEach(children) { child in
+                    UserFolderChildRow(
+                        child: child,
+                        isSelected: childSelection(child.path),
+                        onOpenInFinder: { MMReveal.open(child.path) }
+                    )
+                }
+                if children.isEmpty {
+                    Text("无内容")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                        .padding(.leading, MMGap.xl * 2 + MMGap.sm)
+                        .frame(height: MMMetric.rowCompact, alignment: .leading)
+                }
             }
-            .buttonStyle(.plain)
-            .help(isSelected ? "取消选择" : "选择此项进行清理（默认不选）")
-        } else {
-            Image(systemName: "lock.circle")
-                .foregroundStyle(.secondary)
-                .font(.title3)
         }
     }
 
@@ -521,67 +426,46 @@ struct UserFolderSection: View {
         guard let date else { return "未知" }
         return date.formatted(date: .abbreviated, time: .omitted)
     }
-
-    private func formatSize(_ bytes: UInt64) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-    }
 }
 
 struct UserFolderChildRow: View {
     let child: UserFolderChild
-    let isSelected: Bool
-    let onToggleSelect: () -> Void
+    @Binding var isSelected: Bool
     let onOpenInFinder: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Button(action: onToggleSelect) {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isSelected ? Color.green : Color.secondary.opacity(0.6))
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .help(isSelected ? "取消选择" : "选择此项进行清理（默认不选）")
+        HStack(spacing: MMGap.sm) {
+            Toggle("", isOn: $isSelected)
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .help(isSelected ? "取消选择" : "选择此项进行清理（默认不选）")
 
             Image(systemName: child.isDirectory ? "folder.fill" : "doc")
                 .font(.caption2)
-                .foregroundStyle(child.isDirectory ? .purple.opacity(0.6) : .secondary)
+                .foregroundStyle(MMColor.tertiaryLabel)
                 .frame(width: 14)
 
             Text(child.name)
                 .font(.caption)
-                .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                .foregroundStyle(MMColor.secondaryLabel)
                 .lineLimit(1)
 
-            Spacer()
+            Spacer(minLength: MMGap.sm)
 
-            Text("\(child.fileCount) 个文件 · \(formatDate(child.modificationDate))")
+            Text("\(child.fileCount) 个文件 · \(child.modificationDate.formatted(date: .abbreviated, time: .omitted))")
                 .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(MMColor.tertiaryLabel)
 
-            Text(formatSize(child.size))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(isSelected ? Color.orange : Color.secondary)
+            Text(MMFormat.bytes(child.size))
+                .font(.caption.monospaced())
+                .foregroundStyle(isSelected ? MMColor.label : MMColor.tertiaryLabel)
+                .frame(minWidth: 72, alignment: .trailing)
 
-            Button(action: onOpenInFinder) {
-                Image(systemName: "folder")
-                    .font(.caption2)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.mini)
-            .help("在访达中打开")
+            MMRowAction(systemImage: "folder", help: "在访达中打开", action: onOpenInFinder)
         }
-        .padding(.vertical, 4)
-        .padding(.leading, 40)
-        .padding(.trailing, 4)
-        .background(isSelected ? Color.orange.opacity(0.06) : Color(nsColor: .textBackgroundColor).opacity(0.3))
-    }
-
-    private func formatDate(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
-    }
-
-    private func formatSize(_ bytes: UInt64) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+        .padding(.leading, MMGap.xl * 2 + MMGap.sm)
+        .padding(.trailing, MMGap.md)
+        .frame(height: MMMetric.rowCompact)
+        .background(isSelected ? MMColor.soft(MMColor.accent, 0.06) : .clear)
     }
 }
