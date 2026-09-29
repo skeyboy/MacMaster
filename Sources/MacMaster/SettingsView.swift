@@ -12,6 +12,8 @@ struct SettingsView: View {
         SettingsTab(hookKey: ProcessInfo.processInfo.environment["MM_SETTINGS_TAB"] ?? "") ?? .general
     @State private var showUpdateAlert = false
     @State private var updateResultText = ""
+    @State private var confirmClearHistory = false
+    @ObservedObject private var trash = FileTrashService.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -143,6 +145,30 @@ struct SettingsView: View {
                 Toggle("允许撤回操作", isOn: $settings.allowUndo)
             }
 
+            Section("删除历史") {
+                HStack {
+                    Text("台账条目")
+                    Spacer()
+                    Text("\(trash.trashHistory.count) / \(FileTrashService.historyLimit)")
+                        .foregroundStyle(MMColor.secondaryLabel)
+                        .monospacedDigit()
+                }
+
+                if let url = trash.historyFileURL {
+                    Button("在访达中显示台账文件") { MMReveal.open(url.path) }
+                    Text("记的是被移入废纸篓的绝对路径与大小，只写在本机这个文件里，不上传。")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                } else {
+                    Text("未能定位台账文件：这台机器拿不到 Application Support，记录只在内存里，退出即消失。")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                }
+
+                Button("清空删除历史", role: .destructive) { confirmClearHistory = true }
+                    .disabled(trash.trashHistory.isEmpty)
+            }
+
             Section("排除项") {
                 Button("添加排除文件夹...") {
                     addExcludedFolder()
@@ -174,6 +200,13 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        .confirmationDialog("清空删除历史？", isPresented: $confirmClearHistory, titleVisibility: .visible) {
+            Button("清空 \(trash.trashHistory.count) 条记录", role: .destructive) { trash.clearHistory() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("只删记录，不碰废纸篓里的文件。清空后「最近操作」里的撤回入口一并消失——"
+                 + "没有记录就不知道该把哪个文件放回哪儿。")
+        }
     }
 
     private func addExcludedFolder() {
