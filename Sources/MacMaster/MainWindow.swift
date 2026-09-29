@@ -312,16 +312,16 @@ struct DashboardView: View {
             } else {
                 ForEach(model.trashHistory) { operation in
                     HStack(spacing: MMGap.sm) {
-                        Image(systemName: operation.errors.isEmpty ? "checkmark.circle" : "exclamationmark.triangle")
+                        Image(systemName: operation.failures.isEmpty ? "checkmark.circle" : "exclamationmark.triangle")
                             .font(.system(size: MMMetric.iconSmall))
-                            .foregroundStyle(operation.errors.isEmpty ? MMColor.safe : MMColor.caution)
+                            .foregroundStyle(operation.failures.isEmpty ? MMColor.safe : MMColor.caution)
                         Text("\(operation.fileCount) 个文件")
                             .font(.callout)
                         Text(MMFormat.bytes(operation.totalSize))
                             .font(.callout).monospacedDigit()
                             .foregroundStyle(MMColor.secondaryLabel)
-                        if !operation.errors.isEmpty {
-                            MMBadge("\(operation.errors.count) 项失败", tint: MMColor.caution)
+                        if !operation.failures.isEmpty {
+                            MMBadge("\(operation.failures.count) 项失败", tint: MMColor.caution)
                         }
                         if operation.isUndone {
                             MMBadge("已撤回", tint: MMColor.secondaryLabel)

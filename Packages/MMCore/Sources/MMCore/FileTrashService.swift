@@ -11,7 +11,7 @@ public final class FileTrashService: ObservableObject {
 
     public func moveToTrash(paths: [String]) async -> TrashResult {
         var movedFiles: [TrashRecord] = []
-        var errors: [String] = []
+        var failures: [TrashFailure] = []
 
         for path in paths {
             let fileURL = URL(fileURLWithPath: path)
@@ -23,7 +23,7 @@ public final class FileTrashService: ObservableObject {
                 let trashPath = resultingURL?.path
                 movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath, size: size))
             } catch {
-                errors.append("\(path): \(error.localizedDescription)")
+                failures.append(TrashFailure(path: path, error: error))
             }
         }
 
@@ -31,7 +31,7 @@ public final class FileTrashService: ObservableObject {
             id: UUID(),
             timestamp: Date(),
             files: movedFiles,
-            errors: errors
+            failures: failures
         )
         trashHistory.insert(operation, at: 0)
         if trashHistory.count > 20 {
@@ -43,19 +43,23 @@ public final class FileTrashService: ObservableObject {
 
     public func undoLastOperation() async -> UndoResult {
         guard let lastOp = trashHistory.first else {
-            return UndoResult(restoredCount: 0, errors: ["没有可撤回的操作"])
+            return UndoResult(restoredCount: 0, failures: [
+                TrashFailure(path: "—", message: "没有可撤回的操作")
+            ])
         }
         return await undo(operationID: lastOp.id)
     }
 
     public func undo(operationID: UUID) async -> UndoResult {
         guard let opIndex = trashHistory.firstIndex(where: { $0.id == operationID }) else {
-            return UndoResult(restoredCount: 0, errors: ["操作记录不存在"])
+            return UndoResult(restoredCount: 0, failures: [
+                TrashFailure(path: "—", message: "操作记录不存在")
+            ])
         }
 
         let operation = trashHistory[opIndex]
         var restoredCount = 0
-        var errors: [String] = []
+        var failures: [TrashFailure] = []
 
         for record in operation.files {
             if let trashPath = record.trashPath {
@@ -67,15 +71,15 @@ public final class FileTrashService: ObservableObject {
                     try FileManager.default.moveItem(at: trashURL, to: originalURL)
                     restoredCount += 1
                 } catch {
-                    errors.append("\(record.originalPath): \(error.localizedDescription)")
+                    failures.append(TrashFailure(path: record.originalPath, error: error))
                 }
             } else {
-                errors.append("\(record.originalPath): 无废纸篓路径，无法恢复")
+                failures.append(TrashFailure(path: record.originalPath, message: "无废纸篓路径，无法恢复"))
             }
         }
 
         trashHistory[opIndex] = operation.markedUndone()
-        return UndoResult(restoredCount: restoredCount, errors: errors)
+        return UndoResult(restoredCount: restoredCount, failures: failures)
     }
 
     /// 实际占用的块数，不是标称大小：APFS 压缩和稀疏文件的标称大小会把"释放了多少"夸大。
@@ -108,7 +112,7 @@ public struct TrashOperation: Identifiable {
     public let id: UUID
     public let timestamp: Date
     public let files: [TrashRecord]
-    public let errors: [String]
+    public let failures: [TrashFailure]
     public var isUndone: Bool
 
     public var totalSize: UInt64 {
@@ -117,11 +121,11 @@ public struct TrashOperation: Identifiable {
 
     public var fileCount: Int { files.count }
 
-    init(id: UUID, timestamp: Date, files: [TrashRecord], errors: [String]) {
+    init(id: UUID, timestamp: Date, files: [TrashRecord], failures: [TrashFailure]) {
         self.id = id
         self.timestamp = timestamp
         self.files = files
-        self.errors = errors
+        self.failures = failures
         self.isUndone = false
     }
 
@@ -132,15 +136,54 @@ public struct TrashOperation: Identifiable {
     }
 }
 
+/// 删除失败必须逐条上报。旧实现把错误拼成一句字符串，界面就只能整段塞进
+/// 一个 Text 里；路径与错误码分开才能做成设计稿那种"路径 + EPERM"的清单。
+public struct TrashFailure: Hashable, Identifiable, Sendable {
+    public var id: String { path }
+    public let path: String
+    public let message: String
+    /// POSIX 错误码文本（EPERM / EACCES…），原文保留便于用户搜索。
+    public let code: String?
+
+    public init(path: String, message: String, code: String? = nil) {
+        self.path = path
+        self.message = message
+        self.code = code
+    }
+
+    init(path: String, error: Error) {
+        let nsError = error as NSError
+        var code: String?
+        var chain: NSError? = nsError
+        while let current = chain {
+            if current.domain == NSPOSIXErrorDomain {
+                code = String(cString: strerror(Int32(current.code)))
+                break
+            }
+            chain = current.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        self.init(
+            path: path,
+            message: nsError.localizedDescription,
+            code: code ?? "Cocoa \(nsError.code)"
+        )
+    }
+}
+
 public struct TrashResult {
     public let operation: TrashOperation
     public var successCount: Int { operation.files.count }
-    public var errorCount: Int { operation.errors.count }
+    public var errorCount: Int { operation.failures.count }
     public var totalSize: UInt64 { operation.totalSize }
 }
 
 public struct UndoResult {
     public let restoredCount: Int
-    public let errors: [String]
-    public var success: Bool { errors.isEmpty }
+    public let failures: [TrashFailure]
+    public var success: Bool { failures.isEmpty }
+
+    init(restoredCount: Int, failures: [TrashFailure]) {
+        self.restoredCount = restoredCount
+        self.failures = failures
+    }
 }

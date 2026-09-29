@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import MMCore
 
 // MARK: - 设计令牌
 //
@@ -178,23 +179,11 @@ public enum MMFormat {
     }
 }
 
-// MARK: - 风险分级（唯一真源）
+// MARK: - 风险分级
+//
+// 枚举本体在 MMCore（扫描器与界面共用同一真源），这里只补表现层属性。
 
-/// 语义固定，不可按页面重定义：safe=可安全清理，caution=谨慎（默认不勾选），
-/// readOnly=只展示不提供删除入口。
-public enum MMRisk: String, CaseIterable, Sendable {
-    case safe
-    case caution
-    case readOnly
-
-    public var label: String {
-        switch self {
-        case .safe: "安全"
-        case .caution: "谨慎"
-        case .readOnly: "只读"
-        }
-    }
-
+extension MMRisk {
     public var color: Color {
         switch self {
         case .safe: MMColor.safe
@@ -202,11 +191,6 @@ public enum MMRisk: String, CaseIterable, Sendable {
         case .readOnly: MMColor.secondaryLabel
         }
     }
-
-    /// 默认勾选状态是风险传达的主手段，比弹窗确认更有效也更不打扰。
-    public var isDefaultSelected: Bool { self == .safe }
-
-    public var allowsDeletion: Bool { self != .readOnly }
 }
 
 // MARK: - 组件
@@ -608,6 +592,70 @@ public struct MMUndoToast: View {
         .overlay(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous)
             .stroke(.white.opacity(0.10)))
         .shadow(color: .black.opacity(0.22), radius: 12, y: 4)
+    }
+}
+
+/// 部分失败回执。删除或撤回后有条目没成功，必须逐条列出来：
+/// 只报"完成"等于把用户文件的下落不明藏起来，错误码原文保留便于搜索。
+public struct MMFailurePanel: View {
+    let summary: String?
+    let failures: [TrashFailure]
+    var onDismiss: (() -> Void)?
+
+    public init(summary: String? = nil, _ failures: [TrashFailure], onDismiss: (() -> Void)? = nil) {
+        self.summary = summary
+        self.failures = failures
+        self.onDismiss = onDismiss
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            HStack(spacing: MMGap.sm) {
+                if let summary {
+                    Text(summary)
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(MMColor.safe)
+                }
+                MMBadge("\(failures.count) 项失败", tint: MMColor.caution)
+                Spacer()
+                if let onDismiss {
+                    Button("忽略", action: onDismiss)
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                }
+            }
+            ForEach(failures.prefix(4)) { failure in
+                HStack(spacing: MMGap.sm) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.destructive)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(failure.path)
+                            .font(.caption.monospaced())
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(failure.message)
+                            .font(.caption2)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: MMGap.sm)
+                    if let code = failure.code {
+                        Text(code).font(.caption2.monospaced()).foregroundStyle(MMColor.tertiaryLabel)
+                    }
+                }
+            }
+            if failures.count > 4 {
+                Text("另有 \(failures.count - 4) 项失败")
+                    .font(.caption2)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+            }
+        }
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.caution, 0.10))
+        .overlay(alignment: .top) { Divider() }
     }
 }
 

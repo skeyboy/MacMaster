@@ -112,7 +112,9 @@ public actor FileScanner {
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else { return }
 
-        for case let fileURL as URL in enumerator {
+        // 逐条 nextObject 而不是 for-in：快速枚举会预取一批，
+        // skipDescendants() 对已在批次里的条目不生效，排除的目录会被照样扫进去。
+        while let fileURL = enumerator.nextObject() as? URL {
             let filePath = fileURL.path
 
             guard !isExcluded(filePath) else {
@@ -158,7 +160,9 @@ public actor FileScanner {
     }
 
     private func isExcluded(_ path: String) -> Bool {
-        excludedPaths.contains { path.hasPrefix($0) }
+        excludedPaths.contains { excluded in
+            path == excluded || path.hasPrefix(excluded.hasSuffix("/") ? excluded : excluded + "/")
+        }
     }
 }
 

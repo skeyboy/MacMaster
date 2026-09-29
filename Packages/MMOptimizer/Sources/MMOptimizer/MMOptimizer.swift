@@ -113,6 +113,12 @@ public struct OptimizerView: View {
 
             duplicatesContent
 
+            if !duplicates.trashFailures.isEmpty {
+                MMFailurePanel(summary: nil, duplicates.trashFailures) {
+                    duplicates.trashFailures = []
+                }
+            }
+
             duplicates.actionBar
         }
     }
@@ -180,6 +186,10 @@ public struct OptimizerView: View {
                     .padding(MMGap.sm)
                 }
             }
+
+            if !browser.failures.isEmpty {
+                MMFailurePanel(browser.failures) { browser.failures = [] }
+            }
         }
         .task { await browser.scanIfNeeded() }
     }
@@ -232,7 +242,7 @@ final class DuplicateScanModel: ObservableObject {
     @Published var datalessCount = 0
     @Published var wasStopped = false
     @Published var toast: UndoToast?
-    @Published var trashFailures: [String] = []
+    @Published var trashFailures: [TrashFailure] = []
 
     struct UndoToast: Equatable {
         let message: String
@@ -340,7 +350,7 @@ final class DuplicateScanModel: ObservableObject {
         guard !paths.isEmpty else { return }
         let selectedSnapshot = selection
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
-        trashFailures = result.operation.errors
+        trashFailures = result.operation.failures
         if result.operation.fileCount > 0 {
             toast = UndoToast(
                 message: "已移到废纸篓 · \(result.operation.fileCount) 个文件",
@@ -359,7 +369,7 @@ final class DuplicateScanModel: ObservableObject {
     func undo(_ operationID: UUID) async {
         let result = await FileTrashService.shared.undo(operationID: operationID)
         toast = nil
-        trashFailures = result.errors
+        trashFailures = result.failures
         await scan()
     }
 
@@ -535,7 +545,7 @@ final class BrowserCacheModel: ObservableObject {
     @Published var items: [BrowserCacheRow] = []
     @Published var isScanning = false
     @Published var hasScanned = false
-    @Published var failures: [String] = []
+    @Published var failures: [TrashFailure] = []
 
     var headline: String {
         if isScanning { return "正在统计缓存体积…" }
@@ -560,7 +570,7 @@ final class BrowserCacheModel: ObservableObject {
 
     func clean(_ row: BrowserCacheRow) async {
         let result = await FileTrashService.shared.moveToTrash(paths: [row.path])
-        failures = result.operation.errors
+        failures = result.operation.failures
         if result.successCount > 0 { items.removeAll { $0.id == row.id } }
     }
 }
