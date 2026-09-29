@@ -60,6 +60,9 @@ public struct DiskAnalyzerView: View {
     @State private var nameFilter = ""
     /// 标记待处理的目录/文件：Treemap 上 ⌘ 点击打点，底部统一结算。
     @State private var marked: [String: DiskTreeNode] = [:]
+    /// treemap 往下画几层。默认 3 层：再深块就比标签还小，读不出东西；
+    /// 想一眼看清顶层构成时收到 1 层，想查缓存内部时放到 4 层。
+    @State private var drawDepth = 3
     @State private var showMarkConfirm = false
     @State private var isTrashing = false
     @State private var trashFailures: [TrashFailure] = []
@@ -120,6 +123,9 @@ public struct DiskAnalyzerView: View {
         .task {
             // 仅用于无头截图验证：NSOpenPanel 没法自动点，用环境变量把扫描根传进来。
             let env = ProcessInfo.processInfo.environment
+            if let raw = env["MM_DISK_DEPTH"], let depth = Int(raw), (1...4).contains(depth) {
+                drawDepth = depth
+            }
             guard scanResult == nil, let root = env["MM_DISK_SCAN"], !root.isEmpty else { return }
             await scan(rootPath: (root as NSString).expandingTildeInPath)
         }
@@ -430,6 +436,24 @@ public struct DiskAnalyzerView: View {
             }
             .layoutPriority(1)
             Spacer(minLength: MMGap.sm)
+
+            // 深度只在 Treemap 模式下有意义，切到列表/大文件时整条控件消失，
+            // 不留一个改了没反应的滑块在那儿骗人。
+            if mode == .treemap {
+                HStack(spacing: MMGap.xs) {
+                    Text("深度").font(.caption).foregroundStyle(MMColor.tertiaryLabel)
+                    Picker("深度", selection: $drawDepth) {
+                        ForEach(1...4, id: \.self) { Text("\($0) 层").tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .controlSize(.mini)
+                    .fixedSize()
+                    .help("往下画几层嵌套块")
+                }
+                .layoutPriority(2)
+            }
+
             Text("面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记")
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
@@ -710,7 +734,7 @@ public struct DiskAnalyzerView: View {
 
     private var treemapOptions: TreemapLayoutOptions {
         var options = TreemapLayoutOptions()
-        options.maxDepth = 3
+        options.maxDepth = drawDepth
         return options
     }
 
