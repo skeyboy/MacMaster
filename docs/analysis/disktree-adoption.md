@@ -108,3 +108,25 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 - **GPUI canvas / rem / 主题混合体系**：SwiftUI 已有等价物；只取其绘制顺序与标签分级规则，不取其实现。
 - **重复文件查找**：disktree 本身没有，不属本条采纳范围（另案，见功能演化清单 P0）。
 - **`Known` 加宽扫描记忆化**：MacMaster 尚无"加宽扫描根"的交互，等根切换需求出现后再议。
+
+## 落地进度（2026-09-30）
+
+| 清单项 | 状态 | 落点 |
+|---|---|---|
+| #1 口径（st_blocks / 硬链 / readError / dataless） | ✅ 已落地 | `MMDisk.swift` `DiskScanner` |
+| #2 Category + Reclaim 着色、可回收斜纹 | ✅ 已落地 | `DiskClassify.swift` + `TreemapView` 斜纹 |
+| #3 marks → Review → Trash | 🟡 部分落地 | `DiskRemoval.plan` 裁决 + 审查面板 + Trash/撤回已通；**Permanent 删除未做**（见下） |
+| #4 Worth a look | ✅ 已落地 | `DiskInsights.swift`，8 条单测 |
+| #5 嵌套 treemap / Canvas / header 带 / Others | ✅ 已落地 | `TreemapLayoutOptions` |
+| #6 空间投影 afterRemoving | ✅ 已落地 | `DiskRemoval.afterRemoving`，面包屑与审查面板共用 |
+| #7 键盘导航 / filter / 深度切换 / 面包屑回跳不重扫 | ⬜ 未开始 | — |
+
+### 刻意推迟的两件事
+
+- **永久删除（Permanent delete）**：机制上只剩"确认文案 + 二次对话框"，但它把本模块的
+  最坏情况从"进废纸篓、可撤回"提升到"数据不可恢复"。在 #7 的键盘导航落地之前，
+  误标概率已经足够低，先不引入这条路径；引入时它必须走独立的确认文案，
+  点名"什么会走、回来多少"，而不是复用 Trash 的面板。
+- **跨重扫保留 marks**（disktree 的"凭绝对路径重新挂回树"）：当前实现是重扫即清空标记。
+  保留标记要连带解决"旧快照的大小与新扫描不一致"的口径问题，收益是少点几次标记，
+  风险是面板上的数字来自两个时间点。留到 #7 一起做。

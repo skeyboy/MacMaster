@@ -249,10 +249,22 @@ public struct DiskAnalyzerView: View {
             Spacer(minLength: MMGap.md)
 
             if !marked.isEmpty {
-                MMBadge("已标记 \(marked.count) 项 · \(MMFormat.bytes(markedSize))",
+                let plan = removalPlan
+                MMBadge("已标记 \(plan.targets.count) 项 · \(MMFormat.bytes(plan.total))",
                         tint: MMColor.informational, systemImage: "checkmark.circle.fill")
+                if !plan.blocked.isEmpty {
+                    MMBadge("\(plan.blocked.count) 项不能删", tint: MMColor.caution,
+                            systemImage: "exclamationmark.triangle.fill")
+                }
             }
-            MMBadge("卷可用 \(MMFormat.bytes(freeSize))", tint: MMColor.secondaryLabel)
+
+            if marked.isEmpty {
+                MMBadge("卷可用 \(MMFormat.bytes(freeSize))", tint: MMColor.secondaryLabel)
+            } else {
+                // 删之前就把"删完还剩多少"摆在旁边：用户标记的就是为了看这个数。
+                MMBadge("卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))",
+                        tint: MMColor.secondaryLabel)
+            }
         }
         .padding(.horizontal, MMGap.lg)
         .frame(height: 34)
@@ -578,7 +590,9 @@ public struct DiskAnalyzerView: View {
                         MMStatItem("占用", MMFormat.bytes(node.size))
                         MMStatItem("占当前层", MMFormat.percent(levelTotal > 0 ? Double(node.size) / Double(levelTotal) : 0))
                         MMStatItem("子项", node.isDirectory ? MMFormat.count(children.count) : "—")
-                        MMStatItem("修改", MMFormat.dateTime(modDate(of: node.path)))
+                        // 相对时间：这一格要回答的是"多久没动过"，不是几点几分，
+                        // 而且完整时间戳在这个宽度里会被截成"2026-09-30 01:…"。
+                        MMStatItem("修改", MMFormat.relative(modDate(of: node.path)))
                     }
 
                     if !children.isEmpty {
@@ -645,7 +659,7 @@ public struct DiskAnalyzerView: View {
     private func actionBar(result: DiskScanResult) -> some View {
         MMActionBar(
             summary: marked.isEmpty ? "卷可用 \(MMFormat.bytes(result.freeSize))"
-                                    : "已标记 \(marked.count) 项 · \(MMFormat.bytes(markedSize))",
+                                    : actionBarMarkedSummary,
             note: marked.isEmpty ? "统计不含符号链接目标 · 硬链接只计一次"
                                  : "移入废纸篓后 15 秒内可一键撤回"
         ) {
@@ -656,10 +670,20 @@ public struct DiskAnalyzerView: View {
                     Button(isTrashing ? "处理中…" : "移入废纸篓", action: requestTrash)
                         .buttonStyle(.borderedProminent)
                         .tint(MMColor.destructive)
-                        .disabled(isTrashing)
+                        // 全被裁决拦下时没有可删项，按钮必须自己变灰，
+                        // 而不是等用户点下去才告诉他什么都没发生。
+                        .disabled(isTrashing || removalPlan.targets.isEmpty)
                 }
             }
         }
+    }
+
+    private var actionBarMarkedSummary: String {
+        let plan = removalPlan
+        var text = "已标记 \(plan.targets.count) 项 · \(MMFormat.bytes(plan.total))"
+        if plan.absorbed > 0 { text += "（另有 \(plan.absorbed) 项已在父目录里）" }
+        if !plan.blocked.isEmpty { text += " · \(plan.blocked.count) 项不能删" }
+        return text
     }
 
     /// 嵌套 treemap 的输入：只带上布局真正会画的子块，
@@ -728,8 +752,21 @@ public struct DiskAnalyzerView: View {
         return currentItems.filter { $0.name.localizedCaseInsensitiveContains(nameFilter) }
     }
 
-    private var markedSize: UInt64 {
-        marked.values.reduce(0) { $0 + $1.size }
+    /// 标记 → 删除计划的唯一裁决入口。确认面板、面包屑上的徽标、"删完还剩多少"的
+    /// 投影必须都读它，否则同一屏会出现两个对不上的总数。
+    private var removalPlan: DiskRemoval.Plan {
+        guard let root = scanResult?.path else { return .empty }
+        return DiskRemoval.plan(
+            marks: marked.values.map { DiskRemoval.Mark(path: $0.path, name: $0.name, size: $0.size) },
+            root: root
+        )
+    }
+
+    private var projectedFree: UInt64 {
+        guard let result = scanResult else { return 0 }
+        return DiskRemoval.afterRemoving(
+            free: result.freeSize, capacity: result.totalSize, bytes: removalPlan.total
+        )
     }
 
     private var freeSize: UInt64 { scanResult?.freeSize ?? 0 }
@@ -802,51 +839,67 @@ public struct DiskAnalyzerView: View {
         showMarkConfirm = true
     }
 
-    /// 仅供截图验证：MM_DISK_SELECT 给一个路径，展开它所在的一层并选中，
+    /// 仅供截图验证：MM_DISK_SELECT 给路径（逗号分隔，最多 3 条），展开第一条所在的一层并选中，
     /// 这样详情面板能在没有任何人工点击的情况下被拍到。
-    /// 配合 MM_SHOW_CONFIRM 还会把该项标记进确认面板——验证时请指向
+    /// 配合 MM_SHOW_CONFIRM 还会把它们标记进确认面板——验证时请指向
     /// /tmp 下的夹具文件，别指向真实数据。
     private func applySelectionHook() {
-        guard let target = ProcessInfo.processInfo.environment["MM_DISK_SELECT"],
-              !target.isEmpty else { return }
-        let parent = (target as NSString).deletingLastPathComponent
+        let env = ProcessInfo.processInfo.environment
+        guard let raw = env["MM_DISK_SELECT"], !raw.isEmpty else { return }
+        let targets = raw.split(separator: ",").prefix(3).map {
+            $0.trimmingCharacters(in: .whitespaces)
+        }
+        guard let first = targets.first else { return }
+        let parent = (first as NSString).deletingLastPathComponent
         if parent != navigationStack.last {
             navigationStack.append(parent)
             openDirectory(at: parent)
         }
-        selected = node(atPath: target)
-        guard let node = selected else { return }
-        if ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil,
-           risk(of: node.path).allowsDeletion {
-            marked[node.path] = node
-            showMarkConfirm = true
+        selected = node(atPath: first)
+        guard env["MM_SHOW_CONFIRM"] != nil else { return }
+        for path in targets {
+            // 这里刻意不走 toggleMark 的风险闸门：截图要拍的就是裁决面板，
+            // 包括它把不该删的标记拦下来的那一半。
+            if let node = node(atPath: path) {
+                marked[node.path] = node
+            } else if path == scanResult?.path, let root = scanResult {
+                marked[root.path] = DiskTreeNode(
+                    id: root.path, name: (root.path as NSString).lastPathComponent,
+                    path: root.path, size: root.scannedSize, isDirectory: true, children: []
+                )
+            }
         }
+        showMarkConfirm = true
         // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
         // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
-        if ProcessInfo.processInfo.environment["MM_SHOW_TOAST"] != nil, node.size > 0 {
+        if env["MM_SHOW_TOAST"] != nil, let node = selected, node.size > 0 {
             trashedCount = 1
             trashedSize = node.size
             undoSeconds = 15
         }
     }
 
+    /// 审查面板：列的是裁决之后的可删项，被拦下的项目单独列并注明原因。
+    /// 把"不能删"和"要删"摆在同一屏，用户才知道程序没有偷偷漏掉他的标记。
+    @ViewBuilder
     private var markConfirmSheet: some View {
+        let plan = removalPlan
         VStack(alignment: .leading, spacing: MMGap.md) {
-            Text("把 \(marked.count) 项移入废纸篓？")
+            Text("把 \(plan.targets.count) 项移入废纸篓？")
                 .font(.title3.weight(.semibold))
-            Text("项目会进入废纸篓，15 秒内可一键撤回；此后需要自己在访达里恢复。")
+            Text("回收 \(MMFormat.bytes(plan.total)) · 卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))")
                 .font(.callout)
                 .foregroundStyle(MMColor.secondaryLabel)
 
             VStack(alignment: .leading, spacing: 0) {
-                ForEach(marked.values.sorted { $0.size > $1.size }) { node in
+                ForEach(plan.targets) { target in
                     HStack(spacing: MMGap.sm) {
-                        Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
-                            .foregroundStyle(risk(of: node.path).color)
+                        Image(systemName: risk(of: target.path).allowsDeletion ? "trash" : "exclamationmark.triangle")
+                            .foregroundStyle(risk(of: target.path).color)
                             .frame(width: MMGap.xxl)
-                        Text(node.name).font(.callout).lineLimit(1)
+                        Text(target.name).font(.callout).lineLimit(1).truncationMode(.middle)
                         Spacer(minLength: MMGap.sm)
-                        Text(MMFormat.bytes(node.size))
+                        Text(MMFormat.bytes(target.size))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(MMColor.secondaryLabel)
                     }
@@ -854,33 +907,74 @@ public struct DiskAnalyzerView: View {
                     .frame(height: MMMetric.rowCompact)
                     Divider()
                 }
+                if !plan.blocked.isEmpty {
+                    ForEach(plan.blocked) { item in
+                        HStack(spacing: MMGap.sm) {
+                            Image(systemName: "lock.fill")
+                                .font(.caption)
+                                .foregroundStyle(MMColor.caution)
+                                .frame(width: MMGap.xxl)
+                            Text(item.name)
+                                .font(.callout)
+                                .foregroundStyle(MMColor.secondaryLabel)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text(item.reason.note)
+                                .font(.caption)
+                                .foregroundStyle(MMColor.caution)
+                                .lineLimit(1)
+                            Spacer(minLength: MMGap.sm)
+                        }
+                        .padding(.horizontal, MMGap.md)
+                        .frame(height: MMMetric.rowCompact)
+                        .background(MMColor.cardBackground)
+                        Divider()
+                    }
+                }
             }
             .background(MMColor.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
+            if plan.absorbed > 0 {
+                Text("另有 \(plan.absorbed) 项已经在被标记的父目录里，没有重复计入回收量。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+
+            Text("项目进入废纸篓，15 秒内可一键撤回；之后需要自己在访达里恢复。")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+
             HStack {
                 Spacer()
                 Button("取消") { showMarkConfirm = false }
                     .keyboardShortcut(.cancelAction)
-                Button("移入废纸篓 \(MMFormat.bytes(markedSize))") {
-                    Task { await trashMarked() }
+                Button("移入废纸篓 \(MMFormat.bytes(plan.total))") {
+                    Task { await trashMarked(plan: plan) }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
+                .disabled(plan.isEmpty)
                 .keyboardShortcut(.defaultAction)
             }
         }
         .padding(MMGap.lg)
-        .frame(width: 420)
+        .frame(width: 460)
     }
 
-    private func trashMarked() async {
+    private func trashMarked(plan: DiskRemoval.Plan) async {
         isTrashing = true
         defer { isTrashing = false }
         showMarkConfirm = false
-        let paths = Array(marked.keys)
-        marked.removeAll()
+        let paths = plan.targets.map(\.path)
+        // 只清掉真正被删的那些；被拦下的标记留在原地，让用户自己决定要不要换个目录。
+        for path in paths { marked.removeValue(forKey: path) }
+        for item in plan.blocked where item.reason == .vanished { marked.removeValue(forKey: item.path) }
+        guard !paths.isEmpty else {
+            selected = nil
+            return
+        }
 
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         trashedCount = result.successCount
