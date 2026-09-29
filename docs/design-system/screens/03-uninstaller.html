@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;display:grid;place-items:center;min-height:100vh}
+.split{flex:1;min-height:0;display:flex}
+.applist{width:300px;flex:0 0 300px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:52px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow:hover{background:var(--c-fill-hover)}
+.arow.sel{background:var(--c-accent-soft)}
+.arow .ic{width:28px;height:28px;border-radius:7px;flex:0 0 28px;display:grid;place-items:center;
+          color:#fff;font-size:11px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono)}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.detail{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.dsec{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);overflow:hidden}
+.dsec+.dsec{border-top:1px solid var(--c-separator)}
+.res{display:flex;align-items:center;gap:var(--sp-2);height:28px;padding:0 var(--sp-3);
+     border-bottom:1px solid var(--c-separator);font-size:var(--fs-callout)}
+.res:last-child{border-bottom:0}
+.res .p{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.res .z{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);white-space:nowrap}
+.res .why{font-size:var(--fs-caption);color:var(--c-label-tertiary);white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-2)}
+.cards .c{border:1px solid var(--c-separator);border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);
+          display:flex;flex-direction:column;gap:2px;background:var(--c-card-bg-alt)}
+.cards .c i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.cards .c b{font-family:var(--font-mono);font-size:var(--fs-title3);font-weight:500}</style></head>
+<body>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护<span class="tail"><em style="width:6px;height:6px;border-radius:50%;background:var(--c-danger);display:inline-block"></em></span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>46 个应用 · 合计 47.1 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">全部</span><span>App Store</span><span>Homebrew</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow sel"><span class="ic" style="background:#FF5A36">Xc</span>
+              <div class="m"><b>Xcode.app</b><span>26.2 · 15.8 GB</span></div><div class="z">15.8 GB</div></div>
+            <div class="arow"><span class="ic" style="background:#3E8EF7">Ij</span>
+              <div class="m"><b>IntelliJ IDEA.app</b><span>2026.2 · 4.2 GB</span></div><div class="z">4.2 GB</div></div>
+            <div class="arow"><span class="ic" style="background:#5E5CE6">Of</span>
+              <div class="m"><b>OldApp.app</b><span>1.4.2 · 386 MB</span></div><div class="z">386 MB</div></div>
+            <div class="arow"><span class="ic" style="background:#28CD41">Sl</span>
+              <div class="m"><b>Slack.app</b><span>4.42 · 512 MB</span></div><div class="z">512 MB</div></div>
+            <div class="arow"><span class="ic" style="background:#FF9500">Dd</span>
+              <div class="m"><b>DingTalk.app</b><span>7.6 · 486 MB</span></div><div class="z">486 MB</div></div>
+            <div class="arow"><span class="ic" style="background:#8E8E93">Mg</span>
+              <div class="m"><b>MonoGrid.app</b><span>测量中</span></div><div class="z sec">测量中</div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">46 个应用 · 已测 44 · 2 个测量中</span></div>
+        </div>
+
+        <div class="detail">
+          <div class="dsec">
+            <div class="row-h" style="gap:var(--sp-3)">
+              <span class="ic" style="width:38px;height:38px;border-radius:9px;background:#FF5A36;display:grid;place-items:center;color:#fff;font-weight:700">Xc</span>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span class="t-title2">Xcode.app</span>
+                <span class="t-mono ter" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">com.apple.dt.Xcode · 15.8 GB · /Applications</span></div>
+              <div style="margin-left:auto" class="row-h"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>打开所在文件夹</span></div>
+            </div>
+            <div class="cards">
+              <div class="c"><i>应用大小</i><b>15.8 GB</b></div>
+              <div class="c"><i>包含文件</i><b>128,406</b></div>
+              <div class="c"><i>残留大小</i><b>32.4 GB</b></div>
+              <div class="c"><i>残留项</i><b>17</b></div>
+            </div>
+          </div>
+
+          <div class="dsec" style="flex-direction:row;gap:var(--sp-6);padding-top:var(--sp-3);padding-bottom:var(--sp-3)">
+            <dl class="kv" style="flex:1;margin:0">
+              <dt>包名</dt><dd>com.apple.dt.Xcode</dd>
+              <dt>版本</dt><dd>26.2 (17C4011)</dd>
+              <dt>开发者</dt><dd class="plain">Apple Inc.（来自代码签名）</dd>
+            </dl>
+            <dl class="kv" style="flex:1;margin:0">
+              <dt>最低系统</dt><dd>macOS 26.0</dd>
+              <dt>可执行文件</dt><dd>Xcode</dd>
+              <dt>修改时间</dt><dd>2026-09-12 04:31</dd>
+            </dl>
+          </div>
+
+          <div class="dsec" style="gap:var(--sp-2);flex:1;min-height:0">
+            <div class="row-h"><span class="section-title">将一并移除的残留</span>
+              <span class="badge warn">11 项默认不勾选</span>
+              <div style="margin-left:auto"></div><span class="t-cap">按包名与容器证据匹配 · 不含其他应用共享文件</span></div>
+            <div style="border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden">
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+                <span class="p">~/Library/Developer/Xcode/DerivedData</span><span class="why">构建产物，可重建</span><span class="z">28.4 GB</span></div>
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-sparkles"></use></svg>
+                <span class="p">~/Library/Caches/com.apple.dt.Xcode</span><span class="why">缓存</span><span class="z">1.6 GB</span></div>
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-list"></use></svg>
+                <span class="p">~/Library/Logs/com.apple.dt.Xcode</span><span class="why">日志</span><span class="z">42 MB</span></div>
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-power"></use></svg>
+                <span class="p">~/Library/Preferences/com.apple.dt.Xcode.plist</span><span class="why">偏好设置</span><span class="z">18 KB</span></div>
+              <div class="res"><span class="chk"></span><svg class="i" style="color:var(--c-warning)"><use href="#i-box"></use></svg>
+                <span class="p">~/Library/Containers/com.apple.dt.Xcode-playground-renderer</span><span class="why">沙盒容器，可能含文档</span><span class="z">2.4 GB</span></div>
+              <div class="res"><span class="chk"></span><svg class="i" style="color:var(--c-warning)"><use href="#i-term"></use></svg>
+                <span class="p">~/Library/Application Support/Xcode</span><span class="why">可能含账号与下载状态</span><span class="z">146 MB</span></div>
+              <div class="res"><span class="chk off-allowed"></span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg>
+                <span class="p">/Library/PrivilegedHelperTools/com.apple.dt.installer.core</span><span class="why">root 属主，仅供查看</span><span class="z">4 MB</span></div>
+              <div class="res" style="background:var(--c-card-bg-alt);height:26px">
+                <span class="t-cap">另有 10 项 · 合计 86 MB</span>
+                <span style="margin-left:auto"><span class="btn borderless sm">展开全部<svg class="i"><use href="#i-chev-d"></use></svg></span></span></div>
+            </div>
+            <div class="row-h" style="margin-top:auto;gap:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-info"></use></svg>
+              <span class="note">卸载会把 Xcode.app 及勾选的 4 项（合计 30.1 GB）移到废纸篓，可在 15 秒内或「最近操作」中撤回。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 4 项残留 · 30.1 GB</b>
+          <span>未勾选项不会被修改</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm">仅卸载应用</span>
+        <span class="btn destructive lg">移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+</body></html>

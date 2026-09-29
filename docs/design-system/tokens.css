@@ -1,0 +1,308 @@
+/*
+ * MacMaster 设计系统 tokens
+ * 目标：原生 macOS 工具类应用的观感（参照 Pearcleaner / stats / CleanShot X / Finder 表格），
+ * 而不是营销页式的大留白玻璃拟物。所有设计稿与 SwiftUI 实现都以此为准。
+ *
+ * 单位约定：CSS px == SwiftUI pt（1x 逻辑点）。渲染设计稿时用 --force-device-scale-factor=2 出 2x 图。
+ */
+
+:root {
+    /* ---------- 间距：4pt 栅格 ---------- */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+
+    /* ---------- 圆角 ---------- */
+    --r-xs: 4px;   /* 小徽章、输入框内标签 */
+    --r-sm: 6px;   /* 按钮、字段 */
+    --r-md: 8px;   /* 卡片、列表行容器 */
+    --r-lg: 10px;  /* 弹层、分组容器 */
+    --r-pill: 999px;
+
+    /* ---------- 布局骨架 ---------- */
+    --win-w: 1100px;
+    --win-h: 700px;
+    --titlebar-h: 38px;
+    --sidebar-w: 216px;
+    --sidebar-w-min: 200px;
+    --content-min: 760px;
+    --statusbar-h: 28px;
+    --row-h-compact: 28px;
+    --row-h-regular: 44px;
+    --row-h-app: 56px;      /* 应用列表行（含 32pt 图标） */
+    --section-gap: 20px;
+
+    /* ---------- 字体 ---------- */
+    --font: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+    --font-mono: "SF Mono", ui-monospace, Menlo, monospace;
+    /* macOS 语义字号（pt） */
+    --fs-largeTitle: 26px;
+    --fs-title: 22px;
+    --fs-title2: 17px;
+    --fs-title3: 15px;
+    --fs-headline: 13px;    /* 13 + semibold */
+    --fs-body: 13px;
+    --fs-callout: 12px;
+    --fs-subheadline: 11px;
+    --fs-caption: 10px;
+    --lh-tight: 1.2;
+    --lh-body: 1.45;
+
+    /* ---------- 浅色：对齐系统语义色 ---------- */
+    --c-window-bg: #ECECEC;         /* NSColor.windowBackgroundColor 近似 */
+    --c-under-page: #E4E4E4;
+    --c-content-bg: #FFFFFF;        /* controlBackgroundColor，列表/表格底 */
+    --c-sidebar-bg: rgba(246, 246, 246, 0.82);
+    --c-card-bg: #FFFFFF;
+    --c-card-bg-alt: #F7F7F7;
+    --c-separator: rgba(0, 0, 0, 0.09);
+    --c-hairline: rgba(0, 0, 0, 0.14);
+    --c-fill-hover: rgba(0, 0, 0, 0.04);
+    --c-fill-active: rgba(0, 0, 0, 0.07);
+
+    --c-label: #1D1D1F;
+    --c-label-secondary: rgba(0, 0, 0, 0.50);
+    --c-label-tertiary: rgba(0, 0, 0, 0.26);
+    --c-label-quaternary: rgba(0, 0, 0, 0.18);
+
+    /* ---------- 强调与语义色（systemBlue/Green/Orange/Red/Purple 浅色档） ---------- */
+    --c-accent: #007AFF;
+    --c-accent-hover: #0A84FF;
+    --c-on-accent: #FFFFFF;
+    --c-success: #28CD41;
+    --c-warning: #FF9500;
+    --c-danger: #FF3B30;
+    --c-info: #5AC8FA;
+    --c-purple: #AF52DE;
+    --c-pink: #FF2D55;
+
+    /* 语义色的淡底（徽章/风险标签用），统一 12% 不透明度 */
+    --c-success-soft: rgba(40, 205, 65, 0.12);
+    --c-warning-soft: rgba(255, 149, 0, 0.14);
+    --c-danger-soft: rgba(255, 59, 48, 0.12);
+    --c-accent-soft: rgba(0, 122, 255, 0.12);
+    --c-neutral-soft: rgba(0, 0, 0, 0.06);
+
+    /* ---------- 阴影：工具类应用只用一层极浅投影 ---------- */
+    --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.18), 0 1px 0 rgba(0, 0, 0, 0.06);
+    --shadow-card: none;
+}
+
+/* ---------- 深色档：设计稿默认出浅色，深色作为第二组对照 ---------- */
+[data-theme="dark"] {
+    --c-window-bg: #1E1E1E;
+    --c-under-page: #161616;
+    --c-content-bg: #282828;
+    --c-sidebar-bg: rgba(38, 38, 38, 0.78);
+    --c-card-bg: #2A2A2A;
+    --c-card-bg-alt: #232323;
+    --c-separator: rgba(255, 255, 255, 0.10);
+    --c-hairline: rgba(255, 255, 255, 0.16);
+    --c-fill-hover: rgba(255, 255, 255, 0.06);
+    --c-fill-active: rgba(255, 255, 255, 0.10);
+
+    --c-label: #FFFFFF;
+    --c-label-secondary: rgba(255, 255, 255, 0.62);
+    --c-label-tertiary: rgba(255, 255, 255, 0.34);
+    --c-label-quaternary: rgba(255, 255, 255, 0.22);
+
+    --c-accent: #0A84FF;
+    --c-success: #30D158;
+    --c-warning: #FF9F0A;
+    --c-danger: #FF453A;
+    --c-info: #64D2FF;
+    --c-purple: #BF5AF2;
+
+    --c-success-soft: rgba(48, 209, 88, 0.16);
+    --c-warning-soft: rgba(255, 159, 10, 0.16);
+    --c-danger-soft: rgba(255, 69, 58, 0.16);
+    --c-accent-soft: rgba(10, 132, 255, 0.18);
+    --c-neutral-soft: rgba(255, 255, 255, 0.08);
+}
+
+/* ================= 基础排版 ================= */
+.mm-screen {
+    font-family: var(--font);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+    color: var(--c-label);
+    -webkit-font-smoothing: antialiased;
+}
+
+.t-largeTitle { font-size: var(--fs-largeTitle); font-weight: 700; letter-spacing: -0.4px; }
+.t-title      { font-size: var(--fs-title); font-weight: 700; letter-spacing: -0.3px; }
+.t-title2     { font-size: var(--fs-title2); font-weight: 600; letter-spacing: -0.2px; }
+.t-title3     { font-size: var(--fs-title3); font-weight: 600; }
+.t-headline   { font-size: var(--fs-headline); font-weight: 600; }
+.t-body       { font-size: var(--fs-body); font-weight: 400; }
+.t-callout    { font-size: var(--fs-callout); }
+.t-sub        { font-size: var(--fs-subheadline); color: var(--c-label-secondary); }
+.t-cap        { font-size: var(--fs-caption); color: var(--c-label-tertiary); }
+.t-mono       { font-family: var(--font-mono); font-size: var(--fs-callout); font-variant-numeric: tabular-nums; }
+.t-num        { font-variant-numeric: tabular-nums; }
+.sec          { color: var(--c-label-secondary); }
+.ter          { color: var(--c-label-tertiary); }
+
+/* ================= 通用组件 ================= */
+.card {
+    background: var(--c-card-bg);
+    border: 1px solid var(--c-separator);
+    border-radius: var(--r-md);
+    padding: var(--sp-4);
+}
+.card-flush { padding: 0; overflow: hidden; }
+
+.section-title {
+    display: flex; align-items: center; gap: var(--sp-2);
+    font-size: var(--fs-headline); font-weight: 600;
+    color: var(--c-label);
+}
+.section-title .count { font-size: var(--fs-caption); color: var(--c-label-tertiary); font-weight: 400; }
+
+.badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 18px; padding: 0 7px;
+    border-radius: var(--r-xs);
+    font-size: var(--fs-caption); font-weight: 600;
+    background: var(--c-neutral-soft); color: var(--c-label-secondary);
+    white-space: nowrap;
+}
+.badge.safe    { background: var(--c-success-soft); color: var(--c-success); }
+.badge.warn    { background: var(--c-warning-soft); color: var(--c-warning); }
+.badge.danger  { background: var(--c-danger-soft);  color: var(--c-danger); }
+.badge.info    { background: var(--c-accent-soft);  color: var(--c-accent); }
+.badge.readonly{ background: var(--c-neutral-soft); color: var(--c-label-secondary); }
+
+.btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 28px; padding: 0 12px;
+    border-radius: var(--r-sm);
+    font-size: var(--fs-body); font-weight: 500;
+    background: var(--c-card-bg);
+    border: 1px solid var(--c-hairline);
+    color: var(--c-label);
+    white-space: nowrap;
+}
+.btn:hover { background: var(--c-fill-hover); }
+.btn.primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
+.btn.primary:hover { background: var(--c-accent-hover); }
+.btn.destructive { background: var(--c-danger); border-color: var(--c-danger); color: var(--c-on-accent); }
+.btn.borderless { background: transparent; border-color: transparent; color: var(--c-accent); }
+.btn.sm { height: 22px; padding: 0 8px; font-size: var(--fs-callout); }
+.btn.lg { height: 34px; padding: 0 16px; }
+.btn:disabled, .btn.disabled { opacity: 0.4; }
+
+.field {
+    display: flex; align-items: center; gap: var(--sp-2);
+    height: 26px; padding: 0 8px;
+    background: var(--c-content-bg);
+    border: 1px solid var(--c-hairline);
+    border-radius: var(--r-sm);
+    color: var(--c-label-secondary);
+    font-size: var(--fs-body);
+}
+
+/* 表格（清理结果 / 应用列表 / 大文件列表统一用这套列结构） */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl thead th {
+    height: 26px; padding: 0 var(--sp-3);
+    text-align: left; font-size: var(--fs-callout); font-weight: 500;
+    color: var(--c-label-secondary);
+    background: var(--c-card-bg-alt);
+    border-bottom: 1px solid var(--c-separator);
+    white-space: nowrap;
+}
+.tbl tbody td {
+    height: var(--row-h-regular); padding: 0 var(--sp-3);
+    border-bottom: 1px solid var(--c-separator);
+    font-size: var(--fs-body); vertical-align: middle;
+}
+.tbl tbody tr:hover td { background: var(--c-fill-hover); }
+.tbl tbody tr.selected td { background: var(--c-accent-soft); }
+.tbl .num { text-align: right; font-family: var(--font-mono); font-size: var(--fs-callout); }
+.tbl .icon-cell { width: 34px; }
+
+/* 进度 */
+.bar { height: 5px; border-radius: var(--r-pill); background: var(--c-neutral-soft); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--c-accent); }
+.bar.striped > i {
+    background-image: linear-gradient(90deg, var(--c-accent) 0 65%, var(--c-accent-hover) 65% 100%);
+}
+
+/* 复选（勾选=纳入清理，与"排除"语义二选一，全站统一为"勾选即操作"） */
+.chk {
+    width: 15px; height: 15px; border-radius: 4px;
+    border: 1px solid var(--c-hairline);
+    background: var(--c-content-bg);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: transparent;
+}
+.chk.on { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+.chk.off-allowed { background: var(--c-fill-active); border-style: dashed; }
+
+/* 空态 / 权限态 */
+.empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--sp-3); padding: var(--sp-8) var(--sp-6);
+    color: var(--c-label-secondary); text-align: center;
+}
+.empty .glyph {
+    width: 52px; height: 52px; border-radius: var(--r-lg);
+    display: grid; place-items: center;
+    background: var(--c-neutral-soft); color: var(--c-label-tertiary);
+    font-size: 22px;
+}
+
+/* 侧边栏 */
+.sidebar {
+    width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+    background: var(--c-sidebar-bg);
+    border-right: 1px solid var(--c-separator);
+    display: flex; flex-direction: column;
+}
+.nav-item {
+    display: flex; align-items: center; gap: var(--sp-2);
+    height: 28px; margin: 1px var(--sp-2); padding: 0 var(--sp-2);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-body); color: var(--c-label);
+}
+.nav-item .ic { width: 18px; text-align: center; color: var(--c-label-secondary); font-size: 13px; }
+.nav-item.active { background: var(--c-accent-soft); color: var(--c-label); }
+.nav-item.active .ic { color: var(--c-accent); }
+.nav-item .tail { margin-left: auto; font-size: var(--fs-caption); color: var(--c-label-tertiary); }
+
+/* 窗口骨架 */
+.win {
+    width: var(--win-w); height: var(--win-h);
+    display: flex; flex-direction: column;
+    background: var(--c-window-bg);
+    border-radius: 11px; overflow: hidden;
+    box-shadow: var(--shadow-pop);
+    border: 1px solid rgba(0, 0, 0, 0.18);
+}
+.titlebar {
+    height: var(--titlebar-h); flex: 0 0 var(--titlebar-h);
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: 0 var(--sp-4);
+    border-bottom: 1px solid var(--c-separator);
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.2));
+}
+.traffic { display: flex; gap: 8px; }
+.traffic i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.body-row { flex: 1; display: flex; min-height: 0; }
+.content { flex: 1; min-width: var(--content-min); background: var(--c-content-bg); display: flex; flex-direction: column; }
+.statusbar {
+    height: var(--statusbar-h); flex: 0 0 var(--statusbar-h);
+    display: flex; align-items: center; gap: var(--sp-3);
+    padding: 0 var(--sp-4);
+    border-top: 1px solid var(--c-separator);
+    background: var(--c-card-bg-alt);
+    font-size: var(--fs-caption); color: var(--c-label-secondary);
+}
+
+/* 工具类应用不要装饰性动效底；图标统一用 SF Symbols 名称标注在 .sfsym 里 */
+.sfsym { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--c-label-tertiary); }

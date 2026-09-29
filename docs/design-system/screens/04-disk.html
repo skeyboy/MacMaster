@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;display:grid;place-items:center;min-height:100vh}
+/* 平铺单元：绝对定位的块；父块 = header 带 + 子容器（子容器再按百分比细分） */
+.blk{position:absolute;border-radius:3px;overflow:hidden;color:#fff}
+.blk .cap{position:absolute;top:0;left:0;right:0;height:var(--cap,20px);padding:0 6px;
+  display:flex;align-items:center;gap:6px;font-size:var(--fs-callout);font-weight:600;
+  white-space:nowrap;overflow:hidden}
+.blk .cap .n{overflow:hidden;text-overflow:ellipsis}
+.blk .cap .z{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);
+  font-weight:400;opacity:.85}
+.blk .kids{position:absolute;left:0;right:0;top:var(--cap,20px);bottom:0}
+.blk .kids>.blk{border:1px solid rgba(255,255,255,.35)}
+.blk.leaf .cap{align-items:flex-start;padding-top:4px;display:block}
+.blk.leaf .cap .z{display:block;margin:1px 0 0;font-weight:400}
+.hatch::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.30) 0 3px,transparent 3px 8px)}
+.sel{box-shadow:inset 0 0 0 2px #0A84FF, 0 0 0 1px rgba(0,0,0,.2)}
+.mk{position:absolute;bottom:3px;right:4px;width:14px;height:14px;border-radius:50%;
+  background:rgba(0,0,0,.32);color:#fff;display:grid;place-items:center;z-index:2}
+.mk svg{width:8px;height:8px;stroke-width:2.4}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2) var(--sp-3)}
+.stat .s{display:flex;flex-direction:column;gap:1px}
+.stat .s i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.stat .s b{font-family:var(--font-mono);font-size:var(--fs-body);font-weight:500}
+</style></head>
+<body>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护<span class="tail"><em style="width:6px;height:6px;border-radius:50%;background:var(--c-danger);display:inline-block"></em></span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>磁盘分析</h1><p>~/Library · 695,682 个文件 · 271.4 GB · 扫描用时 7.6 s</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">Treemap</span><span>列表</span></div>
+        <span class="field" style="width:132px"><svg class="i"><use href="#i-search"></use></svg>筛选名称</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+
+      <div class="crumbs">
+        <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-chev-l"></use></svg>
+        <span>Macintosh HD</span><span class="sep">›</span>
+        <span>lee</span><span class="sep">›</span>
+        <span>Library</span><span class="sep">›</span>
+        <b>Developer</b>
+        <div class="sp" style="margin-left:auto"></div>
+        <span class="badge info">已标记 3 项 · 48.6 GB</span>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex">
+        <div style="flex:1;min-width:0;padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)">
+          <div class="treemap" style="background:var(--c-under-page)">
+            <!-- 开发者 27%：演示 header 带 + 子层细分 -->
+            <div class="blk" style="left:0;top:0;width:56%;height:46%;background:#AF52DE">
+              <div class="cap"><span class="n">Developer</span><span class="z">118.2 GB</span></div>
+              <div class="kids">
+                <div class="blk hatch sel" style="left:0;top:0;width:52%;height:44%;background:#9B45C8">
+                  <div class="mk"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 8.6l3.3 3.2L13 5"/></svg></div>
+                  <div class="cap"><span class="n">Xcode</span><span class="z">46.2</span></div>
+                  <div class="kids">
+                    <div class="blk" style="left:0;top:0;width:100%;height:62%;background:#8E3FBA;--cap:16px">
+                      <div class="cap"><span class="n" style="font-size:var(--fs-caption)">DerivedData</span><span class="z" style="font-size:10px">28.4 GB</span></div></div>
+                    <div class="blk" style="left:0;top:62%;width:100%;height:38%;background:#A55AD0;--cap:16px">
+                      <div class="cap"><span class="n" style="font-size:var(--fs-caption)">iOS DeviceSupport</span><span class="z" style="font-size:10px">12.1 GB</span></div></div>
+                  </div>
+                </div>
+                <div class="blk leaf" style="left:52%;top:0;width:48%;height:44%;background:#B763E0">
+                  <div class="cap"><span class="n">CoreSimulator</span><span class="z">22.1 GB</span></div></div>
+                <div class="blk leaf" style="left:0;top:44%;width:52%;height:56%;background:#C277E6">
+                  <div class="cap"><span class="n">iOS DeviceSupport</span><span class="z">32.4 GB</span></div></div>
+                <div class="blk leaf" style="left:52%;top:44%;width:48%;height:32%;background:#CE8BEB">
+                  <div class="cap"><span class="n">Archives</span><span class="z">9.2 GB</span></div></div>
+                <div class="blk leaf dim" style="left:52%;top:76%;width:48%;height:24%;background:#D9A6F0">
+                  <div class="cap"><span class="n">Other 8.3 GB</span></div></div>
+              </div>
+            </div>
+            <!-- 应用数据 22% -->
+            <div class="blk" style="left:0;top:46%;width:56%;height:30%;background:#5E5CE6">
+              <div class="cap"><span class="n">Application Support</span><span class="z">96.4 GB</span></div>
+              <div class="kids">
+                <div class="blk leaf" style="left:0;top:0;width:48%;height:100%;background:#6F6DEA">
+                  <div class="cap"><span class="n">钉钉</span><span class="z">28.6 GB</span></div></div>
+                <div class="blk leaf" style="left:48%;top:0;width:52%;height:52%;background:#8080EE">
+                  <div class="cap"><span class="n">Slack</span><span class="z">18.2 GB</span></div></div>
+                <div class="blk leaf" style="left:48%;top:52%;width:52%;height:48%;background:#9192F2">
+                  <div class="cap"><span class="n">微信</span><span class="z">14.9 GB</span></div></div>
+              </div>
+            </div>
+            <!-- 媒体 14% -->
+            <div class="blk leaf" style="left:0;top:76%;width:56%;height:24%;background:#30B0C7">
+              <div class="cap"><span class="n">Media</span><span class="z">62.7 GB</span></div>
+              <div class="kids"><div class="blk dim" style="left:0;top:0;width:100%;height:100%;background:#3FBED4;--cap:16px">
+                <div class="cap"><span class="n" style="font-size:var(--fs-caption)">Containers · Photos · Music</span></div></div></div>
+            </div>
+            <!-- 文档 14% -->
+            <div class="blk leaf" style="left:56%;top:0;width:44%;height:40%;background:#28CD41">
+              <div class="cap"><span class="n">Documents</span><span class="z">58.9 GB</span></div>
+              <div class="kids"><div class="blk dim" style="left:0;top:0;width:100%;height:100%;background:#43D659;--cap:16px">
+                <div class="cap"><span class="n" style="font-size:var(--fs-caption)">iCloud 同步中 · 用户文件，只读</span></div></div></div>
+            </div>
+            <!-- 缓存 10% -->
+            <div class="blk leaf" style="left:56%;top:40%;width:24%;height:32%;background:#8E8E93">
+              <div class="cap"><span class="n">Caches</span><span class="z">42.6 GB</span></div></div>
+            <!-- 日志 6%：可回收 → 斜纹 -->
+            <div class="blk leaf hatch" style="left:80%;top:40%;width:20%;height:32%;background:#FF9500">
+              <div class="mk"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 8.6l3.3 3.2L13 5"/></svg></div>
+              <div class="cap"><span class="n">Logs</span><span class="z">24.3 GB</span></div></div>
+            <!-- 其他 7% -->
+            <div class="blk leaf" style="left:56%;top:72%;width:44%;height:28%;background:#A2845E">
+              <div class="cap"><span class="n">Other</span><span class="z">29.0 GB</span></div>
+              <div class="kids"><div class="blk dim" style="left:0;top:0;width:100%;height:100%;background:#B0915F;--cap:16px">
+                <div class="cap"><span class="n" style="font-size:var(--fs-caption)">Fonts · Keychains · Preferences …</span></div></div></div>
+            </div>
+          </div>
+          <div class="legend">
+            <span><em style="background:#AF52DE"></em>开发者</span><span><em style="background:#5E5CE6"></em>应用数据</span>
+            <span><em style="background:#30B0C7"></em>媒体</span><span><em style="background:#28CD41"></em>文档</span>
+            <span><em style="background:#8E8E93"></em>缓存</span><span><em style="background:#FF9500"></em>日志</span>
+            <span><em style="background:#A2845E"></em>其他</span>
+            <span><em style="background-image:repeating-linear-gradient(45deg,#999 0 2px,#ddd 2px 5px)"></em>可清理（斜纹）</span>
+            <span class="note">面积 = 实际占用（st_blocks × 512）· 双击下钻 · ⌘点击标记</span>
+          </div>
+        </div>
+
+        <aside class="inspector">
+          <div class="hd">
+            <div class="row-h"><svg class="i" style="color:var(--c-purple)"><use href="#i-box"></use></svg>
+              <span class="t-headline">Xcode</span><div class="sp" style="margin-left:auto"></div>
+              <span class="badge safe">可安全清理</span></div>
+            <div class="t-mono ter" style="margin-top:4px;word-break:break-all">~/Library/Developer/Xcode</div>
+          </div>
+          <div class="bd">
+            <div class="stat">
+              <div class="s"><i>占用</i><b>46.2 GB</b></div>
+              <div class="s"><i>实际占比</i><b>17.0%</b></div>
+              <div class="s"><i>文件数</i><b>42,180</b></div>
+              <div class="s"><i>最后修改</i><b>2026-09-12</b></div>
+            </div>
+            <div>
+              <div class="t-cap" style="margin-bottom:4px">内部构成</div>
+              <div class="rrows" style="border:1px solid var(--c-separator);border-radius:var(--r-sm);overflow:hidden">
+                <div class="rrow" style="height:32px;padding:0 var(--sp-2)">
+                  <div class="main"><span class="nm" style="font-size:var(--fs-callout)">DerivedData</span></div>
+                  <div class="val" style="font-size:var(--fs-caption)">28.4 GB</div></div>
+                <div class="rrow" style="height:32px;padding:0 var(--sp-2)">
+                  <div class="main"><span class="nm" style="font-size:var(--fs-callout)">iOS DeviceSupport</span></div>
+                  <div class="val" style="font-size:var(--fs-caption)">12.1 GB</div></div>
+                <div class="rrow" style="height:32px;padding:0 var(--sp-2)">
+                  <div class="main"><span class="nm" style="font-size:var(--fs-callout)">Archives</span></div>
+                  <div class="val" style="font-size:var(--fs-caption)">5.7 GB</div></div>
+              </div>
+            </div>
+            <div class="row-h" style="gap:var(--sp-2)">
+              <span class="btn sm" style="flex:1"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+              <span class="btn sm destructive">取消标记</span>
+            </div>
+            <div style="height:1px;background:var(--c-separator)"></div>
+            <div class="t-cap">DerivedData 可由 Xcode 重新生成；删除后首次构建会变慢。用户工程文件位于别处，不受影响。</div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="statusbar">
+        <span>卷可用 28.1 GB</span><span>·</span><span>标记后预计 76.7 GB</span>
+        <div style="margin-left:auto"></div>
+        <span>统计不含符号链接目标 · 硬链接只计一次</span>
+      </div>
+    </main>
+  </div>
+</div>
+</body></html>

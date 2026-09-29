@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;display:grid;place-items:center;min-height:100vh}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4)}
+.dash{display:grid;grid-template-columns:1.35fr 1fr;gap:var(--sp-4);align-items:start}
+.hcard{padding:var(--sp-3) var(--sp-4)}
+.hcard+.hcard{border-top:1px solid var(--c-separator)}
+.gauge{display:flex;align-items:center;gap:var(--sp-3)}
+.gauge .dial{width:46px;height:46px;border-radius:50%;flex:0 0 46px;position:relative;
+  background:conic-gradient(var(--c-accent) calc(var(--p)*1%), var(--c-neutral-soft) 0)}
+.gauge .dial::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--c-card-bg)}
+.gauge .dial b{position:absolute;inset:0;display:grid;place-items:center;z-index:1;
+  font-family:var(--font-mono);font-size:var(--fs-callout);font-weight:500}
+.gauge .txt{display:flex;flex-direction:column;gap:1px}
+.gauge .txt .nm{font-size:var(--fs-callout);color:var(--c-label-secondary)}
+.gauge .txt .v{font-family:var(--font-mono);font-size:var(--fs-body)}
+.gauge .txt .s{font-size:var(--fs-caption);color:var(--c-label-tertiary)}</style></head>
+<body>
+<div class="win mm-screen">
+
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg>
+      <span class="t-headline">MacMaster</span>
+    </div>
+  </div>
+
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护<span class="tail"><em style="width:6px;height:6px;border-radius:50%;background:var(--c-danger);display:inline-block"></em></span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+      <div style="padding:var(--sp-3);border-top:1px solid var(--c-separator);margin-top:var(--sp-2)">
+        <div class="row-h" style="gap:6px"><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="t-cap">Macintosh HD</span><span class="t-cap sp t-num">94%</span></div>
+        <div class="track" style="margin-top:6px"><i style="width:94%;background:var(--c-danger)"></i></div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>概览</h1><p>本机状态 · 数据更新于 21:15:04</p></div>
+        <div class="sp"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
+      </div>
+
+      <div class="scroll" style="gap:var(--sp-3)">
+        <!-- 存储 -->
+        <section class="card" style="padding:var(--sp-3) var(--sp-4)">
+          <div class="row-h" style="margin-bottom:2px">
+            <span class="section-title">存储</span>
+            <span class="badge danger">可用空间偏低</span>
+            <div class="sp"></div>
+            <span class="t-mono sec">28.1 GB 可用 · 共 494.4 GB</span>
+          </div>
+          <div class="vol" style="padding-top:var(--sp-2)">
+            <div class="seg-bar">
+              <i style="width:24.3%;background:#5E5CE6" title="应用"></i>
+              <i style="width:29.8%;background:#AF52DE" title="开发者"></i>
+              <i style="width:10.7%;background:#8E8E93" title="系统"></i>
+              <i style="width:6.1%;background:#FF9500" title="缓存"></i>
+              <i style="width:14.4%;background:#30B0C7" title="媒体"></i>
+              <i style="width:13.5%;background:#28CD41" title="文档"></i>
+              <i style="width:6.6%;background:#64D2FF" title="可清理"></i>
+              <i style="width:5.7%;background:#FFD60A" title="废纸篓"></i>
+              <i style="width:11.2%;background:var(--c-neutral-soft)" title="可用"></i>
+            </div>
+            <div class="legend">
+              <span><em style="background:#5E5CE6"></em>应用 <b class="t-num">96.4</b></span>
+              <span><em style="background:#AF52DE"></em>开发者 <b class="t-num">118.2</b></span>
+              <span><em style="background:#8E8E93"></em>系统 <b class="t-num">42.6</b></span>
+              <span><em style="background:#FF9500"></em>缓存 <b class="t-num">24.3</b></span>
+              <span><em style="background:#30B0C7"></em>媒体 <b class="t-num">62.7</b></span>
+              <span><em style="background:#28CD41"></em>文档 <b class="t-num">58.9</b></span>
+              <span><em style="background:#64D2FF"></em>可清理 <b class="t-num">2.4</b></span>
+              <span><em style="background:#FFD60A"></em>废纸篓 <b class="t-num">1.1</b></span>
+              <span><em style="background:rgba(0,0,0,.1)"></em>可用 <b class="t-num">28.1</b></span>
+            </div>
+          </div>
+          <div class="row-h" style="border-top:1px solid var(--c-separator);padding-top:var(--sp-2)">
+            <span class="t-sub">可立即释放 <b class="t-num" style="color:var(--c-label)">3.5 GB</b>（缓存 2.4 + 废纸篓 1.1）</span>
+            <div class="sp"></div>
+            <span class="btn sm">查看占用排行</span>
+            <span class="btn sm primary">清理 3.5 GB</span>
+          </div>
+        </section>
+
+        <div class="dash">
+          <!-- 左列 -->
+          <div class="stack" style="gap:var(--sp-3)">
+            <section class="card" style="padding:0">
+              <div class="hcard row-h"><span class="section-title">系统负载</span>
+                <div class="sp"></div><span class="badge safe">运行平稳</span></div>
+              <div class="hcard grid2" style="grid-template-columns:1fr 1fr;gap:var(--sp-4)">
+                <div class="gauge"><div class="dial" style="--p:23"><b>23%</b></div>
+                  <div class="txt"><span class="nm">CPU</span><span class="v">2.1 / 10 核</span><span class="s">4 性能 + 6 能效</span></div></div>
+                <div class="gauge"><div class="dial" style="--p:65"><b>65%</b></div>
+                  <div class="txt"><span class="nm">内存</span><span class="v">15.6 / 24 GB</span><span class="s">交换 0 MB</span></div></div>
+              </div>
+              <div class="hcard">
+                <div class="row-h" style="margin-bottom:6px"><span class="t-cap">内存构成</span>
+                  <div class="sp"></div><span class="t-mono ter">App 9.2 · 联动 3.8 · 压缩 1.4 · 其他 1.2 · 空闲 8.4</span></div>
+                <div class="seg-bar" style="height:8px">
+                  <i style="width:38.3%;background:var(--c-accent)"></i>
+                  <i style="width:15.8%;background:var(--c-purple)"></i>
+                  <i style="width:5.8%;background:var(--c-warning)"></i>
+                  <i style="width:5%;background:var(--c-label-tertiary)"></i>
+                  <i style="width:35.1%;background:var(--c-neutral-soft)"></i>
+                </div>
+              </div>
+              <div class="hcard grid2" style="grid-template-columns:1fr 1fr;gap:var(--sp-4)">
+                <div class="mini"><div class="hd"><span class="nm">网络</span><span class="v">↓ 1.42 <small class="ter">MB/s</small></span></div>
+                  <div class="spark"><i style="height:30%"></i><i style="height:52%"></i><i style="height:40%"></i><i style="height:74%"></i><i style="height:58%"></i><i style="height:90%" class="hi"></i><i style="height:66%" class="hi"></i><i style="height:44%"></i><i style="height:38%"></i><i style="height:60%"></i></div>
+                  <div class="t-cap">上行 0.31 MB/s · Wi-Fi 6</div></div>
+                <div class="mini"><div class="hd"><span class="nm">磁盘 I/O</span><span class="v">读 8.6 <small class="ter">MB/s</small></span></div>
+                  <div class="spark"><i style="height:22%"></i><i style="height:36%"></i><i style="height:88%" class="hi"></i><i style="height:70%" class="hi"></i><i style="height:30%"></i><i style="height:26%"></i><i style="height:48%"></i><i style="height:20%"></i><i style="height:34%"></i><i style="height:24%"></i></div>
+                  <div class="t-cap">写 2.1 MB/s · NVMe</div></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- 右列 -->
+          <div class="stack" style="gap:var(--sp-3)">
+            <section class="card card-flush">
+              <div class="grp" style="height:36px;justify-content:flex-start">
+                <span class="section-title" style="font-size:var(--fs-body)">可释放空间</span>
+                <div class="sp"></div><span class="btn borderless sm">全部<svg class="i"><use href="#i-chev-r"></use></svg></span></div>
+              <div class="rrows">
+                <div class="rrow"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-sparkles"></use></svg>
+                  <div class="main"><span class="nm">系统缓存</span><span class="sub">412 项 · 安全</span></div>
+                  <div class="val">1.24<small>GB</small></div></div>
+                <div class="rrow"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-docs"></use></svg>
+                  <div class="main"><span class="nm">日志与临时文件</span><span class="sub">1,860 项 · 安全</span></div>
+                  <div class="val">386<small>MB</small></div></div>
+                <div class="rrow"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-disk"></use></svg>
+                  <div class="main"><span class="nm">废纸篓</span><span class="sub">27 项 · 安全</span></div>
+                  <div class="val">1.1<small>GB</small></div></div>
+                <div class="rrow off"><svg class="i ic" style="color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg>
+                  <div class="main"><span class="nm">iOS 设备备份</span><span class="sub">需手动确认</span></div>
+                  <div class="val">62.1<small>GB</small></div></div>
+              </div>
+            </section>
+
+            <section class="card card-flush">
+              <div class="grp" style="height:36px"><span class="section-title" style="font-size:var(--fs-body)">最近操作</span>
+                <div class="sp"></div><span class="t-cap">会话记录 · 已持久化</span></div>
+              <div class="rrows">
+                <div class="rrow" style="height:38px"><svg class="i ic" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+                  <div class="main"><span class="nm">清理系统缓存 2.3 GB</span><span class="sub">今天 19:42 · 412 项</span></div>
+                  <div class="sp" style="width:0"></div><span class="btn borderless sm">撤回</span></div>
+                <div class="rrow" style="height:38px"><svg class="i ic" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+                  <div class="main"><span class="nm">卸载 OldApp 386 MB</span><span class="sub">今天 18:05 · 含 9 项残留</span></div>
+                  <span class="btn borderless sm">撤回</span></div>
+                <div class="rrow" style="height:38px"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-warn"></use></svg>
+                  <div class="main"><span class="nm">3 项跳过：文件被占用</span><span class="sub">今天 19:42 · 部分成功</span></div>
+                  <span class="badge warn">查看</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="statusbar">
+        <span>4 个卷 · 文件系统 APFS</span><span>·</span>
+        <span>上次清理 3 天前</span><span>·</span>
+        <span>索引正常</span>
+        <div class="sp" style="margin-left:auto"></div>
+        <span>Spotlight 已排除 2 个路径</span>
+      </div>
+    </main>
+  </div>
+</div>
+</body></html>

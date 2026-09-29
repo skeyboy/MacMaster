@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;font-family:var(--font);color:var(--c-label)}
+h1{font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px}
+.lede{font-size:13px;color:rgba(0,0,0,.55);margin:0 0 24px}
+.grid{display:grid;grid-template-columns:repeat(3,340px);gap:20px;align-items:start}
+.panel{background:var(--c-content-bg);border:1px solid var(--c-separator);border-radius:var(--r-md);
+       overflow:hidden;display:flex;flex-direction:column;height:264px}
+.panel .tag{display:flex;align-items:center;gap:6px;padding:6px var(--sp-3);background:var(--c-card-bg-alt);
+  border-bottom:1px solid var(--c-separator);font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.panel .tag b{font-size:var(--fs-callout);font-weight:600;color:var(--c-label)}
+.panel .tag .sw2{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+.panel .in{flex:1;display:flex;flex-direction:column;min-height:0}
+.cap{padding:6px 2px 0;font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.55}
+.ban{display:flex;gap:var(--sp-2);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
+     background:var(--c-warning-soft);border-bottom:1px solid var(--c-separator)}
+.ban .t{font-size:var(--fs-callout);line-height:1.45}
+.ban .t b{display:block;font-weight:600}
+.ban .a{margin-left:auto;display:flex;gap:6px;align-items:center;flex-shrink:0}
+.skel{height:10px;border-radius:3px;background:linear-gradient(90deg,var(--c-neutral-soft),rgba(0,0,0,.03),var(--c-neutral-soft))}
+.err{display:flex;gap:var(--sp-2);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
+     border-bottom:1px solid var(--c-separator);font-size:var(--fs-callout)}
+.err .code{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-tertiary);white-space:nowrap}
+.acts{display:flex;gap:var(--sp-2);align-items:center;padding:var(--sp-2) var(--sp-3);
+      border-top:1px solid var(--c-separator);background:var(--c-card-bg-alt);margin-top:auto}
+.toast{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+  background:rgba(40,40,40,.94);color:#fff;border-radius:8px;font-size:var(--fs-callout);
+  box-shadow:var(--shadow-pop);width:max-content}
+.toast .sp{margin-left:var(--sp-3)}
+.toast b{font-weight:600}
+.toast u{text-decoration:none;color:#8FC7FF;font-weight:500}
+.dlg{width:100%;background:var(--c-content-bg);border-radius:11px;border:1px solid var(--c-hairline);
+     box-shadow:var(--shadow-pop);padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2)}
+.dlg .lst{border:1px solid var(--c-separator);border-radius:var(--r-sm);overflow:hidden;
+  font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);max-height:74px}
+.dlg .lst div{padding:4px var(--sp-2);border-bottom:1px solid var(--c-separator);display:flex;gap:8px}
+.dlg .lst div:last-child{border-bottom:0}
+.dlg .lst span{margin-left:auto}</style></head>
+<body>
+<h1>MacMaster · 状态基线 v1</h1>
+<p class="lede">当前实现里这六态<b>全部缺失</b>：错误与部分失败从不呈现，权限被拒时页面直接空白，删除失败被 <code>try?</code> 吞掉。以下每一态都是可实现的规格，不是装饰。</p>
+
+<div class="grid">
+
+  <!-- 1 空态 -->
+  <div>
+    <div class="panel">
+      <div class="tag"><b>空态</b><span>扫描后无结果</span><span class="sw2">emptyState</span></div>
+      <div class="in"><div class="empty" style="flex:1">
+        <span class="glyph"><svg class="i i-22"><use href="#i-check"></use></svg></span>
+        <div><div class="t-title3">没有可清理的内容</div>
+          <div class="t-sub" style="margin-top:2px">已检查 9 个类别，共 4,210 项</div></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div></div>
+    </div>
+    <div class="cap">图标用 tertiary 色，不放插画；必须写"检查了什么"，否则用户无法区分"真干净"和"没扫到"。</div>
+  </div>
+
+  <!-- 2 加载态 -->
+  <div>
+    <div class="panel">
+      <div class="tag"><b>加载态</b><span>骨架屏，禁止显示 0 B</span><span class="sw2">loadingSkeleton</span></div>
+      <div class="in" style="padding:var(--sp-3);gap:var(--sp-3)">
+        <div class="row-h"><svg class="i" style="color:var(--c-accent)"><use href="#i-refresh"></use></svg>
+          <span class="t-callout">正在扫描 ~/Library/Caches</span>
+          <span class="t-cap" style="margin-left:auto">第 2 / 5 步</span></div>
+        <div class="bar"><i style="width:41%"></i></div>
+        <div class="t-cap t-num">已处理 12,840 项 · 已发现 1.62 GB · 剩余约 00:14</div>
+        <div style="display:flex;flex-direction:column;gap:var(--sp-2);margin-top:2px">
+          <div class="row-h" style="gap:var(--sp-2)"><span class="skel" style="width:15px;height:15px;border-radius:4px"></span>
+            <span class="skel" style="width:120px"></span><span class="skel" style="width:64px;margin-left:auto"></span></div>
+          <div class="row-h" style="gap:var(--sp-2)"><span class="skel" style="width:15px;height:15px;border-radius:4px"></span>
+            <span class="skel" style="width:172px"></span><span class="skel" style="width:52px;margin-left:auto"></span></div>
+          <div class="row-h" style="gap:var(--sp-2)"><span class="skel" style="width:15px;height:15px;border-radius:4px"></span>
+            <span class="skel" style="width:96px"></span><span class="skel" style="width:58px;margin-left:auto"></span></div>
+        </div>
+        <div class="row-h" style="margin-top:auto"><span class="t-cap">测量中的条目标"测量中"，不显示"0 字节"</span>
+          <span class="btn sm" style="margin-left:auto">取消</span></div>
+      </div>
+    </div>
+    <div class="cap">进度文案一行：动作 + 当前路径 + 已处理数 + 估算剩余；估算值必须标"约"。UI 文本可限流丢弃，真实统计不可丢。</div>
+  </div>
+
+  <!-- 3 权限被拒 -->
+  <div>
+    <div class="panel">
+      <div class="tag"><b>权限态</b><span>就地降级，不弹启动连环窗</span><span class="sw2">permissionBanner</span></div>
+      <div class="in">
+        <div class="ban">
+          <svg class="i" style="color:var(--c-warning);flex-shrink:0;margin-top:1px"><use href="#i-lock"></use></svg>
+          <div class="t"><b>需要"完全磁盘访问"才能统计邮件与消息缓存</b>未授权时这部分不计入合计，也不会显示为 0。</div>
+          <div class="a"><span class="btn sm">打开系统设置</span><span class="btn sm">重新检查</span></div>
+        </div>
+        <div class="rrows">
+          <div class="rrow"><span class="chk on">✓</span><svg class="i ic" style="color:var(--c-warning)"><use href="#i-sparkles"></use></svg>
+            <div class="main"><span class="nm">系统缓存</span><span class="sub">412 项</span></div><div class="val">1.24<small>GB</small></div></div>
+          <div class="rrow off"><span class="chk off-allowed"></span><svg class="i ic" style="color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg>
+            <div class="main"><span class="nm">邮件附件缓存</span><span class="sub">无法访问 · 需要权限</span></div><div class="val">—</div></div>
+          <div class="rrow off"><span class="chk off-allowed"></span><svg class="i ic" style="color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg>
+            <div class="main"><span class="nm">消息预览缓存</span><span class="sub">无法访问 · 需要权限</span></div><div class="val">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">被拒项用虚线禁用框 + "—"，而不是灰掉数字；合计里明确排除，并说明排除了什么。</div>
+  </div>
+
+  <!-- 4 部分失败 -->
+  <div>
+    <div class="panel">
+      <div class="tag"><b>部分失败</b><span>删除结果必须逐条上报</span><span class="sw2">partialResult</span></div>
+      <div class="in">
+        <div style="padding:var(--sp-3);display:flex;flex-direction:column;gap:6px">
+          <div class="row-h"><span class="t-title3" style="color:var(--c-success)">已回收 2.28 GB</span>
+            <span class="badge warn" style="margin-left:auto">3 项失败</span></div>
+          <div class="t-cap t-num">计划 415 项 · 成功 412 · 失败 3 · 跳过 0</div>
+        </div>
+        <div style="border-top:1px solid var(--c-separator)">
+          <div class="err"><svg class="i" style="color:var(--c-danger);flex-shrink:0"><use href="#i-no-c"></use></svg>
+            <div><b>~/Library/Caches/com.apple.Safari</b><div class="t-cap">Operation not permitted · 目标正在被 Safari 使用</div></div>
+            <span class="code" style="margin-left:auto">EPERM</span></div>
+          <div class="err"><svg class="i" style="color:var(--c-danger);flex-shrink:0"><use href="#i-no-c"></use></svg>
+            <div><b>~/Library/Logs/DiagnosticReports/report-8842.log</b><div class="t-cap">废纸篓拒绝该路径 · 属主为 root</div></div>
+            <span class="code" style="margin-left:auto">EACCES</span></div>
+          <div class="err"><svg class="i" style="color:var(--c-warning);flex-shrink:0"><use href="#i-warn"></use></svg>
+            <div><b>~/Library/Containers/com.apple.Notes</b><div class="t-cap">容器内含用户文档，已保留未动</div></div>
+            <span class="code" style="margin-left:auto">KEPT</span></div>
+        </div>
+        <div class="acts"><span class="btn borderless sm">复制诊断信息</span>
+          <span style="margin-left:auto"></span><span class="btn sm">重试失败项</span><span class="btn sm primary">完成</span></div>
+      </div>
+    </div>
+    <div class="cap">绝不出现"清理完成"而实际失败 3 项。错误码原文保留，便于用户搜索；"重试"不重跑整个扫描。</div>
+  </div>
+
+  <!-- 5 危险确认 -->
+  <div>
+    <div class="panel" style="background:rgba(0,0,0,.28);padding:var(--sp-3);justify-content:center">
+      <div class="tag" style="background:transparent;border:0;color:rgba(255,255,255,.7)"><b style="color:#fff">危险确认</b><span>一次，动词按钮，正文即清单</span><span class="sw2" style="color:rgba(255,255,255,.5)">destructiveConfirm</span></div>
+      <div class="dlg">
+        <div class="row-h"><span style="width:28px;height:28px;border-radius:7px;background:var(--c-danger-soft);display:grid;place-items:center;flex-shrink:0">
+          <svg class="i" style="color:var(--c-danger)"><use href="#i-warn"></use></svg></span>
+          <span class="t-title3">将 OldApp.app 及 9 项残留移到废纸篓？</span></div>
+        <div class="t-callout sec" style="margin-left:36px">共 10 个路径 · 386 MB。移入废纸篓后仍可恢复，清空废纸篓前不会真正消失。</div>
+        <div class="lst" style="margin-left:36px">
+          <div>/Applications/OldApp.app<span>312 MB</span></div>
+          <div>~/Library/Caches/com.example.oldapp<span>48 MB</span></div>
+          <div>~/Library/Preferences/com.example.oldapp.plist<span>12 KB</span></div>
+          <div style="color:var(--c-label-tertiary)">另有 7 项<span>26 MB</span></div>
+        </div>
+        <div class="row-h" style="margin-left:36px;gap:var(--sp-2)">
+          <span class="chk on" style="margin-left:0">✓</span><span class="t-callout sec">卸载后 15 秒内可一键撤回</span>
+          <span style="margin-left:auto"></span><span class="btn">取消</span><span class="btn destructive">移到废纸篓</span></div>
+      </div>
+    </div>
+    <div class="cap">主按钮写动词、不写"确定"；确认框里就是删除清单摘要，全 app 只允许这一类系统级确认，风险靠预勾选与分级徽章传达。</div>
+  </div>
+
+  <!-- 6 撤回 toast -->
+  <div>
+    <div class="panel">
+      <div class="tag"><b>操作后回执</b><span>可逆窗口期</span><span class="sw2">undoToast</span></div>
+      <div class="in" style="padding:var(--sp-4);gap:var(--sp-4);justify-content:center;background:
+           linear-gradient(180deg,var(--c-content-bg),var(--c-content-bg)),repeating-linear-gradient(45deg,#f4f4f4 0 8px,#eee 8px 16px)">
+        <div class="toast"><svg class="i" style="color:#30D158"><use href="#i-ok-c"></use></svg>
+          <b>已回收 2.28 GB</b><span style="opacity:.7">· 412 项已移入废纸篓</span>
+          <u class="sp">撤回</u><span style="opacity:.4">|</span><u>打开废纸篓</u>
+          <span style="opacity:.5;margin-left:var(--sp-2);font-family:var(--font-mono)">12s</span></div>
+        <div class="toast"><svg class="i" style="color:#FF9F0A"><use href="#i-warn"></use></svg>
+          <b>已卸载 OldApp</b><span style="opacity:.7">· 3 项残留因权限保留</span>
+          <u class="sp">查看</u><span style="opacity:.4">|</span><u>撤回</u></div>
+        <div class="toast"><svg class="i" style="color:#FF453A"><use href="#i-no-c"></use></svg>
+          <b>撤回失败</b><span style="opacity:.7">· 原路径已被占用 EEXIST</span>
+          <u class="sp">在日志中查看</u></div>
+        <div class="row-h" style="margin-top:var(--sp-2)"><span class="t-cap">悬停暂停计时；离开 5 秒后消失；全部动作同时写入持久操作日志</span></div>
+      </div>
+    </div>
+    <div class="cap">toast 是"事后兜底"，不是唯一入口——撤回必须同时在「最近操作」里长期可用，15 秒过期不等于不可撤回。</div>
+  </div>
+
+</div>
+</body></html>

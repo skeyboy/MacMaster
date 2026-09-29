@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { margin: 0; padding: 28px; background: #D8D8D8; font-family: var(--font); }
+  .sheet { width: 1180px; margin: 0 auto; background: var(--c-content-bg); border-radius: 14px; border: 1px solid rgba(0,0,0,.14); box-shadow: 0 18px 50px rgba(0,0,0,.16); padding: 30px 34px 38px; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.4px; }
+  h2 { font-size: 11px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--c-label-tertiary); margin: 30px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--c-separator); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 34px; }
+  .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .sw { width: 46px; height: 30px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); }
+  .sw-l { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .type-line { display: flex; align-items: baseline; gap: 14px; }
+  .type-line .meta { font-family: var(--font-mono); font-size: 10px; color: var(--c-label-tertiary); width: 96px; flex: 0 0 96px; }
+  .panel { border: 1px solid var(--c-separator); border-radius: 8px; padding: 14px; background: var(--c-card-bg-alt); }
+  .mini-sidebar { width: 216px; border: 1px solid var(--c-separator); border-radius: 8px; overflow: hidden; background: var(--c-sidebar-bg); padding: 6px 0; }
+  table.tbl { background: var(--c-content-bg); border: 1px solid var(--c-separator); border-radius: 8px; overflow: hidden; }
+  .cap { font-size: 10px; color: var(--c-label-tertiary); margin-top: 6px; }
+  .tnote { font-size: 11px; color: var(--c-label-secondary); }
+</style>
+</head>
+<body>
+<div class="sheet mm-screen">
+  <h1>MacMaster 设计系统 · 组件基线 v1</h1>
+  <div class="tnote">原生 macOS 工具类观感：4pt 栅格、单层的浅描边卡片、语义色只用于状态、数字一律等宽。禁止玻璃拟物与装饰性渐变。</div>
+
+  <h2>色彩 · 语义</h2>
+  <div class="sw-l">
+    <div><div class="sw" style="background:var(--c-accent)"></div><div class="cap">accent<br>#007AFF</div></div>
+    <div><div class="sw" style="background:var(--c-success)"></div><div class="cap">success<br>#28CD41</div></div>
+    <div><div class="sw" style="background:var(--c-warning)"></div><div class="cap">warning<br>#FF9500</div></div>
+    <div><div class="sw" style="background:var(--c-danger)"></div><div class="cap">danger<br>#FF3B30</div></div>
+    <div><div class="sw" style="background:var(--c-purple)"></div><div class="cap">purple<br>#AF52DE</div></div>
+    <div><div class="sw" style="background:var(--c-label)"></div><div class="cap">label<br>#1D1D1F</div></div>
+    <div><div class="sw" style="background:var(--c-label-secondary)"></div><div class="cap">secondary<br>50%</div></div>
+    <div><div class="sw" style="background:var(--c-label-tertiary)"></div><div class="cap">tertiary<br>26%</div></div>
+    <div><div class="sw" style="background:var(--c-content-bg)"></div><div class="cap">content-bg</div></div>
+    <div><div class="sw" style="background:var(--c-card-bg-alt)"></div><div class="cap">card-alt</div></div>
+    <div><div class="sw" style="background:var(--c-separator)"></div><div class="cap">separator</div></div>
+    <div><div class="sw" style="background:var(--c-hairline)"></div><div class="cap">hairline</div></div>
+  </div>
+
+  <h2>字体层级（macOS pt）</h2>
+  <div class="col">
+    <div class="type-line"><span class="meta">largeTitle 26/700</span><span class="t-largeTitle">磁盘分析</span></div>
+    <div class="type-line"><span class="meta">title2 17/600</span><span class="t-title2">可清理的缓存</span></div>
+    <div class="type-line"><span class="meta">headline 13/600</span><span class="t-headline">系统缓存</span></div>
+    <div class="type-line"><span class="meta">body 13/400</span><span class="t-body">~/Library/Caches/com.apple.dt.Xcode</span></div>
+    <div class="type-line"><span class="meta">subheadline 11</span><span class="t-sub">扫描中 · 已处理 12,840 项</span></div>
+    <div class="type-line"><span class="meta">caption 10</span><span class="t-cap">仅在勾选时清理</span></div>
+    <div class="type-line"><span class="meta">mono 12</span><span class="t-mono">1.42 GB · 8,431 files</span></div>
+  </div>
+
+  <h2>按钮 / 控件</h2>
+  <div class="grid">
+    <div class="col">
+      <div class="row">
+        <button class="btn primary">开始扫描</button>
+        <button class="btn">重新扫描</button>
+        <button class="btn destructive">卸载应用</button>
+        <button class="btn borderless">打开所在文件夹</button>
+        <button class="btn" disabled>清理（0）</button>
+      </div>
+      <div class="row">
+        <button class="btn sm">撤回</button>
+        <button class="btn sm">在访达中显示</button>
+        <button class="btn lg primary">一键清理 2.4 GB</button>
+      </div>
+      <div class="cap">高度 28（常规）/ 22（小）/ 34（主行动）；圆角 6；描边 1px hairline。</div>
+    </div>
+    <div class="col">
+      <div class="row"><span class="chk on">✓</span><span class="t-body">勾选 = 纳入本次清理</span></div>
+      <div class="row"><span class="chk"></span><span class="t-body sec">未勾选 = 不动它</span></div>
+      <div class="row"><span class="chk off-allowed"></span><span class="t-body sec">SIP 保护，不可勾选</span></div>
+      <div class="field" style="width:260px">⌕&nbsp;&nbsp;搜索应用…</div>
+      <div class="cap">复选框 15pt、圆角 4；禁用态用虚线描边而不是灰掉，保证可读。</div>
+    </div>
+  </div>
+
+  <h2>状态徽章</h2>
+  <div class="row">
+    <span class="badge safe">可安全清理</span>
+    <span class="badge warn">可清理 · 需谨慎</span>
+    <span class="badge danger">SIP 保护</span>
+    <span class="badge readonly">仅供查看</span>
+    <span class="badge info">已选择 12 项</span>
+    <span class="badge">无访问权限</span>
+    <span class="badge">测量中</span>
+  </div>
+  <div class="cap">徽章只做三档风险语义：safe / warn / danger；其余一律 neutral。淡底色固定 12–16% 不透明度。</div>
+
+  <h2>表格行（清理结果 / 大文件 / 应用列表共用列结构）</h2>
+  <table class="tbl">
+    <thead><tr>
+      <th class="icon-cell"></th><th style="width:34%">名称</th><th>路径</th>
+      <th class="num" style="width:90px">大小</th><th class="num" style="width:80px">文件数</th>
+      <th style="width:104px">风险</th><th style="width:120px">操作</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="chk on">✓</span></td>
+        <td class="t-headline">Xcode 派生数据<br><span class="t-cap">DerivedData</span></td>
+        <td class="t-mono sec">~/Library/Developer/Xcode/DerivedData</td>
+        <td class="num">18.4 GB</td><td class="num sec">42,180</td>
+        <td><span class="badge safe">可安全清理</span></td>
+        <td><button class="btn sm">访达</button></td>
+      </tr>
+      <tr class="selected">
+        <td><span class="chk on">✓</span></td>
+        <td class="t-headline">iOS 设备备份<br><span class="t-cap">iPhone 15 Pro · 2026-09-12</span></td>
+        <td class="t-mono sec">~/Library/Application Support/MobileSync/Backup</td>
+        <td class="num">62.1 GB</td><td class="num sec">1,204</td>
+        <td><span class="badge warn">需谨慎</span></td>
+        <td><button class="btn sm">访达</button></td>
+      </tr>
+      <tr>
+        <td><span class="chk off-allowed"></span></td>
+        <td class="t-headline sec">系统日志<br><span class="t-cap">/var/log</span></td>
+        <td class="t-mono ter">/var/log</td>
+        <td class="num sec">248 MB</td><td class="num ter">3,401</td>
+        <td><span class="badge danger">SIP 保护</span></td>
+        <td><button class="btn sm">访达</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="cap">行高 44（双行）/ 28（单行密集）；数值列右对齐 + 等宽；hover 4% 叠色；选中行用 accent-soft 而不是整行反白。</div>
+
+  <h2>侧边栏（216pt）</h2>
+  <div class="row" style="align-items:flex-start">
+    <div class="mini-sidebar">
+      <div class="nav-item"><span class="ic">◎</span>概览</div>
+      <div class="nav-item active"><span class="ic">▣</span>系统清理<span class="tail">2.4 GB</span></div>
+      <div class="nav-item"><span class="ic">▢</span>应用卸载<span class="tail">46</span></div>
+      <div class="nav-item"><span class="ic">◔</span>磁盘分析</div>
+      <div class="nav-item"><span class="ic">◫</span>系统监控</div>
+      <div class="nav-item"><span class="ic">◍</span>隐私守护<span class="tail">●</span></div>
+      <div class="nav-item"><span class="ic">◈</span>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:8px 12px"></div>
+      <div class="nav-item"><span class="ic">⚙</span>设置</div>
+    </div>
+    <div class="col" style="flex:1">
+      <div class="cap">行高 28、圆角 6、图标 18pt 槽宽；右侧 tail 只放"该模块能立刻行动的数字"（可释放空间 / 应用数 / 正在录音指示），不放装饰。</div>
+      <div class="panel">
+        <div class="t-headline">扫描 / 进度反馈</div>
+        <div style="height:8px"></div>
+        <div class="bar striped"><i style="width:62%"></i></div>
+        <div class="t-sub" style="margin-top:6px">正在扫描 ~/Library/Caches · 已处理 12,840 项 · 剩余约 00:14</div>
+        <div style="height:10px"></div>
+        <div class="bar"><i style="width:100%"></i></div>
+        <div class="t-sub" style="margin-top:6px">完成 · 共 46 项可清理，合计 2.4 GB</div>
+        <div class="cap" style="margin-top:8px">进度条 5pt；文案一行：动作 + 当前路径 + 已处理数 + 估算剩余。估算值必须标注"约"。</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>空态 / 权限态</h2>
+  <div class="grid">
+    <div class="empty panel">
+      <div class="glyph">▢</div>
+      <div class="t-title3">还没有扫描过</div>
+      <div class="t-sub" style="max-width:320px">扫描会列出可清理的缓存、日志与临时文件，<br>不会自动删除任何内容。</div>
+      <button class="btn primary">开始扫描</button>
+    </div>
+    <div class="empty panel">
+      <div class="glyph">🔒</div>
+      <div class="t-title3">没有访问「文稿」的权限</div>
+      <div class="t-sub" style="max-width:320px">macOS 要求你手动授权。授权后本页会自动重新扫描。</div>
+      <div class="row"><button class="btn primary">前往系统设置…</button><button class="btn">重新检查</button></div>
+    </div>
+  </div>
+
+  <h2>危险操作确认（卸载 / 清理系统项）</h2>
+  <div class="panel" style="max-width:520px">
+    <div class="t-title2" style="margin-bottom:6px">卸载 Visual Studio Code</div>
+    <div class="t-body sec" style="margin-bottom:10px">将把应用本体和 8 个残留文件移入废纸篓，共 1.2 GB。撤回窗口 15 秒。</div>
+    <table class="tbl" style="margin-bottom:10px">
+      <tbody>
+        <tr><td style="height:26px">/Applications/Visual Studio Code.app</td><td class="num" style="width:80px">1.1 GB</td></tr>
+        <tr><td style="height:26px">~/Library/Application Support/Code</td><td class="num" style="width:80px">96 MB</td></tr>
+        <tr><td style="height:26px" class="sec">另有 6 项<small> </small></td><td class="num sec" style="width:80px">12 MB</td></tr>
+      </tbody>
+    </table>
+    <div class="row" style="justify-content:flex-end"><button class="btn">取消</button><button class="btn destructive">移到废纸篓</button></div>
+  </div>
+  <div class="cap">确认框必须列出"到底会动哪些路径"，主按钮文案是"移到废纸篓"而不是"删除"。</div>
+</div>
+</body>
+</html>
