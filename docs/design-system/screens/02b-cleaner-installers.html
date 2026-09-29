@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.frow{display:flex;align-items:center;gap:var(--sp-3);height:44px;padding:0 var(--sp-4);
+      border-bottom:1px solid var(--c-separator)}
+.frow .ic{width:22px;flex:0 0 22px;display:grid;place-items:center;color:var(--c-label-tertiary)}
+.frow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.frow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .z{font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap;font-variant-numeric:tabular-nums}
+.frow .rev{color:var(--c-label-tertiary);display:grid;place-items:center;width:22px}
+.gtitle{display:flex;align-items:center;gap:var(--sp-2);height:30px;padding:0 var(--sp-4);
+        background:var(--c-content-bg);border-bottom:1px solid var(--c-separator);
+        font-size:var(--fs-callout);font-weight:600}
+.gtitle .cnt{font-weight:400;color:var(--c-label-tertiary);font-size:var(--fs-caption)}
+.gtitle .sp{margin-left:auto;font-weight:400;font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+.scope{padding:var(--sp-1) 0;font-size:var(--fs-caption);color:var(--c-label-tertiary);padding-left:var(--sp-4)}
+.note{display:flex;gap:var(--sp-1);align-items:flex-start;padding:var(--sp-2) var(--sp-4);
+      font-size:var(--fs-caption);color:var(--c-label-secondary);border-bottom:1px solid var(--c-separator)}
+.alert{width:400px;background:var(--c-content-bg);border:1px solid var(--c-hairline);border-radius:12px;
+       box-shadow:var(--shadow-pop);padding:var(--sp-5) var(--sp-4) var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2)}
+.alert h2{margin:0;font-size:var(--fs-headline);font-weight:600;text-align:center}
+.alert .note2{font-size:var(--fs-callout);color:var(--c-label-secondary);text-align:center;line-height:1.5}
+.alert .acts{display:flex;gap:var(--sp-2);justify-content:center;margin-top:var(--sp-2)}</style></head>
+<body>
+
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>用户文件夹</h1><p>6 个文件夹 · 41.2 GB · 全部默认未选中</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span>缓存清理</span><span class="on">用户文件夹</span><span>系统分析</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+
+      <div class="list">
+        <div class="frow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-disk"></use></svg></span>
+          <div class="m"><b>下载</b><span>3,214 个文件 · 修改于 2026-09-28</span></div>
+          <span class="z">12.4 GB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="frow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>文稿</b><span>18,660 个文件 · 修改于 2026-09-29</span></div>
+          <span class="z">26.1 GB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+
+        <div class="gtitle">安装包残留 <span class="cnt">4 项（3 项签名已核实）</span>
+          <span class="sp">DMG / PKG / XIP + 按内容嗅探的 ZIP · 全部默认不勾选</span></div>
+        <div class="scope">扫描范围：~/Desktop、~/Downloads、~/Documents、~/Public · 只查这些位置本身及其一层子目录，更深的目录本轮没有查看。</div>
+
+        <div class="frow"><span class="chk on">✓</span><span class="ic"><svg class="i"><use href="#i-disk"></use></svg></span>
+          <div class="m"><b>FooEditor-3.2.1.dmg</b><span>~/Downloads/FooEditor-3.2.1.dmg · UDIF 签名 koly · 修改于 2026-05-14 09:41</span></div>
+          <span class="badge info">签名已核实</span><span class="z">2.31 GB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="frow"><span class="chk on">✓</span><span class="ic"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>demo-suite.zip</b><span>~/Downloads/demo-suite.zip · 内含 Demo.app/ · 修改于 2026-06-02 21:03</span></div>
+          <span class="badge info">签名已核实</span><span class="z">884 MB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="frow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-box"></use></svg></span>
+          <div class="m"><b>OldToolbox.pkg</b><span>~/Desktop/OldToolbox.pkg · 包结构 Contents/Info.plist · 修改于 2025-11-08 16:20</span></div>
+          <span class="badge info">签名已核实</span><span class="z">156 MB</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+        <div class="frow"><span class="chk"></span><span class="ic"><svg class="i"><use href="#i-lock"></use></svg></span>
+          <div class="m"><b>Whatever.dmg</b><span>~/Downloads/Whatever.dmg · 未嗅出已知签名，仅按扩展名识别 · 修改于 2024-03-01 11:02</span></div>
+          <span class="badge warn">仅按名称识别</span><span class="z">测量中</span><span class="rev"><svg class="i"><use href="#i-folder"></use></svg></span></div>
+
+        <div class="note"><svg class="i"><use href="#i-info"></use></svg>
+          <span>嗅探只读文件头/尾的签名与 ZIP 中央目录条目名，绝不解压、绝不执行被扫描对象；
+          清理一律移入废纸篓，可在「最近操作」中撤回。</span></div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 2 项 · 3.19 GB</b>
+          <span>未勾选的内容绝不会被清理</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn destructive lg">清理选中 2 项</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>安装包残留 = 用户早晚会想扔的安装介质。</b>
+扫描范围：桌面 / 下载 / 文稿 / 公开 四个用户目录 + 一层嵌套（对齐 Mole installer.sh 的深度 2 口径）；
+符号链接与 .app 之类不透明包目录绝不进入也不列出——应用内部的 .pkg 资源不是"残留"。
+<b>证据两档：</b>「签名已核实」= 内容吻合（UDIF 尾块 koly、xar! 头、解包 .pkg 的 Contents/Info.plist 结构）；
+「仅按名称识别」= 只有扩展名对得上（内容读不动、或是没嗅出签名的格式变体）——
+读不到不等于"不是安装包"，更不等于 0 字节，所以那一档用<b>橙</b>不用绿/蓝，体积测不出就写<b>测量中</b>。
+<b>ZIP 是唯一"判不了就不报"的一类</b>：普通 zip 太常见，只读 EOCD→中央目录的条目名（最多 3000 条），
+只有出现顶层 <b>&lt;AppName&gt;.app/</b> 或顶层 .pkg/.dmg/.xip 文件条目才列出，坏档/加密目录/嵌套一层一律沉默——宁可漏报，不错报。
+勾选管线与本页文件夹共用：默认全部不勾选，合计与确认面板把安装包并进同一数字，删除只走"移到废纸篓 + 可撤回"。</div>
+</div>
+
+<div class="artboard">
+<div class="alert mm-screen">
+  <svg class="i" style="width:48px;height:48px;color:var(--c-warning);align-self:center"><use href="#i-warn"></use></svg>
+  <h2>确认清理选中的项目？</h2>
+  <div class="note2">共 2 项，约 3.19 GB。<br>选中的内容将移入废纸篓（可撤回），不会永久删除。</div>
+  <div class="acts"><span class="btn">取消</span><span class="btn destructive">移入废纸篓</span></div>
+</div>
+<div class="cap"><b>确认面板复用本页既有 alert，不新起一套。</b>
+"共 N 项、约 X" 里的 N/X 已含勾选的安装包条目——安装包没有独立的删除通道，也就没有独立的口径。
+这里 <b>永远不许在真实用户目录上被自动触发</b>：无头截图验证走 MM_INSTALLER_FIXTURE_DIR，
+该钩子硬性只接受 /tmp（或 /private/tmp）下的夹具目录，非法值打 stderr 后回落到真实只读范围。</div>
+</div>
+
+</body></html>

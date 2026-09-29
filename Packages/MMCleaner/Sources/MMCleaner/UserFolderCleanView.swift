@@ -3,9 +3,26 @@ import MMCore
 import MMFileScanner
 import MMUI
 
+/// 仅供无头截图验证：把「安装包残留」的扫描根换成 /tmp 下的夹具目录。
+/// 只接受 /tmp 或 /private/tmp 前缀 —— 这一屏的删除按钮是真删文件，
+/// 验证钩子一旦指向真实的 ~/Downloads，自动勾选 + 确认面板再被误按一次回车就是真删用户文件。
+/// 口径与 MMUninstaller 的 orphanFixtureHome 一致：非法值打 stderr 后回落到真实（只读）范围。
+enum InstallerScanScope {
+    static func roots(fixtureDir raw: String?) -> [String]? {
+        guard let raw, raw.isEmpty == false else { return nil }
+        guard raw.hasPrefix("/tmp/") || raw.hasPrefix("/private/tmp/") else {
+            FileHandle.standardError.write(
+                "MM_INSTALLER_FIXTURE_DIR=\(raw) 不在 /tmp 之下，忽略该钩子\n".data(using: .utf8)!)
+            return nil
+        }
+        return [raw]
+    }
+}
+
 /// Task 1 UI：用户文件夹「先查看、再手动勾选」。
 /// 与缓存页的默认全选相反，这里所有条目初始状态都是未选中，
 /// 只有用户逐项点选的文件夹/子项才会被移入废纸篓（FileTrashService，可撤回）。
+/// P4.4：同一屏下方还有「安装包残留」区块——同一勾选/清理管线，默认同样不勾选。
 struct UserFolderCleanView: View {
     @State private var folders: [UserFolderInfo] = []
     @State private var hasScanned = false
@@ -22,6 +39,21 @@ struct UserFolderCleanView: View {
     @State private var toastSeconds = 0
     @State private var showConfirmAlert = false
     @State private var scanTask: Task<Void, Never>?
+
+    // MARK: 安装包残留（P4.4）状态
+    @State private var installerFindings: [InstallerFinding] = []
+    @State private var installerInspectedCount = 0
+    @State private var installerInaccessibleRoots: [String] = []
+    @State private var isScanningInstallers = false
+    @State private var hasSniffedInstallers = false
+    @State private var installerScanPartial = false
+    /// 本轮真正扫过的根目录（来自 report.scannedRoots）：范围声明要按实际用的根写，
+    /// 不能硬编码"桌面/下载/…"——夹具模式下扫的是 /tmp，硬编码就成了假话。
+    @State private var installerScannedRoots: [String] = []
+    @State private var installerScanTask: Task<Void, Never>?
+    /// 夹具模式下自动勾选的安装包路径。文件夹扫描完成会清空勾选重开一轮，
+    /// 这里记下夹具勾了什么，让两条独立扫描不论谁先完成，自动勾选都不会被对方抹掉。
+    @State private var installerAutoSelection: Set<String> = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -82,6 +114,11 @@ struct UserFolderCleanView: View {
         }
         .onChange(of: hasScanned) { _, scanned in
             guard scanned, ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil else { return }
+            // 安装包夹具的确认由夹具分支自己开：这里再叠一个"真实最小文件夹"进
+            // 同一张确认面板，就等于把真实用户目录带进自动勾选状态（法则第 6 条）。
+            guard InstallerScanScope.roots(
+                fixtureDir: ProcessInfo.processInfo.environment["MM_INSTALLER_FIXTURE_DIR"]
+            ) == nil else { return }
             // 勾最小的那个文件夹：这条路径只为把确认弹窗截出来，
             // 万一被误触发，损失也要是"几乎为零"而不是整个文稿目录。
             if let smallest = folders.filter(\.isAccessible).min(by: { $0.size < $1.size }) {
@@ -119,7 +156,10 @@ struct UserFolderCleanView: View {
                 Spacer()
                 HStack {
                     Spacer()
-                    Button("取消扫描") { scanTask?.cancel() }
+                    Button("取消扫描") {
+                        scanTask?.cancel()
+                        installerScanTask?.cancel()
+                    }
                         .padding(.bottom, MMGap.md)
                 }
             }
@@ -160,6 +200,9 @@ struct UserFolderCleanView: View {
                         )
                         Divider().padding(.leading, MMGap.md)
                     }
+
+                    installerSection
+
                     HStack(alignment: .top, spacing: MMGap.xs) {
                         Image(systemName: "info.circle")
                             .font(.caption)
@@ -179,6 +222,173 @@ struct UserFolderCleanView: View {
                 .overlay(RoundedRectangle(cornerRadius: MMRadius.card).stroke(MMColor.separator))
                 .padding(.horizontal, MMGap.lg)
                 .padding(.vertical, MMGap.lg)
+            }
+        }
+    }
+
+    // MARK: - 安装包残留区块（P4.4）
+
+    /// 与文件夹清理事务共用同一套勾选/清理管线：这里只负责把"证据"摆出来，
+    /// 勾与不勾永远是用户的决定——与本页"默认全部未选中"的口径一致。
+    @ViewBuilder
+    private var installerSection: some View {
+        installerGroupHeader
+        // 范围声明排在条目之前：一屏放不下几十条时，"看过哪里"必须仍然看得见。
+        installerScopeLine
+
+        if isScanningInstallers && installerFindings.isEmpty {
+            HStack(spacing: MMGap.sm) {
+                ProgressView().controlSize(.small)
+                Text("正在嗅探安装包签名（只读文件头/尾，不解压、不执行）…")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Spacer(minLength: MMGap.sm)
+            }
+            .padding(.leading, MMGap.md)
+            .frame(height: MMMetric.rowCompact, alignment: .leading)
+        } else if installerFindings.isEmpty {
+            Text(installerEmptyLine)
+                .font(.caption)
+                .foregroundStyle(MMColor.tertiaryLabel)
+                .padding(.leading, MMGap.md)
+                .padding(.vertical, MMGap.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            ForEach(installerFindings) { finding in
+                installerRow(finding)
+                Divider().padding(.leading, MMGap.md)
+            }
+        }
+
+        installerScopeLine
+
+        if !installerInaccessibleRoots.isEmpty {
+            Text("\(installerInaccessibleRoots.count) 个位置读不到（多半是 macOS 隐私保护），本轮没有检查它们，也不计入结果。")
+                .font(.caption)
+                .foregroundStyle(MMColor.caution)
+                .padding(.leading, MMGap.md)
+                .padding(.vertical, MMGap.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var installerGroupHeader: some View {
+        HStack(spacing: MMGap.sm) {
+            Text("安装包残留")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(MMColor.label)
+            Text(installerCounter)
+                .font(.caption)
+                .foregroundStyle(MMColor.tertiaryLabel)
+            Spacer()
+            Text("DMG / PKG / XIP + 按内容嗅探的 ZIP · 全部默认不勾选")
+                .font(.caption)
+                .foregroundStyle(MMColor.tertiaryLabel)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: 320, alignment: .trailing)
+        }
+        .padding(.horizontal, MMGap.md)
+        .frame(height: 30)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// 没嗅过就说"尚未嗅探"，不能读成 0 个：0 是"查过、这里干净"。
+    private var installerCounter: String {
+        if isScanningInstallers { return "嗅探中…" }
+        guard hasSniffedInstallers else { return "尚未嗅探" }
+        let verifiedCount = installerFindings.filter { $0.evidence == .verified }.count
+        return "\(installerFindings.count) 项（\(verifiedCount) 项签名已核实）"
+    }
+
+    /// 扫过的根 + 深度上限。空结果最容易骗人的地方就是"没看过"被读成"没有"：
+    /// 只进一层子目录是硬口径，必须在页面上写明，让用户知道更深处没查。
+    private var installerScopeLine: some View {
+        Text(installerScopeText)
+            .font(.caption)
+            .foregroundStyle(MMColor.tertiaryLabel)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.leading, MMGap.md)
+            .padding(.vertical, MMGap.xs)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var installerScopeText: String {
+        let depth = "只查这些位置本身及其一层子目录，更深的目录本轮没有查看"
+        let home = NSHomeDirectory()
+        let roots = installerScannedRoots.map { path in
+            path.hasPrefix(home + "/") ? "~/" + path.dropFirst(home.count + 1) : path
+        }
+        if roots.isEmpty { return "尚未嗅探。\(depth)。" }
+        return "扫描范围：\(roots.joined(separator: "、")) · \(depth)。"
+    }
+
+    private var installerEmptyLine: String {
+        guard hasSniffedInstallers else { return "尚未嗅探。" }
+        if installerScanPartial { return "嗅探未完成（已取消），下面的数字只包含已扫到的部分。" }
+        if installerInspectedCount > 0 {
+            return "检查过 \(installerInspectedCount) 个候选，未确认到安装介质。普通 ZIP 判不出安装包时一律不列——宁可漏报，不错报。"
+        }
+        return "未发现 DMG / PKG / MPKG / XIP，也没有装着应用的 ZIP。"
+    }
+
+    private func installerRow(_ finding: InstallerFinding) -> some View {
+        MMItemRow(
+            title: finding.name,
+            subtitle: "\(finding.path.replacingOccurrences(of: NSHomeDirectory(), with: "~")) · \(finding.evidenceDetail) · 修改于 \(MMFormat.dateTime(finding.modificationDate))",
+            value: MMFormat.bytes(finding.size),
+            systemImage: finding.isDirectory ? "shippingbox" : "externaldrive",
+            isSelectable: true,
+            isSelected: selectionBinding(for: finding.path)
+        ) {
+            HStack(spacing: MMGap.sm) {
+                if finding.evidence == .verified {
+                    MMBadge("签名已核实", tint: MMColor.informational, systemImage: "checkmark.seal")
+                } else {
+                    // nameOnly 是"没核实"，不是"确认是"：橙色 + 问号，绝不借用绿/蓝。
+                    MMBadge("仅按名称识别", tint: MMColor.caution, systemImage: "questionmark")
+                }
+                MMRowAction(systemImage: "folder", help: "在访达中打开") { MMReveal.open(finding.path) }
+            }
+        }
+        .background(selectedPaths.contains(finding.path) ? MMColor.soft(MMColor.accent, 0.06) : .clear)
+    }
+
+    private func startInstallerScan() {
+        installerScanTask?.cancel()
+        isScanningInstallers = true
+        hasSniffedInstallers = false
+        installerScanPartial = false
+        installerAutoSelection = []
+        installerFindings = []
+        installerScannedRoots = []
+        let fixtureRoots = InstallerScanScope.roots(
+            fixtureDir: ProcessInfo.processInfo.environment["MM_INSTALLER_FIXTURE_DIR"]
+        )
+        installerScanTask = Task {
+            let report = await InstallerScanner(roots: fixtureRoots).scan()
+            guard !Task.isCancelled else {
+                await MainActor.run { isScanningInstallers = false }
+                return
+            }
+            await MainActor.run {
+                installerFindings = report.findings
+                installerScannedRoots = report.scannedRoots
+                installerInspectedCount = report.inspectedCount
+                installerInaccessibleRoots = report.inaccessibleRoots
+                hasSniffedInstallers = true
+                installerScanPartial = !report.isComplete
+                isScanningInstallers = false
+                if fixtureRoots != nil,
+                   !report.findings.isEmpty,
+                   ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil {
+                    // 夹具 + 显式确认钩子两个条件都满足才走这一步：
+                    // 真实用户目录永远不许被"自动勾选 + 弹确认"（法则第 6 条）。
+                    installerAutoSelection = Set(report.findings.map(\.path))
+                    selectedPaths.formUnion(installerAutoSelection)
+                    showConfirmAlert = true
+                    FileHandle.standardError.write("安装包残留夹具：已自动勾选并打开确认面板\n".data(using: .utf8)!)
+                }
             }
         }
     }
@@ -231,6 +441,11 @@ struct UserFolderCleanView: View {
                 map[child.path] = child.size
             }
         }
+        // 安装包残留并进同一张查找表：底部合计与确认面板的数字才会把它们算进去。
+        // 没量到的条目贡献 0，但行内仍显示"测量中"——合计里少算是漏，虚报是假。
+        for finding in installerFindings {
+            map[finding.path] = finding.size ?? 0
+        }
         return map
     }
 
@@ -265,6 +480,7 @@ struct UserFolderCleanView: View {
         isScanning = true
         scanningPath = ""
         scannedFileCount = 0
+        startInstallerScan()
 
         let tracker = FileScanProgressTracker()
         let scanner = UserFolderScanner()
@@ -291,7 +507,7 @@ struct UserFolderCleanView: View {
                     folders = result
                     hasScanned = true
                     isScanning = false
-                    selectedPaths = []
+                    selectedPaths = installerAutoSelection
                     expandedFolderPath = nil
                     folderChildren = [:]
                 }
@@ -311,6 +527,11 @@ struct UserFolderCleanView: View {
         if result.successCount > 0 { toastSeconds = 15 }
 
         await applyCleaned(paths)
+        // 只有真的搬进废纸篓的安装包条目才从清单里摘掉；失败的留在原地——
+        // 它们还在磁盘上，条目消失才是假话（失败详情由 MMFailurePanel 逐条报）。
+        let moved = Set(result.operation.files.map(\.originalPath))
+        installerFindings.removeAll { moved.contains($0.path) }
+        installerAutoSelection.subtract(moved)
         selectedPaths = []
         isCleaning = false
     }
