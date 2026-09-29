@@ -19,7 +19,9 @@ public struct GuardianView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            MMPageHeader("隐私守护", subtitle: "管理登录项，监控系统活动") {
+            // 副标题不写"实时"：这一屏是点"刷新"时测一次，不是常驻监听。
+            // 卡头另有"测量于 …"标采样时刻，两处口径必须一致。
+            MMPageHeader("隐私守护", subtitle: "摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理") {
                 Button("刷新") { Task { await vm.loadAll() } }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -29,6 +31,7 @@ public struct GuardianView: View {
                     if !vm.scanErrors.isEmpty {
                         readErrorBanner
                     }
+                    occupancyCard
                     loginItemsCard
                     activityCard
                 }
@@ -62,6 +65,52 @@ public struct GuardianView: View {
         .padding(MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MMColor.soft(MMColor.caution, 0.10), in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+    }
+
+    // MARK: - 当前占用（P3.1）
+
+    private var occupancyCard: some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: MMMetric.iconSmall))
+                    // 卡头这个图标不能常驻红色：本屏的红色专属于"正在被使用"，
+                    // 一个恒红的摄像头图标会被读成"正在录"，而它只是个标题装饰。
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Text("当前占用").font(.headline)
+                Spacer()
+                // 副标题只报"上次测量时刻"，不报"实时"——读数会过期，诚实标注采样时间。
+                Text(vm.measuredAt.map { "测量于 " + MMFormat.dateTime($0) } ?? "测量中")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .monospacedDigit()
+            }
+
+            if vm.deviceUsage.isEmpty {
+                MMSkeletonRow(nameWidth: 80, valueWidth: 72)
+                MMSkeletonRow(nameWidth: 80, valueWidth: 72)
+            } else {
+                ForEach(DeviceUsageKind.allCases, id: \.self) { kind in
+                    DeviceUsageRow(kind: kind, state: vm.deviceUsage[kind] ?? .indeterminate(.readFailed))
+                }
+            }
+
+            HStack(alignment: .top, spacing: MMGap.xs) {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                Text("口径：空闲 = 设备在、且此刻测到没人驱动它；无法确定 ≠ 没有应用在用。占用时系统公开接口不返回进程名，本面板不猜使用方。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(MMGap.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
+        )
     }
 
     // MARK: - 登录项
@@ -169,14 +218,46 @@ public struct GuardianView: View {
 final class GuardianViewModel: ObservableObject {
     @Published var loginItems: [LoginItem] = []
     @Published var activities: [ActivityItem] = []
+    /// 摄像头/麦克风占用档位；空字典 = 还在测。
+    @Published var deviceUsage: [DeviceUsageKind: DeviceUsageState] = [:]
+    /// 上次完成测量的时刻（"测量于 …"），读数会过期，不写"实时"。
+    @Published var measuredAt: Date?
     /// 目录/解析读取失败原文（读侧不静默）。
     @Published var scanErrors: [String] = []
     /// 写操作失败逐条收集，UI 用 MMFailurePanel 展示。
     @Published var writeFailures: [TrashFailure] = []
 
+    /// 仅供无头截图逐档核对渲染（照 MM_ORPHAN_FIXTURE_HOME 的写法）。
+    /// 只接受 `camera|mic=inuse|idle|unknown|absent`；含非法项时整体忽略并写 stderr——
+    /// 半生效的夹具会让截图者把"半真半假"当成"全按夹具渲染"，是最坏的假通过。
+    static let fixtureOverrides: [DeviceUsageKind: DeviceUsageState] = {
+        guard let raw = ProcessInfo.processInfo.environment["MM_GUARDIAN_FIXTURE"],
+              raw.isEmpty == false else { return [:] }
+        let result = DeviceUsageFixture.parse(raw)
+        if !result.rejected.isEmpty {
+            FileHandle.standardError.write(
+                "MM_GUARDIAN_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），整个钩子已忽略\n".data(using: .utf8)!)
+            return [:]
+        }
+        return result.overrides
+    }()
+
     func loadAll() async {
+        // 占用检测最先：它是进程内读数（微秒级），不该排在 `log show` 这类
+        // 秒级子进程扫描之后——"此刻有没有人用摄像头"晚一秒回答都算失真。
+        await loadDeviceUsage()
         await loadLoginItems()
         await loadActivity()
+    }
+
+    func loadDeviceUsage() async {
+        let overrides = Self.fixtureOverrides
+        var states = await Task.detached(priority: .userInitiated) {
+            DeviceUsageProbe.snapshot()
+        }.value
+        for (kind, state) in overrides { states[kind] = state }
+        deviceUsage = states
+        measuredAt = Date()
     }
 
     func loadLoginItems() async {
@@ -244,6 +325,55 @@ struct LoginItemRow: View {
         .frame(height: MMMetric.rowRegular)
         .padding(.horizontal, MMGap.md)
         .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+    }
+}
+
+// MARK: - 占用行（当前占用卡）
+
+struct DeviceUsageRow: View {
+    let kind: DeviceUsageKind
+    let state: DeviceUsageState
+
+    var body: some View {
+        let copy = DeviceUsageCopyTable.copy(for: kind, state: state)
+        HStack(alignment: .center, spacing: MMGap.md) {
+            Image(systemName: kind.systemImage)
+                .font(.system(size: MMMetric.iconSmall))
+                .foregroundStyle(tint)
+                .frame(width: MMMetric.iconRow)
+            VStack(alignment: .leading, spacing: MMGap.xxs) {
+                Text(kind.displayName).font(.body.weight(.medium))
+                Text(copy.detail)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: MMGap.sm)
+            VStack(alignment: .trailing, spacing: MMGap.xs) {
+                MMBadge(copy.badge, tint: tint, systemImage: state == .inUse ? "exclamationmark.triangle.fill" : nil)
+                if let note = copy.note {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+        }
+        .frame(minHeight: MMMetric.rowRegular)
+        .padding(.horizontal, MMGap.md)
+        .padding(.vertical, MMGap.xs)
+        .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+    }
+
+    /// 颜色只走语义三档：红=正在被使用，绿=测到了空闲，灰=无法确定/没有设备。
+    /// "无法确定"绝不借绿色——灰色才对应"我们不知道"。
+    private var tint: Color {
+        switch state {
+        case .inUse: MMColor.destructive
+        case .idle: MMColor.safe
+        case .indeterminate, .deviceAbsent: MMColor.secondaryLabel
+        }
     }
 }
 

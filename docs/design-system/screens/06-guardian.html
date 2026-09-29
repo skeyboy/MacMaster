@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+/* 当前占用行：图标环 + 名称/依据 双行 + 右侧徽章/说明 */
+.urow{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:var(--sp-2) var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.urow:last-child{border-bottom:0}
+.urow .ring{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:0 0 34px;
+            border:2px solid var(--c-neutral-soft);color:var(--c-label-secondary)}
+.urow.live .ring{border-color:var(--c-danger);color:var(--c-danger);background:var(--c-danger-soft)}
+.urow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.urow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);white-space:nowrap;
+              overflow:hidden;text-overflow:ellipsis}
+.urow .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
+.urow .r small{font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+.login{display:flex;align-items:center;gap:var(--sp-3);height:44px;padding:0 var(--sp-3);
+       border-bottom:1px solid var(--c-separator)}
+.login:last-child{border-bottom:0}
+.login .ic{width:22px;flex:0 0 22px;display:grid;place-items:center;color:var(--c-label-tertiary)}
+.login .nm{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.login .sub{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46%}</style></head>
+<body>
+
+<div class="artboard">
+<div class="cap"><b>06 · 隐私守护 —— 当前占用（P3.1 新增屏）。</b>
+摄像头/麦克风此刻是否被使用，一屏两行。测量口径三档：<b>正在被使用</b>（设备在跑 IO，读数为 1）、
+<b>当前空闲</b>（设备存在且确认读到了 0）、<b>无法确定</b>（接口读取失败、或组合设备播放歧义——
+"空闲"绝不能顶替"没测到"，这两句对用户是不同的承诺）。
+占用一行<b>永远不显示进程名</b>：macOS 公开接口（CoreAudio/CMIO 的 DeviceIsRunningSomewhere）
+只给是/否，lsof 走 mach IPC 结构上看不到占用、tccd 日志是签入时刻语义且被 &lt;private&gt; 脱敏，
+详见 docs/analysis/guardian-device-usage.md。使用方一栏如实写"无法确定"。
+（本示例屏把四种档位并排画全；实机只显示摄像头、麦克风两行，各取实测档位。）
+红色在本屏只属于"正在被使用"（徽章与图标环），<b>卡头的摄像头图标不参与表态</b>——
+一个恒红的摄像头会被读成"正在录"，而它只是个标题装饰。</div>
+<div class="win mm-screen" style="height:auto">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理</p></div>
+        <div class="sp"></div>
+        <span class="t-cap">测量于 10:24:07</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
+      </div>
+
+      <div class="scroll">
+        <div class="stack" style="gap:var(--sp-4)">
+
+          <section>
+            <div class="row-h" style="margin-bottom:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-secondary)"><use href="#i-camera"></use></svg>
+              <span class="section-title">当前占用</span>
+              <span class="t-cap">只读检测 · 不申请任何权限</span>
+            </div>
+            <div class="card card-flush" style="padding:0">
+              <!-- 档 1：正在被使用（纯输入/采集设备读到 running=1） -->
+              <div class="urow live">
+                <span class="ring"><svg class="i"><use href="#i-camera"></use></svg></span>
+                <div class="m"><b>摄像头</b>
+                  <span>CoreMediaIO 设备运行标志为 1，此刻确有进程在驱动采集</span></div>
+                <div class="r"><span class="badge danger"><svg class="i"><use href="#i-warn"></use></svg>正在被使用</span>
+                  <small>使用方无法确定 · 公开接口不返回进程</small></div>
+              </div>
+              <!-- 档 2：当前空闲（设备存在，确认读到 0） -->
+              <div class="urow">
+                <span class="ring"><svg class="i"><use href="#i-mic"></use></svg></span>
+                <div class="m"><b>麦克风（内置）</b>
+                  <span>输入设备存在，本次测量未读到任何进程驱动</span></div>
+                <div class="r"><span class="badge safe">当前空闲</span>
+                  <small>1 个纯输入设备 · 读数 0</small></div>
+              </div>
+              <!-- 档 3：无法确定——组合设备播放歧义（实测：'gone' 不分 scope） -->
+              <div class="urow">
+                <span class="ring"><svg class="i"><use href="#i-mic"></use></svg></span>
+                <div class="m"><b>麦克风（Studio Display）</b>
+                  <span>设备在跑，但它带扬声器一体——播放音乐也会触发同一标志，分不清是哪侧</span></div>
+                <div class="r"><span class="badge readonly">无法确定</span>
+                  <small>不等于"没有应用在用"</small></div>
+              </div>
+              <!-- 档 4：无法确定——接口读取失败 -->
+              <div class="urow">
+                <span class="ring"><svg class="i"><use href="#i-camera"></use></svg></span>
+                <div class="m"><b>摄像头（USB）</b>
+                  <span>CoreMediaIO 属性读取失败，本次没有拿到读数</span></div>
+                <div class="r"><span class="badge readonly">无法确定</span>
+                  <small>可点"刷新"重测</small></div>
+              </div>
+            </div>
+            <div class="row-h" style="margin-top:var(--sp-2);gap:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-info"></use></svg>
+              <span class="note">口径：<b style="font-weight:600">空闲</b> = 设备在、且此刻测到没人驱动它；
+                <b style="font-weight:600">无法确定</b> = 没测到或测不准，绝不渲染成"没有应用在用"。
+                本机没有该设备时（如 Mac mini 无摄像头/麦克风），该行如实显示"本机没有摄像头 / 无可用麦克风"——
+                这是硬件事实，与"无法确定"是两种状态。</span>
+            </div>
+          </section>
+
+          <section>
+            <div class="row-h" style="margin-bottom:var(--sp-2)">
+              <svg class="i" style="color:var(--c-warning)"><use href="#i-power"></use></svg>
+              <span class="section-title">登录项 <span class="count">6 项</span></span>
+              <div class="sp"></div>
+              <span class="btn sm borderless">打开系统设置 · 登录项</span>
+            </div>
+            <div class="card card-flush" style="padding:0">
+              <div class="login"><svg class="i ic"><use href="#i-box"></use></svg>
+                <span class="nm">WeChatHelper</span>
+                <span class="sub">~/Library/LaunchAgents/com.tencent.xin.wechathelper.plist</span>
+                <span class="sw on"></span></div>
+              <div class="login"><svg class="i ic"><use href="#i-lock"></use></svg>
+                <span class="nm">com.apple.installserver.framework</span>
+                <span class="sub">/System/Library/LaunchAgents/…plist</span>
+                <span class="badge readonly"><svg class="i"><use href="#i-lock"></use></svg>只读</span></div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="artboard">
+<div class="cap"><b>实机首屏（本机 = Mac mini，无摄像头、无音频输入设备）。</b>
+两行都落在"确定的硬件事实"档：设备枚举为空且两个枚举器互相印证时，才允许说"本机没有/无可用"；
+这比"无法确定"信息量更大，但依然不是"没有应用在偷用"的承诺。行右侧徽章用中性灰（readonly 档），
+不用绿色"空闲"——绿色会让用户读成"安全"，而这里根本没有可测的设备。</div>
+<div class="win mm-screen" style="height:auto">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row" style="min-height:0">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">2.4 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">46</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>隐私守护</h1><p>摄像头与麦克风的当前占用（手动测量，非实时监听）· 登录项管理</p></div>
+        <div class="sp"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>刷新</span>
+      </div>
+      <div class="scroll" style="padding-bottom:var(--sp-3)">
+        <div class="card card-flush" style="padding:0">
+          <div class="urow">
+            <span class="ring"><svg class="i"><use href="#i-camera"></use></svg></span>
+            <div class="m"><b>摄像头</b>
+              <span>CoreMediaIO 与采集设备枚举均未发现摄像头</span></div>
+            <div class="r"><span class="badge readonly">本机没有摄像头</span></div>
+          </div>
+          <div class="urow">
+            <span class="ring"><svg class="i"><use href="#i-mic"></use></svg></span>
+            <div class="m"><b>麦克风</b>
+              <span>未发现任何带输入通道的音频设备</span></div>
+            <div class="r"><span class="badge readonly">无可用麦克风</span></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+</body></html>
