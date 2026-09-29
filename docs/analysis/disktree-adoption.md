@@ -119,7 +119,7 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 | #4 Worth a look | ✅ 已落地 | `DiskInsights.swift`，8 条单测 |
 | #5 嵌套 treemap / Canvas / header 带 / Others | ✅ 已落地 | `TreemapLayoutOptions` |
 | #6 空间投影 afterRemoving | ✅ 已落地 | `DiskRemoval.afterRemoving`，面包屑与审查面板共用 |
-| #7 键盘导航 / filter / 深度切换 / 面包屑回跳不重扫 | ⬜ 未开始 | — |
+| #7 键盘导航 / filter / 深度切换 / 面包屑回跳不重扫 | ✅ 已落地 | `DiskTreeFilter.swift` + `MMDisk.swift`，口径见 `feature-roadmap.md` 的「P1.7 落地」；filter 从"只过滤当前层"改成全树命中体积 |
 
 ### 刻意推迟的两件事
 

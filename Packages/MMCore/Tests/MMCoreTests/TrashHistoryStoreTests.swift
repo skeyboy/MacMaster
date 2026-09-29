@@ -126,4 +126,20 @@ final class TrashHistoryStoreTests: XCTestCase {
         let result = await service.undo(operationID: UUID())
         XCTAssertEqual(result.restoredCount, 0)
     }
+
+    /// 清空台账必须内存和磁盘一起清。只清内存的话，下次启动记录又回来了，
+    /// 用户在设置页点的"清空"就成了一个假动作。
+    func testClearHistoryEmptiesMemoryAndDiskTogether() throws {
+        store.save([operation(files: [TrashRecord(originalPath: "/tmp/nope/a.txt",
+                                                  trashPath: "/tmp/nope/trash/a.txt", size: 1)]),
+                    operation(files: [TrashRecord(originalPath: "/tmp/nope/b.txt",
+                                                  trashPath: "/tmp/nope/trash/b.txt", size: 1)])])
+        let service = FileTrashService(store: store)
+        XCTAssertEqual(service.trashHistory.count, 2)
+
+        service.clearHistory()
+
+        XCTAssertTrue(service.trashHistory.isEmpty)
+        XCTAssertTrue(store.load().isEmpty)
+    }
 }

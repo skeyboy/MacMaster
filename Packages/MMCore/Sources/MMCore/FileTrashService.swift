@@ -11,7 +11,12 @@ public final class FileTrashService: ObservableObject {
     private let store: TrashHistoryStore?
 
     /// 内存与磁盘共用同一个上限，避免出现"磁盘上还有、界面上没有"的两套真相。
-    static let historyLimit = 20
+    /// public 是因为设置页要把"最多 N 条"这个承诺原样报给用户，不能在界面上抄一份数字。
+    public static let historyLimit = 20
+
+    /// 台账文件在哪。设置页要如实告诉用户这份含绝对路径的文件存在哪里、并能直接打开它，
+    /// 所以路径由这里给，不让视图自己拼一遍——拼错一次就说明错了用户的数据在哪。
+    public var historyFileURL: URL? { store?.url }
 
     private convenience init() {
         self.init(store: TrashHistoryStore.default())
@@ -108,6 +113,8 @@ public final class FileTrashService: ObservableObject {
         case .replaced(let index, let operation):
             guard trashHistory.indices.contains(index) else { return }
             trashHistory[index] = operation
+        case .cleared:
+            trashHistory = []
         }
         store?.save(trashHistory)
     }
@@ -115,6 +122,13 @@ public final class FileTrashService: ObservableObject {
     private enum Change {
         case inserted(TrashOperation)
         case replaced(index: Int, with: TrashOperation)
+        case cleared
+    }
+
+    /// 清空删除台账。**只删记录，不碰废纸篓里的文件**——那些东西该由用户在访达里决定。
+    /// 代价是撤回入口一起消失：没有记录就不知道该把哪个文件放回哪儿。
+    public func clearHistory() {
+        record(.cleared)
     }
 
     /// 实际占用的块数，不是标称大小：APFS 压缩和稀疏文件的标称大小会把"释放了多少"夸大。

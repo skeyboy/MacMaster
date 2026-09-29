@@ -65,6 +65,25 @@
 | 4.5 | 白名单持久化（当前 `excludedPaths` 是会话级内存态） | Mole `lib/manage/whitelist.sh`；现状 `MMCleaner.swift:26` | S |
 | 4.6 | APFS purgeable 与 Time Machine 本地快照**只读报告**（删除需 root，不做） | Mole `cmd/status/metrics_disk.go:336-399`、`cmd/analyze/snapshots.go` | S |
 
+### P3 / P4 落地状态（2026-09-30 逐条对着代码复核）
+
+上面两张表写的时候是待办清单，现在有几条其实早就落地了，表里没改口，容易重复施工。
+逐条核过代码后的真实状态：
+
+| 项 | 状态 | 依据 |
+|---|---|---|
+| 3.1 设备占用指示 | ✅ 已落地 | `MMGuardian/DeviceUsage.swift` + `DeviceUsageProbe.swift`，见「P3.1 落地」节 |
+| 3.2 TCC 授权只读视图 | 🟡 进行中 | 另一条线上正在做，结论以 `docs/analysis/guardian-tcc.md` 为准 |
+| 3.3 登录项完整度 | 🟡 部分 | `LoginItemStore.swift` 已有 launchctl 交叉且非零退出码不再被 `try?` 吞掉；**"plist 在但没加载""运行中但找不到 plist" 两类异常标注仍未做**（全仓搜不到对应代码） |
+| 3.4 菜单栏指标 | ✅ 已落地 | `MMMonitor.swift:71` 每核 CPU、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分 / compressed / `AppleSmartBattery` / IOReport |
+| 3.5 不再写系统域 `Disabled` | ✅ 已落地 | `LaunchItemPolicy.swift:5` 明确"永远不尝试写 Disabled 键"，用户域改写走 throwing API（`LoginItemStore.swift:158-188`） |
+| 4.1 非显性系统缓存 | ✅ 已落地 | `CacheScanner.swift:475-485`（metalfe / gpuarchiver），QuickLook、iconservices、GeoServices、photoanalysisd 同文件内共 13 处 |
+| 4.2 沙盒容器内缓存 | ✅ 已落地 | `CacheScanner.swift:564-569` 走 `~/Library/Containers/*/Data/Library/Caches` 通配 |
+| 4.3 开发工具缓存走 owner 命令 | ⬜ 未做 | 全仓搜不到 `go clean -modcache` / `cargo` / `brew autoremove`；这条是**执行第三方命令**，风险最高，动之前要先定"进程状态未知时拒绝执行"的判据 |
+| 4.4 安装包残留查找 | 🟡 进行中 | 另一条线上正在做 |
+| 4.5 白名单持久化 | ✅ 已落地 | `CleanerExclusionStore`（`MMCleaner.swift:25-53`）已是唯一真源，表里那句"当前是会话级内存态"过期了 |
+| 4.6 purgeable / 本地快照只读报告 | ✅ 已落地 | `ReadOnlySpaceReport.swift`，读不到时整块说明原因，不显示 0 冒充事实 |
+
 ## 明确不采纳
 
 - **Mach-O 瘦身 / Lipo、语言包裁剪**（Pearcleaner `Lipo.swift`、`Logic.swift:640-796`）：修改已签名 bundle，破坏签名与公证。与本项目红线一致。
@@ -171,8 +190,12 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 "N 个文件 · M 项失败" 在窄栏里被截成"1 项…"，而失败数恰恰是最不该看不见的一段 →
 计数词统一收成"项"。
 
-**留给下一步**：历史里存的是绝对路径，属于用户数据。设置页现在既没有关于这份文件的
-说明，也没有"清空历史"入口——P2 的隐私声明那一栏要一起收掉。
+**已收掉的尾巴**：历史里存的是绝对路径，属于用户数据，所以设置页 · 清理现在有一节「删除历史」：
+条目数（`N / 20`，20 这个数来自 `FileTrashService.historyLimit`，界面上不另抄一份）、
+台账文件在哪 + 「在访达中显示台账文件」、以及「清空删除历史」。
+清空走 `FileTrashService.clearHistory()`，它和另外两种改动共用同一个 `record(_:)` 出口，
+所以内存与磁盘不会一边清了一边没清——`testClearHistoryEmptiesMemoryAndDiskTogether` 盯的就是这条。
+确认文案写死了代价：**只删记录，不碰废纸篓里的文件**，而撤回入口随记录一起消失。
 
 ## P1.7 落地：磁盘分析的全树名称过滤（disktree #7 收尾）
 
