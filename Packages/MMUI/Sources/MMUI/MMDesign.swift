@@ -90,6 +90,9 @@ public enum MMMetric {
     public static let iconSmall: CGFloat = 16
     public static let iconRow: CGFloat = 28
     public static let iconApp: CGFloat = 32
+    /// 设计稿 dial 的直径与迷你柱状图的行高。
+    public static let gauge: CGFloat = 46
+    public static let sparkline: CGFloat = 26
 }
 
 // MARK: - 格式化（全站唯一实现）
@@ -103,13 +106,17 @@ public enum MMFormat {
     }()
 
     /// 大小未测出时显示"测量中"，绝不显示误导性的 "0 字节"。
+    /// 真量到 0 才说 "0 字节"：ByteCountFormatter 会把它写成 "Zero KB"，
+    /// 中文界面里读起来像坏了。
     public static func bytes(_ value: UInt64?) -> String {
         guard let value else { return "测量中" }
+        guard value != 0 else { return "0 字节" }
         return byte.string(fromByteCount: Int64(value))
     }
 
     public static func bytes(_ value: Int64?) -> String {
         guard let value else { return "测量中" }
+        guard value != 0 else { return "0 字节" }
         return byte.string(fromByteCount: value)
     }
 
@@ -747,5 +754,173 @@ extension MMItemRow where Accessory == EmptyView {
             isSelectable: isSelectable,
             isSelected: isSelected
         ) { EmptyView() }
+    }
+}
+
+// MARK: - 卡片与数据可视化
+
+/// 卡片容器。设计稿里所有区块都是同一张卡：控制底色 + 8pt 圆角 + 1px 分隔描边。
+/// 之前每个页面各写一遍 background/overlay，圆角和描边迟早会漂。
+public struct MMCard<Content: View>: View {
+    let content: Content
+    var padding: CGFloat = MMGap.lg
+
+    public init(padding: CGFloat = MMGap.lg, @ViewBuilder content: () -> Content) {
+        self.padding = padding
+        self.content = content()
+    }
+
+    public var body: some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MMColor.controlBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator))
+    }
+}
+
+/// 堆叠条的一段。`value` 用调用方的原始单位（字节、百分比都行），
+/// 组件只负责按占比分配宽度——换算成宽度这件事不该在三个页面各算一遍。
+public struct MMBarSegment: Identifiable, Equatable {
+    public let id: String
+    public let label: String
+    public let value: Double
+    public let color: Color
+
+    public init(id: String, label: String, value: Double, color: Color) {
+        self.id = id
+        self.label = label
+        self.value = value
+        self.color = color
+    }
+}
+
+/// 分段占比条（存储构成、内存构成共用）。
+/// 零值段直接丢掉：留着会把 1px 间隙画成一条虚色，读起来像"这里有一点占用"。
+public struct MMStackedBar: View {
+    let segments: [MMBarSegment]
+    var height: CGFloat = 6
+
+    public init(segments: [MMBarSegment], height: CGFloat = 6) {
+        self.segments = segments.filter { $0.value > 0 }
+        self.height = height
+    }
+
+    public var body: some View {
+        GeometryReader { proxy in
+            let total = segments.reduce(0) { $0 + $1.value }
+            HStack(spacing: 1) {
+                ForEach(Array(segments.enumerated()), id: \.element.id) { _, segment in
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(segment.color)
+                        .frame(width: total > 0
+                            ? max(1, (proxy.size.width - CGFloat(max(0, segments.count - 1))) * segment.value / total)
+                            : 0)
+                }
+            }
+            .frame(width: proxy.size.width, alignment: .leading)
+        }
+        .frame(height: height)
+        .clipShape(RoundedRectangle(cornerRadius: height / 2, style: .continuous))
+        .accessibilityHidden(true)
+    }
+}
+
+/// 图例：色块 + 名称 + 数值。数值由调用方拼好传进来，这里不猜单位。
+public struct MMLegend: View {
+    public struct Item: Identifiable {
+        public let id: String
+        public let text: String
+        public let color: Color
+
+        public init(id: String, text: String, color: Color) {
+            self.id = id
+            self.text = text
+            self.color = color
+        }
+    }
+
+    let items: [Item]
+
+    public init(_ items: [Item]) {
+        self.items = items
+    }
+
+    public var body: some View {
+        HStack(spacing: MMGap.md) {
+            ForEach(items) { item in
+                HStack(spacing: MMGap.xs) {
+                    RoundedRectangle(cornerRadius: 1).fill(item.color).frame(width: 8, height: 8)
+                    Text(item.text).font(.caption).foregroundStyle(MMColor.secondaryLabel).monospacedDigit()
+                }
+                .fixedSize()
+            }
+            Spacer(minLength: MMGap.sm)
+        }
+    }
+}
+
+/// 环形仪表。中心数字是主角，环只是它的图形化重复——所以没量到时环也空着，
+/// 不画一个 0% 的满圈假装"占用为零"。
+public struct MMGauge: View {
+    let ratio: Double?
+    let text: String
+    let tint: Color
+
+    public init(ratio: Double?, text: String, tint: Color = MMColor.accent) {
+        self.ratio = ratio.map { min(1, max(0, $0)) }
+        self.text = text
+        self.tint = tint
+    }
+
+    public var body: some View {
+        ZStack {
+            Circle().stroke(MMColor.fillActive, lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: CGFloat(ratio ?? 0))
+                .stroke(tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text(ratio == nil ? "—" : text)
+                .font(.system(size: 11, weight: .medium)).monospacedDigit()
+                .foregroundStyle(ratio == nil ? MMColor.tertiaryLabel : MMColor.label)
+        }
+        .frame(width: MMMetric.gauge, height: MMMetric.gauge)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
+    }
+}
+
+/// 迷你柱状图。`values` 里 nil 表示那一次没采到，画成空槽而不是 0——
+/// 0 是"确实没流量"，空槽才是"不知道"，两者在设计稿里必须是两种形状。
+public struct MMSparkline: View {
+    let values: [Double?]
+    var slotWidth: CGFloat = 10
+
+    public init(values: [Double?], slotWidth: CGFloat = 10) {
+        self.values = values
+        self.slotWidth = slotWidth
+    }
+
+    public var body: some View {
+        let peak = values.compactMap { $0 }.max() ?? 0
+        HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(values.enumerated()), id: \.offset) { _, value in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(barColor(value, peak: peak))
+                    .frame(width: slotWidth, height: barHeight(value, peak: peak))
+            }
+        }
+        .frame(height: MMMetric.sparkline, alignment: .bottom)
+        .accessibilityHidden(true)
+    }
+
+    private func barHeight(_ value: Double?, peak: Double) -> CGFloat {
+        guard let value, peak > 0 else { return 2 }
+        return max(2, MMMetric.sparkline * CGFloat(min(1, value / peak)))
+    }
+
+    private func barColor(_ value: Double?, peak: Double) -> Color {
+        guard let value, peak > 0, value / peak >= 0.6 else { return MMColor.accent.opacity(0.30) }
+        return MMColor.accent
     }
 }

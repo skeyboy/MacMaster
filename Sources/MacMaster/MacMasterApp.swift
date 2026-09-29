@@ -50,7 +50,9 @@ struct MacMasterApp: App {
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var selectedModuleID: String?
+    /// 概览不是注册模块（它不进 moduleRegistry），但它必须是侧边栏里第一个被选中的行：
+    /// 留 nil 的话侧边栏没有任何高亮，用户看不出自己在哪一页。
+    @Published var selectedModuleID: String? = MMDestination.dashboard.rawValue
     @Published var isScanning = false
     @Published var scanProgress: Double = 0
     @Published var showSettings = false

@@ -95,7 +95,7 @@ public struct OptimizerView: View {
                 .disabled(duplicates.isScanning)
             }
             .padding(.horizontal, MMGap.lg)
-            .frame(height: 44)
+            .frame(height: MMMetric.rowRegular)
 
             if let progress = duplicates.progress {
                 MMScanProgress(
@@ -166,7 +166,7 @@ public struct OptimizerView: View {
                 .disabled(browser.isScanning)
             }
             .padding(.horizontal, MMGap.lg)
-            .frame(height: 44)
+            .frame(height: MMMetric.rowRegular)
             Divider()
 
             if browser.items.isEmpty {
@@ -516,7 +516,9 @@ struct BrowserCacheRow: Identifiable, Hashable {
     let name: String
     let systemImage: String
     let path: String
-    let size: UInt64
+    /// nil = 目录存在但体积没量出来（无权限/已消失）。显示"测量中"，
+    /// 不能 `?? 0` 把"没读到"伪装成"很干净"。
+    let size: UInt64?
     let kind: String
 }
 
@@ -532,11 +534,12 @@ enum BrowserCacheProbe {
         let fm = FileManager.default
         var rows: [BrowserCacheRow] = []
         for (name, symbol, path, kind) in candidates where fm.fileExists(atPath: path) {
-            let size = SystemSampler.directoryBytes(path) ?? 0
             rows.append(BrowserCacheRow(id: path, name: name, systemImage: symbol,
-                                        path: path, size: size, kind: kind))
+                                        path: path, size: SystemSampler.directoryBytes(path),
+                                        kind: kind))
         }
-        return rows.filter { $0.size > 0 }.sorted { $0.size > $1.size }
+        return rows.filter { $0.size == nil || ($0.size ?? 0) > 0 }
+            .sorted { ($0.size ?? 0) > ($1.size ?? 0) }
     }
 }
 
@@ -550,7 +553,12 @@ final class BrowserCacheModel: ObservableObject {
     var headline: String {
         if isScanning { return "正在统计缓存体积…" }
         guard !items.isEmpty else { return "只清缓存，不动历史记录、密码和 Cookie。" }
-        return "\(items.count) 个缓存目录 · 合计 \(MMFormat.bytes(items.reduce(0) { $0 + $1.size }))"
+        let measured = items.compactMap(\.size)
+        var text = "\(items.count) 个缓存目录 · 合计 \(MMFormat.bytes(measured.reduce(UInt64(0), +)))"
+        if measured.count != items.count {
+            text += "（\(items.count - measured.count) 个目录没读到，未计入）"
+        }
+        return text
     }
 
     func scan() async {
@@ -599,6 +607,7 @@ struct BrowserCacheRowView: View {
                 .font(.callout).monospacedDigit()
                 .foregroundStyle(MMColor.secondaryLabel)
                 .frame(minWidth: 72, alignment: .trailing)
+                .help(item.size == nil ? "目录存在，但体积没能读出来；不是 0 字节。" : "")
             Button {
                 Task { await model.clean(item) }
             } label: {
@@ -654,15 +663,23 @@ enum SystemDiagnostics {
     static func measure() -> [SystemCheck] {
         var out: [SystemCheck] = []
 
-        let mem = SystemSampler.memory()
+        let mem = DashboardMemory.sample()
+        let memoryNote: String
+        if mem.used == nil {
+            memoryNote = "vm_statistics64 没读数，这里不猜占用；显示 —。"
+        } else if let swapUsed = mem.swapUsed {
+            memoryNote = swapUsed > 0
+                ? "已使用交换空间 \(MMFormat.bytes(swapUsed))，关掉占内存大的应用才会回落"
+                : "未使用交换空间"
+        } else {
+            memoryNote = "交换空间读数不可用（sysctl vm.swapusage 失败），显示 —。"
+        }
         out.append(SystemCheck(
             id: .memory,
             title: "内存占用",
-            value: mem.total > 0 ? MMFormat.bytes(mem.used) + " / " + MMFormat.bytes(mem.total) : "—",
-            note: mem.swapUsed > 0
-                ? "已使用交换空间 \(MMFormat.bytes(mem.swapUsed))，关掉占内存大的应用才会回落"
-                : "未使用交换空间",
-            risk: mem.pressure > 0.85 ? .caution : .safe,
+            value: DashboardText.memoryUsedText(mem),
+            note: memoryNote,
+            risk: mem.pressure == nil ? .readOnly : (mem.pressure! > 0.85 ? .caution : .safe),
             destination: .monitor,
             revealPath: nil
         ))
@@ -678,16 +695,18 @@ enum SystemDiagnostics {
                 revealPath: nil
             ))
         } else {
-            out.append(SystemCheck(id: .disk, title: "磁盘可用", value: "—",
-                                   note: "未能读取卷信息", risk: .readOnly,
+            out.append(SystemCheck(id: .disk, title: "磁盘可用", value: DashboardText.placeholder,
+                                   note: "未能读取卷信息（容量键未返回），不显示 0。", risk: .readOnly,
                                    destination: .disk, revealPath: nil))
         }
 
-        let trash = SystemSampler.trashBytes()
+        // 用 directoryBytes 而不是 trashBytes：后者把"没量到"折成 0，
+        // 会让"废纸篓占用 0 字节"在这种失败下说谎。
+        let trash = SystemSampler.directoryBytes(NSHomeDirectory() + "/.Trash")
         out.append(SystemCheck(
             id: .trash,
             title: "废纸篓占用",
-            value: trash.map(MMFormat.bytes) ?? "—",
+            value: trash.map(MMFormat.bytes) ?? DashboardText.placeholder,
             note: "清空废纸篓会同时丢掉撤回入口，所以这里只带你过去，不代你清空。",
             risk: (trash ?? 0) > 5 * 1024 * 1024 * 1024 ? .caution : .readOnly,
             destination: nil,

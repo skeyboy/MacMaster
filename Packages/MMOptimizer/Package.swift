@@ -17,5 +17,10 @@ let package = Package(
             name: "MMOptimizer",
             dependencies: ["MMCore", "MMUI", "MMFileScanner"]
         ),
+        .testTarget(
+            name: "MMOptimizerTests",
+            dependencies: ["MMOptimizer"],
+            path: "Tests/MMOptimizerTests"
+        ),
     ]
 )
