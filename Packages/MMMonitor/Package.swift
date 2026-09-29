@@ -9,11 +9,17 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../../Packages/MMCore"),
+        .package(path: "../../Packages/MMUI"),
     ],
     targets: [
         .target(
             name: "MMMonitor",
-            dependencies: ["MMCore"]
+            dependencies: ["MMCore", "MMUI"]
+        ),
+        .testTarget(
+            name: "MMMonitorTests",
+            dependencies: ["MMMonitor"],
+            path: "Tests/MMMonitorTests"
         ),
     ]
 )

@@ -2,22 +2,28 @@ import AppKit
 import Combine
 import UserNotifications
 import MMCore
+import MMUI
 
 @MainActor
 public final class MenuBarManager: ObservableObject {
     public static let shared = MenuBarManager()
 
-    @Published public var cpuUsage: Double = 0
-    @Published public var memoryUsage: Double = 0
-    @Published public var memoryUsedGB: Double = 0
-    @Published public var memoryTotalGB: Double = 0
-    @Published public var networkUp: Double = 0
-    @Published public var networkDown: Double = 0
+    /// 唯一的数据出口：后台 Task 采样后整体赋值，主线程只读它，不做任何系统调用。
+    @Published public private(set) var snapshot: MetricSnapshot = .empty
+
+    /// 旧 API 兼容：仪表盘/通知逻辑继续按百分数读。
+    public var cpuUsage: Double { snapshot.totalCPU.map { $0 * 100 } ?? 0 }
+    public var memoryUsage: Double { snapshot.memory?.usedRatio.map { $0 * 100 } ?? 0 }
+    public var memoryUsedGB: Double { Double(snapshot.memory?.usedBytes ?? 0) / 1_073_741_824 }
+    public var memoryTotalGB: Double { Double(snapshot.memory?.totalBytes ?? 0) / 1_073_741_824 }
+    /// 单位从旧的 KB/s 改为 bytes/s，展示统一交给 MMFormat。
+    public var networkUp: Double { snapshot.networkUpBytesPerSecond ?? 0 }
+    public var networkDown: Double { snapshot.networkDownBytesPerSecond ?? 0 }
 
     private var statusItem: NSStatusItem?
-    private var timer: Timer?
-    private var prevCPUTimes: (user: UInt32, system: UInt32, idle: UInt32, nice: UInt32)?
-    private var prevNetBytes: (sent: UInt64, received: UInt64)?
+    /// 采样循环跑在后台；主线程只接收快照。disable() 必须取消它（项目既有约定）。
+    private var samplingTask: Task<Void, Never>?
+    private var samplingInterval: TimeInterval?
 
     private let settings = AppSettings.shared
     private var settingsObservation: AnyCancellable?
@@ -72,7 +78,7 @@ public final class MenuBarManager: ObservableObject {
         statusItem = nil
     }
 
-    /// 监听设置变化：间隔改变 → 重启定时器；显隐改变 → 立即重绘标题；
+    /// 监听设置变化：间隔改变 → 重启采样任务；显隐改变 → 立即重绘标题；
     /// 通知开关打开 → 补请求授权。objectWillChange 在赋值前发出，
     /// 用 receive(on: .main) 把处理排到下一个主队列 tick，届时新值已写入。
     private func observeSettings() {
@@ -84,148 +90,85 @@ public final class MenuBarManager: ObservableObject {
     }
 
     private func applySettingsChange() {
-        restartTimerIfNeeded()
+        restartSamplingIfNeeded()
         updateStatusItemTitle()
         requestNotificationAuthorizationIfNeeded()
     }
 
-    private func restartTimerIfNeeded() {
-        guard let timer, timer.timeInterval != settings.monitorRefreshIntervalSeconds else { return }
-        timer.invalidate()
-        self.timer = Timer.scheduledTimer(withTimeInterval: settings.monitorRefreshIntervalSeconds, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateMetrics()
+    // MARK: - 采样节拍（后台 Task；主线程只赋值快照）
+
+    private func startMonitoring() {
+        guard samplingTask == nil else { return }
+        let interval = settings.monitorRefreshIntervalSeconds
+        samplingInterval = interval
+        // Task.detached 不继承 MainActor：host_processor_info / IOKit 这些系统调用
+        // 全部在后台线程跑，节拍用 Task.sleep，不再占主线程 Timer。
+        // 单例永生，MainActor.run 里再取 shared（访问落在主线程隔离域内）；
+        // disable()/重启通过 cancel 终止循环。
+        samplingTask = Task.detached(priority: .utility) {
+            var sampler = SystemMetricSampler()
+            // 立刻出第一帧（各速率为 "—"），之后按设置间隔轮询。
+            while !Task.isCancelled {
+                let snapshot = sampler.tick()
+                // 回主线程只做赋值与标题/通知，绝不在主线程采样。
+                await MainActor.run {
+                    MenuBarManager.shared.apply(snapshot)
+                }
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                } catch {
+                    break // sleep 被取消 = 采样任务被 disable()/重启掐掉，正常退出
+                }
             }
         }
     }
 
-    private func startMonitoring() {
-        timer = Timer.scheduledTimer(withTimeInterval: settings.monitorRefreshIntervalSeconds, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateMetrics()
-            }
+    private func restartSamplingIfNeeded() {
+        let interval = settings.monitorRefreshIntervalSeconds
+        guard samplingInterval != interval else { return }
+        samplingTask?.cancel()
+        samplingTask = nil
+        samplingInterval = interval
+        if statusItem != nil {
+            startMonitoring()
         }
-        updateMetrics()
     }
 
     private func stopMonitoring() {
-        timer?.invalidate()
-        timer = nil
+        samplingTask?.cancel()
+        samplingTask = nil
+        samplingInterval = nil
     }
 
-    private func updateMetrics() {
-        updateCPU()
-        updateMemory()
-        updateNetwork()
+    private func apply(_ snapshot: MetricSnapshot) {
+        self.snapshot = snapshot
         updateStatusItemTitle()
-        evaluateThresholdNotifications()
+        evaluateThresholdNotifications(at: snapshot.sampledAt == .distantPast ? Date() : snapshot.sampledAt)
     }
 
-    private func updateCPU() {
-        var cpuLoad = host_cpu_load_info()
-        var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.size / MemoryLayout<integer_t>.size)
-        let result = withUnsafeMutablePointer(to: &cpuLoad) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
-            }
-        }
-
-        guard result == KERN_SUCCESS else { return }
-
-        let user = cpuLoad.cpu_ticks.0
-        let system = cpuLoad.cpu_ticks.1
-        let idle = cpuLoad.cpu_ticks.2
-        let nice = cpuLoad.cpu_ticks.3
-
-        if let prev = prevCPUTimes {
-            let userDelta = Double(user - prev.user)
-            let systemDelta = Double(system - prev.system)
-            let idleDelta = Double(idle - prev.idle)
-            let niceDelta = Double(nice - prev.nice)
-            let total = userDelta + systemDelta + idleDelta + niceDelta
-            if total > 0 {
-                cpuUsage = (userDelta + systemDelta + niceDelta) / total * 100
-            }
-        }
-
-        prevCPUTimes = (user, system, idle, nice)
-    }
-
-    private func updateMemory() {
-        var stats = vm_statistics64()
-        var statCount = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
-        let result = withUnsafeMutablePointer(to: &stats) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: Int(statCount)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &statCount)
-            }
-        }
-
-        guard result == KERN_SUCCESS else { return }
-
-        let pageSize = Double(vm_page_size)
-        let active = Double(stats.active_count) * pageSize
-        let wired = Double(stats.wire_count) * pageSize
-        let total = Foundation.ProcessInfo.processInfo.physicalMemory
-
-        memoryUsedGB = (active + wired) / 1_073_741_824
-        memoryTotalGB = Double(total) / 1_073_741_824
-        memoryUsage = memoryUsedGB / memoryTotalGB * 100
-    }
-
-    private func updateNetwork() {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return }
-        defer { freeifaddrs(ifaddr) }
-
-        var bytesSent: UInt64 = 0
-        var bytesReceived: UInt64 = 0
-
-        var ptr = first
-        while true {
-            if ptr.pointee.ifa_addr?.pointee.sa_family == UInt8(AF_LINK) {
-                if let data = ptr.pointee.ifa_data?.assumingMemoryBound(to: if_data.self) {
-                    bytesSent += UInt64(data.pointee.ifi_obytes)
-                    bytesReceived += UInt64(data.pointee.ifi_ibytes)
-                }
-            }
-            guard let next = ptr.pointee.ifa_next else { break }
-            ptr = next
-        }
-
-        if let prev = prevNetBytes {
-            let sentDelta = Double(bytesSent - prev.sent)
-            let recvDelta = Double(bytesReceived - prev.received)
-            // 采样间隔跟随设置项，不能再用写死的 2 秒
-            let interval = settings.monitorRefreshIntervalSeconds
-            networkUp = sentDelta / interval / 1024
-            networkDown = recvDelta / interval / 1024
-        }
-
-        prevNetBytes = (bytesSent, bytesReceived)
-    }
+    // MARK: - 标题
 
     private func updateStatusItemTitle() {
         guard let button = statusItem?.button else { return }
         var parts: [String] = []
         if settings.showCPUMetric {
-            parts.append("CPU \(String(format: "%.0f%%", cpuUsage))")
+            parts.append("CPU \(Self.percentText(snapshot.totalCPU))")
         }
         if settings.showMemoryMetric {
-            parts.append("MEM \(String(format: "%.0f%%", memoryUsage))")
+            parts.append("MEM \(Self.percentText(snapshot.memory?.usedRatio))")
         }
         if settings.showNetworkMetric {
-            let up = formatSpeed(networkUp)
-            let down = formatSpeed(networkDown)
+            let up = snapshot.networkUpBytesPerSecond.map { MMFormat.compactBytes(UInt64($0)) + "/s" } ?? "—"
+            let down = snapshot.networkDownBytesPerSecond.map { MMFormat.compactBytes(UInt64($0)) + "/s" } ?? "—"
             parts.append("↑\(up) ↓\(down)")
         }
         button.title = parts.isEmpty ? "MacMaster" : parts.joined(separator: "  ")
     }
 
-    private func formatSpeed(_ kbps: Double) -> String {
-        if kbps > 1024 {
-            return String(format: "%.1fMB", kbps / 1024)
-        }
-        return String(format: "%.0fKB", kbps)
+    /// 量不出来就显示 "—"，不显示 0%。入参是 0...1 比值。
+    nonisolated static func percentText(_ ratio: Double?) -> String {
+        guard let ratio else { return "—" }
+        return MMFormat.percent(ratio)
     }
 
     // MARK: - Threshold notifications
@@ -242,41 +185,47 @@ public final class MenuBarManager: ObservableObject {
     }
 
     /// 跨阈值时通知一次（带冷却）：CPU ≥ 85%、内存 ≥ 90%。
-    private func evaluateThresholdNotifications() {
-        let now = Date()
-
-        if settings.notifyHighCPU && cpuUsage >= cpuThreshold {
-            let cooledDown = lastCPUNotificationAt.map { now.timeIntervalSince($0) >= notificationCooldown } ?? true
-            if !cpuAboveThreshold && cooledDown {
-                lastCPUNotificationAt = now
-                postNotification(
-                    identifier: "macmaster.cpu.high",
-                    title: "CPU 使用率过高",
-                    body: String(format: "当前 CPU 使用率 %.0f%%，请检查是否有异常进程占用资源。", cpuUsage)
-                )
-                cpuAboveThreshold = true
-            } else if !cpuAboveThreshold {
-                cpuAboveThreshold = true // 冷却期内再次越线只静默吸收，避免重复推送
+    /// 快照里对应值为 nil（未采出）时不评估，而不是当 0 处理。
+    private func evaluateThresholdNotifications(at now: Date) {
+        if let cpu = snapshot.totalCPU {
+            let cpuPercent = cpu * 100
+            if settings.notifyHighCPU && cpuPercent >= cpuThreshold {
+                let cooledDown = lastCPUNotificationAt.map { now.timeIntervalSince($0) >= notificationCooldown } ?? true
+                if !cpuAboveThreshold && cooledDown {
+                    lastCPUNotificationAt = now
+                    postNotification(
+                        identifier: "macmaster.cpu.high",
+                        title: "CPU 使用率过高",
+                        body: String(format: "当前 CPU 使用率 %.0f%%，请检查是否有异常进程占用资源。", cpuPercent)
+                    )
+                    cpuAboveThreshold = true
+                } else if !cpuAboveThreshold {
+                    cpuAboveThreshold = true // 冷却期内再次越线只静默吸收，避免重复推送
+                }
+            } else if cpuPercent < cpuThreshold - 5 {
+                cpuAboveThreshold = false
             }
-        } else if cpuUsage < cpuThreshold - 5 {
-            cpuAboveThreshold = false
         }
 
-        if settings.notifyLowMemory && memoryUsage >= memoryThreshold {
-            let cooledDown = lastMemoryNotificationAt.map { now.timeIntervalSince($0) >= notificationCooldown } ?? true
-            if !memoryAboveThreshold && cooledDown {
-                lastMemoryNotificationAt = now
-                postNotification(
-                    identifier: "macmaster.memory.low",
-                    title: "内存不足",
-                    body: String(format: "当前内存使用率 %.0f%%（%.1f / %.1f GB），建议关闭部分应用。", memoryUsage, memoryUsedGB, memoryTotalGB)
-                )
-                memoryAboveThreshold = true
-            } else if !memoryAboveThreshold {
-                memoryAboveThreshold = true
+        if let ratio = snapshot.memory?.usedRatio {
+            let memPercent = ratio * 100
+            if settings.notifyLowMemory && memPercent >= memoryThreshold {
+                let cooledDown = lastMemoryNotificationAt.map { now.timeIntervalSince($0) >= notificationCooldown } ?? true
+                if !memoryAboveThreshold && cooledDown {
+                    lastMemoryNotificationAt = now
+                    postNotification(
+                        identifier: "macmaster.memory.low",
+                        title: "内存不足",
+                        body: String(format: "当前内存使用率 %.0f%%（%.1f / %.1f GB），建议关闭部分应用。",
+                                     memPercent, memoryUsedGB, memoryTotalGB)
+                    )
+                    memoryAboveThreshold = true
+                } else if !memoryAboveThreshold {
+                    memoryAboveThreshold = true
+                }
+            } else if memPercent < memoryThreshold - 5 {
+                memoryAboveThreshold = false
             }
-        } else if memoryUsage < memoryThreshold - 5 {
-            memoryAboveThreshold = false
         }
     }
 
@@ -291,36 +240,58 @@ public final class MenuBarManager: ObservableObject {
     }
 }
 
+// MARK: - 下拉菜单
+
 @MainActor
-private class MenuDelegate: NSObject, NSMenuDelegate {
+final class MenuDelegate: NSObject, NSMenuDelegate {
     static let shared = MenuDelegate()
 
     func menuWillOpen(_ menu: NSMenu) {
         menu.removeAllItems()
-        let manager = MenuBarManager.shared
+        let snapshot = MenuBarManager.shared.snapshot
 
         let header = NSMenuItem(title: "MacMaster 系统监控", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
         menu.addItem(.separator())
 
-        let cpuItem = NSMenuItem(title: String(format: "CPU: %.1f%%", manager.cpuUsage), action: nil, keyEquivalent: "")
-        cpuItem.isEnabled = false
-        menu.addItem(cpuItem)
+        menu.addItem(Self.infoItem("CPU: \(MenuBarManager.percentText(snapshot.totalCPU))"))
 
-        let memItem = NSMenuItem(
-            title: String(format: "内存: %.1f / %.1f GB (%.0f%%)", manager.memoryUsedGB, manager.memoryTotalGB, manager.memoryUsage),
-            action: nil, keyEquivalent: ""
-        )
-        memItem.isEnabled = false
-        menu.addItem(memItem)
+        if !snapshot.perCoreCPU.isEmpty {
+            let coreItem = NSMenuItem(title: "每核 CPU", action: nil, keyEquivalent: "")
+            coreItem.isEnabled = false
+            let coreMenu = NSMenu()
+            for (index, usage) in snapshot.perCoreCPU.enumerated() {
+                coreMenu.addItem(Self.infoItem("核 \(index + 1): \(MenuBarManager.percentText(usage))"))
+            }
+            coreItem.submenu = coreMenu
+            menu.addItem(coreItem)
+        }
 
-        let netItem = NSMenuItem(
-            title: String(format: "网络: ↑ %.1f KB/s  ↓ %.1f KB/s", manager.networkUp, manager.networkDown),
-            action: nil, keyEquivalent: ""
-        )
-        netItem.isEnabled = false
-        menu.addItem(netItem)
+        if let memory = snapshot.memory {
+            menu.addItem(Self.infoItem("内存: \(MMFormat.compactBytes(memory.usedBytes)) / \(MMFormat.compactBytes(memory.totalBytes)) (\(MenuBarManager.percentText(memory.usedRatio)))"))
+            menu.addItem(Self.infoItem("压缩: \(MMFormat.compactBytes(memory.compressedBytes))"))
+            let swapText = memory.swapAvailable
+                ? "\(MMFormat.compactBytes(memory.swapUsedBytes)) / \(MMFormat.compactBytes(memory.swapTotalBytes))"
+                : "—"
+            menu.addItem(Self.infoItem("Swap: \(swapText)"))
+        } else {
+            menu.addItem(Self.infoItem("内存: —"))
+        }
+
+        switch snapshot.diskIOStatus {
+        case .ok:
+            let read = snapshot.diskReadBytesPerSecond.map { MMFormat.compactBytes(UInt64($0)) + "/s" } ?? "—"
+            let write = snapshot.diskWriteBytesPerSecond.map { MMFormat.compactBytes(UInt64($0)) + "/s" } ?? "—"
+            menu.addItem(Self.infoItem("磁盘 IO: 读 \(read)  写 \(write)"))
+        case .unavailable(let reason):
+            menu.addItem(Self.infoItem("磁盘 IO: —"))
+            menu.addItem(Self.captionItem(reason))
+        }
+
+        let up = snapshot.networkUpBytesPerSecond.map { MMFormat.rate($0, up: true) } ?? "↑ —"
+        let down = snapshot.networkDownBytesPerSecond.map { MMFormat.rate($0, up: false) } ?? "↓ —"
+        menu.addItem(Self.infoItem("网络: \(up)  \(down)"))
 
         menu.addItem(.separator())
 
@@ -333,6 +304,25 @@ private class MenuDelegate: NSObject, NSMenuDelegate {
         let quitItem = NSMenuItem(title: "退出", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
+    }
+
+    private static func infoItem(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        return item
+    }
+
+    /// 磁盘 IO 拿不到时的副标题说明行（二级灰字，不吞原因）。
+    private static func captionItem(_ text: String) -> NSMenuItem {
+        let item = infoItem(text)
+        item.attributedTitle = NSAttributedString(
+            string: text,
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .font: NSFont.systemFont(ofSize: NSFont.systemFontSize(for: .small)),
+            ]
+        )
+        return item
     }
 
     @objc private func openApp() {

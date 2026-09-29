@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import MMCore
+import MMUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -76,7 +77,7 @@ struct SettingsView: View {
                 if let error = loginItem.lastError {
                     Text(error)
                         .font(.caption)
-                        .foregroundStyle(Color.orange)
+                        .foregroundStyle(MMColor.caution)
                 } else {
                     Text("通过 macOS 登录项（SMAppService）注册，状态以系统真实记录为准")
                         .font(.caption)
@@ -192,7 +193,7 @@ struct SettingsView: View {
         VStack(spacing: 20) {
             Image(systemName: "macbook.and.iphone")
                 .font(.system(size: 60))
-                .foregroundStyle(.blue)
+                .foregroundStyle(MMColor.accent)
 
             VStack(spacing: 8) {
                 Text("MacMaster")

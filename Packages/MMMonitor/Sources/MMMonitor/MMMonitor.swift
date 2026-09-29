@@ -1,5 +1,6 @@
 import SwiftUI
 import MMCore
+import MMUI
 
 public struct MonitorModule: ModuleRegistrable {
     public var moduleID: String { "monitor" }
@@ -17,19 +18,28 @@ public struct MonitorModule: ModuleRegistrable {
 public struct MonitorView: View {
     @StateObject private var menuBar = MenuBarManager.shared
     @State private var processes: [MonitorProcess] = []
+    @State private var processLoadFailed = false
 
     public init() {}
 
     public var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
+            MMPageHeader("系统监控", subtitle: "上次采样 \(MMFormat.dateTime(menuBar.snapshot.sampledAt)) · 实时更新") {
+                Toggle("菜单栏监控", isOn: Binding(
+                    get: { menuBar.isEnabled },
+                    set: { $0 ? menuBar.enable() : menuBar.disable() }
+                ))
+                .toggleStyle(.switch)
+            }
             ScrollView {
-                VStack(spacing: 16) {
-                    gaugeSection
-                    processSection
+                VStack(alignment: .leading, spacing: MMGap.lg) {
+                    statsRow
+                    perCoreCard
+                    diskCard
+                    memoryCard
+                    processCard
                 }
-                .padding()
+                .padding(MMGap.lg)
             }
         }
         .onAppear {
@@ -40,74 +50,203 @@ public struct MonitorView: View {
         }
     }
 
-    private var header: some View {
-        HStack {
-            Image(systemName: "gauge.with.dots.needle-67percent")
-                .font(.largeTitle)
-                .foregroundStyle(.purple)
-            VStack(alignment: .leading) {
-                Text("系统监控")
-                    .font(.title2.bold())
-                Text("实时监控系统资源使用情况")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    // MARK: - 顶部读数
+
+    private var statsRow: some View {
+        HStack(spacing: MMGap.md) {
+            MMStatItem("CPU 总占用", MenuBarManager.percentText(menuBar.snapshot.totalCPU))
+            MMStatItem("内存", MenuBarManager.percentText(menuBar.snapshot.memory?.usedRatio))
+            MMStatItem("磁盘 读", rateText(menuBar.snapshot.diskReadBytesPerSecond))
+            MMStatItem("磁盘 写", rateText(menuBar.snapshot.diskWriteBytesPerSecond))
+        }
+    }
+
+    private func rateText(_ bytesPerSecond: Double?) -> String {
+        guard let bytesPerSecond else { return "—" }
+        return MMFormat.compactBytes(UInt64(max(0, bytesPerSecond))) + "/s"
+    }
+
+    // MARK: - 每核 CPU
+
+    private var perCoreCard: some View {
+        card(title: "每核 CPU", systemImage: "cpu") {
+            if menuBar.snapshot.perCoreCPU.isEmpty {
+                Text("—")
+                    .font(.callout)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            } else {
+                ForEach(Array(menuBar.snapshot.perCoreCPU.enumerated()), id: \.offset) { index, usage in
+                    HStack(spacing: MMGap.md) {
+                        Text("核 \(index + 1)")
+                            .font(.callout)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .frame(width: 56, alignment: .leading)
+                        CoreUsageBar(usage: usage)
+                        Text(MenuBarManager.percentText(usage))
+                            .font(.callout.monospacedDigit())
+                            .foregroundStyle(usage != nil && usage! >= 0.85 ? MMColor.destructive : MMColor.label)
+                            .frame(width: 60, alignment: .trailing)
+                    }
+                    .frame(height: MMMetric.rowCompact)
+                }
             }
-            Spacer()
-            Toggle("菜单栏监控", isOn: Binding(
-                get: { menuBar.isEnabled },
-                set: { $0 ? menuBar.enable() : menuBar.disable() }
-            ))
-            .toggleStyle(.switch)
-        }
-        .padding()
-    }
-
-    private var gaugeSection: some View {
-        HStack(spacing: 16) {
-            GaugeCard(title: "CPU", value: menuBar.cpuUsage, unit: "%", color: .blue, icon: "cpu")
-            GaugeCard(title: "内存", value: menuBar.memoryUsage, unit: "%", color: .green, icon: "memorychip")
-            GaugeCard(title: "上传", value: menuBar.networkUp, unit: "KB/s", color: .orange, icon: "arrow.up.circle")
-            GaugeCard(title: "下载", value: menuBar.networkDown, unit: "KB/s", color: .cyan, icon: "arrow.down.circle")
         }
     }
 
-    private var processSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("进程 TOP 10")
-                    .font(.headline)
-                Spacer()
+    // MARK: - 磁盘 IO
+
+    private var diskCard: some View {
+        card(title: "磁盘 IO", systemImage: "internaldrive") {
+            switch menuBar.snapshot.diskIOStatus {
+            case .ok:
+                MMKeyRow("读取", rateText(menuBar.snapshot.diskReadBytesPerSecond), monospaced: true)
+                MMKeyRow("写入", rateText(menuBar.snapshot.diskWriteBytesPerSecond), monospaced: true)
+            case .unavailable(let reason):
+                MMKeyRow("读取", "—", monospaced: true)
+                MMKeyRow("写入", "—", monospaced: true)
+                Text(reason)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    // MARK: - 内存明细
+
+    private var memoryCard: some View {
+        card(title: "内存", systemImage: "memorychip") {
+            if let memory = menuBar.snapshot.memory {
+                MMKeyRow("已用", "\(MMFormat.bytes(memory.usedBytes)) / \(MMFormat.bytes(memory.totalBytes))")
+                MMKeyRow("活动", MMFormat.bytes(memory.activeBytes))
+                MMKeyRow("联动保留(wired)", MMFormat.bytes(memory.wiredBytes))
+                // 口径：compressor_page_count × 页大小 = 压缩器池的物理占用（与"已用"同口径）。
+                MMKeyRow("压缩", MMFormat.bytes(memory.compressedBytes))
+                MMKeyRow("Swap", memory.swapAvailable
+                    ? "\(MMFormat.bytes(memory.swapUsedBytes)) / \(MMFormat.bytes(memory.swapTotalBytes))"
+                    : "—")
+            } else {
+                Text("内存读数不可用（host_statistics64 失败），显示 —。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+        }
+    }
+
+    // MARK: - 进程
+
+    private var processCard: some View {
+        card(title: "进程 TOP 10", systemImage: "list.bullet") {
+            HStack(spacing: MMGap.sm) {
                 Button {
                     loadProcesses()
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                Spacer()
             }
-            ForEach(processes.prefix(10)) { proc in
-                HStack {
-                    Text(proc.name)
-                        .font(.body)
-                    Spacer()
-                    Text(String(format: "CPU %.1f%%", proc.cpuUsage))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(proc.cpuUsage > 50 ? .red : .secondary)
-                    Text(formatMemory(proc.memoryMB))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .frame(width: 80, alignment: .trailing)
+            if processes.isEmpty && !processLoadFailed {
+                ForEach(0..<4, id: \.self) { _ in MMSkeletonRow() }
+            } else if processLoadFailed {
+                MMEmptyState(systemImage: "exclamationmark.triangle", title: "进程列表读取失败", detail: nil)
+            } else {
+                ForEach(processes.prefix(10)) { proc in
+                    HStack(spacing: MMGap.md) {
+                        Text(proc.name)
+                            .font(.body)
+                            .lineLimit(1)
+                        Spacer(minLength: MMGap.sm)
+                        // pti_total_user/system 是累计 CPU 秒，不是瞬时百分比；
+                        // 标成 "CPU x%" 是旧实现的误读，这里改成诚实的"CPU 时间"。
+                        Text("CPU 时间 \(MMFormat.duration(proc.cpuSeconds))")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(MMColor.secondaryLabel)
+                        Text(MMFormat.bytes(proc.memoryBytes))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .frame(width: 80, alignment: .trailing)
+                    }
+                    .frame(height: MMMetric.rowCompact)
+                    .padding(.horizontal, MMGap.md)
+                    .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(.rect(cornerRadius: 6))
             }
         }
     }
 
+    /// 进程枚举是同步系统调用，放到 detached task，别压主线程（采样同约定）。
     private func loadProcesses() {
+        processLoadFailed = false
+        Task.detached(priority: .utility) {
+            let procs = ProcessReader.topProcesses()
+            await MainActor.run {
+                processes = procs
+                processLoadFailed = procs.isEmpty
+            }
+        }
+    }
+
+    // MARK: - 卡片容器（令牌唯一来源）
+
+    private func card<Content: View>(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: systemImage)
+                    .font(.system(size: MMMetric.iconSmall))
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Text(title).font(.headline)
+                Spacer()
+            }
+            content()
+        }
+        .padding(MMGap.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous)
+                .stroke(MMColor.separator)
+        )
+    }
+}
+
+/// 每核占用条：nil（未采出/回绕）画空槽，不画 0。
+private struct CoreUsageBar: View {
+    let usage: Double?
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(MMColor.fillActive)
+                if let usage {
+                    Capsule()
+                        .fill(usage >= 0.85 ? MMColor.destructive : MMColor.accent)
+                        .frame(width: max(2, geo.size.width * min(max(usage, 0), 1)))
+                }
+            }
+        }
+        .frame(height: 6)
+    }
+}
+
+public struct MonitorProcess: Identifiable, Sendable {
+    public let id = UUID()
+    public let name: String
+    public let pid: Int32
+    /// 累计 CPU 秒（user + system），不是瞬时百分比。
+    public let cpuSeconds: Double
+    public let memoryBytes: UInt64
+}
+
+/// proc_pidinfo 枚举收进独立类型，视图不再直接做系统调用。
+enum ProcessReader {
+    static func topProcesses(limit: Int = 10) -> [MonitorProcess] {
         var pids = [pid_t](repeating: 0, count: 2048)
         let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        guard count > 0 else { return }
+        guard count > 0 else { return [] }
 
         var procs: [MonitorProcess] = []
         for i in 0..<Int(count) {
@@ -129,71 +268,17 @@ public struct MonitorView: View {
                 }
             }
 
-            let cpu = Double(info.ptinfo.pti_total_user + info.ptinfo.pti_total_system) / 1_000_000
-            let memMB = Double(info.ptinfo.pti_virtual_size) / 1_048_576
+            let cpuSeconds = Double(info.ptinfo.pti_total_user + info.ptinfo.pti_total_system) / 1_000_000
+            let memoryBytes = UInt64(info.ptinfo.pti_virtual_size)
 
             procs.append(MonitorProcess(
                 name: name.isEmpty ? "pid:\(pid)" : name,
                 pid: pid,
-                cpuUsage: cpu,
-                memoryMB: memMB
+                cpuSeconds: cpuSeconds,
+                memoryBytes: memoryBytes
             ))
         }
 
-        processes = procs.sorted { $0.cpuUsage > $1.cpuUsage }
-    }
-
-    private func formatMemory(_ mb: Double) -> String {
-        if mb > 1024 { return String(format: "%.1f GB", mb / 1024) }
-        return String(format: "%.0f MB", mb)
-    }
-}
-
-struct MonitorProcess: Identifiable {
-    let id = UUID()
-    let name: String
-    let pid: Int32
-    let cpuUsage: Double
-    let memoryMB: Double
-}
-
-struct GaugeCard: View {
-    let title: String
-    let value: Double
-    let unit: String
-    let color: Color
-    let icon: String
-
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: icon)
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            ZStack {
-                Circle()
-                    .stroke(color.opacity(0.2), lineWidth: 8)
-                Circle()
-                    .trim(from: 0, to: min(value / 100, 1.0))
-                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.5), value: value)
-                VStack(spacing: 0) {
-                    Text(String(format: "%.0f", value))
-                        .font(.title2.bold().monospacedDigit())
-                    Text(unit)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 100, height: 100)
-        }
-        .padding()
-        .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(.rect(cornerRadius: 12))
+        return Array(procs.sorted { $0.cpuSeconds > $1.cpuSeconds }.prefix(limit))
     }
 }

@@ -9,11 +9,17 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../../Packages/MMCore"),
+        .package(path: "../../Packages/MMUI"),
     ],
     targets: [
         .target(
             name: "MMGuardian",
-            dependencies: ["MMCore"]
+            dependencies: ["MMCore", "MMUI"]
+        ),
+        .testTarget(
+            name: "MMGuardianTests",
+            dependencies: ["MMGuardian"],
+            path: "Tests/MMGuardianTests"
         ),
     ]
 )
