@@ -36,7 +36,11 @@ struct MainWindow: View {
     /// MM_OPEN_MODULE=optimizer 之类只用于逐屏截图核对设计稿，正常启动不会带这个变量。
     /// 放在 onAppear 而不是 App.init：侧边栏的 List(selection:) 首次渲染会把选中值写回 nil。
     private func applyLaunchTargetIfNeeded() {
-        guard let target = ProcessInfo.processInfo.environment["MM_OPEN_MODULE"],
+        let env = ProcessInfo.processInfo.environment
+        if env["MM_SHOW_SETTINGS"] != nil {
+            appState.showSettings = true
+        }
+        guard let target = env["MM_OPEN_MODULE"],
               let destination = MMDestination(rawValue: target), destination != .dashboard else { return }
         appState.selectedModuleID = destination.rawValue
     }
