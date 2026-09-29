@@ -40,8 +40,14 @@ struct MainWindow: View {
         if env["MM_SHOW_SETTINGS"] != nil {
             appState.showSettings = true
         }
-        guard let target = env["MM_OPEN_MODULE"],
-              let destination = MMDestination(rawValue: target), destination != .dashboard else { return }
+        guard let target = env["MM_OPEN_MODULE"] else { return }
+        guard let destination = MMDestination(rawValue: target) else {
+            // 写错一个字母就会停在概览，而截图看上去照样是"跑通了"。
+            // 这种假通过必须在日志里留痕，核对的人才有东西可查。
+            FileHandle.standardError.write("MM_OPEN_MODULE=\(target) 不是已知模块，仍停在概览\n".data(using: .utf8)!)
+            return
+        }
+        guard destination != .dashboard else { return }
         appState.selectedModuleID = destination.rawValue
     }
 }
