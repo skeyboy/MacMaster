@@ -6,8 +6,7 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "MMDisk", targets: ["MMDisk"]),
-    ],
-    dependencies: [
+    ],    dependencies: [
         .package(path: "../../Packages/MMCore"),
         .package(path: "../../Packages/MMUI"),
         .package(path: "../../Packages/MMFileScanner"),
@@ -16,6 +15,11 @@ let package = Package(
         .target(
             name: "MMDisk",
             dependencies: ["MMCore", "MMUI", "MMFileScanner"]
+        ),
+        .testTarget(
+            name: "MMDiskTests",
+            dependencies: ["MMDisk"],
+            path: "Tests/MMDiskTests"
         ),
     ]
 )

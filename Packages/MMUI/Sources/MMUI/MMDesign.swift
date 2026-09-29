@@ -240,12 +240,17 @@ public struct MMPageHeader<Actions: View>: View {
     public var body: some View {
         HStack(alignment: .center, spacing: MMGap.md) {
             VStack(alignment: .leading, spacing: MMGap.xxs) {
-                Text(title).font(.title3.weight(.semibold))
+                Text(title).font(.title3.weight(.semibold)).lineLimit(1)
                 if let subtitle {
+                    // 副标题常带完整路径，不限行就会在 46pt 的头部里换行并压到工具行上。
+                    // 中间截断：开头认目录，结尾看数字，两头都比路径中段有用。
                     Text(subtitle).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: MMGap.lg)
             actions
         }

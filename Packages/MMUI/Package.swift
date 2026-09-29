@@ -16,5 +16,10 @@ let package = Package(
             dependencies: ["MMCore"],
             path: "Sources/MMUI"
         ),
+        .testTarget(
+            name: "MMUITests",
+            dependencies: ["MMUI"],
+            path: "Tests/MMUITests"
+        ),
     ]
 )
