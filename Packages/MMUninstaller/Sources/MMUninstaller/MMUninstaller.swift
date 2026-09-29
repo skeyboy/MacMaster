@@ -1,8 +1,8 @@
 import SwiftUI
-import Security
-import Darwin
 import MMCore
-import MMFileScanner
+import MMUI
+
+// MARK: - 模块注册
 
 public struct UninstallerModule: ModuleRegistrable {
     public var moduleID: String { "uninstaller" }
@@ -17,581 +17,536 @@ public struct UninstallerModule: ModuleRegistrable {
     }
 }
 
-public struct UninstallerView: View {
-    @State private var apps: [AppInfo] = []
-    @State private var searchText = ""
-    @State private var selectedAppID: String?
-    @State private var isLoading = false
-    @State private var showDeleteConfirm = false
-    @State private var lastResult: TrashResult?
-    @State private var showUndoToast = false
+// MARK: - 页面
+//
+// 视觉对照设计稿 `docs/design-system/screens/03-uninstaller.html`：
+// 左侧应用列表 + 右侧详情（信息卡 / 键值对 / 将一并移除的残留），底部操作栏收口。
+// 颜色、间距、圆角、行高一律取 MM* 令牌，不写死数值。
 
-    private var selectedApp: AppInfo? {
-        apps.first { $0.id == selectedAppID }
-    }
+public struct UninstallerView: View {
+    @StateObject private var model = UninstallerModel()
+    @State private var searchText = ""
+    @State private var showConfirm = false
+    @State private var toastSeconds = 0
 
     public init() {}
 
+    private var filteredApps: [UninstallCandidate] {
+        guard searchText.isEmpty == false else { return model.apps }
+        return model.apps.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) || $0.bundleID.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
     public var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
+            MMPageHeader("应用卸载", subtitle: headerSubtitle) {
+                Picker("敏感度", selection: $model.sensitivity) {
+                    ForEach(ResidualSensitivity.allCases, id: \.self) { level in
+                        Text(level.label).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .help("残留扫描的匹配宽度：\(model.sensitivity.note)")
+
+                Button {
+                    Task { await model.loadApps() }
+                } label: {
+                    Label("重新载入", systemImage: "arrow.clockwise")
+                }
+                .disabled(model.isScanningApps)
+            }
+
             HStack(spacing: 0) {
                 appList
-                    .frame(width: 320)
+                    .frame(width: MMMetric.inspector)
                 Divider()
-                detailPanel
+                detail
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-        }
-        .task { await loadApps() }
-        .alert("确认卸载", isPresented: $showDeleteConfirm) {
-            Button("取消", role: .cancel) {}
-            Button("卸载", role: .destructive) {
-                Task { await uninstallSelected() }
-            }
-        } message: {
-            if let app = selectedApp {
-                Text("将卸载 \(app.name) 及其 \(app.residuals.count) 个残留文件（共 \(formatByteSize(app.residualSize))）")
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if showUndoToast, let result = lastResult {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
-                    Text("已卸载 \(result.successCount) 个文件")
-                    Spacer()
-                    Button("撤回") { Task { await undoUninstall() } }
-                        .buttonStyle(.bordered).tint(.orange)
+            .frame(maxHeight: .infinity)
+
+            if model.failures.isEmpty == false {
+                MMFailurePanel(summary: failureSummary, model.failures) {
+                    model.failures = []
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(.rect(cornerRadius: 12))
-                .shadow(radius: 8)
-                .padding(.horizontal)
-                .padding(.bottom, 60)
+            }
+
+            if model.undoFailures.isEmpty == false {
+                MMFailurePanel(model.undoFailures) {
+                    model.undoFailures = []
+                }
+            }
+
+            Divider()
+            actionBar
+        }
+        .task {
+            if model.apps.isEmpty, model.isScanningApps == false {
+                await model.loadApps()
+            }
+        }
+        .task(id: toastSeconds) {
+            guard toastSeconds > 0 else { return }
+            try? await Task.sleep(for: .seconds(1))
+            toastSeconds -= 1
+        }
+        .onChange(of: model.selectedAppID) { _, newValue in
+            model.select(newValue)
+        }
+        .onChange(of: model.lastResult?.operation.id) { _, newValue in
+            guard newValue != nil else { return }
+            toastSeconds = 15
+        }
+        .sheet(isPresented: $showConfirm) { confirmSheet }
+        .overlay(alignment: .bottom) {
+            if model.lastResult != nil, toastSeconds > 0 {
+                MMUndoToast(
+                    message: "已卸载 \(model.lastResult?.successCount ?? 0) 项",
+                    detail: MMFormat.bytes(model.lastResult?.totalSize),
+                    secondsRemaining: toastSeconds,
+                    onUndo: { Task { await model.undoLast() } },
+                    onRevealTrash: { MMReveal.open(NSHomeDirectory() + "/.Trash") }
+                )
+                .padding(.bottom, MMMetric.actionBar + MMGap.md)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring, value: showUndoToast)
+        .animation(.spring(duration: 0.3), value: toastSeconds)
     }
 
-    private var header: some View {
-        HStack {
-            Image(systemName: "xmark.circle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading) {
-                Text("应用卸载")
-                    .font(.title2.bold())
-                Text("彻底卸载应用程序，清理残留文件")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Text("\(apps.count) 个应用")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Button { Task { await loadApps() } } label: {
-                Label("刷新", systemImage: "arrow.clockwise")
-            }
-            .disabled(isLoading)
+    private var headerSubtitle: String {
+        var line = "\(model.apps.count) 个应用"
+        if model.isMeasuring || model.measuredCount < model.apps.count {
+            line += " · 已测 \(model.measuredCount) · \(model.apps.count - model.measuredCount) 个测量中"
+        } else if model.apps.isEmpty == false {
+            line += " · 合计 \(MMFormat.bytes(model.totalSize)) · 大小已实测"
         }
-        .padding()
+        return line
     }
 
-    private var filteredApps: [AppInfo] {
-        if searchText.isEmpty { return apps }
-        return apps.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    private var failureSummary: String? {
+        let freed = model.lastResult?.totalSize ?? 0
+        return freed > 0 ? "已回收 \(MMFormat.bytes(freed))" : nil
     }
+
+    // MARK: 左侧应用列表
 
     private var appList: some View {
         VStack(spacing: 0) {
-            HStack {
-                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                TextField("搜索应用...", text: $searchText)
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "magnifyingglass").foregroundStyle(MMColor.secondaryLabel)
+                TextField("搜索应用…", text: $searchText)
                     .textFieldStyle(.plain)
             }
-            .padding(8)
-            .background(Color(nsColor: .controlBackgroundColor))
-            .clipShape(.rect(cornerRadius: 8))
-            .padding(8)
+            .padding(.horizontal, MMGap.md)
+            .frame(height: MMMetric.rowCompact)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MMColor.cardBackground)
+            .overlay(alignment: .bottom) { Divider() }
 
-            if isLoading {
-                VStack {
-                    Spacer()
-                    ProgressView()
-                    Text("扫描应用...").font(.caption).foregroundStyle(.secondary)
-                    Spacer()
+            if model.isScanningApps {
+                VStack(spacing: MMGap.md) {
+                    ProgressView().controlSize(.small)
+                    Text("扫描应用…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredApps.isEmpty {
+                MMEmptyState(systemImage: "app.dashed",
+                             title: searchText.isEmpty ? "没有应用" : "没有匹配的应用",
+                             detail: searchText.isEmpty ? "重新载入以刷新应用列表。" : "换一个名称或包名再试试。")
             } else {
-                List(filteredApps, selection: Binding(
-                    get: { selectedAppID },
-                    set: { selectedAppID = $0 }
-                )) { app in
-                    AppListRow(app: app)
-                        .tag(app.id)
-                        .contextMenu {
-                            Button {
-                                revealInFinder(app.path)
-                            } label: {
-                                Label("打开所在文件夹", systemImage: "folder")
+                List(selection: Binding(
+                    get: { model.selectedAppID },
+                    set: { model.selectedAppID = $0 }
+                )) {
+                    ForEach(filteredApps) { app in
+                        AppListRow(app: app)
+                            .tag(app.id)
+                            .contextMenu {
+                                Button {
+                                    MMReveal.open(app.path)
+                                } label: {
+                                    Label("打开所在文件夹", systemImage: "folder")
+                                }
                             }
-                        }
+                    }
                 }
                 .listStyle(.plain)
             }
+
+            Divider()
+            Text(listFooter)
+                .font(.caption)
+                .foregroundStyle(MMColor.tertiaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, MMGap.md)
+                .padding(.vertical, MMGap.xs)
+        }
+        .frame(maxHeight: .infinity)
+        .background(MMColor.contentBackground)
+    }
+
+    private var listFooter: String {
+        let measured = model.measuredCount
+        let pending = model.apps.count - measured
+        var line = "\(model.apps.count) 个应用 · 已测 \(measured)"
+        if pending > 0 { line += " · \(pending) 个测量中" }
+        return line
+    }
+
+    // MARK: 右侧详情
+
+    @ViewBuilder
+    private var detail: some View {
+        if let app = model.selectedApp {
+            AppDetailView(
+                app: app,
+                selectedIDs: $model.selectedResidualIDs,
+                unselectedCount: model.unselectedCount,
+                onToggle: { model.toggle($0) },
+                onToggleAll: { model.toggleAllDeletable() },
+                onUninstallWithResiduals: { showConfirm = true },
+                onUninstallAppOnly: { Task { await model.uninstallAppOnly() } }
+            )
+        } else {
+            MMEmptyState(
+                systemImage: "app.dashed",
+                title: "未选择应用",
+                detail: "从左侧列表选择一个应用，查看它的信息与将被一并移除的残留文件。"
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(MMColor.contentBackground)
         }
     }
 
-    private var detailPanel: some View {
-        Group {
-            if let app = selectedApp {
-                AppDetailView(app: app, onUninstall: { showDeleteConfirm = true })
-            } else {
-                VStack(spacing: 16) {
-                    Spacer()
-                    Image(systemName: "app.dashed")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.secondary.opacity(0.6))
-                    VStack(spacing: 8) {
-                        Text("未选择应用")
-                            .font(.title3.weight(.medium))
-                            .foregroundStyle(.secondary)
-                        Text("从左侧列表选择一个应用\n查看详细信息和残留文件")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                    }
-                    Spacer()
+    // MARK: 底部操作栏
+
+    private var actionBar: some View {
+        MMActionBar(
+            summary: "已选 \(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))",
+            note: model.unselectedCount > 0 ? "未勾选的 \(model.unselectedCount) 项不会被修改" : "未勾选项不会被修改",
+            trailing: {
+                Button("仅卸载应用") {
+                    Task { await model.uninstallAppOnly() }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(nsColor: .windowBackgroundColor).opacity(0.3))
-            }
-        }
-    }
+                .disabled(model.selectedApp == nil)
 
-    private func loadApps() async {
-        isLoading = true
-        apps = []
-        selectedAppID = nil
-
-        // 视图本身是 MainActor 隔离的，文件系统遍历必须放到 detached 任务里，否则主线程会被卡住。
-        let discovered = await Task.detached(priority: .userInitiated) {
-            AppCatalog.discover()
-        }.value
-
-        apps = discovered
-        isLoading = false
-
-        let limit = max(2, AppCatalog.workerLimit)
-        await withTaskGroup(of: AppInfo.self) { group in
-            var next = 0
-            while next < min(limit, discovered.count) {
-                let app = discovered[next]
-                next += 1
-                group.addTask { await AppCatalog.measure(app: app) }
-            }
-            while let measured = await group.next() {
-                await MainActor.run {
-                    if let index = self.apps.firstIndex(where: { $0.id == measured.id }) {
-                        self.apps[index] = measured
-                    }
+                Button(role: .destructive) {
+                    showConfirm = true
+                } label: {
+                    Label("移到废纸篓", systemImage: "trash")
                 }
-                if next < discovered.count {
-                    let app = discovered[next]
-                    next += 1
-                    group.addTask { await AppCatalog.measure(app: app) }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .disabled(model.selectedApp == nil)
+            }
+        )
+    }
+
+    // MARK: 确认
+
+    private var confirmSheet: some View {
+        VStack(alignment: .leading, spacing: MMGap.md) {
+            Text("确认卸载")
+                .font(.title3.weight(.semibold))
+
+            if let app = model.selectedApp {
+                VStack(alignment: .leading, spacing: MMGap.xs) {
+                    MMKeyRow("应用", app.name)
+                    MMKeyRow("包名", app.bundleID, monospaced: true)
+                    MMKeyRow("移除", "\(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))")
+                    MMKeyRow("合计", MMFormat.bytes(model.selectedResidualSize))
                 }
+
+                Text("全部内容移到废纸篓，可在 15 秒内或「最近操作」中撤回。标记为谨慎与只读的项不会被删除。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+
+            HStack(spacing: MMGap.sm) {
+                Spacer()
+                Button("取消") { showConfirm = false }
+                Button("卸载", role: .destructive) {
+                    showConfirm = false
+                    Task { await model.uninstallAppWithSelection() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
             }
         }
-    }
-
-    private func uninstallSelected() async {
-        guard let app = selectedApp else { return }
-        var pathsToDelete = [app.path]
-        for residual in app.residuals {
-            pathsToDelete.append(residual.path)
-        }
-
-        let trashService = FileTrashService.shared
-        let result = await trashService.moveToTrash(paths: pathsToDelete)
-        lastResult = result
-        showUndoToast = true
-        apps.removeAll { $0.id == app.id }
-        selectedAppID = nil
-
-        try? await Task.sleep(for: .seconds(15))
-        showUndoToast = false
-    }
-
-    private func undoUninstall() async {
-        let trashService = FileTrashService.shared
-        _ = await trashService.undoLastOperation()
-        showUndoToast = false
-        await loadApps()
-    }
-
-    /// 在访达中选中该路径（即打开其所在文件夹并高亮），只读操作，不改动任何文件。
-    private func revealInFinder(_ path: String) {
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+        .padding(MMGap.lg)
+        .frame(width: 420)
     }
 }
 
-/// 大小尚未测出时显示占位文案，而不是误导性的 "0 字节"。
-func formatByteSize(_ bytes: UInt64?) -> String {
-    guard let bytes else { return "测量中" }
-    return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-}
-
-/// 应用清单的发现与度量。全部是非隔离的自由函数，避免 SwiftUI View 的 MainActor 隔离
-/// 把文件遍历拽回主线程；真实大小交给 MMFileScanner 的统一遍历口径，保证和磁盘分析一致。
-enum AppCatalog {
-
-    static var workerLimit: Int { ProcessInfo.processInfo.activeProcessorCount }
-
-    static func discover() -> [AppInfo] {
-        let appDirs = ["/Applications", "\(NSHomeDirectory())/Applications"]
-        var found: [AppInfo] = []
-
-        for dir in appDirs {
-            guard let contents = try? FileManager.default.contentsOfDirectory(atPath: dir) else { continue }
-            for item in contents where item.hasSuffix(".app") {
-                let path = "\(dir)/\(item)"
-                let folderName = String(item.dropLast(4))
-                let bundle = Bundle(path: path)
-                let bundleID = bundle?.bundleIdentifier ?? bundleIDForApp(at: path)
-                found.append(AppInfo(
-                    id: path,
-                    name: displayName(of: bundle, fallback: folderName),
-                    path: path,
-                    bundleID: bundleID,
-                    version: bundle?.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
-                    build: bundle?.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
-                    minSystemVersion: bundle?.object(forInfoDictionaryKey: "LSMinimumSystemVersion") as? String ?? "",
-                    executable: bundle?.object(forInfoDictionaryKey: "CFBundleExecutable") as? String ?? "",
-                    developer: developerName(of: path),
-                    modificationDate: modificationDate(of: path),
-                    size: nil,
-                    fileCount: nil,
-                    residuals: findResiduals(appName: folderName, bundleID: bundleID),
-                    residualSize: nil
-                ))
-            }
-        }
-
-        return found.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-    }
-
-    /// 回填真实占用：app 本体一次遍历，残留逐个遍历，失败时按 0 计而不是让整条记录消失。
-    static func measure(app: AppInfo) async -> AppInfo {
-        var measured = app
-        let bundleMetrics = await DirectoryMetrics.measure(path: app.path)
-        measured.size = bundleMetrics.size
-        measured.fileCount = bundleMetrics.fileCount
-
-        var residuals = app.residuals
-        var total: UInt64 = 0
-        for index in residuals.indices {
-            let metrics = await DirectoryMetrics.measure(path: residuals[index].path)
-            residuals[index].size = metrics.size
-            total += metrics.size
-        }
-        measured.residuals = residuals
-        measured.residualSize = total
-        return measured
-    }
-
-    private static func displayName(of bundle: Bundle?, fallback: String) -> String {
-        if let bundle {
-            let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-                ?? bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if let name, !name.isEmpty { return name }
-        }
-        return fallback
-    }
-
-    /// 从代码签名的叶子证书取开发者名称，无需联网。
-    /// 证书主题形如 "Developer ID Application: Google LLC (EQHXZ8M8AV)"，冒号后、括号前即开发者。
-    private static func developerName(of path: String) -> String {
-        var staticCode: SecStaticCode?
-        guard SecStaticCodeCreateWithPath(URL(fileURLWithPath: path) as CFURL, [], &staticCode) == errSecSuccess,
-              let staticCode else { return "" }
-
-        var infoRef: CFDictionary?
-        guard SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &infoRef) == errSecSuccess,
-              let info = infoRef as? [String: Any],
-              let certificates = info[kSecCodeInfoCertificates as String] as? [SecCertificate],
-              let leaf = certificates.first,
-              let subject = SecCertificateCopySubjectSummary(leaf) as String? else { return "" }
-
-        guard let colon = subject.firstIndex(of: ":") else { return subject }
-        let remainder = subject[subject.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-        guard let paren = remainder.lastIndex(of: "(") else { return remainder }
-        return String(remainder[remainder.startIndex..<paren]).trimmingCharacters(in: .whitespaces)
-    }
-
-    private static func modificationDate(of path: String) -> Date? {
-        var info = stat()
-        guard Darwin.lstat(path, &info) == 0 else { return nil }
-        return Date(timeIntervalSince1970: TimeInterval(info.st_mtimespec.tv_sec)
-            + TimeInterval(info.st_mtimespec.tv_nsec) / 1_000_000_000)
-    }
-}
-
-struct AppInfo: Identifiable, Sendable {
-    let id: String
-    let name: String
-    let path: String
-    let bundleID: String
-    let version: String
-    let build: String
-    let minSystemVersion: String
-    let executable: String
-    let developer: String
-    let modificationDate: Date?
-    var size: UInt64?
-    var fileCount: Int?
-    var residuals: [ResidualFile]
-    var residualSize: UInt64?
-}
-
-struct ResidualFile: Identifiable, Sendable {
-    var id: String { path }
-    let path: String
-    var size: UInt64?
-}
-
-func bundleIDForApp(at path: String) -> String {
-    let plistPath = "\(path)/Contents/Info.plist"
-    guard let data = FileManager.default.contents(atPath: plistPath),
-          let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-          let id = plist["CFBundleIdentifier"] as? String else { return "" }
-    return id
-}
-
-func findResiduals(appName: String, bundleID: String) -> [ResidualFile] {
-    let home = NSHomeDirectory()
-    var candidates: [String] = []
-
-    if !bundleID.isEmpty {
-        candidates.append(contentsOf: [
-            "\(home)/Library/Caches/\(bundleID)",
-            "\(home)/Library/Preferences/\(bundleID).plist",
-            "\(home)/Library/Application Support/\(bundleID)",
-            "\(home)/Library/Saved Application State/\(bundleID).savedState",
-            "\(home)/Library/Logs/\(bundleID)",
-            "\(home)/Library/WebKit/\(bundleID)",
-            "\(home)/Library/HTTPStorages/\(bundleID)",
-        ])
-    }
-
-    candidates.append(contentsOf: [
-        "\(home)/Library/Caches/\(appName)",
-        "\(home)/Library/Application Support/\(appName)",
-        "\(home)/Library/Preferences/\(appName).plist",
-        "\(home)/Library/Logs/\(appName)",
-        "\(home)/Library/Saved Application State/com.\(appName.lowercased()).savedState",
-    ])
-
-    var results: [ResidualFile] = []
-    var seenPaths = Set<String>()
-    for path in candidates {
-        guard !seenPaths.contains(path),
-              FileManager.default.fileExists(atPath: path) else { continue }
-        seenPaths.insert(path)
-        results.append(ResidualFile(path: path, size: nil))
-    }
-    return results
-}
+// MARK: - 应用列表行
 
 struct AppListRow: View {
-    let app: AppInfo
+    let app: UninstallCandidate
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: MMGap.md) {
             Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
                 .resizable()
-                .frame(width: 32, height: 32)
+                .frame(width: MMMetric.iconApp, height: MMMetric.iconApp)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(app.name)
-                    .font(.body.weight(.medium))
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(app.version.isEmpty ? "未知版本" : "版本 \(app.version)")
-                    Text(formatByteSize(app.size))
+            VStack(alignment: .leading, spacing: MMGap.xxs) {
+                Text(app.name).font(.body).lineLimit(1)
+                HStack(spacing: MMGap.xs) {
+                    // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
+                    // 把整行撑高。这里不能用 fixedSize：它会把空间全部划给大小，
+                    // 反过来把 "6.9.3" 这种短版本号截成 "6.…"。让大小优先、版本让步。
+                    Text(app.version.isEmpty ? "未知版本" : app.version)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text(MMFormat.bytes(app.size))
+                        .lineLimit(1)
+                        .layoutPriority(1)
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .monospacedDigit()
             }
 
-            Spacer()
+            Spacer(minLength: MMGap.sm)
 
-            if app.residuals.count > 0 {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(app.residuals.count) 个残留")
+            if app.residuals.isEmpty == false {
+                VStack(alignment: .trailing, spacing: MMGap.xxs) {
+                    Text("\(app.residuals.count) 项残留")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.orange)
-                    Text(formatByteSize(app.residualSize))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(MMColor.accent)
+                    Text(MMFormat.bytes(app.residualSize))
+                        .font(.caption)
+                        .foregroundStyle(MMColor.tertiaryLabel)
+                        .monospacedDigit()
                 }
+            } else if app.isSystemOwned {
+                MMBadge("系统应用", tint: MMColor.secondaryLabel)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, MMGap.md)
+        .frame(height: MMMetric.rowApp)
     }
 }
 
+// MARK: - 详情
+
 struct AppDetailView: View {
-    let app: AppInfo
-    let onUninstall: () -> Void
+    let app: UninstallCandidate
+    @Binding var selectedIDs: Set<String>
+    let unselectedCount: Int
+    let onToggle: (ResidualItem) -> Void
+    let onToggleAll: () -> Void
+    let onUninstallWithResiduals: () -> Void
+    let onUninstallAppOnly: () -> Void
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 16) {
-                    Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
-                        .resizable()
-                        .frame(width: 64, height: 64)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(app.name)
-                            .font(.title2.bold())
-                        Text(appSubtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        revealInFinder(app.path)
-                    } label: {
-                        Label("打开所在文件夹", systemImage: "folder")
-                    }
-                }
-
+            VStack(alignment: .leading, spacing: MMGap.lg) {
+                identityHeader
                 Divider()
-
-                Text("基本信息")
-                    .font(.headline)
-                VStack(spacing: 0) {
-                    infoRow(title: "包名", value: app.bundleID)
-                    infoRow(title: "版本", value: app.version)
-                    infoRow(title: "构建", value: app.build)
-                    infoRow(title: "开发者", value: app.developer)
-                    infoRow(title: "最低系统", value: app.minSystemVersion)
-                    infoRow(title: "可执行文件", value: app.executable)
-                    infoRow(title: "修改时间", value: formattedDate(app.modificationDate))
-                    infoRow(title: "所在文件夹", value: (app.path as NSString).deletingLastPathComponent)
-                }
-                .textSelection(.enabled)
-
+                statsCards
                 Divider()
-
-                Text("空间占用")
-                    .font(.headline)
-                HStack(spacing: 24) {
-                    statItem(title: "应用大小", value: formatByteSize(app.size))
-                    statItem(title: "包含文件", value: app.fileCount.map { "\($0) 个" } ?? "测量中")
-                    statItem(title: "残留文件", value: "\(app.residuals.count) 个")
-                    statItem(title: "残留大小", value: formatByteSize(app.residualSize))
-                }
-
-                if !app.residuals.isEmpty {
-                    Divider()
-                    Text("残留文件")
-                        .font(.headline)
-                    ForEach(app.residuals) { residual in
-                        HStack {
-                            Image(systemName: "doc")
-                                .foregroundStyle(.secondary)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text((residual.path as NSString).lastPathComponent)
-                                    .font(.body)
-                                Text(residual.path)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                            Spacer()
-                            Text(formatByteSize(residual.size))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                            Button {
-                                revealInFinder(residual.path)
-                            } label: {
-                                Image(systemName: "folder")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .help("在访达中显示")
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                Button(role: .destructive) {
-                    onUninstall()
-                } label: {
-                    Label("卸载应用", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-                .padding(.top, 8)
+                infoSection
+                Divider()
+                residualSection
             }
-            .padding()
+            .padding(MMGap.lg)
+        }
+        .background(MMColor.contentBackground)
+    }
+
+    private var identityHeader: some View {
+        HStack(alignment: .top, spacing: MMGap.md) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
+                .resizable()
+                .frame(width: 38, height: 38)
+                .clipShape(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+
+            VStack(alignment: .leading, spacing: MMGap.xxs) {
+                Text(app.name).font(.title2.weight(.semibold)).lineLimit(1)
+                Text("\(app.bundleID) · \(MMFormat.bytes(app.size)) · \((app.path as NSString).deletingLastPathComponent)")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer(minLength: MMGap.md)
+
+            MMRevealButton(path: app.path)
+                .controlSize(.small)
         }
     }
 
-    private var appSubtitle: String {
-        var parts: [String] = []
-        if !app.version.isEmpty { parts.append("版本 \(app.version)") }
-        if let size = app.size { parts.append(formatByteSize(size)) }
-        parts.append(app.path)
-        return parts.joined(separator: " · ")
+    private var statsCards: some View {
+        HStack(spacing: MMGap.sm) {
+            MMStatItem("应用大小", MMFormat.bytes(app.size))
+            MMStatItem("包含文件", app.fileCount.map { MMFormat.count($0) } ?? "测量中")
+            MMStatItem("残留大小", MMFormat.bytes(app.residualSize))
+            MMStatItem("残留项", MMFormat.count(app.residuals.count))
+        }
     }
 
-    /// 值缺失时保留行占位，避免左侧标签参差不齐、也避免显示空白。
+    private var infoSection: some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            Text("基本信息").font(.headline)
+            VStack(alignment: .leading, spacing: MMGap.xs) {
+                MMKeyRow("包名", app.bundleID, monospaced: true)
+                MMKeyRow("版本", app.version.isEmpty ? "" : "\(app.version) (\(app.build))")
+                MMKeyRow("开发者", app.developer.isEmpty ? "" : "\(app.developer)（来自代码签名）")
+                MMKeyRow("最低系统", app.minSystemVersion)
+                MMKeyRow("可执行文件", app.executable)
+                MMKeyRow("修改时间", MMFormat.dateTime(app.modificationDate))
+                MMKeyRow("所在文件夹", (app.path as NSString).deletingLastPathComponent)
+            }
+            .textSelection(.enabled)
+        }
+    }
+
     @ViewBuilder
-    private func infoRow(title: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .foregroundStyle(.secondary)
-                .frame(width: 80, alignment: .leading)
-            Text(value.isEmpty ? "—" : value)
-                .font(.body.monospaced())
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 12)
+    private var residualSection: some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Text("将一并移除的残留").font(.headline)
+                if unselectedCount > 0 {
+                    MMBadge("\(unselectedCount) 项默认不勾选", tint: MMColor.caution, systemImage: "exclamationmark.triangle")
+                }
+                Spacer(minLength: MMGap.sm)
+                Text("按包名与容器证据匹配 · 不含其他应用的共享文件")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                Button(action: onToggleAll) {
+                    Label("全选可删项", systemImage: "checklist")
+                }
+                .controlSize(.small)
+                .buttonStyle(.borderless)
+            }
+
+            if app.isSystemOwned {
+                Text("系统自带应用不提供残留扫描：它的数据由系统管理，删除不会回收空间。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .padding(MMGap.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+            } else if app.residuals.isEmpty {
+                Text("没有按当前敏感度匹配到残留文件。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .padding(MMGap.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+            } else {
+                residualGroups
+            }
+
+            HStack(alignment: .top, spacing: MMGap.sm) {
+                Image(systemName: "info.circle").foregroundStyle(MMColor.tertiaryLabel)
+                Text(confirmationNote)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+
+            Button(role: .destructive, action: onUninstallWithResiduals) {
+                Label("卸载应用并移除勾选的残留", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(MMColor.destructive)
+
+            Button("仅卸载应用，保留所有残留", action: onUninstallAppOnly)
+                .controlSize(.small)
+                .buttonStyle(.borderless)
         }
-        .padding(.vertical, 4)
     }
 
-    private func formattedDate(_ date: Date?) -> String {
-        guard let date else { return "" }
-        return Self.dateFormatter.string(from: date)
-    }
+    private var residualGroups: some View {
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            ForEach(groups, id: \.risk) { group in
+                VStack(spacing: 0) {
+                    HStack(spacing: MMGap.sm) {
+                        MMBadge(risk: group.risk)
+                        Text(group.risk.groupNote)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                        Spacer(minLength: MMGap.sm)
+                        Text("\(group.items.count) 项")
+                            .font(.caption).monospacedDigit()
+                            .foregroundStyle(MMColor.secondaryLabel)
+                    }
+                    .padding(.horizontal, MMGap.md)
+                    .padding(.vertical, MMGap.xs)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(MMColor.cardBackground)
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter
-    }()
-
-    private func statItem(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.body.weight(.medium))
+                    ForEach(group.items) { item in
+                        ResidualRow(item: item, isSelected: binding(for: item), onToggle: { onToggle(item) })
+                        Divider()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator))
+            }
         }
     }
 
-    /// 在访达中选中该路径（即打开其所在文件夹并高亮），只读操作，不改动任何文件。
-    private func revealInFinder(_ path: String) {
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    private var groups: [(risk: MMRisk, items: [ResidualItem])] {
+        ResidualScanReport(items: app.residuals, inaccessiblePaths: []).riskGroups
+    }
+
+    private func binding(for item: ResidualItem) -> Binding<Bool> {
+        Binding(
+            get: { item.risk.allowsDeletion && selectedIDs.contains(item.id) },
+            set: { _ in onToggle(item) }
+        )
+    }
+
+    private var confirmationNote: String {
+        let size = MMFormat.bytes(totalSelectedSize)
+        return "卸载会把 \(app.name) 以及勾选的 \(selectedCount) 项残留（合计 \(size)）移到废纸篓，可在 15 秒内撤回。"
+    }
+
+    private var selectedCount: Int {
+        app.residuals.filter { $0.risk.allowsDeletion && selectedIDs.contains($0.id) }.count
+    }
+
+    private var totalSelectedSize: UInt64 {
+        UninstallSelection.selectedSize(items: app.residuals, selectedIDs: selectedIDs)
+    }
+}
+
+// MARK: - 残留行
+
+/// 复用 `MMItemRow` 的行高与勾选框语义，右侧再加一列"在访达中显示"。
+/// 只读项由 `MMItemRow` 自动禁用勾选框，因此不会出现在删除列表里。
+struct ResidualRow: View {
+    let item: ResidualItem
+    @Binding var isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        MMItemRow(
+            title: item.name,
+            subtitle: "\(item.displayPath) · \(item.reason)",
+            value: MMFormat.bytes(item.size),
+            risk: item.risk,
+            systemImage: item.category.icon,
+            isSelected: $isSelected
+        ) {
+            Button {
+                MMReveal.open(item.path)
+            } label: {
+                Image(systemName: "folder")
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .help("在访达中显示")
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onToggle)
     }
 }

@@ -10,11 +10,17 @@ let package = Package(
     dependencies: [
         .package(path: "../../Packages/MMCore"),
         .package(path: "../../Packages/MMFileScanner"),
+        .package(path: "../../Packages/MMUI"),
     ],
     targets: [
         .target(
             name: "MMUninstaller",
-            dependencies: ["MMCore", "MMFileScanner"]
+            dependencies: ["MMCore", "MMFileScanner", "MMUI"]
+        ),
+        .testTarget(
+            name: "MMUninstallerTests",
+            dependencies: ["MMUninstaller"],
+            path: "Tests/MMUninstallerTests"
         ),
     ]
 )
