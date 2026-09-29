@@ -325,4 +325,76 @@ public final class UninstallerModel: ObservableObject {
         lastResult = nil
         await loadApps()
     }
+
+    // MARK: - 卸载后遗症（反向扫描）
+
+    @Published public var orphans: [OrphanCandidate] = []
+    /// 反向判断的结论只是"高度可疑"，所以一律默认不勾选，由用户逐条确认。
+    @Published public var selectedOrphanIDs: Set<String> = []
+    @Published public var isScanningOrphans = false
+    @Published public var hasScannedOrphans = false
+
+    public var selectedOrphans: [OrphanCandidate] {
+        orphans.filter { selectedOrphanIDs.contains($0.id) }
+    }
+
+    /// 只要还有一项没量到就不给合计：一个"0 字节"的总数读起来等于"这里没东西"。
+    public var selectedOrphanSize: UInt64? {
+        let picked = selectedOrphans
+        guard !picked.isEmpty else { return 0 }
+        var total: UInt64 = 0
+        for item in picked {
+            guard let size = item.size else { return nil }
+            total += size
+        }
+        return total
+    }
+
+    public func toggleOrphan(_ item: OrphanCandidate) {
+        if selectedOrphanIDs.contains(item.id) {
+            selectedOrphanIDs.remove(item.id)
+        } else {
+            selectedOrphanIDs.insert(item.id)
+        }
+    }
+
+    /// 扫一遍残留目录，把"本机已装应用里没有主人"的条目列出来。
+    /// 大小在这一步一起量：候选通常只有几十条，量完再一次公布，
+    /// 比先列一堆"测量中"再逐行变数字更不容易让人以为扫完了。
+    public func scanOrphans(home: String? = nil) async {
+        // 归属清单就是判定依据：应用列表还在枚举时扫，每一项都可能是错报；
+        // 列表为空（读不到 /Applications）时更没有判断基础，直接不响应。
+        guard isScanningApps == false, apps.isEmpty == false else { return }
+        isScanningOrphans = true
+        defer { isScanningOrphans = false }
+        let installed = apps.map { InstalledAppIdentity(name: $0.name, bundleID: $0.bundleID) }
+        let options = ResidualScanOptions(home: home, sensitivity: sensitivity)
+        let found = await Task.detached(priority: .utility) {
+            var items = OrphanScanner.scan(installed: installed, options: options)
+            for index in items.indices {
+                items[index].size = DirectoryResidualSizeMeasurer.size(of: items[index].path)
+            }
+            return items
+        }.value
+        orphans = found
+        selectedOrphanIDs = []
+        hasScannedOrphans = true
+    }
+
+    public func trashSelectedOrphans() async {
+        let paths = selectedOrphans.map(\.path)
+        guard paths.isEmpty == false else { return }
+        let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        lastResult = result
+        failures = result.operation.failures
+        let removed = Set(paths)
+        orphans.removeAll { removed.contains($0.path) }
+        selectedOrphanIDs = []
+    }
+
+    /// 最近一次操作删的是不是 .app 本体。撤回提示的动词要跟着变：
+    /// 只清残留时说"已卸载"是假话。
+    public var lastOperationTrashedApps: Bool {
+        lastResult?.operation.files.contains { $0.originalPath.hasSuffix(".app") } ?? false
+    }
 }

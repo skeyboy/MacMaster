@@ -7,11 +7,17 @@ import MMFileScanner
 /// 1. **真的落盘**——重启后还在，而且读回来的是同一批条目与来源；
 /// 2. **真的被消费**——扫描与删除两条链路都按它减字节。
 ///
-/// 所有用例只碰 `MMCleaner.ExclusionStoreTests.<uuid>` 这个隔离 suite 和 /tmp 下的假路径，
-/// 绝不写真实的 UserDefaults 域，也不碰真实用户文件。
+/// 所有用例只碰 `MMCleaner.ExclusionStoreTests` 这一个隔离 suite 和 /tmp 下的假路径，
+/// 真实域（`com.macmaster.app`）从头到尾不写。
+///
+/// 说清楚代价：`UserDefaults(suiteName:)` 仍然会在 `~/Library/Preferences` 落文件，
+/// 而且 cfprefsd 会为每次 XCTest 运行留一个 `<suite>.<uuid>.plist`。tearDown 里的
+/// `removePersistentDomain` 能把内容清空（42 字节的空域），但删不掉文件本身。
+/// 这是"要验证真落盘"必然要付的账，所以 suite 名必须待在自己的命名空间里——
+/// 卸载模块的反向扫描正是因此把"末段是 UUID 的名字"当作实例产物而不是应用标识。
 final class CleanerExclusionStoreTests: XCTestCase {
     /// 固定的隔离 suite 名：XCTest 同类用例串行执行，所以整个类共用一份就够，
-    /// 既不会写进真实域，也不会每次跑测都在 ~/Library/Preferences 攒一批新 plist。
+    /// 不会写进真实域，也不会每次跑测都在 `~/Library/Preferences` 攒一批新 plist。
     private static let suiteName = "MMCleaner.ExclusionStoreTests"
 
     private var suiteName: String { Self.suiteName }

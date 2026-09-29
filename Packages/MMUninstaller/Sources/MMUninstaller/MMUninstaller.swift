@@ -24,10 +24,40 @@ public struct UninstallerModule: ModuleRegistrable {
 // 颜色、间距、圆角、行高一律取 MM* 令牌，不写死数值。
 
 public struct UninstallerView: View {
+    /// 两屏共用敏感度与废纸篓服务，但看的是相反的方向：
+    /// 「已装应用」问"这个应用的文件在哪"，「卸载后遗症」问"这些文件是谁的"。
+    private enum Pane: String, CaseIterable {
+        case apps, orphans
+        var title: String { self == .apps ? "已装应用" : "卸载后遗症" }
+
+        init?(hookValue: String) {
+            let match = Pane.allCases.first { $0.rawValue == hookValue }
+            guard let match else { return nil }
+            self = match
+        }
+    }
+
+    /// 仅供无头截图验证：把反向扫描的 home 换成夹具目录。
+    /// 只接受 /tmp 下的路径 —— 验证钩子一旦指向真实主目录，
+    /// 自动勾选 + 确认面板再被误按一次回车就是真删用户文件。
+    private static var orphanFixtureHome: String? {
+        guard let raw = ProcessInfo.processInfo.environment["MM_ORPHAN_FIXTURE_HOME"],
+              raw.isEmpty == false else { return nil }
+        guard raw.hasPrefix("/tmp/") || raw.hasPrefix("/private/tmp/") else {
+            FileHandle.standardError.write(
+                "MM_ORPHAN_FIXTURE_HOME=\(raw) 不在 /tmp 之下，忽略该钩子\n".data(using: .utf8)!)
+            return nil
+        }
+        return raw
+    }
+
     @StateObject private var model = UninstallerModel()
     @State private var searchText = ""
     @State private var showConfirm = false
+    @State private var showOrphanConfirm = false
     @State private var toastSeconds = 0
+    @State private var pane: Pane =
+        Pane(hookValue: ProcessInfo.processInfo.environment["MM_UNINSTALL_PANE"] ?? "") ?? .apps
 
     public init() {}
 
@@ -41,6 +71,16 @@ public struct UninstallerView: View {
     public var body: some View {
         VStack(spacing: 0) {
             MMPageHeader("应用卸载", subtitle: headerSubtitle) {
+                Picker("视图", selection: $pane) {
+                    ForEach(Pane.allCases, id: \.self) { level in
+                        Text(level.title).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .help("已装应用：选一个应用清理它的残留。卸载后遗症：找已经没有主人的残留。")
+
                 Picker("敏感度", selection: $model.sensitivity) {
                     ForEach(ResidualSensitivity.allCases, id: \.self) { level in
                         Text(level.label).tag(level)
@@ -60,11 +100,15 @@ public struct UninstallerView: View {
             }
 
             HStack(spacing: 0) {
-                appList
-                    .frame(width: MMMetric.inspector)
-                Divider()
-                detail
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if pane == .apps {
+                    appList
+                        .frame(width: MMMetric.inspector)
+                    Divider()
+                    detail
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    orphanPane
+                }
             }
             .frame(maxHeight: .infinity)
 
@@ -81,12 +125,20 @@ public struct UninstallerView: View {
             }
 
             Divider()
-            actionBar
+            Group {
+                if pane == .apps {
+                    actionBar
+                } else {
+                    orphanActionBar
+                }
+            }
         }
         .task {
             if model.apps.isEmpty, model.isScanningApps == false {
                 await model.loadApps()
             }
+            // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
+            startOrphanScanIfNeeded()
         }
         .task(id: toastSeconds) {
             guard toastSeconds > 0 else { return }
@@ -101,10 +153,21 @@ public struct UninstallerView: View {
             toastSeconds = 15
         }
         .sheet(isPresented: $showConfirm) { confirmSheet }
+        .sheet(isPresented: $showOrphanConfirm) { orphanConfirmSheet }
+        .onChange(of: pane) { _, newValue in
+            guard newValue == .orphans else { return }
+            startOrphanScanIfNeeded()
+        }
+        // 应用列表还在枚举时反查会错报，这里等它扫完再补一次。
+        .onChange(of: model.isScanningApps) { _, scanning in
+            guard scanning == false else { return }
+            startOrphanScanIfNeeded()
+        }
         .overlay(alignment: .bottom) {
             if model.lastResult != nil, toastSeconds > 0 {
                 MMUndoToast(
-                    message: "已卸载 \(model.lastResult?.successCount ?? 0) 项",
+                    message: (model.lastOperationTrashedApps ? "已卸载 " : "已移入废纸篓 ")
+                        + "\(model.lastResult?.successCount ?? 0) 项",
                     detail: MMFormat.bytes(model.lastResult?.totalSize),
                     secondsRemaining: toastSeconds,
                     onUndo: { Task { await model.undoLast() } },
@@ -244,6 +307,158 @@ public struct UninstallerView: View {
                 .disabled(model.selectedApp == nil)
             }
         )
+    }
+
+    // MARK: 卸载后遗症
+
+    /// 切到「卸载后遗症」就自动反查一次，用户不必先按按钮再等一屏空白。
+    /// 带夹具目录时（仅截图验证）再把结果全部勾上并打开确认面板：
+    /// 合成点击进不了勾选框，没有别的办法截到确认态。
+    private func startOrphanScanIfNeeded() {
+        guard pane == .orphans else { return }
+        guard model.hasScannedOrphans == false, model.isScanningOrphans == false else { return }
+        let fixtureHome = Self.orphanFixtureHome
+        Task {
+            await model.scanOrphans(home: fixtureHome)
+            guard let fixtureHome else { return }
+            model.selectedOrphanIDs = Set(model.orphans.map(\.id))
+            showOrphanConfirm = true
+            FileHandle.standardError.write("已用夹具目录 \(fixtureHome) 自动勾选并打开确认面板\n".data(using: .utf8)!)
+        }
+    }
+
+    private var orphanPane: some View {
+        Group {
+            if model.isScanningOrphans {
+                VStack(spacing: MMGap.md) {
+                    ProgressView().controlSize(.small)
+                    Text("正在反查残留归属…")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if model.orphans.isEmpty {
+                MMEmptyState(
+                    systemImage: "questionmark.folder",
+                    title: model.hasScannedOrphans ? "没有发现没有主人的残留" : "还没有反查过",
+                    detail: model.hasScannedOrphans
+                        ? "残留目录里的每一项都能对应到本机已安装的应用。"
+                        : "扫一遍 ~/Library 的残留目录，列出对不上任何已装应用的条目。判断口径偏保守：宁可漏报，不可错报。"
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(model.orphans) { item in
+                            OrphanRow(
+                                item: item,
+                                isSelected: orphanBinding(item),
+                                onToggle: { model.toggleOrphan(item) }
+                            )
+                            Divider()
+                        }
+                    }
+                    .padding(.horizontal, MMGap.lg)
+                    .padding(.vertical, MMGap.xs)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(MMColor.contentBackground)
+    }
+
+    private func orphanBinding(_ item: OrphanCandidate) -> Binding<Bool> {
+        Binding(
+            get: { model.selectedOrphanIDs.contains(item.id) },
+            set: { on in
+                if on { model.selectedOrphanIDs.insert(item.id) } else { model.selectedOrphanIDs.remove(item.id) }
+            }
+        )
+    }
+
+    /// 没扫过就不能写"0 项"：那读起来等于"这里干净"，而真相是还没看过。
+    private var orphanSummary: String {
+        if model.isScanningOrphans { return "正在反查残留归属…" }
+        guard model.hasScannedOrphans else { return "尚未反查 · 点右侧「反查残留」扫一遍 ~/Library" }
+        return "可疑残留 \(model.orphans.count) 项 · 已选 \(model.selectedOrphanIDs.count) 项 · "
+            + MMFormat.bytes(model.selectedOrphanSize)
+    }
+
+    private var orphanActionBar: some View {
+        MMActionBar(
+            summary: orphanSummary,
+            note: model.hasScannedOrphans
+                ? "反向判断只认反向域名形态的归属线索，全部默认不勾选"
+                : "先扫一次，结果永远默认不勾选",
+            trailing: {
+                Button {
+                    Task { await model.scanOrphans() }
+                } label: {
+                    Label(model.hasScannedOrphans ? "重新反查" : "反查残留", systemImage: "arrow.clockwise")
+                }
+                .disabled(model.isScanningOrphans)
+
+                Button(role: .destructive) {
+                    showOrphanConfirm = true
+                } label: {
+                    Label("移到废纸篓", systemImage: "trash")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .disabled(model.selectedOrphanIDs.isEmpty || model.isScanningOrphans)
+            }
+        )
+    }
+
+    private var orphanConfirmSheet: some View {
+        let picked = model.selectedOrphans
+        return VStack(alignment: .leading, spacing: MMGap.md) {
+            Text("把 \(picked.count) 项可疑残留移入废纸篓？")
+                .font(.title3.weight(.semibold))
+            Text("这些条目在本机已安装的应用里找不到对应包名，但「找不到」不等于「没在用」——"
+                 + "装在别的卷、或包名与磁盘名不同形的应用也会被判成可疑。请逐条核对路径。")
+                .font(.callout)
+                .foregroundStyle(MMColor.secondaryLabel)
+
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(picked) { item in
+                    HStack(spacing: MMGap.sm) {
+                        Image(systemName: item.category.icon)
+                            .foregroundStyle(MMColor.caution)
+                            .frame(width: MMGap.xxl)
+                        Text(item.path)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: MMGap.sm)
+                        Text(MMFormat.bytes(item.size))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(MMColor.secondaryLabel)
+                    }
+                    .padding(.horizontal, MMGap.md)
+                    .frame(height: MMMetric.rowCompact)
+                    Divider()
+                }
+            }
+            .background(MMColor.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
+
+            HStack {
+                Spacer()
+                Button("取消") { showOrphanConfirm = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("移入废纸篓") {
+                    showOrphanConfirm = false
+                    Task { await model.trashSelectedOrphans() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(MMGap.lg)
+        .frame(width: 480)
     }
 
     // MARK: 确认
@@ -534,6 +749,38 @@ struct ResidualRow: View {
             subtitle: "\(item.displayPath) · \(item.reason)",
             value: MMFormat.bytes(item.size),
             risk: item.risk,
+            systemImage: item.category.icon,
+            isSelected: $isSelected
+        ) {
+            Button {
+                MMReveal.open(item.path)
+            } label: {
+                Image(systemName: "folder")
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .help("在访达中显示")
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onToggle)
+    }
+}
+
+// MARK: - 孤儿残留行
+
+/// 与 `ResidualRow` 同一套行高与勾选语义，差别在措辞：这里的结论是"查不到主人"，
+/// 不是"确认可以删"，所以副标题必须把不确定性摆在脸上，风险等级给 `caution`。
+struct OrphanRow: View {
+    let item: OrphanCandidate
+    @Binding var isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        MMItemRow(
+            title: item.name,
+            subtitle: "\(item.path) · 在已装应用里找不到 \(item.owner)",
+            value: MMFormat.bytes(item.size),
+            risk: .caution,
             systemImage: item.category.icon,
             isSelected: $isSelected
         ) {
