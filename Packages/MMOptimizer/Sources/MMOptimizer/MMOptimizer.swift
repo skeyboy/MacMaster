@@ -36,13 +36,14 @@ final class CancelFlag: @unchecked Sendable {
 // MARK: - View
 
 public struct OptimizerView: View {
-    /// MM_OPEN_TAB=duplicates|browser|status：只用于逐屏截图核对设计稿，
+    /// MM_OPEN_TAB=duplicates|browser|status|devtools：只用于逐屏截图核对设计稿，
     /// 正常启动不会带这个变量。
     @State private var tab: OptimizerTab =
         OptimizerTab(rawValue: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .duplicates
     @StateObject private var duplicates = DuplicateScanModel()
     @StateObject private var diagnostics = SystemDiagnosticsModel()
     @StateObject private var browser = BrowserCacheModel()
+    @StateObject private var devTools = DevToolCacheModel()
 
     public init() {}
 
@@ -65,6 +66,7 @@ public struct OptimizerView: View {
             case .duplicates: duplicatesView
             case .browser: browserView
             case .status: statusView
+            case .devtools: DevToolCacheView(model: devTools)
             }
         }
         .background(MMColor.contentBackground)
@@ -218,13 +220,14 @@ public struct OptimizerView: View {
 }
 
 enum OptimizerTab: String, CaseIterable, Identifiable {
-    case duplicates, browser, status
+    case duplicates, browser, status, devtools
     var id: String { rawValue }
     var label: String {
         switch self {
         case .duplicates: "重复文件"
         case .browser: "浏览器缓存"
         case .status: "系统状态"
+        case .devtools: "开发工具"
         }
     }
 }

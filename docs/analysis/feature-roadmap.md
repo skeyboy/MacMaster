@@ -79,7 +79,7 @@
 | 3.5 不再写系统域 `Disabled` | ✅ 已落地 | `LaunchItemPolicy.swift:5` 明确"永远不尝试写 Disabled 键"，用户域改写走 throwing API（`LoginItemStore.swift:158-188`） |
 | 4.1 非显性系统缓存 | ✅ 已落地 | `CacheScanner.swift:475-485`（metalfe / gpuarchiver），QuickLook、iconservices、GeoServices、photoanalysisd 同文件内共 13 处 |
 | 4.2 沙盒容器内缓存 | ✅ 已落地 | `CacheScanner.swift:564-569` 走 `~/Library/Containers/*/Data/Library/Caches` 通配 |
-| 4.3 开发工具缓存走 owner 命令 | ⬜ 未做 | 全仓搜不到 `go clean -modcache` / `cargo` / `brew autoremove`；这条是**执行第三方命令**，风险最高，动之前要先定"进程状态未知时拒绝执行"的判据 |
+| 4.3 开发工具缓存走 owner 命令 | ✅ 已落地（只报不执行） | `MMOptimizer/DevToolCacheAudit.swift` + 「开发工具」tab：位置来源/在不在/多大 + 可拷贝的 owner 命令。**刻意不执行第三方二进制**，判据见 `docs/analysis/devtool-owner-commands.md` |
 | 4.4 安装包残留查找 | ✅ 已落地 | `MMFileScanner/InstallerScanner.swift` 内容嗅探（koly / xar! / EOCD 中央目录）+ `UserFolderCleanView` 区块，见「P4.4 落地」节 |
 | 4.5 白名单持久化 | ✅ 已落地 | `CleanerExclusionStore`（`MMCleaner.swift:25-53`）已是唯一真源，表里那句"当前是会话级内存态"过期了 |
 | 4.6 purgeable / 本地快照只读报告 | ✅ 已落地 | `ReadOnlySpaceReport.swift`，读不到时整块说明原因，不显示 0 冒充事实 |
@@ -374,3 +374,41 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 截图窗口锁在 1100×700（`.defaultSize` 与自动保存帧都不受控），登录项卡整卡高于视口，
 所以脚注是靠"临时把该卡提到首位 + 脚注单独成卡"截到的；两处补丁均为 `TEMP-CAPTURE`，
 提交前已全部回退并复查过（全仓 `grep TEMP-CAPTURE` 无命中）。
+
+## P4.3 落地：开发工具缓存只报位置和 owner 命令，不代跑
+
+判据与取舍全部写在 `docs/analysis/devtool-owner-commands.md`，这里只记结果。
+
+**做了什么**：`MMOptimizer/DevToolCacheAudit.swift`（纯函数，环境字典 + 探针全注入，可完整单测）
++ 「系统优化 → 开发工具」新 tab。六条缓存（Go 模块 / Go 构建 / Cargo registry / Homebrew /
+npm / pip），每条报三件独立事实：**装没装**（PATH 里 stat，不执行）、**在不在**、**多大**，
+外加一条只能拷贝的命令和"为什么不该 rm 这个目录"。这一屏没有删除按钮。
+
+**为什么不执行**：跑 `go clean -modcache` 就是信任用户机器上任意版本的 go。参考实现为了安全
+执行，在最后一跳还要复查符号链接位、做词法/物理双路径身份快照、探进程状态、加超时
+（Mole `dev.sh:845-905`）。不执行就把这整层风险面消掉了，也就不需要"进程状态未知时拒绝执行"
+这条判据——没有执行，就没有需要拒绝的执行。代价是这一屏回收不了空间。
+
+**顺手改口的一条**：`brew autoremove` 从 4.3 里拿掉。它卸载的是 formula 本身，不是缓存，
+清理工具不该给"卸掉你正在用的软件"入口。有单测钉住整屏不出现这条命令。
+
+### 顺着这一屏查出来的测量错误（影响全仓）
+
+`SystemSampler.directoryBytes` 带着 `options: [.skipsHiddenFiles]`。这个选项不只是省掉
+`.DS_Store`——它会把**以点开头的目录整个剪掉**，而 cargo 的 registry 体积几乎全在
+`index.crates.io-*/.cache/` 底下。本机因此被报成 **12 KB，实测 75 MB**，错了三个数量级。
+
+这条函数是缓存分类体积、废纸篓占用、撤回台账号径的共同底层，也就是说清理页上
+"可释放 X GB" 一直在低报。修法是把 `.skipsHiddenFiles` 去掉（`SystemSampler.swift:164`），
+并在 `MMCore/SystemSamplerSizeTests` 里钉住"隐藏子目录里的文件必须算"这条回归。
+
+修完的真机对照：Cargo 包缓存 12 KB → **78.6 MB**（截图核对）。
+
+### 没能验证到的部分
+
+- 六条里只有 Cargo 一条落在"在用 + 有体积"档，其余五条本机目录都不存在，
+  所以"存在且读不动"（`.unreadable`）这一档只有单测，没有真机渲染。
+- 根位置一律走"环境变量 → 默认值"，没有向工具求证（那要 spawn `go env` / `npm config get cache`）。
+  界面每条都标了「按默认位置 · 未向工具求证」，但**如果用户用 `mise` 之类二次重定位过，
+  这一屏会指错地方**——Mole 为这个场景写过 issue #1378 的专门回归，我们没做。
+- 「拷贝命令」按钮的点击效果没有真机验证（禁止合成点击），只验证了按钮渲染与文案。
