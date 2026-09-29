@@ -9,12 +9,13 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../../Packages/MMCore"),
+        .package(path: "../../Packages/MMUI"),
         .package(path: "../../Packages/MMFileScanner"),
     ],
     targets: [
         .target(
             name: "MMOptimizer",
-            dependencies: ["MMCore", "MMFileScanner"]
+            dependencies: ["MMCore", "MMUI", "MMFileScanner"]
         ),
     ]
 )

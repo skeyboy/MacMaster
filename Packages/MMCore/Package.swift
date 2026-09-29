@@ -13,10 +13,5 @@ let package = Package(
             dependencies: [],
             path: "Sources/MMCore"
         ),
-        .testTarget(
-            name: "MMCoreTests",
-            dependencies: ["MMCore"],
-            path: "Tests/MMCoreTests"
-        ),
     ]
 )

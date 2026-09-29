@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - File Entry
 
-public struct FileEntry: Identifiable, Hashable {
+public struct FileEntry: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let path: URL
     public let name: String
@@ -162,64 +162,3 @@ public actor FileScanner {
     }
 }
 
-// MARK: - Duplicate File Scanner
-
-public struct DuplicateGroup: Identifiable {
-    public let id: UUID
-    public let hash: String
-    public let size: UInt64
-    public let files: [FileEntry]
-    public let wastedSpace: UInt64
-
-    public init(hash: String, size: UInt64, files: [FileEntry]) {
-        self.id = UUID()
-        self.hash = hash
-        self.size = size
-        self.files = files
-        self.wastedSpace = size * UInt64(files.count - 1)
-    }
-}
-
-public actor DuplicateScanner {
-    private let minFileSize: UInt64
-    private let hashChunkSize: Int
-
-    public init(minFileSize: UInt64 = 200 * 1024, hashChunkSize: Int = 10 * 1024 * 1024) {
-        self.minFileSize = minFileSize
-        self.hashChunkSize = hashChunkSize
-    }
-
-    public func findDuplicates(in entries: [FileEntry]) -> [DuplicateGroup] {
-        let sizeBuckets = Dictionary(grouping: entries) { $0.size }
-        let potentialDuplicates = sizeBuckets.filter { $0.value.count > 1 }
-
-        var hashGroups: [String: [FileEntry]] = [:]
-
-        for (_, files) in potentialDuplicates {
-            for file in files {
-                let hash = computeHash(for: file)
-                hashGroups[hash, default: []].append(file)
-            }
-        }
-
-        return hashGroups
-            .filter { $0.value.count > 1 }
-            .map { DuplicateGroup(hash: $0.key, size: $0.value.first?.size ?? 0, files: $0.value) }
-            .sorted { $0.wastedSpace > $1.wastedSpace }
-    }
-
-    private func computeHash(for entry: FileEntry) -> String {
-        guard let data = try? Data(contentsOf: entry.path, options: .mappedIfSafe) else {
-            return ""
-        }
-
-        let chunkSize = min(hashChunkSize, data.count)
-        let chunk = data.prefix(chunkSize)
-
-        var hasher = Hasher()
-        hasher.combine(chunk)
-        let hash = hasher.finalize()
-
-        return String(format: "%016x", hash)
-    }
-}

@@ -15,11 +15,13 @@ public final class FileTrashService: ObservableObject {
 
         for path in paths {
             let fileURL = URL(fileURLWithPath: path)
+            // 移走之后再想统计就没机会了：原来那条路径会直接消失。
+            let size = Self.allocatedBytes(of: fileURL)
             do {
                 var resultingURL: NSURL?
                 try FileManager.default.trashItem(at: fileURL, resultingItemURL: &resultingURL)
                 let trashPath = resultingURL?.path
-                movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath))
+                movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath, size: size))
             } catch {
                 errors.append("\(path): \(error.localizedDescription)")
             }
@@ -75,15 +77,30 @@ public final class FileTrashService: ObservableObject {
         trashHistory[opIndex] = operation.markedUndone()
         return UndoResult(restoredCount: restoredCount, errors: errors)
     }
+
+    /// 实际占用的块数，不是标称大小：APFS 压缩和稀疏文件的标称大小会把"释放了多少"夸大。
+    private static func allocatedBytes(of url: URL) -> UInt64 {
+        guard let values = try? url.resourceValues(forKeys: [
+            .isDirectoryKey, .totalFileAllocatedSizeKey, .fileSizeKey,
+        ]) else { return 0 }
+        if values.isDirectory == true {
+            return SystemSampler.directoryBytes(url.path) ?? 0
+        }
+        return UInt64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
+    }
 }
 
 public struct TrashRecord: Codable {
     public let originalPath: String
     public var trashPath: String?
+    /// 移走**当时**量到的占用字节数。事后再读原路径只会得到 0，
+    /// 那样"释放了多少"就变成了编数字。
+    public let size: UInt64
 
-    public init(originalPath: String, trashPath: String? = nil) {
+    public init(originalPath: String, trashPath: String? = nil, size: UInt64 = 0) {
         self.originalPath = originalPath
         self.trashPath = trashPath
+        self.size = size
     }
 }
 
@@ -95,10 +112,7 @@ public struct TrashOperation: Identifiable {
     public var isUndone: Bool
 
     public var totalSize: UInt64 {
-        files.reduce(0) { size, record in
-            let attrs = try? FileManager.default.attributesOfItem(atPath: record.originalPath)
-            return size + ((attrs?[.size] as? UInt64) ?? 0)
-        }
+        files.reduce(0) { size, record in size + record.size }
     }
 
     public var fileCount: Int { files.count }

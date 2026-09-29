@@ -16,5 +16,10 @@ let package = Package(
             dependencies: ["MMCore"],
             path: "Sources/MMFileScanner"
         ),
+        .testTarget(
+            name: "MMFileScannerTests",
+            dependencies: ["MMFileScanner"],
+            path: "Tests/MMFileScannerTests"
+        ),
     ]
 )
