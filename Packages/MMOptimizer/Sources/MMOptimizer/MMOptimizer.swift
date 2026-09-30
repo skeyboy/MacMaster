@@ -71,6 +71,47 @@ public struct OptimizerView: View {
         }
         .background(MMColor.contentBackground)
         .environmentObject(duplicates)
+        .task { await applyFixtureIfNeeded() }
+    }
+
+    /// MM_OPTIMIZER_FIXTURE：四 tab 空/失败/PROTECTED 态的纯展示注入（见 OptimizerFixtureHooks）。
+    /// 非法取值写 stderr 并整体忽略；未设置时此函数不改变任何模型状态。
+    private func applyFixtureIfNeeded() async {
+        let result = OptimizerFixture.parse(ProcessInfo.processInfo.environment["MM_OPTIMIZER_FIXTURE"])
+        if !result.rejected.isEmpty {
+            FileHandle.standardError.write(
+                "MM_OPTIMIZER_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），整个钩子已忽略\n".data(using: .utf8)!)
+        }
+        guard result.rejected.isEmpty else { return }
+        if let tier = result.duplicates {
+            duplicates.applyFixture(tier)
+        } else {
+            await duplicates.scanIfNeeded()
+        }
+        if let tier = result.browser {
+            browser.applyFixture(tier)
+        } else {
+            await browser.scanIfNeeded()
+        }
+        if let tier = result.status {
+            diagnostics.applyFixture(tier)
+        } else {
+            await diagnostics.refresh()
+        }
+        if let tier = result.devtools {
+            devTools.applyFixture(tier)
+        } else {
+            await devTools.refreshIfNeeded()
+        }
+        if result.protected {
+            // PROTECTED 拒绝态：注入一条 DeletionGuard 拒绝回执，覆盖 08d 底部的
+            // shield/caution 分档排版。不触发任何真实删除。
+            duplicates.trashFailures = [
+                TrashFailure(path: "/Users/example/Documents（夹具值）",
+                             message: "位于系统目录之下，本应用不删系统域内容。",
+                             code: "PROTECTED")
+            ]
+        }
     }
 
     // MARK: 重复文件
@@ -293,6 +334,30 @@ final class DuplicateScanModel: ObservableObject {
     }
 
     func cancel() { cancelFlag.cancel() }
+
+    /// 夹具注入：只顶替展示数据（groups/hasScanned），不碰磁盘。
+    func applyFixture(_ tier: OptimizerFixture.DuplicatesTier) {
+        switch tier {
+        case .groups(let count):
+            groups = OptimizerFixture.duplicateGroups(count: count)
+            hasScanned = true
+            isScanning = false
+        case .empty:
+            groups = []
+            hasScanned = false
+            isScanning = false
+        case .scannedEmpty:
+            groups = []
+            hasScanned = true
+            isScanning = false
+        }
+    }
+
+    /// 进场即扫（生产路径），供无夹具的正常启动用。
+    func scanIfNeeded() async {
+        guard !hasScanned, !isScanning else { return }
+        await scan()
+    }
 
     func scan() async {
         guard !isScanning else { return }
@@ -579,6 +644,20 @@ final class BrowserCacheModel: ObservableObject {
         await scan()
     }
 
+    /// 夹具注入：rows 注入确定列表（含一个 size=nil 走「测量中」），empty 走空态。
+    func applyFixture(_ tier: OptimizerFixture.BrowserTier) {
+        switch tier {
+        case .rows:
+            items = OptimizerFixture.browserRows()
+            hasScanned = true
+            isScanning = false
+        case .empty:
+            items = []
+            hasScanned = true
+            isScanning = false
+        }
+    }
+
     func clean(_ row: BrowserCacheRow) async {
         let result = await FileTrashService.shared.moveToTrash(paths: [row.path])
         failures = result.operation.failures
@@ -659,6 +738,25 @@ final class SystemDiagnosticsModel: ObservableObject {
         let measured = await Task.detached(priority: .utility) { SystemDiagnostics.measure() }.value
         checks = measured
         updatedAt = "上次检测 " + MMFormat.dateTime(Date())
+    }
+
+    /// 夹具注入：三行全只读（allReadOnly），模拟 host_statistics64/卷读取/废纸篓同时失败。
+    func applyFixture(_ tier: OptimizerFixture.StatusTier) {
+        switch tier {
+        case .allReadOnly:
+            checks = [
+                SystemCheck(id: .memory, title: "内存占用", value: "—",
+                            note: "vm_statistics64 没读数，这里不猜占用；显示 —。",
+                            risk: .readOnly, destination: .monitor, revealPath: nil),
+                SystemCheck(id: .disk, title: "磁盘可用", value: "—",
+                            note: "未能读取卷信息（容量键未返回），不显示 0。",
+                            risk: .readOnly, destination: .disk, revealPath: nil),
+                SystemCheck(id: .trash, title: "废纸篓占用", value: "—",
+                            note: "清空废纸篓会同时丢掉撤回入口，所以这里只带你过去，不代你清空。",
+                            risk: .readOnly, destination: nil, revealPath: NSHomeDirectory() + "/.Trash"),
+            ]
+            updatedAt = "上次检测 " + MMFormat.dateTime(Date())
+        }
     }
 }
 

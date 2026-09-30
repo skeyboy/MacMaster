@@ -24,6 +24,18 @@ final class DevToolCacheModel: ObservableObject {
         updatedAt = "上次盘点 " + MMFormat.dateTime(Date())
     }
 
+    /// 进场即盘点（生产路径）。devtools 卡没有删除入口，只读展示。
+    func refreshIfNeeded() async {
+        guard entries.isEmpty else { return }
+        await refresh()
+    }
+
+    /// 夹具注入：未安装/读不到两档（08e 推演档），只顶替展示数据、不写盘不 spawn。
+    func applyFixture(_ tier: OptimizerFixture.DevToolsTier) {
+        entries = OptimizerFixture.devtoolsRows(tier: tier)
+        updatedAt = "上次盘点 " + MMFormat.dateTime(Date())
+    }
+
     func copy(_ entry: DevToolCacheEntry) {
         guard let command = entry.ownerCommand else { return }
         let board = NSPasteboard.general
