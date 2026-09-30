@@ -132,7 +132,27 @@ public struct DiskAnalyzerView: View {
             if let filter = env["MM_DISK_FILTER"], !filter.isEmpty {
                 nameFilter = filter
             }
+            // 首帧定格（MM_DISK_HOLD=hold）：只把页面停在"正在分析磁盘结构"首帧，
+            // 不触发任何扫描。非法取值写 stderr 并按未设置处理。
+            if let raw = env["MM_DISK_HOLD"], !raw.isEmpty {
+                if raw.trimmingCharacters(in: .whitespaces).lowercased() == "hold" {
+                    isScanning = true
+                    scanningPath = ""
+                    scanResult = nil
+                    return
+                } else {
+                    FileHandle.standardError.write(
+                        "MM_DISK_HOLD 含非法取值（\(raw)），只接受 hold，钩子已忽略\n".data(using: .utf8)!)
+                }
+            }
             guard scanResult == nil, let root = env["MM_DISK_SCAN"], !root.isEmpty else { return }
+            // 越界红线（hook-ledger §4.3）：扫描类钩子只认 /tmp 之下的夹具路径，
+            // 指向真实用户目录等于拿用户文件做截图。越界写 stderr 并忽略。
+            guard root.hasPrefix("/tmp/") || root.hasPrefix("/private/tmp/") else {
+                FileHandle.standardError.write(
+                    "MM_DISK_SCAN=\(root) 不在 /tmp 之下，忽略该钩子\n".data(using: .utf8)!)
+                return
+            }
             await scan(rootPath: (root as NSString).expandingTildeInPath)
         }
     }
@@ -1000,6 +1020,12 @@ public struct DiskAnalyzerView: View {
             $0.trimmingCharacters(in: .whitespaces)
         }
         guard let first = targets.first else { return }
+        // 越界红线：选择类钩子同样只认 /tmp 夹具路径，避免预选并展开真实目录。
+        for target in targets where !(target.hasPrefix("/tmp/") || target.hasPrefix("/private/tmp/")) {
+            FileHandle.standardError.write(
+                "MM_DISK_SELECT 含非 /tmp 路径（\(target)），整个钩子已忽略\n".data(using: .utf8)!)
+            return
+        }
         let parent = (first as NSString).deletingLastPathComponent
         if parent != navigationStack.last {
             navigationStack.append(parent)
