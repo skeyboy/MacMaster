@@ -472,3 +472,27 @@ D 降级态合集，含新增 D3a）、`08-optimizer.html`（08 首屏 / 08b 结
 - **实机两张图**：`docs/verification/p1.5-trash/uninstaller-no-fda-banner.jpg`（钩子全关 = 常态降级横幅）、
   `docs/verification/p1.5-trash/uninstaller-trash-notice.jpg`（夹具态 = 卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）。
   夹具与抓图工具入库：`Scripts/trash-fixture.sh`、`Scripts/window-ids.swift`。
+
+## P1.7 落地：删除闸门 `DeletionGuard`（2026-09-30）
+
+所有删除动作的唯一闸口，接在 `FileTrashService.moveToTrash` 的循环开头。
+判据、清单口径与实测依据单独成文：**[deletion-guard.md](deletion-guard.md)**，这里只记产品判断。
+
+- **以前只有标签，没有闸门。** `MMDisk` 那份 `protectedRoots` 是给 treemap 上色的风险标注，
+  标成"只读"的路径照样能被交给删除。现在标签留在原处（上色要粒度），拒绝执行另起一处。
+- **拒绝要像失败一样被逐条上报。** 被挡的路径生成 `TrashFailure(code: "PROTECTED")`，
+  走同一个回执面板、写进同一份删除台账。静默跳过会让界面报"移走 3 项"而实际挡了 1 项。
+- **保护清单被已有功能逼出第三层口径。** 「用户文件夹清理」页正常目标就是
+  桌面/文稿/下载/图片/影片/音乐，子树全挡等于废掉这一页；于是这六个目录改成
+  **只挡目录本身**（那一页的文件夹行本身是可勾选的，整层桌面进废纸篓不可接受），内容照常放行。
+  同理 `Data/vms`（虚拟磁盘镜像）挡、`Data/Library/Caches`（容器缓存类别）放。
+- **一处清单在骗人，顺手改掉**：缓存类别 `mail_cache` 以前把 `~/Library/Mail` 当缓存列出来，
+  那里面是邮件正文与附件。摘掉，只留 `~/Library/Caches/com.apple.mail`，类别改名"邮件缓存"。
+- **回执面板区分两种红**：errno 用红色叉，主动拒绝用琥珀色盾牌，拒绝的理由给两行
+  （一行截断正好切掉"逐项选择里面的内容"这半句可操作信息）。设计稿 `05-states` 的假想码
+  `KEPT` 同步换成真实的 `PROTECTED`。
+- **验证**：`DeletionGuardTests` 15 条判据 + `FileTrashServiceGuardTests` 6 条出口，
+  出口测试全程只喂不存在的路径（闸门失效时 `trashItem` 会以 ENOENT 报红，真实文件一个不碰）。
+  实机图 `docs/verification/p1.7-deletion-guard/cleaner-refusal-panel.jpg` 来自
+  `MM_FAILURE_FIXTURE=protected` 预演钩子，文案由 `DeletionGuard` 现场算出。
+  **缺**："点击删除 → 被拒 → 回执"这条交互链没有实机照片，走完它需要合成点击（项目红线禁止）。

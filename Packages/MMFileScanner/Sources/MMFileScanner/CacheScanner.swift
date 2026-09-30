@@ -573,10 +573,13 @@ public actor CacheScanner {
                 paths: ["\(home)/Library/Containers/*/Data/Library/Caches"]
             ),
             CacheCategory(
-                id: "mail_cache", name: "邮件附件与预览",
-                subtitle: "~/Library/Mail · 需要完全磁盘访问",
+                id: "mail_cache", name: "邮件缓存",
+                subtitle: "~/Library/Caches/com.apple.mail",
                 iconName: "envelope", risk: .caution, scope: .appCache,
-                paths: ["\(home)/Library/Mail", "\(home)/Library/Caches/com.apple.mail"]
+                // 只列邮件的缓存，不列 `~/Library/Mail` 本身：那里面是邮件正文与附件，
+                // 删掉等于删邮箱，`DeletionGuard` 已把整棵子树划成不可删。以前把它当缓存
+                // 列出来，用户勾了、确认了、最后拿到一条拒绝 —— 那是清单在骗人，不是保护在挡路。
+                paths: ["\(home)/Library/Caches/com.apple.mail"]
             ),
             // 需要 root 的两处一律只读：/Library/Caches 里是系统守护进程与其它用户的缓存，
             // /private/var/folders/zz 是 _windowserver 等守护账号的 per-user 目录。

@@ -8,7 +8,7 @@ h1{font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px}
 .lede{font-size:13px;color:rgba(0,0,0,.55);margin:0 0 24px}
 .grid{display:grid;grid-template-columns:repeat(3,340px);gap:20px;align-items:start}
 .panel{background:var(--c-content-bg);border:1px solid var(--c-separator);border-radius:var(--r-md);
-       overflow:hidden;display:flex;flex-direction:column;height:264px}
+       overflow:hidden;display:flex;flex-direction:column;height:auto;min-height:264px}
 .panel .tag{display:flex;align-items:center;gap:6px;padding:6px var(--sp-3);background:var(--c-card-bg-alt);
   border-bottom:1px solid var(--c-separator);font-size:var(--fs-caption);color:var(--c-label-secondary)}
 .panel .tag b{font-size:var(--fs-callout);font-weight:600;color:var(--c-label)}
@@ -125,14 +125,16 @@ h1{font-size:24px;font-weight:700;margin:0 0 4px;letter-spacing:-.3px}
             <div><b>~/Library/Logs/DiagnosticReports/report-8842.log</b><div class="t-cap">废纸篓拒绝该路径 · 属主为 root</div></div>
             <span class="code" style="margin-left:auto">EACCES</span></div>
           <div class="err"><svg class="i" style="color:var(--c-warning);flex-shrink:0"><use href="#i-warn"></use></svg>
-            <div><b>~/Library/Containers/com.apple.Notes</b><div class="t-cap">容器内含用户文档，已保留未动</div></div>
-            <span class="code" style="margin-left:auto">KEPT</span></div>
+            <div><b>~/Desktop</b><div class="t-cap">这是 Desktop 目录本身。逐项选择里面的内容可以移入废纸篓，整个目录不行——它可能正被 iCloud 同步或当作图库根目录。</div></div>
+            <span class="code" style="margin-left:auto">PROTECTED</span></div>
         </div>
         <div class="acts"><span class="btn borderless sm">复制诊断信息</span>
           <span style="margin-left:auto"></span><span class="btn sm">重试失败项</span><span class="btn sm primary">完成</span></div>
       </div>
     </div>
-    <div class="cap">绝不出现"清理完成"而实际失败 3 项。错误码原文保留，便于用户搜索；"重试"不重跑整个扫描。</div>
+    <div class="cap">绝不出现"清理完成"而实际失败 3 项。错误码原文保留，便于用户搜索；"重试"不重跑整个扫描。
+      <code>PROTECTED</code> 不是 errno，是删除闸门 <code>DeletionGuard</code> 主动拒绝：图标换成琥珀色盾牌，
+      因为它既不是故障、重试也不会有别的下场，用户要改的是选择而不是环境。</div>
   </div>
 
   <!-- 5 危险确认 -->

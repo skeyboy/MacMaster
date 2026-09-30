@@ -37,6 +37,13 @@ public final class FileTrashService: ObservableObject {
         var failures: [TrashFailure] = []
 
         for path in paths {
+            // 闸口在这里，不在各个扫描器里：上游误判、调用方拼错、以后新增的入口，
+            // 都从这一个出口走。被挡下要当成"失败"逐条上报，不能静默跳过 ——
+            // 用户看到"移走 3 项"而实际挡了 1 项，比看到一条拒绝更糟。
+            if let rejection = DeletionGuard.rejection(for: path) {
+                failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "PROTECTED"))
+                continue
+            }
             let fileURL = URL(fileURLWithPath: path)
             // 移走之后再想统计就没机会了：原来那条路径会直接消失。
             let size = Self.allocatedBytes(of: fileURL)

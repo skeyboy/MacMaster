@@ -640,9 +640,11 @@ public struct MMFailurePanel: View {
             }
             ForEach(failures.prefix(4)) { failure in
                 HStack(spacing: MMGap.sm) {
-                    Image(systemName: "xmark.circle.fill")
+                    // 主动拒绝和被系统挡住不是一回事：前者是我们判断过后的决定（琥珀色），
+                    // 后者是 errno（红色）。混成一个图标，用户就分不出该找谁。
+                    Image(systemName: failure.code == "PROTECTED" ? "exclamationmark.shield" : "xmark.circle.fill")
                         .font(.caption)
-                        .foregroundStyle(MMColor.destructive)
+                        .foregroundStyle(failure.code == "PROTECTED" ? MMColor.caution : MMColor.destructive)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(failure.path)
                             .font(.caption.monospaced())
@@ -651,7 +653,9 @@ public struct MMFailurePanel: View {
                         Text(failure.message)
                             .font(.caption2)
                             .foregroundStyle(MMColor.secondaryLabel)
-                            .lineLimit(1)
+                            // 拒绝的理由要读完才知道下一步该干什么（"逐项选择"），
+                            // 一行截断正好把可操作的那半句切掉。errno 原文短，一行够。
+                            .lineLimit(failure.code == "PROTECTED" ? 2 : 1)
                     }
                     Spacer(minLength: MMGap.sm)
                     if let code = failure.code {

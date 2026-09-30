@@ -359,6 +359,13 @@ public struct CleanerView: View {
             if ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil {
                 showConfirm = true
             }
+            // 无头截图核对拒绝文案的排版用（MM_FAILURE_FIXTURE=protected）。
+            // 这条路只往展示状态里写记录，不调 `moveToTrash`，所以一个文件都不会被动：
+            // 真正的 PROTECTED 回执只有在按下删除后才有，而按下删除需要合成点击 —— 本项目禁止。
+            if ProcessInfo.processInfo.environment["MM_FAILURE_FIXTURE"] == "protected",
+               model.failures.isEmpty {
+                model.failures = Self.refusalPreview()
+            }
         }
         .task(id: toastSeconds) {
             guard toastSeconds > 0 else { return }
@@ -870,6 +877,19 @@ enum CleanerFilter: String, CaseIterable, Identifiable {
         case .logs: scope == .logs
         case .temp: scope == .temp
         }
+    }
+}
+
+/// 拒绝回执的截图预演（`MM_FAILURE_FIXTURE=protected`）。
+/// 内容全部由 `DeletionGuard` 现场算出来，不手写字符串 —— 截图要证明的是"用户真按下
+/// 删除时看到的那几句"，抄一份措辞就等于给设计稿配了个假道具。
+extension CleanerView {
+    static func refusalPreview() -> [TrashFailure] {
+        let home = NSHomeDirectory()
+        return [home + "/Desktop", home + "/Library/Keychains/login.keychain-db",
+                "/System/Library/CoreServices/Finder.app"]
+            .compactMap { DeletionGuard.rejection(for: $0) }
+            .map { TrashFailure(path: $0.path, message: $0.reason, code: "PROTECTED") }
     }
 }
 
