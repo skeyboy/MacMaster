@@ -107,7 +107,7 @@ MainActor 被逐条回填 + 列表重渲染占满，合并计时器排在同一�
 带删除动作的入口不能因为一个拼错的环境变量就指向真实用户目录。
 
 对照截图：`docs/verification/p1.5-trash/uninstaller-trash-notice.jpg`（夹具态，卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）
-vs `docs/design-system/screens/03c-uninstaller-trash.png`（设计稿 03c / 03c-2 / 03c-3）。
+vs `docs/design-system/screens/mmuninstaller/03c-uninstaller-trash.png`（设计稿 03c / 03c-2 / 03c-3）。
 
 夹具本身入库为 `Scripts/trash-fixture.sh`（只在 `/tmp` 下造文件，可重复跑）；
 窗口 id 查询入库为 `Scripts/window-ids.swift`。

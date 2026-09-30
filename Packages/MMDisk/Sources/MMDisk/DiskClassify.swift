@@ -24,7 +24,7 @@ enum NodeCategory: String, CaseIterable, Sendable {
         }
     }
 
-    /// 取自设计稿 docs/design-system/screens/04-disk.html 的图例色。
+    /// 取自设计稿 docs/design-system/screens/mmdisk/04-disk.html 的图例色。
     var color: Color {
         switch self {
         case .developer: return TreemapPalette.hex(0xAF52DE)

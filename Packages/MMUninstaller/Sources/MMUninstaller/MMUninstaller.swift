@@ -19,7 +19,7 @@ public struct UninstallerModule: ModuleRegistrable {
 
 // MARK: - 页面
 //
-// 视觉对照设计稿 `docs/design-system/screens/03-uninstaller.html`：
+// 视觉对照设计稿 `docs/design-system/screens/mmuninstaller/03-uninstaller.html`：
 // 左侧应用列表 + 右侧详情（信息卡 / 键值对 / 将一并移除的残留），底部操作栏收口。
 // 颜色、间距、圆角、行高一律取 MM* 令牌，不写死数值。
 

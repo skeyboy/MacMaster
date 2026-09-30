@@ -86,7 +86,7 @@
   是清理页失败回执里的三条 PROTECTED（桌面目录本身 / 钥匙串 / `/System`），
   琥珀色盾牌 + 原因 + 错误码三列齐全。截图来自钩子 `MM_FAILURE_FIXTURE=protected`，
   它只往展示状态里写记录、不调 `moveToTrash`，内容全部由 `DeletionGuard` 现场算出，
-  不是手写的假文案。设计稿同步更新：`docs/design-system/screens/05-states.html`
+  不是手写的假文案。设计稿同步更新：`docs/design-system/screens/mmui/05-states.html`
   的"部分失败"一栏把原来的假想码 `KEPT` 换成真实的 `PROTECTED`。
 - **诚实缺口**：没有"真按下删除后拿到 PROTECTED"的实机照片。要走到那一步需要合成点击，
   本项目的验证红线禁止（合成事件会逃逸到用户当时的前台应用）。上面那张预演图覆盖的是

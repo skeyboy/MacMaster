@@ -415,7 +415,7 @@ npm / pip），每条报三件独立事实：**装没装**（PATH 里 stat，不
 
 ## 本轮收口：07 / 08 / 09 三张设计稿 + 监控页降级语义修正
 
-**三张稿**：`docs/design-system/screens/07-monitor.html`（A 正常态 / B 折叠线以下 / C 采样中首帧 /
+**三张稿**：`docs/design-system/screens/mmmonitor/07-monitor.html`（A 正常态 / B 折叠线以下 / C 采样中首帧 /
 D 降级态合集，含新增 D3a）、`08-optimizer.html`（08 首屏 / 08b 结果 / 08c 扫描中+浏览器 /
 08d 系统状态+回执 / **08e 开发工具页签**）、`09-settings.html`（09a 通用 / 09b 监控 / 09c 清理+台账 /
 09d 关于 / 09e 清空确认态）。逐元素对照与归属判定记在 `docs/analysis/fidelity-monitor.md`。

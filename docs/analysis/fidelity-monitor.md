@@ -22,8 +22,8 @@
 
 | 事项 | 值 |
 | --- | --- |
-| 设计稿 | `docs/design-system/screens/07-monitor.html`（4 个 artboard：A 正常态首屏 / B 折叠线以下 / C 采样中首帧 / D 降级态合集） |
-| 渲染 | `cd docs/design-system && ./render.sh screens/07-monitor.html 1160 4600` → `screens/07-monitor.png`（2320×9200，2x）。**上一版按 4210 渲染**；D 稿新增 D3a 一格后按 4600 重出，避免最后一格被裁 |
+| 设计稿 | `docs/design-system/screens/mmmonitor/07-monitor.html`（4 个 artboard：A 正常态首屏 / B 折叠线以下 / C 采样中首帧 / D 降级态合集） |
+| 渲染 | `cd docs/design-system && ./render.sh screens/mmmonitor/07-monitor.html 1160 4600` → `screens/mmmonitor/07-monitor.png`（2320×9200，2x）。**上一版按 4210 渲染**；D 稿新增 D3a 一格后按 4600 重出，避免最后一格被裁 |
 | 实机 | `build/MacMaster.app`（**未重新构建**），`MM_OPEN_MODULE=monitor` 启动，按 **pid** 匹配 windowid，`screencapture -o -x -l<id>` → `/tmp/mmshot/70-monitor-real.png`（1100×700 @1x，深色模式，Mac mini M4 / 10 核 / 24 GB，2026-09-30 03:16） |
 | 像素取证 | CoreGraphics 逐行/逐列取色（`/tmp/vscan.swift`、`/tmp/hscan.swift`、`/tmp/cropimg2.swift`），所有"实机"数字都来自这条路径 |
 | 可用钩子 | **只有 `MM_OPEN_MODULE=monitor`**（`Sources/MacMaster/MainWindow.swift`）。`grep ProcessInfo.processInfo.environment Packages/MMMonitor/` → **0 命中**，即本模块**没有任何内容/状态钩子**，滚动、骨架、失败分支都无法在实机上构造 |
