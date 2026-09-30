@@ -69,7 +69,7 @@ public final class FileTrashService: ObservableObject {
     }
 
     public func undoLastOperation() async -> UndoResult {
-        guard let lastOp = trashHistory.first else {
+        guard let lastOp = trashHistory.first(where: \.canUndo) else {
             return UndoResult(restoredCount: 0, failures: [
                 TrashFailure(path: "—", message: "没有可撤回的操作")
             ])
@@ -85,10 +85,16 @@ public final class FileTrashService: ObservableObject {
         }
 
         let operation = trashHistory[opIndex]
+        guard operation.canUndo else {
+            return UndoResult(restoredCount: 0, failures: [
+                TrashFailure(path: "—", message: "没有仍在废纸篓中、可以恢复的文件")
+            ])
+        }
         var restoredCount = 0
         var failures: [TrashFailure] = []
 
-        for record in operation.files {
+        var restoredIndices = Set<Int>()
+        for (index, record) in operation.files.enumerated() {
             if let trashPath = record.trashPath {
                 let trashURL = URL(fileURLWithPath: trashPath)
                 let originalURL = URL(fileURLWithPath: record.originalPath)
@@ -97,15 +103,14 @@ public final class FileTrashService: ObservableObject {
                 do {
                     try FileManager.default.moveItem(at: trashURL, to: originalURL)
                     restoredCount += 1
+                    restoredIndices.insert(index)
                 } catch {
                     failures.append(TrashFailure(path: record.originalPath, error: error))
                 }
-            } else {
-                failures.append(TrashFailure(path: record.originalPath, message: "无废纸篓路径，无法恢复"))
             }
         }
 
-        record(.replaced(index: opIndex, with: operation.markedUndone()))
+        record(.replaced(index: opIndex, with: operation.recordingRestored(restoredIndices)))
         return UndoResult(restoredCount: restoredCount, failures: failures)
     }
 
@@ -167,7 +172,7 @@ public struct TrashRecord: Codable {
 public struct TrashOperation: Identifiable, Codable {
     public let id: UUID
     public let timestamp: Date
-    public let files: [TrashRecord]
+    public private(set) var files: [TrashRecord]
     public let failures: [TrashFailure]
     public var isUndone: Bool
 
@@ -198,6 +203,13 @@ public struct TrashOperation: Identifiable, Codable {
     func markedUndone() -> TrashOperation {
         var copy = self
         copy.isUndone = true
+        return copy
+    }
+
+    func recordingRestored(_ indices: Set<Int>) -> TrashOperation {
+        var copy = self
+        for index in indices { copy.files[index].trashPath = nil }
+        copy.isUndone = copy.files.allSatisfy { $0.trashPath == nil }
         return copy
     }
 }

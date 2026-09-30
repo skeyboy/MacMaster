@@ -116,6 +116,30 @@ final class OrphanScannerTests: XCTestCase {
         XCTAssertEqual(found.first?.category, .preference)
     }
 
+    func testPackageReceiptSuppressesMatchingOrphanWithoutBecomingCandidate() throws {
+        try fixture.libraryFolder("Caches/com.vendor.PaidApp")
+        try fixture.libraryFolder("Caches/com.ghostwriter.Gone")
+        let receipts = fixture.root.appendingPathComponent("receipts", isDirectory: true)
+        try fixture.writePlist(receipts.appendingPathComponent("com.vendor.PaidApp.plist").path,
+                               ["PackageIdentifier": "com.vendor.PaidApp"])
+        let options = ResidualScanOptions(home: fixture.homePath, receiptsRoot: receipts.path)
+
+        let found = OrphanScanner.scan(installed: [myApp], options: options)
+        XCTAssertEqual(found.map(\.name), ["com.ghostwriter.Gone"])
+        XCTAssertFalse(found.contains { $0.path.hasPrefix(receipts.path) })
+    }
+
+    func testUnreadableOrInvalidReceiptsDoNotClaimOwnership() throws {
+        try fixture.libraryFolder("Caches/com.vendor.PaidApp")
+        let receipts = fixture.root.appendingPathComponent("receipts", isDirectory: true)
+        try fixture.writeFile(receipts.appendingPathComponent("broken.plist").path, contents: "not a plist")
+        let options = ResidualScanOptions(home: fixture.homePath, receiptsRoot: receipts.path)
+
+        XCTAssertEqual(OrphanScanner.scan(installed: [myApp], options: options).map(\.name),
+                       ["com.vendor.PaidApp"])
+        XCTAssertEqual(ReceiptOwnerIndex.identifiers(at: receipts.path), [])
+    }
+
     /// 隐藏文件与 .DS_Store 之类的杂项不参与判断。
     func testHiddenAndJunkEntriesIgnored() throws {
         try fixture.writeFile(fixture.homePath + "/Library/Caches/.DS_Store")

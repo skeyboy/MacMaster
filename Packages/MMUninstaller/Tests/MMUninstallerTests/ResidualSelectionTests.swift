@@ -120,6 +120,14 @@ final class ResidualSelectionTests: XCTestCase {
         XCTAssertEqual(UninstallSelection.selectedSize(items: items, selectedIDs: []), 0)
     }
 
+    func testOnlySuccessfullyMovedRootsClearResidualRows() {
+        let moved = Set(["/tmp/app/Container"])
+        XCTAssertTrue(UninstallSelection.wasMoved("/tmp/app/Container/Data/Caches", under: moved))
+        XCTAssertTrue(UninstallSelection.wasMoved("/tmp/app/Container", under: moved))
+        XCTAssertFalse(UninstallSelection.wasMoved("/tmp/app/Container2", under: moved))
+        XCTAssertFalse(UninstallSelection.wasMoved("/tmp/app/Failed", under: moved))
+    }
+
     /// 去重主键必须对"存在"和"已不存在"两种路径给出同一个写法。
     /// `URL.resolvingSymlinksInPath()` 只在目标存在时把 `/private/var` 折成 `/var`，
     /// 于是残留引擎最核心的一个场景（app 已删、启动项还指着它的可执行文件）会静默失配。

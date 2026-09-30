@@ -472,7 +472,7 @@ public struct CleanerView: View {
             Text("类别").frame(maxWidth: .infinity, alignment: .leading)
             Text("大小").frame(minWidth: 72, alignment: .trailing)
             Text("风险").frame(width: 44, alignment: .trailing)
-            Text("").frame(width: 52)
+            Text("操作").frame(width: 52)
         }
         .font(.caption)
         .foregroundStyle(MMColor.secondaryLabel)

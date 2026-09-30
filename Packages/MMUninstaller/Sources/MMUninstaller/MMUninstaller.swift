@@ -161,7 +161,7 @@ public struct UninstallerView: View {
         }
         .onChange(of: model.lastResult?.operation.id) { _, newValue in
             guard newValue != nil else { return }
-            toastSeconds = 15
+            toastSeconds = (model.lastResult?.successCount ?? 0) > 0 ? 15 : 0
         }
         .sheet(isPresented: $showConfirm) { confirmSheet }
         .sheet(isPresented: $showOrphanConfirm) { orphanConfirmSheet }
@@ -187,11 +187,11 @@ public struct UninstallerView: View {
             startOrphanScanIfNeeded()
         }
         .overlay(alignment: .bottom) {
-            if model.lastResult != nil, toastSeconds > 0 {
+            if let result = model.lastResult, result.successCount > 0, toastSeconds > 0 {
                 MMUndoToast(
                     message: (model.lastOperationTrashedApps ? "已卸载 " : "已移入废纸篓 ")
-                        + "\(model.lastResult?.successCount ?? 0) 项",
-                    detail: MMFormat.bytes(model.lastResult?.totalSize),
+                        + "\(result.successCount) 项",
+                    detail: MMFormat.bytes(result.totalSize),
                     secondsRemaining: toastSeconds,
                     onUndo: { Task { await model.undoLast() } },
                     onRevealTrash: { MMReveal.open(NSHomeDirectory() + "/.Trash") }

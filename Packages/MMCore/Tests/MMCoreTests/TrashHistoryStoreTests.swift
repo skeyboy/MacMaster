@@ -97,6 +97,36 @@ final class TrashHistoryStoreTests: XCTestCase {
         XCTAssertEqual(relaunched.trashHistory.first?.isUndone, true)
     }
 
+    func testPartialUndoKeepsFailedFileAvailableForRetryAcrossRelaunch() async throws {
+        let home = root.appendingPathComponent("home")
+        let trash = root.appendingPathComponent("trash")
+        let conflictingOriginal = try touch("a.txt", in: home)
+        let trashedA = try touch("a.txt", in: trash)
+        let trashedB = try touch("b.txt", in: trash)
+        let saved = operation(files: [
+            TrashRecord(originalPath: conflictingOriginal.path, trashPath: trashedA.path, size: 10),
+            TrashRecord(originalPath: home.appendingPathComponent("b.txt").path,
+                        trashPath: trashedB.path, size: 10),
+        ])
+        store.save([saved])
+
+        let service = FileTrashService(store: store)
+        let first = await service.undo(operationID: saved.id)
+        XCTAssertEqual(first.restoredCount, 1)
+        XCTAssertEqual(first.failures.map(\.path), [conflictingOriginal.path])
+        XCTAssertFalse(service.trashHistory[0].isUndone)
+        XCTAssertTrue(service.trashHistory[0].canUndo)
+        XCTAssertNil(service.trashHistory[0].files[1].trashPath)
+
+        try FileManager.default.removeItem(at: conflictingOriginal)
+        let relaunched = FileTrashService(store: store)
+        let second = await relaunched.undo(operationID: saved.id)
+        XCTAssertEqual(second.restoredCount, 1)
+        XCTAssertTrue(second.failures.isEmpty)
+        XCTAssertTrue(relaunched.trashHistory[0].isUndone)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: conflictingOriginal.path))
+    }
+
     /// 废纸篓被倒空过的记录要留在台账里，只是不再提供撤回——「最近操作」是历史，
     /// 把它从名单里抹掉等于告诉用户"这次清理没发生过"。
     func testUnrestorableRecordStaysInHistoryWithoutAnUndoPath() throws {
@@ -106,6 +136,31 @@ final class TrashHistoryStoreTests: XCTestCase {
         let loaded = FileTrashService(store: store).trashHistory
         XCTAssertEqual(loaded.count, 1)
         XCTAssertFalse(loaded.first!.canUndo)
+    }
+
+    func testUndoWithoutRestorableFilesReportsWhyNothingMoved() async throws {
+        let saved = operation(files: [TrashRecord(originalPath: root.appendingPathComponent("home/a.txt").path,
+                                                  trashPath: root.appendingPathComponent("trash/a.txt").path)])
+        store.save([saved])
+        let result = await FileTrashService(store: store).undo(operationID: saved.id)
+        XCTAssertEqual(result.restoredCount, 0)
+        XCTAssertEqual(result.failures.count, 1)
+    }
+
+    func testUndoLastSkipsNewerOperationWithNoMovedFiles() async throws {
+        let original = root.appendingPathComponent("home/notes.txt")
+        let trashed = try touch("notes.txt", in: root.appendingPathComponent("trash"))
+        let restorable = operation(files: [TrashRecord(originalPath: original.path,
+                                                        trashPath: trashed.path)])
+        let failedOnly = operation(files: [])
+        store.save([failedOnly, restorable])
+
+        let service = FileTrashService(store: store)
+        let result = await service.undoLastOperation()
+
+        XCTAssertEqual(result.restoredCount, 1)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+        XCTAssertTrue(service.trashHistory[1].isUndone)
     }
 
     /// 已经撤回过的记录要留在名单里（设计稿要的是"长期可查"），即使原文件又没了。

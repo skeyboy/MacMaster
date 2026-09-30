@@ -416,9 +416,9 @@ final class DuplicateScanModel: ObservableObject {
     func moveToTrash() async {
         let paths = Array(selection).map(\.path)
         guard !paths.isEmpty else { return }
-        let selectedSnapshot = selection
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         trashFailures = result.operation.failures
+        let moved = Set(result.operation.files.map(\.originalPath))
         if result.operation.fileCount > 0 {
             toast = UndoToast(
                 message: "已移到废纸篓 · \(result.operation.fileCount) 个文件",
@@ -426,12 +426,16 @@ final class DuplicateScanModel: ObservableObject {
                 operationID: result.operation.id
             )
         }
-        groups = groups.compactMap { group in
-            let kept = group.files.filter { !selectedSnapshot.contains($0.path) }
+        groups = Self.remainingGroups(groups, moved: moved)
+        selection = Set(selection.filter { !moved.contains($0.path) })
+    }
+
+    static func remainingGroups(_ groups: [DuplicateGroup], moved: Set<String>) -> [DuplicateGroup] {
+        groups.compactMap { group in
+            let kept = group.files.filter { !moved.contains($0.path.path) }
             guard kept.count > 1 else { return nil }
             return DuplicateGroup(hash: group.hash, size: group.size, files: kept)
         }
-        selection = []
     }
 
     func undo(_ operationID: UUID) async {

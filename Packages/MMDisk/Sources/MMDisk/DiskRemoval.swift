@@ -111,6 +111,10 @@ enum DiskRemoval {
         return capacity > 0 ? min(sum, capacity) : sum
     }
 
+    static func wasMoved(_ path: String, under roots: Set<String>) -> Bool {
+        roots.contains { root in path == root || isInside(path, container: root) }
+    }
+
     private static func depth(_ path: String) -> Int {
         path.reduce(0) { $1 == "/" ? $0 + 1 : $0 }
     }

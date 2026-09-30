@@ -1,10 +1,12 @@
 # 功能演化路线图：参考开源项目 → MacMaster
 
 > 参考源：`docs/github-references/{Pearcleaner,Mole,stats,OverSight,disktree}`、`docs/lemon-cleaner`。
-> 许可：Pearcleaner / Mole / OverSight / Lemon 均为 **GPLv3**（Pearcleaner 另带 Commons Clause，禁止商业售卖）→ **只能借鉴思路自行实现，不得复制代码**；stats 与 disktree 为 **MIT**，可引用片段（需署名）。
+> 许可：本地 `Pearcleaner/LICENSE.md` 为 **Apache 2.0 + Commons Clause**（禁止销售其软件或派生产品）；Mole / OverSight / Lemon Cleaner 主模块为 **GPLv3**，Lemon Daemon 单独为 **GPLv2**；stats 与 disktree 为 **MIT**。本项目对这些仓库只借鉴技术思路并自行实现；若将来复用代码，必须逐文件核对许可与署名要求。
 > 表中"已复核"列指我是否亲自打开过对应 MacMaster 文件确认现状。
 
-## 现状盘点（先说结论）
+## 现状盘点（历史基线）
+
+下表是路线图最初写作时的缺口快照，不代表当前代码状态。当前模块顺序、完成项与验收结果见 [模块优先级](module-priority.md)。
 
 | 模块 | 现状 | 复核 |
 |---|---|---|
@@ -129,6 +131,8 @@
 3. ✅ **disktree #7 键盘通路收尾**：方向键/回门/空格/Esc 已通，filter 也已改成全树口径（见「P1.7」节）。
 4. ✅ **P3.1 麦克风/摄像头占用指示**：已落地（见「P3.1」节）。本机无摄像头/无输入设备，
    正分支（真的有人在采集）仍需在带摄像头的机器上复验。
+5. ✅ **P1.8 安装收据只读归属**：孤儿反查读取 `PackageIdentifier` 作为排除误报的辅助线索；
+   收据目录不进残留候选、不进入删除路径。注入 `/tmp` 假收据验证，见 `fidelity-uninstaller.md` §7。
 
 ## P1.4 落地：卸载后遗症（孤儿残留反向扫描）
 

@@ -276,13 +276,17 @@ public struct ResidualScanOptions: Sendable {
     public var home: String
     /// 系统域根（真实机型是 "/"，即 `/Library` 的父目录）。测试注入假目录即可完整覆盖系统域。
     public var systemRoot: String
+    /// 仅作为孤儿归属线索读取，不进入残留候选或删除清单。
+    public var receiptsRoot: String?
     public var sensitivity: ResidualSensitivity
 
-    public init(home: String? = nil, systemRoot: String? = nil, sensitivity: ResidualSensitivity = .strict) {
+    public init(home: String? = nil, systemRoot: String? = nil, receiptsRoot: String? = nil,
+                sensitivity: ResidualSensitivity = .strict) {
         self.home = Self.normalizeHome(home ?? NSHomeDirectory())
         // 默认不扫系统域：真实机型的 /Library 需要 root 才读得动，
         // 而启动项那一路已在 `LaunchServiceScanner` 显式覆盖两个域。
         self.systemRoot = systemRoot ?? ""
+        self.receiptsRoot = receiptsRoot
         self.sensitivity = sensitivity
     }
 

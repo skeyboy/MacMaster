@@ -10,7 +10,7 @@
 .cap b{color:var(--c-label-secondary);font-weight:600}
 /* —— 以下结构样式逐条对齐 MMMonitor.swift 的实现 —— */
 /* 页面卡片：MMMonitor 私有 card() = underPage 底 + 12pt 内边距 + 8 圆角 + separator 描边，
-   卡头 = 16pt 次级色图标 + headline 标题，卡内元素间距 8pt */
+   卡头 = 16pt 次级色图标 + headline 标题，卡内元素间距 8pt；SwiftUI 复用 MMCard(.underPage) */
 .mcard{background:var(--c-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
        padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)}
 .mcard .hd{display:flex;align-items:center;gap:var(--sp-2);line-height:16px}
@@ -234,7 +234,7 @@ MMMonitor 没有任何内容钩子，主窗口固定 1100×700，本代理不发
           <div class="kvcol">
             <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
             <div class="mrow"><dt>活动</dt><dd>4.5 GB</dd></div>
-            <div class="mrow"><dt>联动保留(wired)</dt><dd>3.0 GB</dd></div>
+            <div class="mrow"><dt>联动保留</dt><dd>3.0 GB</dd></div>
             <div class="mrow"><dt>压缩</dt><dd>13.2 GB</dd></div>
             <div class="mrow"><dt>Swap</dt><dd>26.9 GB / 27.9 GB</dd></div>
           </div>
@@ -379,9 +379,8 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
 与采样首帧都会走到这里。<b>已改</b>：按 <code>snapshot.hasSampled</code>（<code>sampledAt != .distantPast</code>）
 分流，未采样走 D3a 那句"尚未完成首次采样"。
 <b>D3b Swap 单行降级</b>（<code>swapAvailable == false</code>）：只有 Swap 行显示 "—"，代码不给这行配原因。
-<b>D4 进程列表读取失败</b>（<code>proc_listallpids</code> 返回 ≤0 或结果为空）：MMEmptyState，
-标题"进程列表读取失败"。detail 原本传 nil（既没说原因也没说下一步）——<b>已改</b>为一句不带猜测的
-"枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。"；两条失败路径在代码里没区分，
+<b>D4 进程列表读取失败</b>（<code>proc_listallpids</code> 返回 ≤0）：MMEmptyState，
+标题"进程列表读取失败"，提示刷新。枚举成功但无可读取的进程详情是独立空态，
 所以文案不指名哪一个。<b>仍未做：</b>把失败原因读出来分档上报（需要 <code>topProcesses()</code> 返回结果枚举）。
 <b>D5 进程枚举返回中</b>：4 条 <code>MMSkeletonRow</code>（15pt 方块 + 120pt 短条 + 56pt 短条，行高 44pt），
 <b>骨架期一个数字都不给</b>——它和 D4 是两种状态："还在等"与"等砸了"，都不许画成空列表。
@@ -467,7 +466,7 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
               <div class="kvcol">
                 <div class="mrow"><dt>已用</dt><dd>20.7 GB / 25.8 GB</dd></div>
                 <div class="mrow"><dt>活动</dt><dd>4.5 GB</dd></div>
-                <div class="mrow"><dt>联动保留(wired)</dt><dd>3.0 GB</dd></div>
+                <div class="mrow"><dt>联动保留</dt><dd>3.0 GB</dd></div>
                 <div class="mrow"><dt>压缩</dt><dd>13.2 GB</dd></div>
                 <div class="mrow"><dt>Swap</dt><dd>—</dd></div>
               </div>
@@ -485,7 +484,7 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
               <div class="mempty">
                 <span class="glyph"><svg class="i"><use href="#i-warn"></use></svg></span>
                 <b>进程列表读取失败</b>
-                <span class="t-sub" style="max-width:340px">枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。</span>
+                <span class="t-sub" style="max-width:340px">无法枚举系统进程。点卡片上方的刷新按钮重试。</span>
               </div>
             </section>
             <div class="note">detail 过去传的是 nil，卡里只有图标 + 一行标题，"为什么失败"和"下一步做什么"

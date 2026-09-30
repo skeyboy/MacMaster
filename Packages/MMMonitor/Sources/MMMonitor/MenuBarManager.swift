@@ -24,6 +24,7 @@ public final class MenuBarManager: ObservableObject {
     /// 采样循环跑在后台；主线程只接收快照。disable() 必须取消它（项目既有约定）。
     private var samplingTask: Task<Void, Never>?
     private var samplingInterval: TimeInterval?
+    private var fixtureFrozen = false
 
     private let settings = AppSettings.shared
     private var settingsObservation: AnyCancellable?
@@ -141,6 +142,7 @@ public final class MenuBarManager: ObservableObject {
     }
 
     private func apply(_ snapshot: MetricSnapshot) {
+        guard !fixtureFrozen else { return }
         self.snapshot = snapshot
         updateStatusItemTitle()
         evaluateThresholdNotifications(at: snapshot.sampledAt == .distantPast ? Date() : snapshot.sampledAt)
@@ -150,6 +152,8 @@ public final class MenuBarManager: ObservableObject {
     /// 只替换展示数据、不启动采样循环，整页定格在夹具值上便于逐档核对。
     /// 生产路径永不调用——采样循环走 `apply(_:)`。
     func applyFixture(_ snapshot: MetricSnapshot) {
+        fixtureFrozen = true
+        stopMonitoring()
         self.snapshot = snapshot
         updateStatusItemTitle()
     }

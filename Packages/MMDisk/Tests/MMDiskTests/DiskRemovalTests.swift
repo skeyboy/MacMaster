@@ -83,6 +83,14 @@ final class DiskRemovalTests: XCTestCase {
         XCTAssertEqual(plan.absorbed, 1)
     }
 
+    func testOnlySuccessfulMovedRootsClearMarks() {
+        let moved = Set([root! + "/Projects"])
+        XCTAssertTrue(DiskRemoval.wasMoved(root! + "/Projects", under: moved))
+        XCTAssertTrue(DiskRemoval.wasMoved(root! + "/Projects/build", under: moved))
+        XCTAssertFalse(DiskRemoval.wasMoved(root! + "/Projects-old", under: moved))
+        XCTAssertFalse(DiskRemoval.wasMoved(root! + "/Failed", under: moved))
+    }
+
     func testUnrelatedMarksAreNotAbsorbed() {
         let a = root! + "/a"
         let b = root! + "/b"

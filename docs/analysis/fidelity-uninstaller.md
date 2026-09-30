@@ -212,7 +212,11 @@
 
 ## 7. 关于 #46 P1.8（/var/db/receipts 只读归属接孤儿扫描）
 
-本次**仅审计、未改动**任何 receipts 相关代码（按协调计划等卸载路收工）。现状已核对：
-`ResidualCatalog` 把 `/private/var/db/receipts`（安装包账本）列为**红线条目、不进默认清单**
-（`ResidualScanner.swift:171-173` 注释），即 receipts 目录**当前不被读取/不被当残留**，
-与 P1.8"只读归属"方向一致；但"receipts 归属接入孤儿扫描"本身尚未落地，不属本审计范围，留待 P1.8。
+原审计时**仅审计、未改动** receipts 相关代码。后续 P1.8 已落地：`OrphanScanner`
+经 `ReceiptOwnerIndex` 只读收据 plist 的 `PackageIdentifier`，把它并入归属索引，减少仍有安装收据的
+缓存被误报为孤儿。`/private/var/db/receipts` 仍是**删除候选红线**：不进 `ResidualCatalog`，
+不展示为残留，也不传给 `FileTrashService`。收据可能在卸载后保留，所以它只能压低误报，
+不能证明应用仍已安装；读取失败时退回原判定，不捏造归属。
+
+单测注入 `/tmp` 下的假收据目录，覆盖匹配收据、损坏 plist 和候选清单不包含收据路径；
+真实运行才传 `/private/var/db/receipts`，`MM_ORPHAN_FIXTURE_HOME` 夹具运行不读真实收据。

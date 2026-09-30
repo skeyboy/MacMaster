@@ -807,11 +807,11 @@ public struct MMItemRow<Accessory: View>: View {
                     .lineLimit(1).truncationMode(.middle)
             }
             Spacer(minLength: MMGap.sm)
-            if let risk { MMBadge(risk: risk) }
-            accessory
             Text(value).font(.callout.monospaced()).monospacedDigit()
                 .foregroundStyle(isSelected ? MMColor.label : MMColor.secondaryLabel)
                 .frame(minWidth: 72, alignment: .trailing)
+            if let risk { MMBadge(risk: risk) }
+            accessory
         }
         .padding(.horizontal, MMGap.md)
         .frame(height: MMMetric.rowRegular)

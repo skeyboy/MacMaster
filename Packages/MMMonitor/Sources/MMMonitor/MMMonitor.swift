@@ -19,7 +19,7 @@ public struct MonitorModule: ModuleRegistrable {
 public struct MonitorView: View {
     @StateObject private var menuBar = MenuBarManager.shared
     @State private var processes: [MonitorProcess] = []
-    @State private var processLoadFailed = false
+    @State private var processState: ProcessLoadState = .loading
 
     public init() {}
 
@@ -62,9 +62,13 @@ public struct MonitorView: View {
             if hold {
                 // 冻结在 .empty 首帧：不 enable（不采样）、不 loadProcesses，
                 // 页面停在"测量中 + 骨架 + 内存尚未采样"的折叠线以上态，可被截图。
+                menuBar.applyFixture(.empty)
             } else if let snapshot = fixture.snapshot {
                 menuBar.applyFixture(snapshot)
-                if let procs = fixture.processes { processes = procs }
+                if let procs = fixture.processes {
+                    processes = procs
+                    processState = procs.isEmpty ? .empty : .loaded
+                }
                 // 不 enable：避免后台采样循环把夹具快照覆盖掉，保持截图稳定。
             } else {
                 if !menuBar.isEnabled { menuBar.enable() }
@@ -124,6 +128,11 @@ public struct MonitorView: View {
             case .ok:
                 MMKeyRow("读取", rateText(menuBar.snapshot.diskReadBytesPerSecond), monospaced: true)
                 MMKeyRow("写入", rateText(menuBar.snapshot.diskWriteBytesPerSecond), monospaced: true)
+                if menuBar.snapshot.diskReadBytesPerSecond == nil || menuBar.snapshot.diskWriteBytesPerSecond == nil {
+                    Text("等待下一次采样计算速率")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                }
             case .unavailable(let reason):
                 MMKeyRow("读取", "—", monospaced: true)
                 MMKeyRow("写入", "—", monospaced: true)
@@ -142,7 +151,7 @@ public struct MonitorView: View {
             if let memory = menuBar.snapshot.memory {
                 MMKeyRow("已用", "\(MMFormat.bytes(memory.usedBytes)) / \(MMFormat.bytes(memory.totalBytes))")
                 MMKeyRow("活动", MMFormat.bytes(memory.activeBytes))
-                MMKeyRow("联动保留(wired)", MMFormat.bytes(memory.wiredBytes))
+                MMKeyRow("联动保留", MMFormat.bytes(memory.wiredBytes))
                 // 口径：compressor_page_count × 页大小 = 压缩器池的物理占用（与"已用"同口径）。
                 MMKeyRow("压缩", MMFormat.bytes(memory.compressedBytes))
                 MMKeyRow("Swap", memory.swapAvailable
@@ -172,13 +181,14 @@ public struct MonitorView: View {
                 }
                 Spacer()
             }
-            if processes.isEmpty && !processLoadFailed {
+            if processState == .loading {
                 ForEach(0..<4, id: \.self) { _ in MMSkeletonRow() }
-            } else if processLoadFailed {
-                // 不猜原因：proc_listallpids 返回 0 和"每个 proc_pidinfo 都失败"都会走到这里，
-                // 代码没有把两者分开。说清楚下一步做什么就够了。
+            } else if processState == .failed {
                 MMEmptyState(systemImage: "exclamationmark.triangle", title: "进程列表读取失败",
-                             detail: "枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。")
+                             detail: "无法枚举系统进程。点卡片上方的刷新按钮重试。")
+            } else if processState == .empty {
+                MMEmptyState(systemImage: "list.bullet", title: "没有可显示的进程",
+                             detail: "枚举已完成，但没有取得可读取的进程详情。可刷新重试。")
             } else {
                 ForEach(processes.prefix(10)) { proc in
                     HStack(spacing: MMGap.md) {
@@ -206,12 +216,12 @@ public struct MonitorView: View {
 
     /// 进程枚举是同步系统调用，放到 detached task，别压主线程（采样同约定）。
     private func loadProcesses() {
-        processLoadFailed = false
+        processState = .loading
         Task.detached(priority: .utility) {
-            let procs = ProcessReader.topProcesses()
+            let result = ProcessReader.topProcesses()
             await MainActor.run {
-                processes = procs
-                processLoadFailed = procs.isEmpty
+                processes = result.processes
+                processState = result.state
             }
         }
     }
@@ -223,23 +233,18 @@ public struct MonitorView: View {
         systemImage: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: MMGap.sm) {
-            HStack(spacing: MMGap.sm) {
-                Image(systemName: systemImage)
-                    .font(.system(size: MMMetric.iconSmall))
-                    .foregroundStyle(MMColor.secondaryLabel)
-                Text(title).font(.headline)
-                Spacer()
+        MMCard(padding: MMGap.md, style: .underPage) {
+            VStack(alignment: .leading, spacing: MMGap.sm) {
+                HStack(spacing: MMGap.sm) {
+                    Image(systemName: systemImage)
+                        .font(.system(size: MMMetric.iconSmall))
+                        .foregroundStyle(MMColor.secondaryLabel)
+                    Text(title).font(.headline)
+                    Spacer()
+                }
+                content()
             }
-            content()
         }
-        .padding(MMGap.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous)
-                .stroke(MMColor.separator)
-        )
     }
 }
 
@@ -273,10 +278,10 @@ public struct MonitorProcess: Identifiable, Equatable, Sendable {
 
 /// proc_pidinfo 枚举收进独立类型，视图不再直接做系统调用。
 enum ProcessReader {
-    static func topProcesses(limit: Int = 10) -> [MonitorProcess] {
+    static func topProcesses(limit: Int = 10) -> ProcessLoadResult {
         var pids = [pid_t](repeating: 0, count: 2048)
         let count = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        guard count > 0 else { return [] }
+        guard count > 0 else { return ProcessLoadResult(state: .failed, processes: []) }
 
         var procs: [MonitorProcess] = []
         for i in 0..<Int(count) {
@@ -309,6 +314,16 @@ enum ProcessReader {
             ))
         }
 
-        return Array(procs.sorted { $0.cpuSeconds > $1.cpuSeconds }.prefix(limit))
+        let selected = Array(procs.sorted { $0.cpuSeconds > $1.cpuSeconds }.prefix(limit))
+        return ProcessLoadResult(state: selected.isEmpty ? .empty : .loaded, processes: selected)
     }
+}
+
+enum ProcessLoadState: Equatable {
+    case loading, loaded, empty, failed
+}
+
+struct ProcessLoadResult {
+    let state: ProcessLoadState
+    let processes: [MonitorProcess]
 }

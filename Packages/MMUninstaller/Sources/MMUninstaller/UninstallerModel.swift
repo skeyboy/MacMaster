@@ -58,6 +58,11 @@ public struct UninstallCandidate: Identifiable, Sendable {
 
 public enum UninstallSelection {
 
+    /// 删除根可能是容器父目录；成功移走父目录后，子项也已不存在。
+    static func wasMoved(_ path: String, under roots: Set<String>) -> Bool {
+        roots.contains { root in path == root || path.hasPrefix(root + "/") }
+    }
+
     /// 默认勾选只能来自 `.safe`：谨慎与只读都必须由用户明确点选。
     public static func defaultSelectedIDs(_ items: [ResidualItem]) -> Set<String> {
         Set(items.filter { $0.risk.isDefaultSelected }.map(\.id))
@@ -317,9 +322,19 @@ public final class UninstallerModel: ObservableObject {
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         lastResult = result
         failures = result.operation.failures
-        apps.removeAll { $0.id == appID }
-        selectedAppID = nil
-        selectedResidualIDs = []
+        let moved = Set(result.operation.files.map(\.originalPath))
+        if moved.contains(appID) {
+            apps.removeAll { $0.id == appID }
+            selectedAppID = nil
+            selectedResidualIDs = []
+        } else if let index = apps.firstIndex(where: { $0.id == appID }) {
+            apps[index].residuals.removeAll { UninstallSelection.wasMoved($0.path, under: moved) }
+            apps[index].residualSize = ResidualScanReport(items: apps[index].residuals,
+                                                           inaccessiblePaths: []).defaultSelectableSize
+            selectedResidualIDs = Set(selectedResidualIDs.filter {
+                !UninstallSelection.wasMoved($0, under: moved)
+            })
+        }
     }
 
     public func undoLast() async {
@@ -372,7 +387,9 @@ public final class UninstallerModel: ObservableObject {
         isScanningOrphans = true
         defer { isScanningOrphans = false }
         let installed = apps.map { InstalledAppIdentity(name: $0.name, bundleID: $0.bundleID) }
-        let options = ResidualScanOptions(home: home, sensitivity: sensitivity)
+        let options = ResidualScanOptions(home: home,
+                                          receiptsRoot: home == nil ? "/private/var/db/receipts" : nil,
+                                          sensitivity: sensitivity)
         let found = await Task.detached(priority: .utility) {
             var items = OrphanScanner.scan(installed: installed, options: options)
             for index in items.indices {
@@ -391,9 +408,11 @@ public final class UninstallerModel: ObservableObject {
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         lastResult = result
         failures = result.operation.failures
-        let removed = Set(paths)
-        orphans.removeAll { removed.contains($0.path) }
-        selectedOrphanIDs = []
+        let moved = Set(result.operation.files.map(\.originalPath))
+        orphans.removeAll { UninstallSelection.wasMoved($0.path, under: moved) }
+        selectedOrphanIDs = Set(selectedOrphanIDs.filter {
+            !UninstallSelection.wasMoved($0, under: moved)
+        })
     }
 
     /// 最近一次操作删的是不是 .app 本体。撤回提示的动词要跟着变：
@@ -496,8 +515,13 @@ public final class UninstallerModel: ObservableObject {
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         lastResult = result
         failures = result.operation.failures
-        trashResidualReport = nil
-        selectedTrashResidualIDs = []
-        hasScannedTrashResiduals = false
+        let moved = Set(result.operation.files.map(\.originalPath))
+        trashResidualReport = ResidualScanReport(
+            items: report.items.filter { !UninstallSelection.wasMoved($0.path, under: moved) },
+            inaccessiblePaths: report.inaccessiblePaths
+        )
+        selectedTrashResidualIDs = Set(selectedTrashResidualIDs.filter {
+            !UninstallSelection.wasMoved($0, under: moved)
+        })
     }
 }

@@ -526,13 +526,15 @@ struct UserFolderCleanView: View {
         // 一项都没搬动就别弹"已移入废纸篓"，失败清单已经在面板里说清楚了。
         if result.successCount > 0 { toastSeconds = 15 }
 
-        await applyCleaned(paths)
+        let moved = Set(result.operation.files.map(\.originalPath))
+        await applyCleaned(Array(moved))
         // 只有真的搬进废纸篓的安装包条目才从清单里摘掉；失败的留在原地——
         // 它们还在磁盘上，条目消失才是假话（失败详情由 MMFailurePanel 逐条报）。
-        let moved = Set(result.operation.files.map(\.originalPath))
-        installerFindings.removeAll { moved.contains($0.path) }
-        installerAutoSelection.subtract(moved)
-        selectedPaths = []
+        installerFindings.removeAll { UserFolderCleanup.wasMoved($0.path, under: moved) }
+        installerAutoSelection = Set(installerAutoSelection.filter {
+            !UserFolderCleanup.wasMoved($0, under: moved)
+        })
+        selectedPaths = Set(selectedPaths.filter { !UserFolderCleanup.wasMoved($0, under: moved) })
         isCleaning = false
     }
 
@@ -574,6 +576,12 @@ struct UserFolderCleanView: View {
         startScan()
     }
 
+}
+
+enum UserFolderCleanup {
+    static func wasMoved(_ path: String, under roots: Set<String>) -> Bool {
+        roots.contains { root in path == root || path.hasPrefix(root + "/") }
+    }
 }
 
 /// 单个用户文件夹行：勾选 + 展开查看子项并逐项勾选。

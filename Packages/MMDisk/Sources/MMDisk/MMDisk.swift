@@ -1149,8 +1149,7 @@ public struct DiskAnalyzerView: View {
         defer { isTrashing = false }
         showMarkConfirm = false
         let paths = plan.targets.map(\.path)
-        // 只清掉真正被删的那些；被拦下的标记留在原地，让用户自己决定要不要换个目录。
-        for path in paths { marked.removeValue(forKey: path) }
+        // 执行前只清掉扫描时已经消失的路径；删除失败的标记仍可供用户复核或重试。
         for item in plan.blocked where item.reason == .vanished { marked.removeValue(forKey: item.path) }
         guard !paths.isEmpty else {
             selected = nil
@@ -1158,6 +1157,10 @@ public struct DiskAnalyzerView: View {
         }
 
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        let moved = Set(result.operation.files.map(\.originalPath))
+        for path in Array(marked.keys) where DiskRemoval.wasMoved(path, under: moved) {
+            marked.removeValue(forKey: path)
+        }
         trashedCount = result.successCount
         trashedSize = result.totalSize
         trashFailures = result.operation.failures

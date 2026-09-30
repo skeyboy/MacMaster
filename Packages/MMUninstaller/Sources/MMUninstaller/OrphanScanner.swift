@@ -66,7 +66,8 @@ public enum OrphanScanner {
         options: ResidualScanOptions,
         fileManager: FileManager = .default
     ) -> [OrphanCandidate] {
-        let owners = OwnerIndex(installed: installed)
+        let receiptIDs = options.receiptsRoot.map { ReceiptOwnerIndex.identifiers(at: $0, fileManager: fileManager) } ?? []
+        let owners = OwnerIndex(installed: installed, additionalBundleIDs: receiptIDs)
         var found: [OrphanCandidate] = []
         var seen = Set<String>()
 
@@ -151,11 +152,11 @@ public enum OrphanScanner {
 struct OwnerIndex {
     private var owned: Set<String> = []
 
-    init(installed: [InstalledAppIdentity]) {
-        for app in installed {
+    init(installed: [InstalledAppIdentity], additionalBundleIDs: Set<String> = []) {
+        for bundleID in installed.map(\.bundleID) + Array(additionalBundleIDs) {
             // 归一化把 "." 和 "-" 都折成同一种分隔符并统一小写，所以磁盘名和包名
             // 放进同一个集合就能直接比——分隔符写法不该决定一个标识有没有主人。
-            let id = ResidualNameMatcher.normalize(app.bundleID)
+            let id = ResidualNameMatcher.normalize(bundleID)
             guard id.count >= 2 else { continue }
             owned.insert(id)
         }
@@ -172,5 +173,24 @@ struct OwnerIndex {
             if owned.contains(prefix) { return true }
         }
         return false
+    }
+}
+
+/// 安装收据只能帮助排除误报：收据可能在卸载后仍然存在，不能据此认定应用已安装。
+/// 因此它只加入归属索引，不作为候选，也不参与任何删除路径。
+enum ReceiptOwnerIndex {
+    static func identifiers(at root: String, fileManager: FileManager = .default) -> Set<String> {
+        guard let entries = try? fileManager.contentsOfDirectory(atPath: root) else { return [] }
+        var identifiers = Set<String>()
+        for name in entries where name.hasSuffix(".plist") {
+            let url = URL(fileURLWithPath: root).appendingPathComponent(name)
+            guard let data = try? Data(contentsOf: url),
+                  let plist = try? PropertyListSerialization.propertyList(from: data, format: nil),
+                  let dictionary = plist as? [String: Any],
+                  let identifier = dictionary["PackageIdentifier"] as? String,
+                  !identifier.isEmpty else { continue }
+            identifiers.insert(identifier)
+        }
+        return identifiers
     }
 }
