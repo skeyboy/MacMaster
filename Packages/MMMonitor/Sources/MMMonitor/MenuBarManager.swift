@@ -146,6 +146,14 @@ public final class MenuBarManager: ObservableObject {
         evaluateThresholdNotifications(at: snapshot.sampledAt == .distantPast ? Date() : snapshot.sampledAt)
     }
 
+    /// 仅供无头截图注入确定快照（照 MM_GUARDIAN_FIXTURE 的写法）：
+    /// 只替换展示数据、不启动采样循环，整页定格在夹具值上便于逐档核对。
+    /// 生产路径永不调用——采样循环走 `apply(_:)`。
+    func applyFixture(_ snapshot: MetricSnapshot) {
+        self.snapshot = snapshot
+        updateStatusItemTitle()
+    }
+
     // MARK: - 标题
 
     private func updateStatusItemTitle() {

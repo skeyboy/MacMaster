@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import MMCore
 import MMUI
 
@@ -50,10 +51,25 @@ public struct MonitorView: View {
             }
         }
         .onAppear {
-            if !menuBar.isEnabled {
-                menuBar.enable()
+            let env = ProcessInfo.processInfo.environment
+            let hold = MonitorLoadHook.parse(env["MM_MONITOR_HOLD"]).holdInitialFrame
+            let fixture = MonitorSnapshotFixture.parse(env["MM_MONITOR_FIXTURE"])
+            if !fixture.rejected.isEmpty {
+                FileHandle.standardError.write(
+                    "MM_MONITOR_FIXTURE 含非法取值（\(fixture.rejected.joined(separator: ", "))），整个钩子已忽略\n"
+                        .data(using: .utf8)!)
             }
-            loadProcesses()
+            if hold {
+                // 冻结在 .empty 首帧：不 enable（不采样）、不 loadProcesses，
+                // 页面停在"测量中 + 骨架 + 内存尚未采样"的折叠线以上态，可被截图。
+            } else if let snapshot = fixture.snapshot {
+                menuBar.applyFixture(snapshot)
+                if let procs = fixture.processes { processes = procs }
+                // 不 enable：避免后台采样循环把夹具快照覆盖掉，保持截图稳定。
+            } else {
+                if !menuBar.isEnabled { menuBar.enable() }
+                loadProcesses()
+            }
         }
     }
 
@@ -246,7 +262,7 @@ private struct CoreUsageBar: View {
     }
 }
 
-public struct MonitorProcess: Identifiable, Sendable {
+public struct MonitorProcess: Identifiable, Equatable, Sendable {
     public let id = UUID()
     public let name: String
     public let pid: Int32
