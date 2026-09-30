@@ -221,7 +221,9 @@ final class CleanerModel: ObservableObject {
             let result = await FileTrashService.shared.moveToTrash(paths: paths)
             self.lastResult = result
             self.failures = result.operation.failures
-            let cleaned = Set(paths)
+            // 只摘真的搬进废纸篓的那批：被 DeletionGuard 拒绝或 EPERM 失败的条目仍在磁盘上，
+            // 若按"尝试过的全部路径"整行删掉，主表面就把失败当成了已清理。
+            let cleaned = Set(result.operation.files.map(\.originalPath))
             for index in self.categories.indices {
                 self.categories[index].subItems.removeAll { cleaned.contains($0.path) }
                 self.categories[index].scannedSize = self.categories[index].subItems.reduce(0) { sum, item in

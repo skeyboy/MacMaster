@@ -327,7 +327,8 @@ struct SystemAnalysisView: View {
         // 一项都没搬动就别弹"已移入废纸篓"，失败清单已经在面板里说清楚了。
         if result.successCount > 0 { toastSeconds = 15 }
 
-        let cleaned = Set(paths)
+        // 只摘真的搬进废纸篓的条目：失败/被拒的仍在磁盘上，若整行删掉就是把失败当成已清理。
+        let cleaned = Set(result.operation.files.map(\.originalPath))
         for i in groups.indices {
             groups[i].items.removeAll { cleaned.contains($0.path) }
         }
