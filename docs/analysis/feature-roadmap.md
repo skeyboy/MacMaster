@@ -469,6 +469,6 @@ D 降级态合集，含新增 D3a）、`08-optimizer.html`（08 首屏 / 08b 结
 - **合并窗口是"最少等多久"。** 400ms 的 debounce 续体排在 MainActor 上，页面批量测量时会推迟出现；
   宁可晚出现，也不在测量中途插一整块列表刷新。移除调试打点后复测：列表还在测 13 个应用时，
   卡片约 8 秒内出现——之前"几十秒不恢复"主要是调试打点自己拖住主线程，不是架构问题。
-- **实机两张图**：`/tmp/mmshot/trash_real.jpg`（钩子全关 = 常态降级横幅）、
-  `/tmp/mmshot/trash_fixture.jpg`（夹具态 = 卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）。
+- **实机两张图**：`docs/verification/p1.5-trash/uninstaller-no-fda-banner.jpg`（钩子全关 = 常态降级横幅）、
+  `docs/verification/p1.5-trash/uninstaller-trash-notice.jpg`（夹具态 = 卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）。
   夹具与抓图工具入库：`Scripts/trash-fixture.sh`、`Scripts/window-ids.swift`。

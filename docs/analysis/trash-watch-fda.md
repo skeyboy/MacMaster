@@ -44,7 +44,7 @@ FileManager.contentsOfDirectory
 > 无法打开废纸篓目录：Operation not permitted（错误码 1）。 在系统设置里授予「完全磁盘访问」后，
 > 重新进入这一页或重启应用才会生效。　［打开系统设置］
 
-截图：`/tmp/mmshot/trash_real.jpg`。**这就是绝大多数用户第一次进这一页看到的画面**，
+截图：`docs/verification/p1.5-trash/uninstaller-no-fda-banner.jpg`。**这就是绝大多数用户第一次进这一页看到的画面**，
 所以它必须是设计稿里的一等公民（`03c-3`），而不是一个藏起来的错误分支。
 
 授权入口深链到具体面板，不是把人丢进"系统设置"首页：
@@ -83,7 +83,7 @@ MainActor 被逐条回填 + 列表重渲染占满，合并计时器排在同一�
   是因为要落的状态是 UI 状态；宁可晚出现，也不在测量中途插一整块列表刷新。
 - 调试期间加过 11 条 `FileHandle.standardError` 的 DBG 打点，用来把失败点定位到"sleep 续体没恢复"
   而不是"事件没投递"。**这些打点已全部移除**，只留下上面那条 hop 修复。
-- **移除打点后复测（2026-09-30 09:37，`/tmp/mmshot/trash_fixture.jpg`）**：把 `Foo.app` 移进假废纸篓时，
+- **移除打点后复测（2026-09-30 09:37，`docs/verification/p1.5-trash/uninstaller-trash-notice.jpg`）**：把 `Foo.app` 移进假废纸篓时，
   应用列表还在测量中（页头"已测 31 · 13 个测量中"），提示卡连同 4 项残留在约 8 秒内就出现了。
   也就是说"几十秒不恢复"里绝大部分是**那 11 条 stderr 打点自己把主线程拖住的**，
   不是架构问题。上面那条"会推迟"仍然成立，只是量级从"几十秒"降到"秒级"。
@@ -106,7 +106,7 @@ MainActor 被逐条回填 + 列表重渲染占满，合并计时器排在同一�
 否则向 stderr 打一行"不在 /tmp 之下，忽略该钩子"并当作未设置——
 带删除动作的入口不能因为一个拼错的环境变量就指向真实用户目录。
 
-对照截图：`/tmp/mmshot/trash_fixture.jpg`（夹具态，卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）
+对照截图：`docs/verification/p1.5-trash/uninstaller-trash-notice.jpg`（夹具态，卡片 + 4 项残留 + 已选 2 项 · 6.3 MB）
 vs `docs/design-system/screens/03c-uninstaller-trash.png`（设计稿 03c / 03c-2 / 03c-3）。
 
 夹具本身入库为 `Scripts/trash-fixture.sh`（只在 `/tmp` 下造文件，可重复跑）；
@@ -123,8 +123,9 @@ vs `docs/design-system/screens/03c-uninstaller-trash.png`（设计稿 03c / 03c-
 
 - **数据层**：`Packages/MMCore/Tests/MMCoreTests/AppSettingsPersistenceTests.swift`
   用注入的 `UserDefaults(suiteName:)` 锁住"出厂默认开"与"关掉后跨实例保持"。
-- **渲染层**：`/tmp/mmshot/settings_trash.jpg` 证明清理 tab 本身与它上方的行照常渲染，
-  新行是同一个 `Form` 里的 `Toggle` + `Text`，画在稿子 `09c` 里。
+- **渲染层**：只到"清理 tab 本身渲染正常"为止——那次抓的图（可见「扫描范围」四行与「安全」标题，
+  400pt 折线正好切在「安全」处）**存在 `/tmp` 且已被系统清掉，没进仓库**，所以这条现在是
+  一段无法复核的记述，不当证据用。新行本身是同一个 `Form` 里的 `Toggle` + `Text`，画在稿子 `09c` 里。
 
 期间试过把 `.frame` 临时改成 620 再截图，但第二次启动时这个后台拉起的进程没能把 sheet
 窗口挂到窗口列表（`CGWindowListCopyWindowInfo` 查不到），**没有拿到图**，
