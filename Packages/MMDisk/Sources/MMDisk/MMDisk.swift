@@ -517,7 +517,7 @@ public struct DiskAnalyzerView: View {
             // 过滤态下面积口径变了（命中体积而非总占用），图例必须跟着改口，
             // 否则"实色/淡色"两级没有第二个地方能查到含义。
             Text(filtered == nil
-                 ? "面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记"
+                 ? "面积 = 实际磁盘占用（st_blocks × 512）· 双击下钻 · ⌘ 点击标记"
                  : "过滤中：面积 = 命中占用 · 实色 = 命中 · 淡色 = 含命中的祖先")
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
@@ -692,6 +692,9 @@ public struct DiskAnalyzerView: View {
     private func inspector(node: DiskTreeNode) -> some View {
         let risk = risk(of: node.path)
         let children = node.children.sorted { $0.size > $1.size }
+        // 「实际占比」的分母是本次扫描的总量（scannedSize），不随导航层变化，
+        // 否则下钻后同一个节点的占比会跟着当前层放大，误导成"它占了这一层多少"。
+        let totalScanned = scanResult?.scannedSize ?? 0
         return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: MMGap.xs) {
                 HStack(spacing: MMGap.sm) {
@@ -702,7 +705,7 @@ public struct DiskAnalyzerView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer(minLength: MMGap.xs)
-                    MMBadge(risk: risk)
+                    MMBadge(risk.groupTitle, tint: risk.color, systemImage: risk == .readOnly ? "lock" : nil)
                 }
                 Text(node.path)
                     .font(.caption.monospaced())
@@ -720,8 +723,10 @@ public struct DiskAnalyzerView: View {
                 VStack(alignment: .leading, spacing: MMGap.md) {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: MMGap.sm) {
                         MMStatItem("占用", MMFormat.bytes(node.size))
-                        MMStatItem("占当前层", MMFormat.percent(levelTotal > 0 ? Double(node.size) / Double(levelTotal) : 0))
-                        MMStatItem("子项", node.isDirectory ? MMFormat.count(children.count) : "—")
+                        MMStatItem("实际占比", MMFormat.percent(totalScanned > 0 ? Double(node.size) / Double(totalScanned) : 0))
+                        // 数值口径待真机确认：children.count 是直接子项数，稿内「文件数」为递归文件数；
+                        // 当前没有逐节点递归文件数可喂，先只对齐标签文案，不新写递归统计逻辑。
+                        MMStatItem("文件数", node.isDirectory ? MMFormat.count(children.count) : "—")
                         // 相对时间：这一格要回答的是"多久没动过"，不是几点几分，
                         // 而且完整时间戳在这个宽度里会被截成"2026-09-30 01:…"。
                         MMStatItem("修改", MMFormat.relative(modDate(of: node.path)))
