@@ -313,7 +313,7 @@ public struct UninstallerView: View {
     private var actionBar: some View {
         MMActionBar(
             summary: "已选 \(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))",
-            note: model.unselectedCount > 0 ? "未勾选的 \(model.unselectedCount) 项不会被修改" : "未勾选项不会被修改",
+            note: "未勾选项不会被修改",
             trailing: {
                 Button("仅卸载应用") {
                     Task { await model.uninstallAppOnly() }
@@ -579,6 +579,8 @@ public struct UninstallerView: View {
     private var trashNoticeCard: some View {
         let arrivals = trashWatcher.arrivals
         let items = model.trashResidualItems
+        let arrivalPath = model.trashArrival?.path ?? arrivals.last?.path ?? ""
+        let arrivalDisplayPath = ResidualCollector.display(arrivalPath, home: NSHomeDirectory())
         return VStack(alignment: .leading, spacing: MMGap.sm) {
             HStack(spacing: MMGap.sm) {
                 Image(systemName: "tray.and.arrow.down.fill").foregroundStyle(MMColor.accent)
@@ -615,7 +617,7 @@ public struct UninstallerView: View {
             }
 
             HStack(spacing: MMGap.xs) {
-                Text(model.trashArrival?.path ?? arrivals.last?.path ?? "")
+                Text(arrivalDisplayPath)
                     .font(.caption.monospaced())
                     .foregroundStyle(MMColor.secondaryLabel)
                     .lineLimit(1)
@@ -998,7 +1000,7 @@ struct AppDetailView: View {
 
     private var confirmationNote: String {
         let size = MMFormat.bytes(totalSelectedSize)
-        return "卸载会把 \(app.name) 以及勾选的 \(selectedCount) 项残留（合计 \(size)）移到废纸篓，可在 15 秒内撤回。"
+        return "卸载会把 \(app.name) 以及勾选的 \(selectedCount) 项残留（合计 \(size)）移到废纸篓，可在 15 秒内或「最近操作」中撤回。"
     }
 
     private var selectedCount: Int {
