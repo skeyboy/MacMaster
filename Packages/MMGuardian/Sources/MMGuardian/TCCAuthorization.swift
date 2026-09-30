@@ -247,8 +247,10 @@ enum TCCCopyTable {
 // MARK: - 截图夹具钩子（MM_TCC_FIXTURE）
 
 /// 仅供无头截图逐档核对渲染（照 MM_GUARDIAN_FIXTURE 的写法）：
-/// 取值只接受 `rows|unreadable|empty` 的单值组合；含任何非法项时整体作废并写 stderr。
+/// 取值只接受 `rows|unreadable|empty|partial` 的单值组合；含任何非法项时整体作废并写 stderr。
 /// `rows` 注入的全是 com.example.* 合成行——与真实数据一眼可分，不会伪造"你机器上的授权"。
+/// `partial` 为后补档（还原度审计 2026-10）：用户级可读 + 系统级读不到的"部分可读"档，
+/// 行集只取夹具样例中的**用户级**行（系统级库都读不到了还列系统级行，就是自相矛盾的假数据）。
 enum TCCFixture {
     struct Result: Equatable, Sendable {
         let state: TCCViewerState?
@@ -256,12 +258,21 @@ enum TCCFixture {
         let rejected: [String]
     }
 
+    /// partial 档的警示条原文——照 TCCViewer.build 的拼接格式，
+    /// 内容取自本机实测（docs/analysis/guardian-tcc.md §1.3 的系统级报错原文，非编造）。
+    static let partialNote =
+        "系统级库读不到：open 被拒：Operation not permitted（errno 1）；sqlite3: authorization denied（rc=23）"
+        + "——清单可能不完整"
+
     static func parse(_ raw: String) -> Result {
         let token = raw.trimmingCharacters(in: .whitespaces).lowercased()
         switch token {
         case "rows": return Result(state: .loaded(rows: TCCFixture.sampleDisplayRows), rejected: [])
         case "unreadable": return Result(state: .unreadable(detail: "夹具：模拟两库均读不到（open 被拒：Operation not permitted（EPERM）；sqlite rc=23 authorization denied）"), rejected: [])
         case "empty": return Result(state: .emptyRead, rejected: [])
+        case "partial":
+            let userRows = TCCFixture.sampleDisplayRows.filter { $0.source == .user }
+            return Result(state: .partial(rows: userRows, unreadableNote: partialNote), rejected: [])
         default:
             return Result(state: nil, rejected: [raw])
         }

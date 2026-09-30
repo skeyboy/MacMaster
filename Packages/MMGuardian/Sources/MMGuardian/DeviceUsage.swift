@@ -185,8 +185,11 @@ enum DeviceUsageCopyTable {
 // MARK: - 截图夹具钩子（MM_GUARDIAN_FIXTURE）
 
 /// 仅供无头截图逐档核对渲染（照 MM_ORPHAN_FIXTURE_HOME 的写法）：
-/// 取值只接受 `camera|mic = inuse|idle|unknown|absent` 的逗号分隔对，
+/// 取值只接受 `camera|mic = inuse|idle|unknown|absent|combo|conflict` 的逗号分隔对，
 /// 任何非法项整体忽略并交回调用方写 stderr——半生效的夹具比没有夹具更危险。
+/// `combo`/`conflict` 是后补档：indeterminate 的两个细分成因（组合设备播放歧义、
+/// 枚举器互相矛盾）原本没有夹具可达路径，只有判定表单测覆盖，实机渲染验不了。
+/// 老四档（inuse/idle/unknown/absent）语义不变，向后兼容既有截图口径。
 enum DeviceUsageFixture {
     struct Result: Equatable, Sendable {
         let overrides: [DeviceUsageKind: DeviceUsageState]
@@ -226,6 +229,9 @@ enum DeviceUsageFixture {
         case "idle": .idle
         case "unknown": .indeterminate(.readFailed)
         case "absent": .deviceAbsent
+        // 后补档（语义与老档正交，不顶替任何老取值）：indeterminate 的另两个成因。
+        case "combo": .indeterminate(.comboAmbiguity)
+        case "conflict": .indeterminate(.enumeratorConflict)
         default: nil
         }
     }

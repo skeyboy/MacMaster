@@ -368,7 +368,7 @@ final class GuardianViewModel: ObservableObject {
     @Published var writeFailures: [TrashFailure] = []
 
     /// 仅供无头截图逐档核对渲染（照 MM_ORPHAN_FIXTURE_HOME 的写法）。
-    /// 只接受 `camera|mic=inuse|idle|unknown|absent`；含非法项时整体忽略并写 stderr——
+    /// 只接受 `camera|mic=inuse|idle|unknown|absent|combo|conflict`；含非法项时整体忽略并写 stderr——
     /// 半生效的夹具会让截图者把"半真半假"当成"全按夹具渲染"，是最坏的假通过。
     static let fixtureOverrides: [DeviceUsageKind: DeviceUsageState] = {
         guard let raw = ProcessInfo.processInfo.environment["MM_GUARDIAN_FIXTURE"],
@@ -382,21 +382,59 @@ final class GuardianViewModel: ObservableObject {
         return result.overrides
     }()
 
-    /// 仅供无头截图逐档核对渲染（同上写法）：只接受 `rows|unreadable|empty` 单值；
-    /// 含非法值时整个钩子作废并写 stderr。`rows` 档注入的全是 com.example.* 合成行。
+    /// 仅供无头截图逐档核对渲染（同上写法）：只接受 `rows|unreadable|empty|partial` 单值；
+    /// 含非法值时整个钩子作废并写 stderr。`rows`/`partial` 档注入的全是 com.example.* 合成行。
     static let tccFixtureState: TCCViewerState? = {
         guard let raw = ProcessInfo.processInfo.environment["MM_TCC_FIXTURE"],
               raw.isEmpty == false else { return nil }
         let result = TCCFixture.parse(raw)
         if !result.rejected.isEmpty {
             FileHandle.standardError.write(
-                "MM_TCC_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），只接受 rows|unreadable|empty，整个钩子已忽略\n".data(using: .utf8)!)
+                "MM_TCC_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），只接受 rows|unreadable|empty|partial，整个钩子已忽略\n".data(using: .utf8)!)
             return nil
         }
         return result.state
     }()
 
+    /// 仅供无头截图逐档核对渲染：登录项卡只接受 `rows|empty|indeterminate|scanerror` 单值。
+    /// 合成条目全 com.example.*、判定走真实 LoginItemAuditor.audit，钩子不写盘、不落夹具文件。
+    static let loginFixtureStage: LoginFixtureStage? = {
+        let result = LoginItemFixture.parse(ProcessInfo.processInfo.environment["MM_GUARDIAN_LOGIN_FIXTURE"])
+        if let rejected = result.rejected {
+            FileHandle.standardError.write(
+                "MM_GUARDIAN_LOGIN_FIXTURE 含非法取值（\(rejected)），只接受 rows|empty|indeterminate|scanerror，整个钩子已忽略\n".data(using: .utf8)!)
+            return nil
+        }
+        return result.stage
+    }()
+
+    /// MM_GUARDIAN_LOAD=hold：loadAll 直接返回，页面定格在首帧（测量中 + 骨架）。
+    /// 纯展示闸门，非法取值只写 stderr 并按未设置处理，不影响生产路径。
+    static let holdInitialFrame: Bool = {
+        let result = GuardianLoadHook.parse(ProcessInfo.processInfo.environment["MM_GUARDIAN_LOAD"])
+        if let rejected = result.rejected {
+            FileHandle.standardError.write(
+                "MM_GUARDIAN_LOAD 含非法取值（\(rejected)），只接受 hold，钩子已忽略\n".data(using: .utf8)!)
+        }
+        return result.holdInitialFrame
+    }()
+
+    /// 系统活动卡夹具（fidelity-guardian G1）：只接受 `empty|rows` 单值，非法整体作废。
+    /// 只顶替展示数据：真扫描照样跑一次（结果丢弃），钩子不写盘、不 spawn、不读 /tmp。
+    static let activityFixtureStage: GuardianActivityFixture.Stage? = {
+        let result = GuardianActivityFixture.parse(ProcessInfo.processInfo.environment["MM_GUARDIAN_ACTIVITY_FIXTURE"])
+        if let rejected = result.rejected {
+            FileHandle.standardError.write(
+                "MM_GUARDIAN_ACTIVITY_FIXTURE 含非法取值（\(rejected)），只接受 empty|rows，整个钩子已忽略\n".data(using: .utf8)!)
+            return nil
+        }
+        return result.stage
+    }()
+
     func loadAll() async {
+        // 首帧定格钩子：MM_GUARDIAN_LOAD=hold 时整轮加载直接返回，
+        // 页面停在「测量中 + 骨架」的首帧，让平时抢拍不到的加载态可被截图核对。
+        if Self.holdInitialFrame { return }
         // 占用检测最先：它是进程内读数（微秒级），不该排在 `log show` 这类
         // 秒级子进程扫描之后——"此刻有没有人用摄像头"晚一秒回答都算失真。
         await loadDeviceUsage()
@@ -430,6 +468,26 @@ final class GuardianViewModel: ObservableObject {
     }
 
     func loadLoginItems() async {
+        if let stage = Self.loginFixtureStage {
+            // 夹具只顶替展示数据：真扫描照样跑一次（结果丢弃），保证截图流程
+            // 不会悄悄绕过真实读取路径；钩子本身不写任何东西。
+            _ = await Task.detached { LoginItemScanner.scan() }.value
+            switch stage {
+            case .empty:
+                loginItems = []
+                loginAudit = .indeterminate
+                scanErrors = []
+            case .rows, .scanerror:
+                loginItems = LoginItemFixture.items()
+                loginAudit = LoginItemFixture.audit()
+                scanErrors = stage == .scanerror ? LoginItemFixture.scanErrorLines : []
+            case .indeterminate:
+                loginItems = LoginItemFixture.items()
+                loginAudit = LoginItemFixture.indeterminateAudit
+                scanErrors = []
+            }
+            return
+        }
         let report = await Task.detached {
             // 磁盘清单和 launchd 快照一起取：分两次 await 会让界面短暂出现
             // "有清单、没核对"的中间态，那一屏看起来就像"核对过、一切正常"。
@@ -445,6 +503,13 @@ final class GuardianViewModel: ObservableObject {
     }
 
     func loadActivity() async {
+        if let stage = Self.activityFixtureStage {
+            // 夹具只顶替展示数据：真扫描照样跑一次（结果丢弃），保证截图流程
+            // 不会悄悄绕过真实读取路径；钩子本身不 spawn 额外进程、不写盘。
+            _ = await Task.detached { ActivityScanner.scan() }.value
+            activities = stage == .empty ? [] : GuardianActivityFixture.items()
+            return
+        }
         let items = await Task.detached {
             ActivityScanner.scan()
         }.value
