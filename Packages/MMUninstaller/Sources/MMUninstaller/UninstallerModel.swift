@@ -100,7 +100,11 @@ public final class UninstallerModel: ObservableObject {
     @Published public var selectedAppID: String?
     @Published public var selectedResidualIDs: Set<String> = []
     @Published public var sensitivity: ResidualSensitivity = .strict {
-        didSet { if oldValue != sensitivity { rescanSelectedApp() } }
+        didSet {
+            guard oldValue != sensitivity else { return }
+            rescanSelectedApp()
+            rescanTrashArrival()
+        }
     }
     @Published public var isScanningApps = false
     @Published public var isMeasuring = false
@@ -396,5 +400,104 @@ public final class UninstallerModel: ObservableObject {
     /// 只清残留时说"已卸载"是假话。
     public var lastOperationTrashedApps: Bool {
         lastResult?.operation.files.contains { $0.originalPath.hasSuffix(".app") } ?? false
+    }
+
+    // MARK: - 废纸篓拖入
+
+    /// 刚进废纸篓、正被提供残留清理的那个应用。它和 `selectedApp` 是两条独立的状态线：
+    /// 那条是"卸载 + 残留"，这条只有"残留" —— 本体已经在废纸篓里了。
+    @Published public private(set) var trashArrival: TrashArrival?
+    @Published public private(set) var trashResidualReport: ResidualScanReport?
+    @Published public var selectedTrashResidualIDs: Set<String> = []
+    @Published public private(set) var isScanningTrashResiduals = false
+    /// "还没扫"和"扫了但没有残留"必须能分开说，后者是真的干净，前者不是。
+    @Published public private(set) var hasScannedTrashResiduals = false
+
+    /// 上一次扫描用的 home（真实机型是 nil = 当前用户；夹具截图传 /tmp 假 home）。
+    /// 敏感度变更要按同一个口径重扫，不能让两次扫描用两个 home。
+    private var trashScanHome: String?
+
+    public var trashResidualItems: [ResidualItem] { trashResidualReport?.items ?? [] }
+
+    public var selectedTrashResidualSize: UInt64 {
+        guard let report = trashResidualReport else { return 0 }
+        return report.selectedSize(for: selectedTrashResidualIDs)
+    }
+
+    public var selectedTrashResidualCount: Int {
+        trashResidualItems.filter { $0.risk.allowsDeletion && selectedTrashResidualIDs.contains($0.id) }.count
+    }
+
+    public var unselectedTrashResidualCount: Int {
+        guard let report = trashResidualReport else { return 0 }
+        return UninstallSelection.unselectedDeletableCount(report.items, selectedIDs: selectedTrashResidualIDs)
+    }
+
+    /// 换目标（同一批里选了另一个应用）或目标消失时调用：旧勾选属于旧的命中集合。
+    public func selectTrashArrival(_ arrival: TrashArrival?) {
+        guard trashArrival?.id != arrival?.id else { return }
+        trashArrival = arrival
+        trashResidualReport = nil
+        selectedTrashResidualIDs = []
+        hasScannedTrashResiduals = false
+    }
+
+    public func toggleTrashResidual(_ item: ResidualItem) {
+        guard item.risk.allowsDeletion else { return }
+        if selectedTrashResidualIDs.contains(item.id) {
+            selectedTrashResidualIDs.remove(item.id)
+        } else {
+            selectedTrashResidualIDs.insert(item.id)
+        }
+    }
+
+    public func toggleAllTrashResiduals() {
+        guard let report = trashResidualReport else { return }
+        let selectable = UninstallSelection.selectableIDs(report.items)
+        if selectedTrashResidualIDs.isSuperset(of: selectable) {
+            selectedTrashResidualIDs.subtract(selectable)
+        } else {
+            selectedTrashResidualIDs.formUnion(selectable)
+        }
+    }
+
+    public func scanTrashResiduals(home: String? = nil) async {
+        guard let arrival = trashArrival, isScanningTrashResiduals == false else { return }
+        trashScanHome = home
+        isScanningTrashResiduals = true
+        defer { isScanningTrashResiduals = false }
+
+        let options = ResidualScanOptions(home: home, sensitivity: sensitivity)
+        let report = await Task.detached(priority: .userInitiated) {
+            ResidualScanner.scan(appName: arrival.name, bundleID: arrival.bundleID,
+                                 appPath: arrival.path, options: options)
+        }.value
+
+        // 扫的是刚才那个目标的话，中途用户已经换过就别把结果贴错地方。
+        guard trashArrival?.id == arrival.id else { return }
+        trashResidualReport = report
+        selectedTrashResidualIDs = UninstallSelection.defaultSelectedIDs(report.items)
+        hasScannedTrashResiduals = true
+    }
+
+    private func rescanTrashArrival() {
+        guard trashArrival != nil else { return }
+        let home = trashScanHome
+        Task { await scanTrashResiduals(home: home) }
+    }
+
+    /// 只把勾选的残留送进废纸篓。这里绝不能走 `UninstallSelection.deletionPaths`：
+    /// 那个函数会把 app 本体一起加上，而本体此刻已经在废纸篓里 ——
+    /// 再 trash 一次要么失败，要么把用户刚还原出来的副本又扔回去。
+    public func trashSelectedTrashResiduals() async {
+        guard let report = trashResidualReport else { return }
+        let paths = report.deletionRoots(for: selectedTrashResidualIDs)
+        guard paths.isEmpty == false else { return }
+        let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        lastResult = result
+        failures = result.operation.failures
+        trashResidualReport = nil
+        selectedTrashResidualIDs = []
+        hasScannedTrashResiduals = false
     }
 }

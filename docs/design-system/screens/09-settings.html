@@ -145,8 +145,14 @@ AppSettings，不由存储单方面宣称），默认关。没画的态：注册
 
 <!-- ================================================================ -->
 <div class="artboard">
-<div class="cap"><b>09c · 设置 —— 清理 tab（cleanerSettings），含「删除历史」区块。</b>
-扫描范围四开关与安全两开关全按出厂默认（builtinDefaults 全 true）。<b>「台账条目 3 / 20」里的 3
+<div class="cap"><b>09c · 设置 —— 清理 tab（cleanerSettings），含「废纸篓」「删除历史」区块。</b>
+扫描范围四开关与安全两开关全按出厂默认（builtinDefaults 全 true）。「废纸篓」开关同样是出厂默认
+true，但它管的不是后台常驻：<b>只有停在「应用卸载」这一页时 <code>TrashWatcher</code> 才 arm，
+离开页面即 <code>stop()</code></b>；没有完全磁盘访问时这一页顶部会退化成"读不到废纸篓"横幅
+（画在 03c-3，不在本板）。<b>这一行落在 400pt 折线以下，实机图没截到</b>（截它要滚动，
+滚动是合成输入，本项目禁用）；数据层由 <code>AppSettingsPersistenceTests</code> 锁住
+"默认开 + 关掉后跨实例保持"，详见 <code>docs/analysis/trash-watch-fda.md</code> §3.1。
+<b>「台账条目 3 / 20」里的 3
 是示例数</b>：实机 N = TrashHistoryStore 成功 load 出来的条数，上限 20 由
 FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"查过、确实没有"，属正常档</b>，
 但此时「清空删除历史」置灰（disabled，本板画的是有记录的启用态）；historyFileURL 为 nil 时
@@ -177,6 +183,13 @@ FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"
       <div class="fgroup">
         <div class="frow"><span>删除前确认</span><span class="sp"></span><span class="sw on"></span></div>
         <div class="frow"><span>允许撤回操作</span><span class="sp"></span><span class="sw on"></span></div>
+      </div>
+    </section>
+    <section class="fsec">
+      <div class="ftitle">废纸篓</div>
+      <div class="fgroup">
+        <div class="frow"><span>在应用卸载页提示清理刚拖入应用的残留</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="fcap">只在停在「应用卸载」这一页时监听，离开就停，不是后台常驻。监听只列目录里的条目名，并读新进入的 .app 的 Info.plist 取包标识。</div>
       </div>
     </section>
     <section class="fsec">

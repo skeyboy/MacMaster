@@ -52,9 +52,12 @@ public struct UninstallerView: View {
     }
 
     @StateObject private var model = UninstallerModel()
+    @StateObject private var trashWatcher = TrashWatcher()
+    @ObservedObject private var settings = AppSettings.shared
     @State private var searchText = ""
     @State private var showConfirm = false
     @State private var showOrphanConfirm = false
+    @State private var showTrashConfirm = false
     @State private var toastSeconds = 0
     @State private var pane: Pane =
         Pane(hookValue: ProcessInfo.processInfo.environment["MM_UNINSTALL_PANE"] ?? "") ?? .apps
@@ -99,6 +102,8 @@ public struct UninstallerView: View {
                 .disabled(model.isScanningApps)
             }
 
+            trashRegion
+
             HStack(spacing: 0) {
                 if pane == .apps {
                     appList
@@ -133,6 +138,11 @@ public struct UninstallerView: View {
                 }
             }
         }
+        .onAppear {
+            // 监听不能排在 `.task` 里 `await model.loadApps()` 之后：应用列表要测几十个大文件
+            // 才算得完，那样废纸篓要等几分钟才开始看，第一条拖入还会被当成基线漏掉。
+            startTrashWatching()
+        }
         .task {
             if model.apps.isEmpty, model.isScanningApps == false {
                 await model.loadApps()
@@ -140,6 +150,7 @@ public struct UninstallerView: View {
             // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
             startOrphanScanIfNeeded()
         }
+        .onDisappear { trashWatcher.stop() }
         .task(id: toastSeconds) {
             guard toastSeconds > 0 else { return }
             try? await Task.sleep(for: .seconds(1))
@@ -154,6 +165,18 @@ public struct UninstallerView: View {
         }
         .sheet(isPresented: $showConfirm) { confirmSheet }
         .sheet(isPresented: $showOrphanConfirm) { orphanConfirmSheet }
+        .sheet(isPresented: $showTrashConfirm) { trashConfirmSheet }
+        .onChange(of: trashWatcher.arrivals) { _, arrivals in
+            syncTrashNotice(with: arrivals)
+        }
+        .onChange(of: settings.watchTrashForResidualCleanup) { _, enabled in
+            if enabled {
+                trashWatcher.start()
+            } else {
+                trashWatcher.stop()
+                model.selectTrashArrival(nil)
+            }
+        }
         .onChange(of: pane) { _, newValue in
             guard newValue == .orphans else { return }
             startOrphanScanIfNeeded()
@@ -494,6 +517,259 @@ public struct UninstallerView: View {
         }
         .padding(MMGap.lg)
         .frame(width: 420)
+    }
+
+    // MARK: 废纸篓提示
+
+    /// 完全磁盘访问面板。守护页用的是同一个 URL scheme 参数，这里不另写一份。
+    private static let fullDiskAccessPane = "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles"
+
+    /// 无头截图用的假 home。规矩沿用 `MM_ORPHAN_FIXTURE_HOME`：只认 /tmp 之下，
+    /// 因为这张卡片的终点是删除按钮。
+    private static var trashScanHome: String? { TrashWatcher.fixtureScanHome() }
+
+    /// 只认 /tmp 假 home：合成点击进不了原生勾选框，截图验证确认态只能靠钩子自动打开，
+    /// 而那必须只在夹具目录成立时才允许。
+    private static var trashConfirmHook: Bool {
+        guard TrashWatcher.fixtureScanHome() != nil else { return false }
+        return ProcessInfo.processInfo.environment["MM_SHOW_TRASH_CONFIRM"] == "1"
+    }
+
+    private func startTrashWatching() {
+        guard settings.watchTrashForResidualCleanup else { return }
+        trashWatcher.start()
+        syncTrashNotice(with: trashWatcher.arrivals)
+    }
+
+    /// 监听端的清单是真相源：选中项不在清单里了（用户把它还原或彻底删除）就整块撤掉提示。
+    /// 还原回去的应用残留是活的，这时候再挂着"清理残留"入口就是害人的。
+    private func syncTrashNotice(with arrivals: [TrashArrival]) {
+        if arrivals.isEmpty {
+            model.selectTrashArrival(nil)
+            return
+        }
+        if let current = model.trashArrival,
+           arrivals.contains(where: { $0.id == current.id }) { return }
+        guard let chosen = arrivals.last else { return }
+        model.selectTrashArrival(chosen)
+        Task {
+            await model.scanTrashResiduals(home: Self.trashScanHome)
+            if Self.trashConfirmHook { showTrashConfirm = true }
+        }
+    }
+
+    @ViewBuilder
+    private var trashRegion: some View {
+        if settings.watchTrashForResidualCleanup == false {
+            // 关掉就不留任何痕迹：把"已关闭"再在这页复述一遍，等于把设置页的话说两次。
+            EmptyView()
+        } else if case .unreadable(let reason, let needsFullDiskAccess) = trashWatcher.status {
+            MMPermissionBanner(
+                title: needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了",
+                detail: needsFullDiskAccess
+                    ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页或重启应用才会生效。"
+                    : reason + " 这和权限无关，所以这里不放授权按钮。",
+                settingsPane: needsFullDiskAccess ? Self.fullDiskAccessPane : nil
+            )
+        } else if trashWatcher.arrivals.isEmpty == false, pane == .apps {
+            trashNoticeCard
+        }
+    }
+
+    private var trashNoticeCard: some View {
+        let arrivals = trashWatcher.arrivals
+        let items = model.trashResidualItems
+        return VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "tray.and.arrow.down.fill").foregroundStyle(MMColor.accent)
+
+                if arrivals.count > 1 {
+                    Picker("废纸篓中的应用", selection: trashArrivalSelection) {
+                        ForEach(arrivals) { arrival in
+                            Text(arrival.name).tag(Optional(arrival.id))
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                    Text("有 \(arrivals.count) 个应用刚进废纸篓").font(.callout.weight(.semibold))
+                } else {
+                    Text("刚拖进废纸篓：\(arrivals[0].name)").font(.callout.weight(.semibold))
+                }
+
+                MMBadge("本体已在废纸篓", tint: MMColor.informational, systemImage: "trash")
+
+                Spacer(minLength: MMGap.sm)
+
+                Button {
+                    MMReveal.open(model.trashArrival?.path ?? arrivals.last?.path ?? "")
+                } label: {
+                    Label("在访达中显示", systemImage: "folder")
+                }
+                .controlSize(.small)
+                .buttonStyle(.borderless)
+
+                Button("忽略") { trashWatcher.dismiss() }
+                    .controlSize(.small)
+                    .buttonStyle(.borderless)
+            }
+
+            HStack(spacing: MMGap.xs) {
+                Text(model.trashArrival?.path ?? arrivals.last?.path ?? "")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("·")
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                Text(model.trashArrival?.bundleID ?? arrivals.last?.bundleID ?? "")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            if model.isScanningTrashResiduals {
+                HStack(spacing: MMGap.sm) {
+                    ProgressView().controlSize(.small)
+                    Text("按包名与容器证据扫残留…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                }
+            } else if model.hasScannedTrashResiduals == false {
+                Text("还没扫残留。本体已经在废纸篓里，这里只列出它散在 ~/Library 的文件。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            } else if items.isEmpty {
+                Text("按当前敏感度没有匹配到残留文件。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(items) { item in
+                            ResidualRow(item: item, isSelected: trashResidualBinding(item),
+                                         onToggle: { model.toggleTrashResidual(item) })
+                            Divider()
+                        }
+                    }
+                }
+                .frame(maxHeight: 200)
+                .background(MMColor.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
+            }
+
+            HStack(spacing: MMGap.sm) {
+                Text(trashNoticeSummary)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .monospacedDigit()
+                Spacer(minLength: MMGap.sm)
+                if items.isEmpty == false {
+                    Button("全选可删项") { model.toggleAllTrashResiduals() }
+                        .controlSize(.small)
+                        .buttonStyle(.borderless)
+                }
+                Button(role: .destructive) {
+                    if settings.confirmBeforeDelete {
+                        showTrashConfirm = true
+                    } else {
+                        Task { await model.trashSelectedTrashResiduals() }
+                    }
+                } label: {
+                    Label("清理勾选的残留", systemImage: "trash")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .disabled(model.hasScannedTrashResiduals == false || model.selectedTrashResidualCount == 0)
+            }
+        }
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.informational, 0.08))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// 勾选数与合计。没扫过时不能说"0 项"—— 那读起来等于"这里干净"，真相是还没看过。
+    private var trashNoticeSummary: String {
+        if model.isScanningTrashResiduals { return "扫描中…" }
+        guard model.hasScannedTrashResiduals else { return "尚未扫描" }
+        var line = "已选 \(model.selectedTrashResidualCount) 项 · "
+            + MMFormat.bytes(model.selectedTrashResidualSize)
+        if model.unselectedTrashResidualCount > 0 {
+            line += " · 未勾选 \(model.unselectedTrashResidualCount) 项"
+        }
+        return line
+    }
+
+    private var trashArrivalSelection: Binding<String?> {
+        Binding(
+            get: { model.trashArrival?.id },
+            set: { id in
+                guard let arrival = trashWatcher.arrivals.first(where: { $0.id == id }) else { return }
+                model.selectTrashArrival(arrival)
+                Task { await model.scanTrashResiduals(home: Self.trashScanHome) }
+            }
+        )
+    }
+
+    private func trashResidualBinding(_ item: ResidualItem) -> Binding<Bool> {
+        Binding(
+            get: { item.risk.allowsDeletion && model.selectedTrashResidualIDs.contains(item.id) },
+            set: { _ in model.toggleTrashResidual(item) }
+        )
+    }
+
+    private var trashConfirmSheet: some View {
+        let roots = model.trashResidualReport?.deletionRoots(for: model.selectedTrashResidualIDs) ?? []
+        return VStack(alignment: .leading, spacing: MMGap.md) {
+            Text("清理 \(model.trashArrival?.name ?? "") 的 \(roots.count) 项残留？")
+                .font(.title3.weight(.semibold))
+            Text("只移除勾选的残留，\(model.trashArrival?.name ?? "这个应用") 的本体留在废纸篓里不动。"
+                 + "标记为谨慎与只读的项不会进入这份列表。")
+                .font(.callout)
+                .foregroundStyle(MMColor.secondaryLabel)
+
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(roots, id: \.self) { path in
+                    HStack(spacing: MMGap.sm) {
+                        Image(systemName: "doc")
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .frame(width: MMGap.xxl)
+                        Text(path)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: MMGap.sm)
+                    }
+                    .padding(.horizontal, MMGap.md)
+                    .frame(height: MMMetric.rowCompact)
+                    Divider()
+                }
+            }
+            .background(MMColor.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
+
+            Text("合计 \(MMFormat.bytes(model.selectedTrashResidualSize))，可在 15 秒内或「最近操作」中撤回。")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+
+            HStack {
+                Spacer()
+                Button("取消") { showTrashConfirm = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("移入废纸篓") {
+                    showTrashConfirm = false
+                    Task { await model.trashSelectedTrashResiduals() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(MMGap.lg)
+        .frame(width: 480)
     }
 }
 

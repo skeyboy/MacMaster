@@ -31,6 +31,8 @@ public final class AppSettings: ObservableObject {
         case confirmBeforeDelete = "settings.cleaner.confirmBeforeDelete"
         case allowUndo = "settings.cleaner.allowUndo"
         case excludedFolderPaths = "settings.cleaner.excludedFolderPaths"
+
+        case watchTrashForResidualCleanup = "settings.uninstaller.watchTrashForResidualCleanup"
     }
 
     /// 「更新间隔」仅允许的取值（秒），与 Settings UI 的分段选项一致。
@@ -119,6 +121,14 @@ public final class AppSettings: ObservableObject {
         didSet { defaults.set(excludedFolderPaths, forKey: Key.excludedFolderPaths.rawValue) }
     }
 
+    // MARK: - Uninstaller
+
+    /// 停在「应用卸载」页时监听废纸篓，把刚拖进来的应用提示成可清理残留的机会。
+    /// 消费点在 MMUninstaller 页面（进页启动、离页停止），不是后台常驻进程。
+    @Published public var watchTrashForResidualCleanup: Bool {
+        didSet { defaults.set(watchTrashForResidualCleanup, forKey: Key.watchTrashForResidualCleanup.rawValue) }
+    }
+
     // MARK: - Setup
 
     public static let defaultMonitorRefreshInterval = 2
@@ -142,6 +152,8 @@ public final class AppSettings: ObservableObject {
             Key.confirmBeforeDelete.rawValue: true,
             Key.allowUndo.rawValue: true,
             Key.excludedFolderPaths.rawValue: [String](),
+
+            Key.watchTrashForResidualCleanup.rawValue: true,
         ]
     }
 
@@ -172,6 +184,7 @@ public final class AppSettings: ObservableObject {
         self.confirmBeforeDelete = defaults.bool(forKey: Key.confirmBeforeDelete.rawValue)
         self.allowUndo = defaults.bool(forKey: Key.allowUndo.rawValue)
         self.excludedFolderPaths = defaults.stringArray(forKey: Key.excludedFolderPaths.rawValue) ?? []
+        self.watchTrashForResidualCleanup = defaults.bool(forKey: Key.watchTrashForResidualCleanup.rawValue)
     }
 
     /// 供 MenuBarManager 等处使用的秒数（保底 >= 1，避免除零）。

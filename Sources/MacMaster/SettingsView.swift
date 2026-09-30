@@ -145,6 +145,14 @@ struct SettingsView: View {
                 Toggle("允许撤回操作", isOn: $settings.allowUndo)
             }
 
+            Section("废纸篓") {
+                Toggle("在应用卸载页提示清理刚拖入应用的残留", isOn: $settings.watchTrashForResidualCleanup)
+                Text("只在停在「应用卸载」这一页时监听，离开就停，不是后台常驻。"
+                     + "监听只列目录里的条目名，并读新进入的 .app 的 Info.plist 取包标识。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+
             Section("删除历史") {
                 HStack {
                     Text("台账条目")

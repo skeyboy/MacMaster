@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../screen.css">
+<script src="../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.split{flex:1;min-height:0;display:flex}
+.applist{width:300px;flex:0 0 300px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:52px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow .ic{width:28px;height:28px;border-radius:7px;flex:0 0 28px;display:grid;place-items:center;
+          color:#fff;font-size:11px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono)}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.detail{flex:1;min-width:0;display:grid;place-items:center;background:var(--c-content-bg);color:var(--c-label-tertiary)}
+
+/* ---------- 废纸篓提示卡（UninstallerView.trashNoticeCard） ---------- */
+.notice{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);
+        background:color-mix(in srgb, var(--c-info) 8%, transparent);
+        border-bottom:1px solid var(--c-separator)}
+.notice .head{display:flex;align-items:center;gap:var(--sp-2);min-width:0}
+.notice .head .lead{color:var(--c-accent);display:grid;place-items:center}
+.notice .head h2{margin:0;font-size:var(--fs-callout);font-weight:600;white-space:nowrap}
+.notice .path{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);
+              font-size:var(--fs-caption);color:var(--c-label-secondary);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rlist{border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;background:var(--c-card-bg-alt)}
+.nrow{display:flex;align-items:center;gap:var(--sp-3);min-height:46px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.nrow:last-child{border-bottom:0}
+.nrow .ic{width:20px;flex:0 0 20px;display:grid;place-items:center;color:var(--c-label-tertiary)}
+.nrow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.nrow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow .m span{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nrow .z{font-family:var(--font-mono);font-size:var(--fs-caption);white-space:nowrap}
+.nrow .reveal{color:var(--c-label-secondary);display:grid;place-items:center}
+.notice .foot{display:flex;align-items:center;gap:var(--sp-2)}
+.notice .foot .s{font-size:var(--fs-caption);color:var(--c-label-secondary);font-variant-numeric:tabular-nums}
+
+/* ---------- 只读降级横幅（MMPermissionBanner） ---------- */
+.perm{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+      background:color-mix(in srgb, var(--c-warning) 10%, transparent);border-bottom:1px solid var(--c-separator)}
+.perm .lk{color:var(--c-warning);display:grid;place-items:center;padding-top:1px}
+.perm .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.perm .tx b{font-size:var(--fs-callout);font-weight:600}
+.perm .tx span{font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.mini{width:var(--win-w);display:flex;flex-direction:column;gap:0;background:var(--c-window-bg);
+      border:1px solid rgba(0,0,0,.18);border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden}
+.spin{width:12px;height:12px;flex:0 0 12px;border-radius:50%;border:1.6px solid var(--c-label-tertiary);
+      border-top-color:transparent;display:inline-block}</style></head>
+<body>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03c · 应用卸载 —— 刚拖进废纸篓的提示卡（P1.5）。</b>
+卡片插在页头与左右分栏之间，<b>只在停在「已装应用」这一档、且监听器报出了新条目时才出现</b>；
+设置里关掉「在应用卸载页提示清理刚拖入应用的残留」后这一页不留任何痕迹（不把设置页的话复述第二遍）。
+<b>卡片的存在前提是"本体已经在废纸篓里"</b>，所以这里的动作只有"清理散在 <code>~/Library</code> 的残留"，
+不出现「卸载应用」「移到废纸篓」——<b>删除列表由 <code>report.deletionRoots(for:)</code> 单点给出，
+永远不含已在废纸篓的 app 本体</b>（单测锁住这条）。头部图标 <code>tray.and.arrow.down.fill</code>、
+徽章 <code>MMBadge("本体已在废纸篓")</code> 用 information 色；正文下方那行是<b>本体绝对路径 · 包标识</b>，
+等宽字体、中段截断。残留行与主面板的 <code>ResidualRow</code> 同一套行高与勾选语义：
+<b>safe 项默认勾选、caution 项默认不勾</b>，root 属主项勾选框直接禁用。
+汇总行按实测数字："已选 2 项 · 6.3 MB · 未勾选 2 项"，右侧「全选可删项」只勾可删的，
+「清理勾选的残留」是 destructive prominent，未扫描或选中 0 项时置灰。
+一次拖进多个应用时，标题左侧换成 menu <code>Picker</code> + "有 N 个应用刚进废纸篓"。</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">1.3 GB</span></div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">45</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div style="height:1px;background:var(--c-separator);margin:var(--sp-2) var(--sp-3)"></div>
+      <div class="nav-item" style="margin-top:auto"><svg class="i ic"><use href="#i-gear"></use></svg>设置</div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>45 个应用 · 合计 50.6 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="notice">
+        <div class="head">
+          <span class="lead"><svg class="i i-18"><use href="#i-tray-down"></use></svg></span>
+          <h2>刚拖进废纸篓：示例应用</h2>
+          <span class="badge info"><svg class="i"><use href="#i-trash"></use></svg>本体已在废纸篓</span>
+          <div style="margin-left:auto"></div>
+          <span class="btn borderless sm"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+          <span class="btn borderless sm">忽略</span>
+        </div>
+        <div class="path">~/.Trash/Foo.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.Foo</div>
+        <div class="rlist">
+          <div class="nrow"><span class="chk on">✓</span>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            <div class="m"><b>com.example.Foo</b><span>~/Library/Caches/com.example.Foo · 包名完全对应</span></div>
+            <span class="badge safe">安全</span><span class="reveal"><svg class="i"><use href="#i-folder"></use></svg></span>
+            <span class="z">5.2 MB</span></div>
+          <div class="nrow"><span class="chk on">✓</span>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-box"></use></svg>
+            <div class="m"><b>Caches</b><span>~/Library/Containers/com.example.Foo/Data/Library/Caches · 容器内可重建缓存（Data/Library/Caches）</span></div>
+            <span class="badge safe">安全</span><span class="reveal"><svg class="i"><use href="#i-folder"></use></svg></span>
+            <span class="z">1 MB</span></div>
+          <div class="nrow"><span class="chk"></span>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-list"></use></svg>
+            <div class="m"><b>com.example.Foo.plist</b><span>~/Library/Preferences/com.example.Foo.plist · 包名完全对应</span></div>
+            <span class="badge warn">谨慎</span><span class="reveal"><svg class="i"><use href="#i-folder"></use></svg></span>
+            <span class="z">4 KB</span></div>
+          <div class="nrow"><span class="chk"></span>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-box"></use></svg>
+            <div class="m"><b>com.example.Foo</b><span>~/Library/Containers/com.example.Foo · 包名完全对应</span></div>
+            <span class="badge warn">谨慎</span><span class="reveal"><svg class="i"><use href="#i-folder"></use></svg></span>
+            <span class="z">1 MB</span></div>
+        </div>
+        <div class="foot">
+          <span class="s">已选 2 项 · 6.3 MB · 未勾选 2 项</span>
+          <div style="margin-left:auto"></div>
+          <span class="btn borderless sm">全选可删项</span>
+          <span class="btn destructive sm"><svg class="i"><use href="#i-trash"></use></svg>清理勾选的残留</span>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow"><span class="ic" style="background:#3DDC84">Ad</span>
+              <div class="m"><b>ADB Link</b><span>0.1.0 · 47 MB</span></div><div class="z">1 项残留</div></div>
+            <div class="arow"><span class="ic" style="background:#2B7FFF">aD</span>
+              <div class="m"><b>aDrive</b><span>6.9.3 · 435.1 MB</span></div><div class="z">2 项残留</div></div>
+            <div class="arow"><span class="ic" style="background:#3DDAF9">An</span>
+              <div class="m"><b>Android Studio</b><span>2026.1 · 3.44 GB</span></div><div class="z">1 项残留</div></div>
+            <div class="arow"><span class="ic" style="background:#41444B">Ch</span>
+              <div class="m"><b>ChatGPT</b><span>26.9.24 · 221 MB</span></div><div class="z">3 项残留</div></div>
+            <div class="arow"><span class="ic" style="background:#7B68EE">Cl</span>
+              <div class="m"><b>Clash Verge</b><span>2.5.2 · 68 MB</span></div><div class="z">2 项残留</div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">45 个应用 · 已测 45</span></div>
+        </div>
+        <div class="detail">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:var(--sp-2)">
+            <svg class="i" style="width:34px;height:34px;color:var(--c-label-tertiary)"><use href="#i-app-x"></use></svg>
+            <b class="t-headline">未选择应用</b>
+            <span class="t-cap">从左侧列表选择一个应用，查看它的信息与将被一并移除的残留文件。</span></div>
+        </div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 0 项残留 · 0 字节</b>
+          <span>未勾选项不会被修改</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm disabled">仅卸载应用</span>
+        <span class="btn destructive lg disabled"><svg class="i"><use href="#i-trash"></use></svg>移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03c-2 · 同一张卡片的三个非"已扫出"档，以及整页读不到废纸篓时的降级横幅。</b>
+自上而下：<b>①扫描中</b>（<code>ProgressView</code> + "按包名与容器证据扫残留…"，汇总行写"扫描中…"，
+不提前给任何数字）；<b>②尚未扫描</b>（钩子没给 home、或扫描任务还没回来：正文说"还没扫残留"，
+汇总行必须写<b>"尚未扫描"</b>而不是"0 项 · 0 字节"——<b>没看过 ≠ 没有</b>，这条是本项目的一致性红线）；
+<b>③按当前敏感度没匹配到残留</b>（真扫过、结论是空，才允许说"没有"）。
+<b>④整页横幅</b>是这台机器的默认态：没有完全磁盘访问时 <code>~/.Trash</code> 的 <code>stat</code> 放行、
+<code>open()</code> 直接 EPERM(1)，实测如此，所以首次进入这一页看到的就是它，而不是"废纸篓是空的"。
+文案带真实错误码，并明确"重新进入这一页或重启应用才会生效"（TCC 授权在进程启动时读取）。
+目录压根不存在（新用户从没删过东西）时走另一条文案："废纸篓目录还不存在"，<b>且不放授权按钮</b>——
+那是两种原因，不能合成一种。</div>
+<div class="mini">
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-tray-down"></use></svg></span>
+      <h2>刚拖进废纸篓：示例应用</h2>
+      <span class="badge info"><svg class="i"><use href="#i-trash"></use></svg>本体已在废纸篓</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">~/.Trash/Foo.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.Foo</div>
+    <div class="row-h" style="gap:var(--sp-2)">
+      <span class="spin"></span><span class="t-cap">按包名与容器证据扫残留…</span></div>
+    <div class="foot"><span class="s">扫描中…</span><div style="margin-left:auto"></div>
+      <span class="btn destructive sm disabled"><svg class="i"><use href="#i-trash"></use></svg>清理勾选的残留</span></div>
+  </div>
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-tray-down"></use></svg></span>
+      <h2>刚拖进废纸篓：示例应用</h2>
+      <span class="badge info"><svg class="i"><use href="#i-trash"></use></svg>本体已在废纸篓</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">~/.Trash/Foo.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.Foo</div>
+    <span class="t-cap">还没扫残留。本体已经在废纸篓里，这里只列出它散在 ~/Library 的文件。</span>
+    <div class="foot"><span class="s">尚未扫描</span><div style="margin-left:auto"></div>
+      <span class="btn destructive sm disabled"><svg class="i"><use href="#i-trash"></use></svg>清理勾选的残留</span></div>
+  </div>
+  <div class="notice" style="border-bottom:0">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-tray-down"></use></svg></span>
+      <h2>刚拖进废纸篓：示例应用</h2>
+      <span class="badge info"><svg class="i"><use href="#i-trash"></use></svg>本体已在废纸篓</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">~/.Trash/Foo.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.Foo</div>
+    <span class="t-cap">按当前敏感度没有匹配到残留文件。</span>
+    <div class="foot"><span class="s">已选 0 项 · 0 字节</span><div style="margin-left:auto"></div>
+      <span class="btn destructive sm disabled"><svg class="i"><use href="#i-trash"></use></svg>清理勾选的残留</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03c-3 · 无完全磁盘访问时的整页降级态（本机实测默认态）。</b>
+横幅就是 <code>MMPermissionBanner</code>：锁图标 + 标题「读不到废纸篓」+ 一句带错误码的详情 +
+「打开系统设置」（深链 <code>Privacy_AllFiles</code> 面板，不是把人丢进设置首页）。
+<b>页面其余部分不受影响</b>：应用列表、残留扫描、卸载动作全都不依赖读废纸篓，所以这里只是"这一张卡出不来"，
+不能把整页置灰。截图核对：<code>/tmp/mmshot/trash_real.jpg</code>（钩子全关）与
+<code>/tmp/mmshot/trash3.jpg</code>（<code>MM_TRASH_FIXTURE_DIR</code> 指向 <code>/tmp</code> 假废纸篓）。</div>
+<div class="mini">
+  <div class="toolbar" style="border-bottom:0">
+    <div class="title-block"><h1>应用卸载</h1><p>45 个应用 · 已测 0 · 45 个测量中</p></div>
+    <div class="sp"></div>
+    <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+    <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+    <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+  </div>
+  <div class="perm">
+    <span class="lk"><svg class="i"><use href="#i-lock"></use></svg></span>
+    <div class="tx"><b>读不到废纸篓</b>
+      <span>无法打开废纸篓目录：Operation not permitted（错误码 1）。 在系统设置里授予「完全磁盘访问」后，重新进入这一页或重启应用才会生效。</span></div>
+    <div style="margin-left:auto"></div>
+    <span class="btn sm">打开系统设置</span>
+  </div>
+  <div class="split" style="min-height:120px">
+    <div class="applist">
+      <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+      <div style="flex:1;overflow:hidden">
+        <div class="arow"><span class="ic" style="background:#3DDC84">Ad</span>
+          <div class="m"><b>ADB Link</b><span>0.1.0 · 测量中</span></div></div>
+        <div class="arow"><span class="ic" style="background:#2B7FFF">aD</span>
+          <div class="m"><b>aDrive</b><span>6.9.3 · 测量中</span></div></div>
+        <div class="arow"><span class="ic" style="background:#3DDAF9">An</span>
+          <div class="m"><b>Android Studio</b><span>2026.1 · 测量中</span></div></div>
+      </div>
+    </div>
+    <div class="detail">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:var(--sp-2)">
+        <svg class="i" style="width:34px;height:34px;color:var(--c-label-tertiary)"><use href="#i-app-x"></use></svg>
+        <b class="t-headline">未选择应用</b>
+        <span class="t-cap">从左侧列表选择一个应用，查看它的信息与将被一并移除的残留文件。</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body></html>
