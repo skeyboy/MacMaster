@@ -390,13 +390,24 @@ public struct ResidualScanReport: Sendable {
 
     /// 实际要移到废纸篓的路径：勾选的项去掉已被勾选父目录覆盖的子项。
     public func deletionRoots(for selectedIDs: Set<String>) -> [String] {
-        let byID = Dictionary(grouping: items.filter { selectedIDs.contains($0.id) }, by: \.id)
+        let byID = Dictionary(grouping: items.filter {
+            $0.risk.allowsDeletion && selectedIDs.contains($0.id)
+        }, by: \.id)
         return Self.nonNestedIDs(Array(byID.keys)).compactMap { id in byID[id]?.first?.path }
     }
 
-    public func selectedSize(for selectedIDs: Set<String>) -> UInt64 {
-        let sizes = Self.aggregate(items.filter { selectedIDs.contains($0.id) })
-        return Self.nonNestedIDs(Array(sizes.keys)).reduce(UInt64(0)) { $0 + (sizes[$1] ?? 0) }
+    public func selectedSize(for selectedIDs: Set<String>) -> UInt64? {
+        let grouped = Dictionary(grouping: items.filter {
+            $0.risk.allowsDeletion && selectedIDs.contains($0.id)
+        }, by: \.id)
+        var total: UInt64 = 0
+        for id in Self.nonNestedIDs(Array(grouped.keys)) {
+            guard let size = grouped[id]?.compactMap(\.size).max() else { return nil }
+            let (sum, overflow) = total.addingReportingOverflow(size)
+            guard !overflow else { return nil }
+            total = sum
+        }
+        return total
     }
 
     private static func aggregate(_ subset: [ResidualItem]) -> [String: UInt64] {

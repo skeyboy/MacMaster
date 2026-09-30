@@ -24,6 +24,10 @@ public struct UninstallerModule: ModuleRegistrable {
 // 颜色、间距、圆角、行高一律取 MM* 令牌，不写死数值。
 
 public struct UninstallerView: View {
+    private enum ConfirmationMode {
+        case appOnly, withResiduals
+    }
+
     /// 两屏共用敏感度与废纸篓服务，但看的是相反的方向：
     /// 「已装应用」问"这个应用的文件在哪"，「卸载后遗症」问"这些文件是谁的"。
     private enum Pane: String, CaseIterable {
@@ -51,11 +55,24 @@ public struct UninstallerView: View {
         return raw
     }
 
+    private static var confirmationFixtureHome: String? {
+        guard let raw = ProcessInfo.processInfo.environment["MM_UNINSTALL_CONFIRM_FIXTURE_HOME"] else {
+            return nil
+        }
+        guard let home = UninstallFixtureHooks.canonicalHome(raw) else {
+            FileHandle.standardError.write(
+                "MM_UNINSTALL_CONFIRM_FIXTURE_HOME 不是 /tmp 下的真实目录，忽略该钩子\n".data(using: .utf8)!)
+            return nil
+        }
+        return home
+    }
+
     @StateObject private var model = UninstallerModel()
     @StateObject private var trashWatcher = TrashWatcher()
     @ObservedObject private var settings = AppSettings.shared
     @State private var searchText = ""
     @State private var showConfirm = false
+    @State private var confirmationMode: ConfirmationMode = .withResiduals
     @State private var showOrphanConfirm = false
     @State private var showTrashConfirm = false
     @State private var toastSeconds = 0
@@ -144,8 +161,18 @@ public struct UninstallerView: View {
             startTrashWatching()
         }
         .task {
+            if let home = Self.confirmationFixtureHome {
+                model.optionsFactory = { ResidualScanOptions(home: home) }
+                model.appDirectoriesFactory = { _ in [home + "/Applications"] }
+            }
             if model.apps.isEmpty, model.isScanningApps == false {
                 await model.loadApps()
+            }
+            if let home = Self.confirmationFixtureHome,
+               let app = model.apps.first(where: { $0.path.hasPrefix(home + "/Applications/") }) {
+                model.select(app.id)
+                let mode = ProcessInfo.processInfo.environment["MM_UNINSTALL_CONFIRM_MODE"]
+                requestConfirmation(mode == "withResiduals" ? .withResiduals : .appOnly)
             }
             // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
             startOrphanScanIfNeeded()
@@ -294,8 +321,8 @@ public struct UninstallerView: View {
                 unselectedCount: model.unselectedCount,
                 onToggle: { model.toggle($0) },
                 onToggleAll: { model.toggleAllDeletable() },
-                onUninstallWithResiduals: { showConfirm = true },
-                onUninstallAppOnly: { Task { await model.uninstallAppOnly() } }
+                onUninstallWithResiduals: { requestConfirmation(.withResiduals) },
+                onUninstallAppOnly: { requestConfirmation(.appOnly) }
             )
         } else {
             MMEmptyState(
@@ -316,12 +343,12 @@ public struct UninstallerView: View {
             note: "未勾选项不会被修改",
             trailing: {
                 Button("仅卸载应用") {
-                    Task { await model.uninstallAppOnly() }
+                    requestConfirmation(.appOnly)
                 }
                 .disabled(model.selectedApp == nil)
 
                 Button(role: .destructive) {
-                    showConfirm = true
+                    requestConfirmation(.withResiduals)
                 } label: {
                     Label("移到废纸篓", systemImage: "trash")
                 }
@@ -486,20 +513,51 @@ public struct UninstallerView: View {
 
     // MARK: 确认
 
+    private func requestConfirmation(_ mode: ConfirmationMode) {
+        confirmationMode = mode
+        showConfirm = true
+    }
+
     private var confirmSheet: some View {
         VStack(alignment: .leading, spacing: MMGap.md) {
             Text("确认卸载")
                 .font(.title3.weight(.semibold))
 
             if let app = model.selectedApp {
+                let includeResiduals = confirmationMode == .withResiduals
+                let paths = includeResiduals
+                    ? UninstallSelection.deletionPaths(appPath: app.path, items: app.residuals,
+                                                       selectedIDs: model.selectedResidualIDs)
+                    : [app.path]
+                let residualSize = includeResiduals ? model.selectedResidualSize : 0
                 VStack(alignment: .leading, spacing: MMGap.xs) {
                     MMKeyRow("应用", app.name)
                     MMKeyRow("包名", app.bundleID, monospaced: true)
-                    MMKeyRow("移除", "\(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))")
-                    MMKeyRow("合计", MMFormat.bytes(model.selectedResidualSize))
+                    MMKeyRow("本体", MMFormat.bytes(app.size))
+                    MMKeyRow("残留", includeResiduals
+                        ? "\(paths.count - 1) 项 · \(MMFormat.bytes(residualSize))"
+                        : "保留，不修改")
+                    MMKeyRow("合计", MMFormat.bytes(UninstallSelection.confirmationSize(
+                        appSize: app.size, residualSize: residualSize, includeResiduals: includeResiduals)))
                 }
 
-                Text("全部内容移到废纸篓，可在 15 秒内或「最近操作」中撤回。标记为谨慎与只读的项不会被删除。")
+                ScrollView {
+                    VStack(alignment: .leading, spacing: MMGap.xs) {
+                        ForEach(paths, id: \.self) { path in
+                            Text(path)
+                                .font(.caption.monospaced())
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .help(path)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: min(CGFloat(paths.count) * 24, 168))
+
+                Text(includeResiduals
+                     ? "列出的路径将移入废纸篓；未勾选与只读项不修改，谨慎项仅在主动勾选时移除。可在「最近操作」中撤回。"
+                     : "只移动应用本体，残留文件不会被修改。可在「最近操作」中撤回。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }
@@ -507,9 +565,13 @@ public struct UninstallerView: View {
             HStack(spacing: MMGap.sm) {
                 Spacer()
                 Button("取消") { showConfirm = false }
-                Button("卸载", role: .destructive) {
+                Button(confirmationMode == .appOnly ? "仅卸载应用" : "卸载", role: .destructive) {
                     showConfirm = false
-                    Task { await model.uninstallAppWithSelection() }
+                    if confirmationMode == .appOnly {
+                        Task { await model.uninstallAppOnly() }
+                    } else {
+                        Task { await model.uninstallAppWithSelection() }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
@@ -1007,7 +1069,7 @@ struct AppDetailView: View {
         app.residuals.filter { $0.risk.allowsDeletion && selectedIDs.contains($0.id) }.count
     }
 
-    private var totalSelectedSize: UInt64 {
+    private var totalSelectedSize: UInt64? {
         UninstallSelection.selectedSize(items: app.residuals, selectedIDs: selectedIDs)
     }
 }

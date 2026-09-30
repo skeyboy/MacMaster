@@ -58,6 +58,15 @@ public struct UninstallCandidate: Identifiable, Sendable {
 
 public enum UninstallSelection {
 
+    public static func confirmationSize(appSize: UInt64?, residualSize: UInt64?,
+                                        includeResiduals: Bool) -> UInt64? {
+        guard let appSize else { return nil }
+        guard includeResiduals else { return appSize }
+        guard let residualSize else { return nil }
+        let (total, overflow) = appSize.addingReportingOverflow(residualSize)
+        return overflow ? nil : total
+    }
+
     /// 删除根可能是容器父目录；成功移走父目录后，子项也已不存在。
     static func wasMoved(_ path: String, under roots: Set<String>) -> Bool {
         roots.contains { root in path == root || path.hasPrefix(root + "/") }
@@ -83,12 +92,17 @@ public enum UninstallSelection {
     }
 
     /// 勾选项合计大小：同一绝对路径只算一次，父目录已入选时不再累加其子项。
-    public static func selectedSize(items: [ResidualItem], selectedIDs: Set<String>) -> UInt64 {
+    public static func selectedSize(items: [ResidualItem], selectedIDs: Set<String>) -> UInt64? {
         let allowed = items.filter { $0.risk.allowsDeletion && selectedIDs.contains($0.id) }
-        var sizes: [String: UInt64] = [:]
-        for item in allowed { sizes[item.id] = max(sizes[item.id] ?? 0, item.size ?? 0) }
-        return ResidualScanReport.nonNestedIDs(Array(sizes.keys))
-            .reduce(UInt64(0)) { $0 + (sizes[$1] ?? 0) }
+        let grouped = Dictionary(grouping: allowed, by: \.id)
+        var total: UInt64 = 0
+        for id in ResidualScanReport.nonNestedIDs(Array(grouped.keys)) {
+            guard let size = grouped[id]?.compactMap(\.size).max() else { return nil }
+            let (sum, overflow) = total.addingReportingOverflow(size)
+            guard !overflow else { return nil }
+            total = sum
+        }
+        return total
     }
 
     /// 仍属于本次扫描但没被勾选的可删项，对应设计稿"11 项默认不勾选"那枚徽章。
@@ -119,6 +133,7 @@ public final class UninstallerModel: ObservableObject {
 
     /// 扫描参数注入点：单测把 home 指到临时目录，真实运行用默认值（当前用户）。
     var optionsFactory: () -> ResidualScanOptions = { ResidualScanOptions() }
+    var appDirectoriesFactory: (String) -> [String] = AppScanner.defaultSearchDirectories
 
     public init() {}
 
@@ -130,7 +145,7 @@ public final class UninstallerModel: ObservableObject {
 
     public var measuredCount: Int { apps.filter { $0.size != nil }.count }
 
-    public var selectedResidualSize: UInt64 {
+    public var selectedResidualSize: UInt64? {
         guard let app = selectedApp else { return 0 }
         return UninstallSelection.selectedSize(items: app.residuals, selectedIDs: selectedResidualIDs)
     }
@@ -155,8 +170,9 @@ public final class UninstallerModel: ObservableObject {
         failures = []
 
         let options = optionsFactory()
+        let directories = appDirectoriesFactory(options.home)
         let discovered = await Task.detached(priority: .userInitiated) {
-            AppScanner.applications(in: AppScanner.defaultSearchDirectories(home: options.home))
+            AppScanner.applications(in: directories)
         }.value
 
         apps = discovered.map { makeCandidate(from: $0) }
@@ -190,7 +206,7 @@ public final class UninstallerModel: ObservableObject {
         let residuals: [ResidualItem]
         let size: UInt64?
         let fileCount: Int?
-        let residualSize: UInt64
+        let residualSize: UInt64?
         let failed: Bool
     }
 
@@ -240,9 +256,10 @@ public final class UninstallerModel: ObservableObject {
             residuals[index].size = metrics.size
         }
         let bundle = await DirectoryMetrics.measure(path: app.path)
-        let summary = ResidualScanReport(items: residuals, inaccessiblePaths: report.inaccessiblePaths)
         return EnrichedApp(id: app.id, residuals: residuals, size: bundle.size, fileCount: bundle.fileCount,
-                           residualSize: summary.defaultSelectableSize, failed: false)
+                           residualSize: UninstallSelection.selectedSize(
+                               items: residuals, selectedIDs: UninstallSelection.defaultSelectedIDs(residuals)),
+                           failed: false)
     }
 
     private func apply(_ enriched: EnrichedApp) {
@@ -329,8 +346,9 @@ public final class UninstallerModel: ObservableObject {
             selectedResidualIDs = []
         } else if let index = apps.firstIndex(where: { $0.id == appID }) {
             apps[index].residuals.removeAll { UninstallSelection.wasMoved($0.path, under: moved) }
-            apps[index].residualSize = ResidualScanReport(items: apps[index].residuals,
-                                                           inaccessiblePaths: []).defaultSelectableSize
+            apps[index].residualSize = UninstallSelection.selectedSize(
+                items: apps[index].residuals,
+                selectedIDs: UninstallSelection.defaultSelectedIDs(apps[index].residuals))
             selectedResidualIDs = Set(selectedResidualIDs.filter {
                 !UninstallSelection.wasMoved($0, under: moved)
             })
@@ -438,8 +456,8 @@ public final class UninstallerModel: ObservableObject {
 
     public var trashResidualItems: [ResidualItem] { trashResidualReport?.items ?? [] }
 
-    public var selectedTrashResidualSize: UInt64 {
-        guard let report = trashResidualReport else { return 0 }
+    public var selectedTrashResidualSize: UInt64? {
+        guard let report = trashResidualReport else { return nil }
         return report.selectedSize(for: selectedTrashResidualIDs)
     }
 

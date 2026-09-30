@@ -84,3 +84,5 @@ MacMaster (App 壳、注册、导航、概览、设置)
 `swift build`、`Packages/MMMonitor` 下的 `swift test`（20 项）、`Packages/MMUninstaller` 下的 `swift test`（72 项）和 `Scripts/make-app.sh -o /tmp/macmaster-codex-build` 均通过。使用 `MM_OPEN_MODULE=monitor MM_MONITOR_FIXTURE=populated,processes` 启动构建产物，按进程 ID 抓取窗口；[监控页夹具截图](verification/mmmonitor/monitor-fixture.jpg) 显示固定采样值和设计稿对应的卡片结构。该图是夹具态，不是当前机器的实时系统读数；常规启动仍由菜单栏采样器读取本机指标。卸载模块的收据测试仅使用临时目录。
 
 后续 P0 收口把删除结果回写统一为“只采纳 `operation.files`”：共享台账支持部分撤回重试，清理、卸载、磁盘和重复文件列表保留失败项；相关模块测试及实机清理页列顺序见 [模块优先级清单](analysis/module-priority.md)。
+
+P1 对缓存清理与卸载的扫描、预览和执行清单作了同源收口；两种卸载模式都经过确认，未测体积保持未知。验收截图与权限边界见 [P1 清理与卸载验收](analysis/p1-cleaner-uninstaller.md)。

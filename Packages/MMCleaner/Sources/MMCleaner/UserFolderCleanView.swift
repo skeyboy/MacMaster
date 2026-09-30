@@ -86,7 +86,7 @@ struct UserFolderCleanView: View {
                 Task { await cleanSelected() }
             }
         } message: {
-            Text("共 \(cleanTargets.count) 项，约 \(MMFormat.bytes(selectedSize))。\n选中的内容将移入废纸篓（可撤回），不会永久删除。")
+            Text("共 \(cleanTargets.count) 项，\(selectedSizeText)。\n选中的内容将移入废纸篓（可撤回），不会永久删除。")
         }
         .overlay(alignment: .bottom) {
             if let result = lastResult, toastSeconds > 0 {
@@ -395,7 +395,7 @@ struct UserFolderCleanView: View {
 
     private var actionBar: some View {
         MMActionBar(
-            summary: "已选 \(cleanTargets.count) 项 · \(MMFormat.bytes(selectedSize))",
+            summary: "已选 \(cleanTargets.count) 项 · \(selectedSizeText)",
             note: isScanning ? "扫描未完成，数字只包含已扫到的部分" : "未勾选的内容绝不会被清理"
         ) {
             Button("清理选中 \(cleanTargets.count) 项") {
@@ -442,17 +442,18 @@ struct UserFolderCleanView: View {
             }
         }
         // 安装包残留并进同一张查找表：底部合计与确认面板的数字才会把它们算进去。
-        // 没量到的条目贡献 0，但行内仍显示"测量中"——合计里少算是漏，虚报是假。
         for finding in installerFindings {
-            map[finding.path] = finding.size ?? 0
+            if let size = finding.size { map[finding.path] = size }
         }
         return map
     }
 
-    private var selectedSize: UInt64 {
-        cleanTargets.reduce(UInt64(0)) { partial, path in
-            partial + (sizeLookup[path] ?? 0)
-        }
+    private var selectedSize: UInt64? {
+        UserFolderCleanup.selectedSize(paths: cleanTargets, lookup: sizeLookup)
+    }
+
+    private var selectedSizeText: String {
+        selectedSize.map { "约 \(MMFormat.bytes($0))" } ?? "体积未测得"
     }
 
     // MARK: - 动作
@@ -579,6 +580,17 @@ struct UserFolderCleanView: View {
 }
 
 enum UserFolderCleanup {
+    static func selectedSize(paths: [String], lookup: [String: UInt64]) -> UInt64? {
+        var total: UInt64 = 0
+        for path in paths {
+            guard let size = lookup[path] else { return nil }
+            let (sum, overflow) = total.addingReportingOverflow(size)
+            guard !overflow else { return nil }
+            total = sum
+        }
+        return total
+    }
+
     static func wasMoved(_ path: String, under roots: Set<String>) -> Bool {
         roots.contains { root in path == root || path.hasPrefix(root + "/") }
     }

@@ -67,29 +67,19 @@ final class CleanerModel: ObservableObject {
         categories.filter { !$0.risk.allowsDeletion }.reduce(0) { $0 + $1.scannedSize }
     }
 
-    /// 只有"允许删除且被勾选、且未被排除"的字节才会真的动磁盘。
-    var selectedSize: UInt64 {
-        var total: UInt64 = 0
-        for category in categories where selectedIDs.contains(category.id) && category.risk.allowsDeletion {
-            for item in category.subItems where !isExcluded(item.path) {
-                total += item.size ?? 0
-            }
-        }
-        return total
+    var selectionPlan: CleanerSelectionPlan {
+        CleanerSelectionPlan(categories: categories, selectedIDs: selectedIDs, isExcluded: isExcluded)
     }
 
+    /// 未测得的选中路径不折成 0 字节；执行清单与确认面板共用 selectionPlan。
+    var selectedSize: UInt64? { selectionPlan.size }
+
     var selectedDeletableCount: Int {
-        categories.filter { selectedIDs.contains($0.id) && $0.risk.allowsDeletion }.count
+        selectionPlan.groups.count
     }
 
     var selectedPaths: [String] {
-        var paths: [String] = []
-        for category in categories where selectedIDs.contains(category.id) && category.risk.allowsDeletion {
-            paths.append(contentsOf: category.subItems
-                .filter { !isExcluded($0.path) }
-                .map(\.path))
-        }
-        return paths
+        selectionPlan.paths
     }
 
     func scope(from settings: AppSettings) -> CacheScanScope {
@@ -641,7 +631,7 @@ public struct CleanerView: View {
 
     private var actionBar: some View {
         MMActionBar(
-            summary: "已选 \(model.selectedDeletableCount) 类 · \(MMFormat.bytes(model.selectedSize))",
+            summary: "已选 \(model.selectedDeletableCount) 类 · \(model.selectionPlan.sizeSummary)",
             note: model.isPartial
                 ? "扫描未完成，数字只包含已扫到的部分"
                 : "未勾选项不会被修改"
@@ -673,28 +663,29 @@ public struct CleanerView: View {
     }
 
     private var confirmSheet: some View {
-        VStack(alignment: .leading, spacing: MMGap.md) {
+        let plan = model.selectionPlan
+        return VStack(alignment: .leading, spacing: MMGap.md) {
             HStack(spacing: MMGap.sm) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(MMColor.destructive)
-                Text("将 \(model.selectedDeletableCount) 类共 \(model.selectedPaths.count) 项移入废纸篓？")
+                Text("将 \(plan.groups.count) 类共 \(plan.paths.count) 项移入废纸篓？")
                     .font(.headline)
             }
-            Text("合计 \(MMFormat.bytes(model.selectedSize))。移入废纸篓后仍可恢复，清空废纸篓前不会真正消失。")
+            Text("合计 \(plan.sizeSummary)。移入废纸篓后仍可恢复，清空废纸篓前不会真正消失。")
                 .font(.callout)
                 .foregroundStyle(MMColor.secondaryLabel)
 
             // 确认框是删除前的最后一站：清单要一次看全，不用滚动条
             // （ScrollView 在 sheet 里会被压成零高，等于什么都没列出来）。
             VStack(alignment: .leading, spacing: MMGap.xxs) {
-                ForEach(model.categories.filter { model.selectedIDs.contains($0.id) }) { category in
+                ForEach(plan.groups) { group in
                     HStack {
-                        Text(category.name).font(.callout)
-                        Text("\(category.subItems.count) 项")
+                        Text(group.name).font(.callout)
+                        Text("\(group.paths.count) 项")
                             .font(.caption)
                             .foregroundStyle(MMColor.tertiaryLabel)
                         Spacer()
-                        Text(MMFormat.bytes(category.scannedSize))
+                        Text(group.sizeSummary)
                             .font(.callout.monospaced())
                             .foregroundStyle(MMColor.secondaryLabel)
                     }
@@ -720,6 +711,7 @@ public struct CleanerView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
                 .keyboardShortcut(.defaultAction)
+                .disabled(plan.paths.isEmpty || model.isScanning || model.isCleaning)
             }
         }
         .padding(MMGap.lg)

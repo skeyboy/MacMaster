@@ -110,6 +110,15 @@ final class ResidualSelectionTests: XCTestCase {
         let paths = UninstallSelection.deletionPaths(appPath: "/tmp/App.app", items: items,
                                                      selectedIDs: ["/tmp/a", "/tmp/c"])
         XCTAssertEqual(paths, ["/tmp/App.app", "/tmp/a"], "只读项即使在状态里被勾选也不能进删除列表")
+
+        let report = ResidualScanReport(items: items, inaccessiblePaths: [])
+        XCTAssertEqual(report.deletionRoots(for: ["/tmp/a", "/tmp/c"]), ["/tmp/a"])
+        XCTAssertEqual(report.selectedSize(for: ["/tmp/a", "/tmp/c"]), 1)
+
+        var unknown = item("/tmp/unknown", category: .cache, risk: .safe, size: 0)
+        unknown.size = nil
+        let partial = ResidualScanReport(items: [items[0], unknown], inaccessiblePaths: [])
+        XCTAssertNil(partial.selectedSize(for: [items[0].id, unknown.id]))
     }
 
     /// 未勾选时删除列表只有 app 本体。
@@ -118,6 +127,33 @@ final class ResidualSelectionTests: XCTestCase {
         XCTAssertEqual(UninstallSelection.deletionPaths(appPath: "/tmp/App.app", items: items, selectedIDs: []),
                        ["/tmp/App.app"])
         XCTAssertEqual(UninstallSelection.selectedSize(items: items, selectedIDs: []), 0)
+    }
+
+    func testConfirmationTotalIncludesAppAndKeepsUnknownUnknown() {
+        XCTAssertEqual(UninstallSelection.confirmationSize(appSize: 100, residualSize: 25,
+                                                            includeResiduals: true), 125)
+        XCTAssertEqual(UninstallSelection.confirmationSize(appSize: 100, residualSize: nil,
+                                                            includeResiduals: false), 100)
+        XCTAssertNil(UninstallSelection.confirmationSize(appSize: nil, residualSize: 25,
+                                                          includeResiduals: true))
+        XCTAssertNil(UninstallSelection.confirmationSize(appSize: 100, residualSize: nil,
+                                                          includeResiduals: true))
+    }
+
+    func testUnknownSelectedResidualSizeIsNotCountedAsZero() {
+        let known = item("/tmp/known", category: .cache, risk: .safe, size: 25)
+        var unknown = item("/tmp/unknown", category: .cache, risk: .safe, size: 0)
+        unknown.size = nil
+        XCTAssertNil(UninstallSelection.selectedSize(items: [known, unknown],
+                                                      selectedIDs: [known.id, unknown.id]))
+        XCTAssertEqual(UninstallSelection.selectedSize(items: [known, unknown],
+                                                        selectedIDs: [known.id]), 25)
+
+        let parent = item("/tmp/container", category: .container, risk: .caution, size: 100)
+        var child = item("/tmp/container/cache", category: .containerCache, risk: .safe, size: 0)
+        child.size = nil
+        XCTAssertEqual(UninstallSelection.selectedSize(items: [parent, child],
+                                                        selectedIDs: [parent.id, child.id]), 100)
     }
 
     func testOnlySuccessfullyMovedRootsClearResidualRows() {

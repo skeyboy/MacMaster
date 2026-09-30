@@ -9,4 +9,11 @@ final class UserFolderCleanupTests: XCTestCase {
         XCTAssertFalse(UserFolderCleanup.wasMoved("/tmp/folder/Build-old", under: moved))
         XCTAssertFalse(UserFolderCleanup.wasMoved("/tmp/folder/Failed", under: moved))
     }
+
+    func testUnknownSelectedInstallerSizeDoesNotBecomeZero() {
+        XCTAssertEqual(UserFolderCleanup.selectedSize(paths: ["/tmp/a", "/tmp/b"],
+                                                      lookup: ["/tmp/a": 25, "/tmp/b": 10]), 35)
+        XCTAssertNil(UserFolderCleanup.selectedSize(paths: ["/tmp/a", "/tmp/b"],
+                                                     lookup: ["/tmp/a": 25]))
+    }
 }
