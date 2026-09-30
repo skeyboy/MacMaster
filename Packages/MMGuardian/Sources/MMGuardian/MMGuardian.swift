@@ -86,6 +86,10 @@ public struct GuardianView: View {
                     .foregroundStyle(MMColor.secondaryLabel)
                     .monospacedDigit()
             }
+            // 诚实披露：这一屏只读、不申请任何权限，与 TCC 卡"SQLite 只读查询 · 不写库不提权"同一口径。
+            Text("只读检测 · 不申请任何权限")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
 
             if vm.deviceUsage.isEmpty {
                 MMSkeletonRow(nameWidth: 80, valueWidth: 72)
@@ -596,10 +600,16 @@ struct DeviceUsageRow: View {
     var body: some View {
         let copy = DeviceUsageCopyTable.copy(for: kind, state: state)
         HStack(alignment: .center, spacing: MMGap.md) {
-            Image(systemName: kind.systemImage)
-                .font(.system(size: MMMetric.iconSmall))
-                .foregroundStyle(tint)
-                .frame(width: MMMetric.iconRow)
+            ZStack {
+                // 圆环背景：live 态红、其余态走语义 tint，让"正在被使用"的红环在视觉上成立。
+                Circle()
+                    .stroke(tint, lineWidth: 2)
+                    .frame(width: MMMetric.iconRow, height: MMMetric.iconRow)
+                Image(systemName: kind.systemImage)
+                    .font(.system(size: MMMetric.iconSmall))
+                    .foregroundStyle(tint)
+            }
+            .frame(width: MMMetric.iconRow)
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(kind.displayName).font(.body.weight(.medium))
                 Text(copy.detail)
