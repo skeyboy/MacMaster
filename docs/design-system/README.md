@@ -37,10 +37,10 @@ CSS px 与 SwiftUI pt 一一对应，所以稿子里的量可以直接拿去和�
 | `mmui/` | `Packages/MMUI` | —（组件库，不单独成页） | `MMDesign.swift` `TreemapView.swift` | 无。回执面板的实机渲染借 `MM_FAILURE_FIXTURE`（钩子在 MMCleaner） |
 | `mmcleaner/` | `Packages/MMCleaner` + MMFileScanner | `cleaner` | `CleanerContainerView.swift` `MMCleaner.swift` `UserFolderCleanView.swift` `SystemAnalysisView.swift` | `MM_OPEN_TAB`(cache/folders/system) `MM_CLEANER_FILTER` `MM_EXPAND_CATEGORIES` `MM_AUTO_SCAN` `MM_SHOW_CONFIRM` `MM_INSTALLER_FIXTURE_DIR` `MM_FAILURE_FIXTURE` |
 | `mmuninstaller/` | `Packages/MMUninstaller` | `uninstaller` | `MMUninstaller.swift` `UninstallerModel.swift` `OrphanScanner.swift` `TrashWatcher.swift` | `MM_UNINSTALL_PANE` `MM_ORPHAN_FIXTURE_HOME` `MM_TRASH_FIXTURE_DIR` `MM_TRASH_SCAN_HOME` `MM_SHOW_TRASH_CONFIRM` |
-| `mmdisk/` | `Packages/MMDisk` | `disk` | `MMDisk.swift` `DiskClassify.swift` `DiskInsights.swift` | `MM_OPEN_TAB`(tree/list/large) `MM_DISK_DEPTH` `MM_DISK_FILTER` `MM_DISK_SCAN` `MM_DISK_SELECT` `MM_SHOW_CONFIRM` `MM_SHOW_TOAST` |
-| `mmguardian/` | `Packages/MMGuardian` | `guardian` | `MMGuardian.swift` `DeviceUsageProbe.swift` `TCCProbe.swift` `LoginItemStore.swift` | `MM_GUARDIAN_FIXTURE` `MM_TCC_FIXTURE` |
-| `mmmonitor/` | `Packages/MMMonitor` | `monitor` | `MMMonitor.swift` `MetricReaders.swift` `MenuBarManager.swift` | 仅 `MM_OPEN_MODULE`（本模块无内容钩子，见 `docs/analysis/fidelity-monitor.md` §4） |
-| `mmoptimizer/` | `Packages/MMOptimizer` | `optimizer` | `MMOptimizer.swift` `DevToolCacheView.swift` `DashboardMetrics.swift` | `MM_OPEN_TAB`(duplicates/browser/status/devtools) |
+| `mmdisk/` | `Packages/MMDisk` | `disk` | `MMDisk.swift` `DiskClassify.swift` `DiskInsights.swift` | `MM_OPEN_TAB`(tree/list/large) `MM_DISK_DEPTH` `MM_DISK_FILTER` `MM_DISK_SCAN`(只认 /tmp) `MM_DISK_SELECT`(只认 /tmp) `MM_DISK_HOLD`(hold) `MM_SHOW_CONFIRM` `MM_SHOW_TOAST` |
+| `mmguardian/` | `Packages/MMGuardian` | `guardian` | `MMGuardian.swift` `DeviceUsageProbe.swift` `TCCProbe.swift` `LoginItemStore.swift` | `MM_GUARDIAN_FIXTURE` `MM_TCC_FIXTURE` `MM_GUARDIAN_LOGIN_FIXTURE` `MM_GUARDIAN_LOAD` `MM_GUARDIAN_ACTIVITY_FIXTURE`(empty/rows，系统活动卡) |
+| `mmmonitor/` | `Packages/MMMonitor` | `monitor` | `MMMonitor.swift` `MetricReaders.swift` `MenuBarManager.swift` | `MM_OPEN_MODULE` + 内容钩子 `MM_MONITOR_HOLD` `MM_MONITOR_FIXTURE`（#50 新增，覆盖 `docs/analysis/fidelity-monitor.md` §4 的 13 项未验证态） |
+| `mmoptimizer/` | `Packages/MMOptimizer` | `optimizer` | `MMOptimizer.swift` `DevToolCacheView.swift` `DashboardMetrics.swift` | `MM_OPEN_TAB`(duplicates/browser/status/devtools) `MM_OPTIMIZER_FIXTURE`（#52 后补：duplicates:N/duplicates:empty/duplicates:scannedEmpty/browser:rows/browser:empty/status:allReadOnly/devtools:notInstalled/devtools:unreadable/protected） |
 
 钩子的值域写在各模块视图的注释里，本表只列名字。**表里有的钩子都是 `grep` 出来的真值**，
 新增钩子要同步改这张表，否则下一个人会按不存在的钩子安排验证。
