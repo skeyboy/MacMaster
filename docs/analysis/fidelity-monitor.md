@@ -214,3 +214,48 @@
 四个读数标签与格式、每核卡标题/图标/`核 N` 编号/56-60 列宽/28pt 行高/6pt 条与轨道几何、
 A 稿 10 个百分比数值、磁盘 IO 两行标签与 monospace、卡片底/描边/圆角/内边距、
 滚动区 16pt 边距与 16pt 块间距、页头 46pt、折叠线落点（磁盘 IO 卡后内存卡只露一行）。
+
+## 4.1 可注入档位映射（#50 已落地 · 逐项补证据）
+
+上面 13 项的"验不了"根因统一是：本模块只有 `MM_OPEN_MODULE` 一个入口，没有任何内容/状态钩子。
+#50 已按 `MM_GUARDIAN_FIXTURE` 的写法补 `MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`
+（`MonitorFixtureHooks.swift` 纯数值注入，不读 `/tmp`、不采样、不写盘），逐项对应如下：
+
+| §4 # | 未验证项 | 可注入档位 | 启动方式（按 pid 抓窗） |
+| --- | --- | --- | --- |
+| 1 | 内存卡真实渲染（B 稿上半） | `MM_MONITOR_FIXTURE=populated` | `MM_OPEN_MODULE=monitor` + 该钩子，窗口调高或滚动后 `screencapture -o -x -l<id>` |
+| 2 | 进程 TOP 10 真实列表（B 稿下半） | `MM_MONITOR_FIXTURE=populated,processes` | 同上；`processes` 注入 10 条 `com.example.*` 固定列表 |
+| 3 | `MMSkeletonRow` ×4（D5） | `MM_MONITOR_HOLD=hold` | 冻结 `.empty` 首帧，进程卡落在骨架态 |
+| 4 | `MetricSnapshot.empty` 帧（C/D1/D2/D3） | `MM_MONITOR_HOLD=hold` | 同上，内存"尚未采样"、磁盘"尚未采样"、每核单「—」 |
+| 5 | 采样首帧（C 本体） | `MM_MONITOR_HOLD=hold` | 同上 |
+| 6 | 磁盘 IO 四种 `.unavailable` reason（D2） | `MM_MONITOR_FIXTURE=disk-unavailable:<reason>` | `<reason>` 为四种原文之一；正文照 `MetricReaders.swift` 拼接 |
+| 7 | 内存 `nil` 分支（D3） | `MM_MONITOR_FIXTURE=memoryNil` | `hasSampled=true` 走"host_statistics64 失败"文案 |
+| 8 | `perCoreCPU.isEmpty` → 单「—」（D1） | `MM_MONITOR_FIXTURE=perCoreEmpty` | 空数组 → 单「—」 |
+| 9 | 每核 ≥85% 红档（D 稿第一格） | `MM_MONITOR_FIXTURE=perCoreRed` | 核 1 = 91.4%，条与数值同时 `destructive` |
+| 10 | `swapAvailable == false` 的 Swap 行 | `MM_MONITOR_FIXTURE=swapOff` | Swap 行「—」 |
+| 11 | 「菜单栏监控」关闭态 | `MM_MONITOR_FIXTURE=menubarOff` | 不 enable，toggle 显示 off、页面冻结 |
+| 12 | 浅色模式实机配色 | （非钩子） | 浅色外观下重跑 `render.sh` + 真机截图流程，单测矩阵不覆盖 |
+| 13 | `MMFormat.bytes` 各 locale 输出 | （非钩子） | `MMFormat` 单测矩阵覆盖，不属设计稿验证范围 |
+
+> **B/D 稿换夹具口径实测值**：`07-monitor.html` 的 B（内存卡+进程卡）与 D（降级态合集）artboard
+> 现已可被上述钩子逐档构造真机态——复核时 B/D 两稿应**改用钩子注入后的实机截图**重出，
+> 不再依赖"卡片完整尺寸"的稿内推演（原 S5 指出的"不是真实视口"问题随之消解）。
+
+**验证命令骨架**（集成阶段统一跑，全程零合成事件、`--pid` 抓窗）：
+
+```bash
+# 重建（隔离，不碰现有 build）
+swift build -o /tmp/mm-build --scratch-path /tmp/mm-scratch 2>/dev/null || \
+  ./make-app.sh -o /tmp/mm-out -s /tmp/mm-scratch
+
+# 逐档：起实例 → 按 pid 抓窗 → 杀自己记下的 pid
+MM_OPEN_MODULE=monitor MM_MONITOR_FIXTURE=perCoreRed /path/to/MacMaster.app/Contents/MacOS/MacMaster &
+APP_PID=$!
+WIN=$(swift Scripts/window-ids.swift --pid "$APP_PID")
+screencapture -o -x -l"$WIN" /tmp/mmshot/monitor-percore-red.png
+kill "$APP_PID"   # 只 kill 自己记下的 pid
+```
+
+> 注意：上面的 `swift build`/`make-app.sh` 产物路径与隔离参数（`-o`/`-s` + `--scratch-path`）是
+> 按 README §5 红线写的**约定骨架**，具体入口以仓库 `Package.swift`/`make-app.sh` 实际参数为准；
+> 本环境无运行实例，未实际执行。

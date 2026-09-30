@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MacMaster 七路并进 · 多 Agent 协调甘特图</title>
+<style>
+  :root{
+    --bg:#fff; --panel:#f7f9fc; --line:#e3e8ef; --ink:#1f2733; --sub:#5b6573;
+    --green:#2e7d4f; --blue:#1a73e8; --amber:#b7791f; --red:#c0392b; --gray:#8a93a3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 22px 60px}
+  h1{font-size:21px;margin:0 0 4px}
+  h2{font-size:16px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--blue)}
+  .meta{color:var(--sub);font-size:12.5px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;margin:8px 0}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#eef3fb;font-weight:600;color:#22324a}
+  tr:nth-child(even) td{background:#fcfdff}
+  .ok{color:var(--green);font-weight:600}
+  .warn{color:var(--amber);font-weight:600}
+  .bad{color:var(--red);font-weight:600}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600}
+  .p-done{background:#e6f4ec;color:var(--green)}
+  .p-run{background:#e8f0fe;color:var(--blue)}
+  .p-pend{background:#f0f2f5;color:var(--gray)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin:10px 2px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .proto{font-size:13px}
+  .proto li{margin:6px 0}
+  .rollup{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .rollup .box{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+  .rollup .box b{display:block;margin-bottom:6px;font-size:13px}
+  .box ul{margin:0;padding-left:18px;font-size:12.3px;color:var(--sub)}
+  code{background:#eef1f5;padding:1px 5px;border-radius:4px;font-size:11.5px}
+  footer{margin-top:40px;color:var(--sub);font-size:12px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MacMaster 七路并进 · 多 Agent 协调甘特图</h1>
+  <p class="meta">逻辑时序图（非墙钟时间）· 基于 2026-09-30 会话 · P3 五路子代理并行返回，P5 待集成者串行落地共享层</p>
+
+  <div class="card">
+    <svg viewBox="0 0 760 470" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,Segoe UI,sans-serif">
+      <text x="16" y="26" font-size="16" font-weight="700" fill="#1f2733">进度甘特图</text>
+      <!-- legend -->
+      <rect x="416" y="14" width="13" height="13" rx="3" fill="#2e7d4f"/>
+      <text x="434" y="25" font-size="11" fill="#5b6573">已完成</text>
+      <rect x="504" y="14" width="13" height="13" rx="3" fill="#1a73e8"/>
+      <text x="522" y="25" font-size="11" fill="#5b6573">进行中</text>
+      <rect x="596" y="14" width="13" height="13" rx="3" fill="none" stroke="#8a93a3" stroke-dasharray="3,2"/>
+      <text x="614" y="25" font-size="11" fill="#5b6573">待落地</text>
+
+      <!-- phase grid -->
+      <g stroke="#e3e8ef" stroke-width="1">
+        <line x1="200" y1="40" x2="200" y2="430"/>
+        <line x1="290" y1="40" x2="290" y2="430"/>
+        <line x1="380" y1="40" x2="380" y2="430"/>
+        <line x1="470" y1="40" x2="470" y2="430"/>
+        <line x1="560" y1="40" x2="560" y2="430"/>
+        <line x1="650" y1="40" x2="650" y2="430"/>
+        <line x1="740" y1="40" x2="740" y2="430"/>
+      </g>
+      <!-- phase headers -->
+      <g font-size="11" fill="#22324a" text-anchor="middle" font-weight="600">
+        <text x="245" y="58">P0 立项</text>
+        <text x="335" y="58">P1 监控</text>
+        <text x="425" y="58">P2 协调</text>
+        <text x="515" y="58">P3 五路并行</text>
+        <text x="605" y="58">P4 主check</text>
+        <text x="695" y="58">P5 集成</text>
+      </g>
+
+      <!-- rows: label + bar -->
+      <!-- helper: bar x = 206 + phase*90, w=78, y=rowTop+5, h=22 -->
+      <!-- row0 -->
+      <text x="14" y="100" font-size="11.5" fill="#1f2733">主Agent · 立项 Grounding</text>
+      <rect x="206" y="84" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row1 -->
+      <text x="14" y="134" font-size="11.5" fill="#1f2733">主Agent · #50 mmmonitor</text>
+      <rect x="296" y="118" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row2 -->
+      <text x="14" y="168" font-size="11.5" fill="#1f2733">主Agent · #53 协调路</text>
+      <rect x="386" y="152" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row3 -->
+      <text x="14" y="202" font-size="11.5" fill="#1f2733">agent-cleaner · #47</text>
+      <rect x="476" y="186" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row4 -->
+      <text x="14" y="236" font-size="11.5" fill="#1f2733">agent-uninstaller · #48</text>
+      <rect x="476" y="220" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row5 -->
+      <text x="14" y="270" font-size="11.5" fill="#1f2733">agent-disk · #49</text>
+      <rect x="476" y="254" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row6 -->
+      <text x="14" y="304" font-size="11.5" fill="#1f2733">agent-guardian · #51</text>
+      <rect x="476" y="288" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row7 -->
+      <text x="14" y="338" font-size="11.5" fill="#1f2733">agent-optimizer · #52</text>
+      <rect x="476" y="322" width="78" height="22" rx="6" fill="#2e7d4f"/>
+      <!-- row8 (current) -->
+      <text x="14" y="372" font-size="11.5" fill="#1f2733">主Agent · 质量check+甘特图</text>
+      <rect x="566" y="356" width="78" height="22" rx="6" fill="#1a73e8"/>
+      <text x="605" y="371" font-size="10" fill="#fff" text-anchor="middle" font-weight="600">进行中</text>
+      <!-- row9 (pending) -->
+      <text x="14" y="406" font-size="11.5" fill="#1f2733">集成者 · 串行落地共享层</text>
+      <rect x="656" y="390" width="78" height="22" rx="6" fill="none" stroke="#8a93a3" stroke-dasharray="3,2"/>
+      <text x="695" y="405" font-size="10" fill="#8a93a3" text-anchor="middle" font-weight="600">待启动</text>
+
+      <!-- annotation: P3 parallel bracket -->
+      <path d="M476 176 q-10 -10 -10 -22" stroke="#cbd3df" fill="none"/>
+      <text x="470" y="172" font-size="9.5" fill="#8a93a3" text-anchor="end">5 路并行</text>
+    </svg>
+  </div>
+
+  <h2>一、主 Agent 质量 check 汇总（本回合已执行）</h2>
+  <table>
+    <tr><th>模块</th><th>路由</th><th>执行者</th><th>条目</th><th>差异</th><th>严重度 高/中/低</th><th>红线合规</th><th>核心发现</th><th>提请协调者</th></tr>
+    <tr>
+      <td>系统清理</td><td>#47</td><td>agent-cleaner</td><td>59</td><td>23</td>
+      <td><span class="bad">1</span>/<span class="warn">6</span>/16</td>
+      <td class="ok">✅ 未 git/build/合成事件</td>
+      <td>已删/驳回项仍从分类表移除（<code>cleaned=Set(paths)</code> 非 success 集）</td>
+      <td>8 项（见下方归类）</td>
+    </tr>
+    <tr>
+      <td>应用卸载</td><td>#48</td><td>agent-uninstaller</td><td>~60</td><td>12</td>
+      <td>0/<span class="warn">2</span>/10</td>
+      <td class="ok">✅</td>
+      <td>无 high；<code>nil≠0 / 没看过≠没有</code> 红线落地；孤儿反查口径已核对</td>
+      <td>2 B 项 + #46 P1.8 暂缓</td>
+    </tr>
+    <tr>
+      <td>磁盘分析</td><td>#49</td><td>agent-disk</td><td>31</td><td>18</td>
+      <td><span class="bad">1</span>/<span class="warn">3</span>/14</td>
+      <td class="ok">✅</td>
+      <td><b>I1：<code>MM_DISK_SCAN</code> 缺 /tmp 边界校验</b>（唯一破扫描类红线处）</td>
+      <td>6 项（含越界修复归属）</td>
+    </tr>
+    <tr>
+      <td>隐私守护</td><td>#51</td><td>agent-guardian</td><td>~60</td><td>16</td>
+      <td>0/<span class="warn">3</span>/13</td>
+      <td class="ok">✅</td>
+      <td><b>「授权表读不到 ≠ 未授权」PASS</b>；06 主屏 artboard 自相矛盾(S10)</td>
+      <td>7 项（含系统活动卡无钩子）</td>
+    </tr>
+    <tr>
+      <td>系统优化</td><td>#52</td><td>agent-optimizer</td><td>45</td><td>4 tab 全覆盖</td>
+      <td>0硬/0/3低</td>
+      <td class="ok">✅</td>
+      <td><b>安全三条全 PASS</b>：候选全经 <code>FileTrashService→DeletionGuard</code> 单闸；PROTECTED 走 shield/caution 分档；无绕过 <code>FileTrashService</code> 路径</td>
+      <td>4 项（含补 MM_OPTIMIZER_FIXTURE）</td>
+    </tr>
+    <tr>
+      <td>壳/协调</td><td>#53</td><td>主Agent</td><td>01+09</td><td>—</td>
+      <td>0</td><td class="ok">✅</td>
+      <td>I4/I5 不触发；S1/I10a(220vs216)/I10b(52vs38)/S3/S4 标「待集成落地」</td>
+      <td>4 项（全站几何/侧栏 footer）</td>
+    </tr>
+    <tr>
+      <td>监控注入</td><td>#50</td><td>主Agent</td><td>§4 13 态</td><td>—</td>
+      <td>0</td><td class="ok">✅（代码未编译）</td>
+      <td><code>MonitorFixtureHooks</code>+<code>applyFixture</code>+onAppear 接 HOLD/FIXTURE；§4.1 映射表</td>
+      <td>已落（README §2 补正）</td>
+    </tr>
+  </table>
+  <p class="meta">主 Agent check 结论：7/7 文档真实落盘且模板合规；红线自检全部通过（0 次 git / 0 次 build / 0 次合成事件）；所有像素项标 <code>⚠️待真机测量</code>；提请协调者仅含共享层/越界诉求，无模块私改共享令牌。</p>
+
+  <h2>二、子 Agent 报备结构（每个 route 完成时必含）</h2>
+  <div class="card proto">
+    <ol>
+      <li><b>硬约束自检段落</b>：git / build / 合成事件 / 共享层只读 / /tmp 边界 / 待真机测量 六条逐条声明未违反。</li>
+      <li><b>逐元素对照表</b>：结论先行，列每项「一致 / 差异 / 未验证」并注明出处（<code>file:line</code> 或 artboard）。</li>
+      <li><b>差异归属三段</b>：实现该改 (I)、设计稿该改 (S)、两边都改 (B)，各按严重度排序。</li>
+      <li><b>未验证部分逐条</b>：写明「缺什么、要什么（夹具/真机/HOLD 钩子）才能验」，不写「应该没问题」。</li>
+      <li><b>提请协调者清单</b>：仅列共享层/越界诉求，模块内可改项一律自己落，不越界。</li>
+    </ol>
+  </div>
+
+  <h2>三、主 Agent check 协议（协助子 Agent 收口）</h2>
+  <div class="card proto">
+    <ol>
+      <li><b>落盘校验</b>：文档是否真实写入、章节是否齐（7/7 通过）。</li>
+      <li><b>红线校验</b>：grep 全仓审计文档，确认无实际 git/build/pkill/合成事件执行（全部为自检声明）。</li>
+      <li><b>诚实校验</b>：所有像素判定是否标 <code>⚠️待真机测量</code>，无编造数字。</li>
+      <li><b>边界校验</b>：提请协调者是否只含共享层/越界；有无模块私下改共享令牌或几何。</li>
+      <li><b>严重度复核</b>：高严重度项是否真实站得住（cleaner I1 逻辑 bug、disk I1 /tmp 边界——均合理待集成者处理）。</li>
+      <li><b>冲突归并</b>：跨模块冲突点（侧栏 footer / MMCard token / 全站几何）统一归协调层，避免各路像素基线同时作废。</li>
+    </ol>
+  </div>
+
+  <h2>四、提请协调者 · 集成者串行落地归类</h2>
+  <div class="rollup">
+    <div class="box">
+      <b>① 全站共享层（协调者/集成者统一）</b>
+      <ul>
+        <li>侧栏 footer 组件（cleaner / disk / guardian / shell 共提）</li>
+        <li>全站几何：<code>--sidebar-w</code>→220、<code>--titlebar-h</code>→52、补 <code>--c-content-bg</code> 与 under-page（shell+cleaner+guardian）</li>
+        <li><code>MMCard</code> 第三套 token（cleaner）</li>
+        <li><code>MMItemRow</code> 只读丢列占位（cleaner）</li>
+        <li><code>MMFailurePanel</code> 排版/橙底（cleaner / optimizer I1）</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>② 钩子/夹具新增（归 GuardianFixtureHooks 口径）</b>
+      <ul>
+        <li><code>MM_OPTIMIZER_FIXTURE</code> 统一入口（optimizer）</li>
+        <li>系统活动卡 <code>MM_GUARDIAN_ACTIVITY_FIXTURE</code>（guardian G1）</li>
+        <li><code>MM_DISK_HOLD</code> 首帧冻结钩子（disk）</li>
+        <li>cleaner 缺定格/空结果钩子</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>③ 越界修复（协调者拍板）</b>
+      <ul>
+        <li><code>MM_DISK_SCAN</code> / <code>MM_DISK_SELECT</code> 补 /tmp 守卫（disk I1，高）</li>
+        <li>DeletionGuard 与 mmdisk 双层闸门语义复核（disk）</li>
+        <li>MM_SHOW_TRASH_CONFIRM 互锁说明补 README（uninstaller B2）</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>④ 设计稿侧修正（设计 owner）</b>
+      <ul>
+        <li>04 稿 artboard 补全（disk，约 9 张）</li>
+        <li>06 主屏 S10 自相矛盾（guardian）</li>
+        <li>卸载列表宽/操作栏高度硬编码 vs 共享令牌（uninstaller B1）</li>
+        <li>09c 降级态补画 + 占位数字清洗（shell）</li>
+        <li>optimizer S1/S2/S3</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>⑤ 文档/矩阵同步</b>
+      <ul>
+        <li>README §2 同步 optimizer / uninstaller B2（monitor/guardian 已补）</li>
+        <li>hook-ledger 已补正（monitor/guardian 本轮落地）</li>
+      </ul>
+    </div>
+    <div class="box">
+      <b>⑥ 暂缓项</b>
+      <ul>
+        <li>#46 P1.8（/var/db/receipts 只读归属接孤儿扫描）：等卸载路收工再动，避免同文件冲突</li>
+        <li>PROTECTED 实机交互链照片：合成点击被禁，按已知缺口留档</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    交付物：本文件（甘特图 + 质量 check 汇总 + 报备/check 协议 + 提请协调者归类）。下一步：集成者收齐上述 ①–⑤ 条目 → 统一落地共享层与 MMUI/MMCore → 重建 <code>build/MacMaster.app</code>（<code>-o/-s + --scratch-path</code> 隔离）→ 复验受影响屏 → 分批提交。
+  </footer>
+</div>
+</body>
+</html>
