@@ -26,8 +26,10 @@
     /* ---------- 布局骨架 ---------- */
     --win-w: 1100px;
     --win-h: 700px;
-    --titlebar-h: 38px;
-    --sidebar-w: 216px;
+    /* 实机：NavigationSplitView(min:200, ideal:220) 分隔线实测在 x=220；标题栏 52pt。
+       原令牌 216/38 是旧值，与实机差 +4/+14pt，本轮统一修正（I10a/I10b）。 */
+    --titlebar-h: 52px;
+    --sidebar-w: 220px;
     --sidebar-w-min: 200px;
     --content-min: 760px;
     --statusbar-h: 28px;
@@ -59,6 +61,10 @@
     --c-sidebar-bg: rgba(246, 246, 246, 0.82);
     --c-card-bg: #FFFFFF;
     --c-card-bg-alt: #F7F7F7;
+    /* 卡片底色三档（S4）：内容底(content) = controlBackground，页面底(under-page) = windowBackground，
+       control 档 = 复用 --c-content-bg。三者被 8 个模块按"卡浮在哪一层"混用，此前令牌缺失导致各写各的。 */
+    --c-card-content: var(--c-content-bg);
+    --c-card-under-page: var(--c-under-page);
     --c-separator: rgba(0, 0, 0, 0.09);
     --c-hairline: rgba(0, 0, 0, 0.14);
     --c-fill-hover: rgba(0, 0, 0, 0.04);
@@ -274,6 +280,29 @@
 .nav-item.active { background: var(--c-accent-soft); color: var(--c-label); }
 .nav-item.active .ic { color: var(--c-accent); }
 .nav-item .tail { margin-left: auto; font-size: var(--fs-caption); color: var(--c-label-tertiary); }
+
+/* 侧栏 footer（S1）：容量行 + 容量条（低空间转红）+ 带边框设置按钮。
+   实机 = MainWindow.volumeFooter；旧稿画成"分隔线 + 设置 nav-item"是错的，八张稿一起换。 */
+.sidebar-footer {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: var(--sp-3) var(--sp-4);
+    border-top: 1px solid var(--c-separator);
+}
+.sidebar-footer .vol-line { display: flex; align-items: center; gap: var(--sp-2); }
+.sidebar-footer .vol-line .nm { font-size: var(--fs-caption); line-height: 1; }
+.sidebar-footer .vol-line .pct { margin-left: auto; font-family: var(--font-mono);
+    font-size: var(--fs-caption); color: var(--c-label-tertiary); }
+.sidebar-footer .vol-bar { height: 4px; border-radius: var(--r-pill);
+    background: var(--c-neutral-soft); overflow: hidden; }
+.sidebar-footer .vol-bar > i { display: block; height: 100%; border-radius: var(--r-pill);
+    background: var(--c-accent); }
+.sidebar-footer .vol-bar.low > i { background: var(--c-danger); }
+.sidebar-footer .foot-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 24px; padding: 0 var(--sp-2);
+    border: 1px solid var(--c-hairline); border-radius: var(--r-sm);
+    font-size: var(--fs-caption); color: var(--c-label);
+}
 
 /* 窗口骨架 */
 .win {

@@ -13,6 +13,9 @@ xcuserdata/
 # 系统文件
 .DS_Store
 
+# 工作区本地记忆/状态（非项目代码，不入库）
+.workbuddy/
+
 # 第三方参考仓库克隆（各自带 .git 与独立许可证，不纳入本仓库）
 docs/github-references/
 docs/Mole/

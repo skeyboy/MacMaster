@@ -85,7 +85,8 @@ public enum MMMetric {
     public static let rowApp: CGFloat = 56
     public static let toolbar: CGFloat = 46
     public static let actionBar: CGFloat = 52
-    public static let sidebar: CGFloat = 216
+    /// 实机 NavigationSplitView(min:200, ideal:220) 分隔线在 x=220（I10a），与令牌同步。
+    public static let sidebar: CGFloat = 220
     public static let inspector: CGFloat = 268
     public static let iconSmall: CGFloat = 16
     public static let iconRow: CGFloat = 28
@@ -611,14 +612,51 @@ public struct MMUndoToast: View {
 
 /// 部分失败回执。删除或撤回后有条目没成功，必须逐条列出来：
 /// 只报"完成"等于把用户文件的下落不明藏起来，错误码原文保留便于搜索。
+///
+/// 05-states 规格要求回执带一行「计划 / 成功 / 失败 / 跳过」统计与
+/// 「重试失败项 / 复制诊断信息」页脚。调用方若只传 failures（历史调用点），
+/// 统计行与页脚自动省略，只渲染逐条失败清单——不破坏既有截图基线。
 public struct MMFailurePanel: View {
     let summary: String?
     let failures: [TrashFailure]
     var onDismiss: (() -> Void)?
+    var stats: Stats?
+    var onRetry: (() -> Void)?
+    var onCopyDiagnostics: (() -> Void)?
+
+    /// 计划/成功/失败/跳过四格统计。planned 是"打算删的总数"，succeeded 是"已删数"，
+    /// skipped 是"被闸门或风险规则主动放过的数"，failed 与 failures.count 一致。
+    public struct Stats: Equatable {
+        public let planned: Int
+        public let succeeded: Int
+        public let skipped: Int
+
+        public init(planned: Int, succeeded: Int, skipped: Int) {
+            self.planned = planned
+            self.succeeded = succeeded
+            self.skipped = skipped
+        }
+    }
 
     public init(summary: String? = nil, _ failures: [TrashFailure], onDismiss: (() -> Void)? = nil) {
         self.summary = summary
         self.failures = failures
+        self.onDismiss = onDismiss
+    }
+
+    public init(
+        summary: String? = nil,
+        _ failures: [TrashFailure],
+        stats: Stats,
+        onRetry: (() -> Void)? = nil,
+        onCopyDiagnostics: (() -> Void)? = nil,
+        onDismiss: (() -> Void)? = nil
+    ) {
+        self.summary = summary
+        self.failures = failures
+        self.stats = stats
+        self.onRetry = onRetry
+        self.onCopyDiagnostics = onCopyDiagnostics
         self.onDismiss = onDismiss
     }
 
@@ -637,6 +675,9 @@ public struct MMFailurePanel: View {
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
+            }
+            if let stats {
+                statsRow(stats)
             }
             ForEach(failures.prefix(4)) { failure in
                 HStack(spacing: MMGap.sm) {
@@ -668,12 +709,43 @@ public struct MMFailurePanel: View {
                     .font(.caption2)
                     .foregroundStyle(MMColor.tertiaryLabel)
             }
+            if onRetry != nil || onCopyDiagnostics != nil {
+                Divider()
+                HStack(spacing: MMGap.md) {
+                    Spacer()
+                    if let onCopyDiagnostics {
+                        Button("复制诊断信息", action: onCopyDiagnostics)
+                            .buttonStyle(.borderless).controlSize(.small)
+                    }
+                    if let onRetry {
+                        Button("重试失败项", action: onRetry)
+                            .buttonStyle(.bordered).controlSize(.small)
+                    }
+                }
+            }
         }
         .padding(.horizontal, MMGap.lg)
         .padding(.vertical, MMGap.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MMColor.soft(MMColor.caution, 0.10))
         .overlay(alignment: .top) { Divider() }
+    }
+
+    private func statsRow(_ stats: Stats) -> some View {
+        HStack(spacing: MMGap.lg) {
+            statCell("计划", stats.planned, tint: MMColor.secondaryLabel)
+            statCell("成功", stats.succeeded, tint: MMColor.safe)
+            statCell("失败", failures.count, tint: MMColor.destructive)
+            statCell("跳过", stats.skipped, tint: MMColor.caution)
+        }
+        .padding(.vertical, MMGap.xs)
+    }
+
+    private func statCell(_ label: String, _ value: Int, tint: Color) -> some View {
+        HStack(spacing: MMGap.xs) {
+            Text(label).font(.caption).foregroundStyle(MMColor.secondaryLabel)
+            Text("\(value)").font(.caption.monospacedDigit()).foregroundStyle(tint)
+        }
     }
 }
 
@@ -717,6 +789,13 @@ public struct MMItemRow<Accessory: View>: View {
                     .toggleStyle(.checkbox)
                     .labelsHidden()
                     .disabled(risk.map { !$0.allowsDeletion } ?? false)
+            } else {
+                // I2：只读行保留禁用框占位，列才对齐。此前整列消失导致标题/数值/徽章各列错位。
+                Toggle("", isOn: .constant(false))
+                    .toggleStyle(.checkbox)
+                    .labelsHidden()
+                    .disabled(true)
+                    .opacity(0.35)
             }
             Image(systemName: systemImage)
                 .font(.system(size: MMMetric.iconSmall))
@@ -765,14 +844,33 @@ extension MMItemRow where Accessory == EmptyView {
 
 // MARK: - 卡片与数据可视化
 
+/// 卡片底色档（S4）：此前 MMCard 只用 controlBackground，monitor 私有卡用 cardBackground(underPage)，
+/// cleaner 内联卡用 contentBackground——三处各写各的，令牌层也没有对应 token。
+/// 收口成一个枚举，让"卡浮在哪一层"这个语义在选择处显式表达。
+public enum MMCardStyle {
+    /// 浮在内容底（controlBackground）上，列表/表格卡默认档。
+    case content
+    /// 浮在页面底（underPageBackground）上，monitor 私有卡那一档。
+    case underPage
+
+    var color: Color {
+        switch self {
+        case .content: MMColor.controlBackground
+        case .underPage: MMColor.cardBackground
+        }
+    }
+}
+
 /// 卡片容器。设计稿里所有区块都是同一张卡：控制底色 + 8pt 圆角 + 1px 分隔描边。
 /// 之前每个页面各写一遍 background/overlay，圆角和描边迟早会漂。
 public struct MMCard<Content: View>: View {
     let content: Content
     var padding: CGFloat = MMGap.lg
+    var style: MMCardStyle = .content
 
-    public init(padding: CGFloat = MMGap.lg, @ViewBuilder content: () -> Content) {
+    public init(padding: CGFloat = MMGap.lg, style: MMCardStyle = .content, @ViewBuilder content: () -> Content) {
         self.padding = padding
+        self.style = style
         self.content = content()
     }
 
@@ -780,7 +878,7 @@ public struct MMCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.controlBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+            .background(style.color, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator))
     }
 }
