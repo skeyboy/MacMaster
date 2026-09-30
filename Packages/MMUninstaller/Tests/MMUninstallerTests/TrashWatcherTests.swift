@@ -109,6 +109,25 @@ final class TrashWatcherFixtureTests: XCTestCase {
         XCTAssertTrue(watcher.arrivals.isEmpty)
     }
 
+    /// 离页再回页（同一个 watcher 实例 stop → start）时，上一轮的提示不能靠"等下一个事件"
+    /// 才失效：用户可能已经把那个 app 还原、或者连废纸篓一起清空了。
+    func testRestartPrunesArrivalsThatAreNoLongerInTrash() async throws {
+        let watcher = watcher()
+        defer { watcher.stop() }
+        watcher.start()
+
+        let destination = try moveIntoTrash(name: "Stale", bundleID: "com.example.Stale")
+        await waitUntil({ watcher.arrivals.count == 1 })
+        XCTAssertEqual(watcher.arrivals.first?.entry, "Stale.app")
+
+        watcher.stop()
+        try FileManager.default.removeItem(atPath: destination)
+
+        watcher.start()
+        XCTAssertTrue(watcher.arrivals.isEmpty, "重新监听后，已经不在了的那条提示必须当场消失")
+        XCTAssertEqual(watcher.status, .watching)
+    }
+
     func testNewAppBecomesArrivalAndRestoringItClearsTheNotice() async {
         let watcher = watcher()
         defer { watcher.stop() }

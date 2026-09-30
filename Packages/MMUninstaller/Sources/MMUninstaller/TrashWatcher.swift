@@ -148,6 +148,10 @@ public final class TrashWatcher: ObservableObject {
 
         knownEntries = Set(entries)
         status = .watching
+        // 第二次进入这一页时，上一轮留下的 arrivals 可能早就不算"刚拖进来"了：
+        // 用户把它还原了，或者连废纸篓一起清空了。基线一建好就先对一次账，
+        // 让已经不在了的那几条当场消失，而不是等第一个改动事件来收拾。
+        arrivals = arrivals.filter { knownEntries?.contains($0.entry) ?? false }
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: descriptor,
