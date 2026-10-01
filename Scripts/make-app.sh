@@ -74,6 +74,12 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 PLIST
 
 # ad-hoc：本机验证用。分发要换成正真证书 + notarization。
-codesign --force --deep --sign - --timestamp=none "$APP" >/dev/null 2>&1
+# 这里不能只把输出丢掉就完事：脚本开了 set -e，签名一失败就静默退出 1，
+# 而 SwiftPM 已经打印过 "Build complete!"，看上去像构建成功、产物其实没签好。
+# 实测踩过的一次：-o 传成了 .../MacMaster.app，里面套了一层同名 bundle，--deep 直接失败。
+if ! codesign --force --deep --sign - --timestamp=none "$APP"; then
+    print -r -- "codesign 失败：$APP（上面是原错误输出）" >&2
+    exit 1
+fi
 
 print -r -- "$APP"

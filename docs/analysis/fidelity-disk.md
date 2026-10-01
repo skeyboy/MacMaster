@@ -309,3 +309,37 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
 
 ---
 > 硬约束自检：未执行任何 git 操作；未启动 App、未截图、未合成事件；未编辑 `tokens.css`/`screen.css`/`icons.js`/`render.sh`/`Packages/MMUI`/`Packages/MMCore`/`Sources/MacMaster`；仅新建 `docs/analysis/fidelity-disk.md`。所有像素项标 `⚠️待真机测量`，未编造数字。`MM_DISK_SCAN` 越界问题只记录、未修改，已列入「提请协调者」。
+
+## 7. P4 追加（2026-10-01，主代理实机轮）
+
+上面这份审计是纯静态对照（未起 App、未截图）。本轮补齐了两件它做不到的事：
+
+1. **§4 #13 / 提请协调者 #5 的 /tmp 夹具已落地**：`Scripts/disk-fixture.sh` 造
+   `/tmp/macmaster-disk-fixture`（175 MB，含 40 个小文件与一块 101 MB 的 `Library/`）。
+   截图命令：
+   ```zsh
+   MM_DISK_SCAN=/tmp/macmaster-disk-fixture ./Scripts/p4-sweep.sh \
+     /tmp/mmapp-p5/MacMaster.app /tmp/p4-disk light "" disk
+   ```
+   证据：`docs/verification/p4-light-dark/light-disk-fixture.jpg`。
+
+2. **夹具当场暴露一个口径黑洞（已修）**：`du -sh` 报 175 MB，页面报 77.8 MB。
+   差的 101 MB 全在 `Library/` —— `DiskScanner.protectedNames` 会**整目录跳过**它，
+   而页面上没有任何地方说"这块没算"。用户看到的就是"Library 是空的"，
+   而事实是"Library 我们没看"。
+   修法：`ScanOutput.skippedProtected` 把被挡掉的根目录子项带出来
+   （`skippedProtectedNames(rootPath:)` 只列一层，不递归），
+   面包屑条挂 `🔒 未纳入 N 个受保护目录` 徽标，hover 列名字。
+   判据：`DiskScannerHierarchyTests.testProtectedDirectorySkipIsReported` /
+   `testNothingSkippedLeavesEmptyDisclosure`。
+   **没改扫描语义**：跳过 `Library` 是既定行为，删除安全另有 `DiskRemoval` + `DeletionGuard` 两道闸
+   （见 `deletion-guard.md`、提请协调者 #6），这里补的只是可见性。
+
+   披露文案为什么放徽标而不是页头副标题：`MMPageHeader` 的 subtitle 是
+   `lineLimit(1) + truncationMode(.middle)`，磁盘页右侧控件多，~1100pt 宽度下副标题本来就会被吃掉一段
+   （实测被吃掉的是"N 个文件"）。再往里塞一句，被挤没的就是占用和用时。
+   前后两张图都在 `docs/verification/p4-light-dark/`：
+   `light-disk-fixture-subtitle-before.jpg`（塞在副标题里，占用/用时被截）与
+   `light-disk-fixture.jpg`（改挂徽标，副标题恢复）。
+
+浅色档其余色面（卡片/次级/页面底）的实测与判定统一记在 `fidelity-light-dark.md` §2。

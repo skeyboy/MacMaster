@@ -3,9 +3,11 @@
 # 为什么按 pid 而不是按应用名：并发改动期间同机器可能跑着多个 MacMaster，
 # 名字匹配会抓到别人的窗口，产出的照片"看着真、来源错"，比没照片更糟。
 #
-# 用法：./Scripts/p4-sweep.sh <app 路径> <输出目录> [light|dark] [宽x高]
+# 用法：./Scripts/p4-sweep.sh <app 路径> <输出目录> [light|dark] [宽x高] [屏名...]
 #   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-light light
 #   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-min  light 900x600
+#   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-disk  dark "" disk
+# 第 5 个参数用来只跑关心的几屏（一次全扫 8 屏要 40 秒，逐屏返工时太慢）。
 set -e
 
 cd "$(dirname "$0")/.."
@@ -13,14 +15,20 @@ APP=${1:?需要 .app 路径}
 OUT=${2:?需要输出目录}
 APPEARANCE=${3:-light}
 SIZE=${4:-}
+SELECTED=${5:-}
 
 mkdir -p "$OUT"
-typeset -a extra
-[[ -n "$SIZE" ]] && extra=(MM_WINDOW_SIZE="$SIZE")
-[[ -n "$APPEARANCE" ]] && extra=(MM_APPEARANCE="$APPEARANCE")
+# 两个钩子要同时生效过：之前写成两次赋值，第二个把第一个覆盖掉了，
+# 于是带尺寸的那轮其实只换了外观，照片上的"最小窗口"是假的。
+typeset -a extra=()
+[[ -n "$APPEARANCE" ]] && extra+=(MM_APPEARANCE="$APPEARANCE")
+[[ -n "$SIZE" ]] && extra+=(MM_WINDOW_SIZE="$SIZE")
 
 # 设置页不是模块目的地，它靠 MM_SHOW_SETTINGS 弹出，所以单独列一行
 targets=(dashboard cleaner uninstaller disk monitor guardian optimizer settings)
+if [[ -n "$SELECTED" ]]; then
+  targets=(${=SELECTED})
+fi
 for m in $targets; do
   log="$OUT/$m.log"
   if [[ "$m" == "settings" ]]; then

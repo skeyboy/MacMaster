@@ -33,7 +33,7 @@ CSS px 与 SwiftUI pt 一一对应，所以稿子里的量可以直接拿去和�
 
 | 稿目录 | SPM 包 | `MM_OPEN_MODULE` | 主视图 | 该模块可用钩子 |
 | --- | --- | --- | --- | --- |
-| `shell/` | 壳 `Sources/MacMaster` + MMCore | `dashboard` | `MainWindow.swift` `DashboardModel.swift` `SettingsView.swift` | `MM_SHOW_SETTINGS` `MM_SETTINGS_TAB` |
+| `shell/` | 壳 `Sources/MacMaster` + MMCore | `dashboard` | `MainWindow.swift` `DashboardModel.swift` `SettingsView.swift` `LaunchBehavior.swift` | `MM_SHOW_SETTINGS` `MM_SETTINGS_TAB` + 全局取证档 `MM_APPEARANCE`(light/dark) `MM_WINDOW_SIZE`(宽x高) |
 | `mmui/` | `Packages/MMUI` | —（组件库，不单独成页） | `MMDesign.swift` `TreemapView.swift` | 无。回执面板的实机渲染借 `MM_FAILURE_FIXTURE`（钩子在 MMCleaner） |
 | `mmcleaner/` | `Packages/MMCleaner` + MMFileScanner | `cleaner` | `CleanerContainerView.swift` `MMCleaner.swift` `UserFolderCleanView.swift` `SystemAnalysisView.swift` | `MM_OPEN_TAB`(cache/folders/system) `MM_CLEANER_FILTER` `MM_EXPAND_CATEGORIES` `MM_AUTO_SCAN` `MM_SHOW_CONFIRM` `MM_INSTALLER_FIXTURE_DIR` `MM_FAILURE_FIXTURE` |
 | `mmuninstaller/` | `Packages/MMUninstaller` | `uninstaller` | `MMUninstaller.swift` `UninstallerModel.swift` `OrphanScanner.swift` `TrashWatcher.swift` | `MM_UNINSTALL_PANE` `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` `MM_UNINSTALL_CONFIRM_MODE` `MM_ORPHAN_FIXTURE_HOME` `MM_TRASH_FIXTURE_DIR` `MM_TRASH_SCAN_HOME` `MM_SHOW_TRASH_CONFIRM` |
@@ -44,6 +44,11 @@ CSS px 与 SwiftUI pt 一一对应，所以稿子里的量可以直接拿去和�
 
 钩子的值域写在各模块视图的注释里，本表只列名字。**表里有的钩子都是 `grep` 出来的真值**，
 新增钩子要同步改这张表，否则下一个人会按不存在的钩子安排验证。
+
+`MM_APPEARANCE` / `MM_WINDOW_SIZE` 是**跨屏生效**的取证档（在壳层 `LaunchBehavior.swift`，
+不属于任何模块页），逐屏扫描用 `./Scripts/p4-sweep.sh <app> <outdir> [light|dark] [宽x高] [屏名…]`。
+设计稿是浅色档，所以**任何"色档一致"的结论都必须至少有一轮 `MM_APPEARANCE=light` 的截图**——
+只拍系统默认档等于拿浅色稿比深色照片。实测值与判定见 `docs/analysis/fidelity-light-dark.md`。
 
 `MMCore` / `MMFileScanner` 没有自己的稿子：前者是设置、导航、删除闸门、台账这些
 无画面契约，后者是扫描引擎。它们的"设计"体现在消费方的屏里，规约写在

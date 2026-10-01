@@ -6,7 +6,11 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **31 个**（去重后 30 个独立变量名；集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`，并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫）。**全部为只读展示/状态钩子，无任何钩子会直接触发删除或写盘。**
+- 全仓现存钩子 **33 个独立变量名**（`grep -rhoE 'MM_[A-Z_]+' Packages Sources --include='*.swift' | sort -u` 得 34 个，
+  其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
+  集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
+  P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫。
+  **全部为只读展示/状态钩子，无任何钩子会直接触发删除或写盘。**
 - **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
 - 需要特别留意的"看似会动"的钩子：
   - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。
@@ -20,6 +24,8 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | `MM_OPEN_MODULE` | 壳 `Sources/MacMaster` | `MainWindow.swift:43` | 启动后直接跳到指定模块页 | ✅ | 否 | 非法值写 stderr 并停在概览；只认 `MMDestination.rawValue` |
 | `MM_SHOW_SETTINGS` | 壳 | `MainWindow.swift:40` | 启动即打开设置 sheet | ✅ | 否 | — |
+| `MM_APPEARANCE` | 壳 | `LaunchBehavior.swift:81` | 强制本进程 `NSApp.appearance` 为 `light`/`dark`（别名 `aqua`/`darkAqua`） | ✅ | 否 | **P4 新增**。只改本进程，不动用户系统外观；值写错会沿用系统档并写 stderr 留痕。生效凭据打在启动日志里，`p4-sweep.sh` 会 grep 回控制台 |
+| `MM_WINDOW_SIZE` | 壳 | `LaunchBehavior.swift:116` | `=宽x高`（如 `900x600`）改主窗口内容区尺寸 | ✅ | 否 | **P4 新增**。下限 320×200，解析失败/找不到主窗口都写 stderr；`DispatchQueue.main.async` 等窗口上屏，`didApply` 保证只生效一次 |
 | `MM_SETTINGS_TAB` | 壳 | `SettingsView.swift:12` | 设置 sheet 默认选中 tab | ✅ | 否 | 非法值回落 `.general` |
 | `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:32` | cleaner 页默认 tab（cache/folders/system） | ✅ | 否 | 非法值回落 `.cache` |
 | `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:280` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | — |
@@ -55,7 +61,7 @@
 
 ## 2. 各模块钩子小结
 
-- **壳（Sources/MacMaster）**：3 个，纯导航/打开类，零副作用。
+- **壳（Sources/MacMaster）**：5 个，纯导航/打开/取证档（`MM_APPEARANCE` `MM_WINDOW_SIZE`），零副作用。
 - **MMCleaner**：7 个，含 1 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`，越界即忽略）。
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
 - **MMDisk**：8 个（新增 `MM_DISK_HOLD`），`MM_DISK_SCAN`/`MM_DISK_SELECT` 本轮补 `/tmp` 守卫。
@@ -77,3 +83,17 @@
 1. **README §2 矩阵已过期**：补列 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（见本文件文末「已落地修正」）；同步把 `mmmonitor` 行从"无内容钩子"更新为已含 `MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`。本轮已直接改 `docs/design-system/README.md`。
 2. **`MM_OPTIMIZER` 缺少面向无头核对的统一夹具入口**：~~目前只有 `MM_OPEN_TAB`~~ **已落地**：集成阶段新增 `MM_OPTIMIZER_FIXTURE`（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected），见 `OptimizerFixtureHooks.swift`。
 3. **`MM_DISK_SCAN` 越界值处理**：~~当前 `MMDisk.swift:135` 未校验 /tmp~~ **已落地**：集成阶段对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 `/tmp`/`/private/tmp` 前缀守卫，越界写 stderr 并忽略。
+
+## 5. 取证工具链（P4 浅色档）
+
+| 脚本 | 干什么 | 为什么在仓库里 |
+| --- | --- | --- |
+| `Scripts/p4-sweep.sh` | 逐屏起实例 → 按 pid 抓自己窗口 → 抓完即杀；支持明暗档、窗口尺寸、只跑指定屏 | 手动敲这串命令容易抓到别的实例的窗口，脚本把 `--pid` 这条红线固化下来 |
+| `Scripts/pixel-probe.swift` | 从 PNG 定点取色 / 沿一条线打色带 | 肉眼看截图会把"整体偏亮"当成"浅色档生效"，局部混档只有逐点量才看得见 |
+| `Scripts/disk-fixture.sh` | 造 `/tmp/macmaster-disk-fixture`（175 MB，含一块会被扫描层跳过的 `Library/`） | `MM_DISK_SCAN` 只认 /tmp；夹具固定大小才能核对"页面报的数对不对" |
+| `Scripts/window-ids.swift` | 按 pid 列窗口 id | 见 `docs/design-system/README.md` §5 红线：`--pid` 不是可选项 |
+
+- 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
+  `docs/analysis/fidelity-light-dark.md` §2。
+- **不要写脚本用 NSColor 查语义色的值**：脱离真实绘制上下文解析动态色，明暗两档会给出同一个（错的）值。
+  这条坑记在 `pixel-probe.swift` 文件头。
