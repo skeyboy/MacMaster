@@ -6,16 +6,17 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **35 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 36 个，
+- 全仓现存钩子 **40 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 41 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
-  磁盘永久删除路径新增 `MM_SHOW_PERMANENT`，并给 `MM_SHOW_TOAST` 加 `permanent` 取值（见下表）。
+  磁盘永久删除路径新增 `MM_SHOW_PERMANENT`，并给 `MM_SHOW_TOAST` 加 `permanent` 取值（见下表）；
+  P5.1「开发产物」页新增 `MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM` 共 5 个（见下表）。
   **全部为只读展示/状态钩子，无任何钩子会直接触发删除或写盘。**
 - **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
 - 需要特别留意的"看似会动"的钩子：
-  - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。
-  - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。`MM_SHOW_TOAST=permanent` 摆的是"已永久删除"回执，它**没有撤回按钮**、也不会删任何东西（数字借自选中标项）；`MM_SHOW_PERMANENT` 只是把确认面板换成永久删除那块，一个字节都不动。
+  - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。`MM_PURGE_FIXTURE_HOME` 同理——它只换扫描根，扫的仍是 `/tmp` 下的假项目。
+  - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_DEV_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。`MM_SHOW_TOAST=permanent` 摆的是"已永久删除"回执，它**没有撤回按钮**、也不会删任何东西（数字借自选中标项）；`MM_SHOW_PERMANENT` 只是把确认面板换成永久删除那块，一个字节都不动。
 - `README §2` 矩阵**已过期**：漏了 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（代码已落地，矩阵未同步）。
   → 已在本轮补正（见文末「提请协调者」）。
 
@@ -28,7 +29,7 @@
 | `MM_APPEARANCE` | 壳 | `LaunchBehavior.swift:81` | 强制本进程 `NSApp.appearance` 为 `light`/`dark`（别名 `aqua`/`darkAqua`） | ✅ | 否 | **P4 新增**。只改本进程，不动用户系统外观；值写错会沿用系统档并写 stderr 留痕。生效凭据打在启动日志里，`p4-sweep.sh` 会 grep 回控制台 |
 | `MM_WINDOW_SIZE` | 壳 | `LaunchBehavior.swift:116` | `=宽x高`（如 `900x600`）改主窗口内容区尺寸 | ✅ | 否 | **P4 新增**。下限 320×200，解析失败/找不到主窗口都写 stderr；`DispatchQueue.main.async` 等窗口上屏。**凭据回读夹取后的真实窗口尺寸**（`asyncAfter 0.3s`）：窗口有 `.frame(minWidth:)` 地板，请求 900 会被夹到 1000，只回显请求值会产出"看着真、来源错"的最小窗口证据 |
 | `MM_SETTINGS_TAB` | 壳 | `SettingsView.swift:12` | 设置 sheet 默认选中 tab | ✅ | 否 | 非法值回落 `.general` |
-| `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:32` | cleaner 页默认 tab（cache/folders/system） | ✅ | 否 | 非法值回落 `.cache` |
+| `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:34` | cleaner 页默认 tab（cache/folders/system/**dev**） | ✅ | 否 | 非法值回落 `.cache`。**P5.1 新增 `dev`（开发产物子页）** |
 | `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:280` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | — |
 | `MM_EXPAND_CATEGORIES` | `MMCleaner` | `MMCleaner.swift:148` | 展开分类 | ✅ | 否 | — |
 | `MM_AUTO_SCAN` | `MMCleaner` | `UserFolderCleanView.swift:112` `SystemAnalysisView.swift:78` | 进场即触发扫描 | ✅ | 否（只读扫描） | 仅枚举文件系统，不写不删 |
@@ -36,6 +37,11 @@
 | `MM_INSTALLER_FIXTURE_DIR` | `MMCleaner` | `UserFolderCleanView.swift:120,366` | 注入安装器残留夹具目录 | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
 | `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:365` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel` |
 | `MM_SNAPSHOT_FIXTURE` | `MMCleaner` | `MMCleaner.swift` `applySnapshotFixture` | 把"磁盘空间只读报告"里的**快照那一块**换成样例文本（`mixed`/`overflow`/`updateonly`/`none`/`broken`） | ✅ | 否 | 只替换解析器的输入字符串，卷容量仍是真读的；不起命令、不碰盘。未知取值整块忽略 |
+| `MM_PURGE_FIXTURE_HOME` | `MMCleaner` | `DevArtifactView.swift:45` | 把「开发产物」页的扫描根换成假 home | ✅ | 否 | **P5.1 新增。只认 `/tmp`**：`realpath` 解析后**再复核一次前缀**，越界整块忽略。这一屏的终点是删除按钮，所以钩子绝不能把用户的真项目变成可以整片勾选的夹具。配合 `Scripts/purge-fixture.sh` |
+| `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:109` | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots` |
+| `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:112` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数 |
+| `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:428` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件** |
+| `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:236` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService` |
 | `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:63` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps` |
 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除 |
 | `MM_UNINSTALL_CONFIRM_MODE` | `MMUninstaller` | `MMUninstaller.swift` | 夹具确认模式 `appOnly` / `withResiduals` | ✅ | 否 | 仅在上行有效时读取；省略则为 `appOnly` |
@@ -65,7 +71,7 @@
 ## 2. 各模块钩子小结
 
 - **壳（Sources/MacMaster）**：5 个，纯导航/打开/取证档（`MM_APPEARANCE` `MM_WINDOW_SIZE`），零副作用。
-- **MMCleaner**：7 个，含 1 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`，越界即忽略）。
+- **MMCleaner**：13 个（P5.1 新增 5 个：`MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM`；含 P4.6 的 `MM_SNAPSHOT_FIXTURE`，早前列数漏计它）。含 2 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`、`MM_PURGE_FIXTURE_HOME`，越界即忽略）。
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
 - **MMDisk**：8 个（新增 `MM_DISK_HOLD`），`MM_DISK_SCAN`/`MM_DISK_SELECT` 本轮补 `/tmp` 守卫。
 - **MMGuardian**：5 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`），全 `com.example.*` 合成，不写盘。
@@ -110,6 +116,7 @@
 | `Scripts/disk-fixture.sh` | 造 `/tmp/macmaster-disk-fixture`（175 MB，含一块会被扫描层跳过的 `Library/`） | `MM_DISK_SCAN` 只认 /tmp；夹具固定大小才能核对"页面报的数对不对" |
 | `Scripts/window-ids.swift` | 按 pid 列窗口 id | 见 `docs/design-system/README.md` §5 红线：`--pid` 不是可选项 |
 | `Scripts/trash-space-measure.swift` | 写 200 MiB → `trashItem` → 从废纸篓删掉，三步各读一次卷可用 | "移入废纸篓就回收了 X"是本模块差点写进 UI 的假话；只有实测能把它证伪。读的是应用自己用的那两个 `URLResourceKey`，所以差值就是页面上会显示的口径 |
+| `Scripts/purge-fixture.sh` | 造 `/tmp/macmaster-purge-fixture`（108 MB，14 个项目 / 22 处产物）：覆盖 CACHEDIR.TAG、`node_modules`、`build`+`package.json`、近期在用、读不进、云同步、受保护作者内容、无体积各行 | **P5.1 新增**。`MM_PURGE_FIXTURE_HOME` 只认 /tmp，所以真机上拍不到的分支必须在这里凑齐；脚本末尾的「产物目录清点」会把 23 个目录逐个列年龄，跑一遍就能核对页面报的数对不对（含两个**不该出现**的诱饵：游离的 `node_modules` 和 `Projects/sneaky` 里指向外部的软链） |
 
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
@@ -123,6 +130,10 @@
   `MM_WINDOW_SIZE=1400x1900` 拿到的还是 1050pt 高的窗（照片看着像生效、其实没变）。
   要看系统清理页底部的"磁盘空间只读报告"，正确做法是给 `MM_CLEANER_FILTER` 一个只命中
   一类的词（`废纸篓`），表格缩到一行，区块自己就进画面了。
+- **缩不了的时候让页面自己滚，别去滚窗口**：上一条对「开发产物」页不成立——那里底部是
+  一张 144 行的列表和永远要可见的操作条，没有"缩短上方内容"这回事。于是加
+  `MM_DEV_SCROLL=end`，用 `ScrollViewReader.scrollTo(末行, .bottom)` 在扫描回来后自滚一次。
+  这仍然是**应用自己在正常渲染里走一步**，不是往原生 UI 里塞合成滚轮/点击事件。
 - **夹具文本也要有测试**：Swift 多行字面量的收尾**不带换行**，
   `"..." + join(...)` 拼出来的夹具会把第一条快照粘在表头行上被解析器吃掉——
   照片上"另有 2 个快照"看着挺像溢出态，其实少了一条。判据在 `SnapshotFixtureTests`。

@@ -535,6 +535,56 @@ com.apple.os.update-MSUPrepareUpdate
   下方区块进不了画面这一条记在 `hook-ledger.md` §5：窗口高度被钳在约 1080pt，
   得靠 `MM_CLEANER_FILTER=废纸篓` 把表格缩短，而不是把窗拉高。
 
+## P5.1 落地：开发产物跨目录聚合（cleaner 第四子页「开发产物」/ 稿 02c）（2026-10-01）
+
+**参考**：`Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、深度 1…6、monorepo 指示器、
+`CACHEDIR.TAG` 认缓存）、`purge_shared.sh:18` 的 20+ 产物名单。**我们比它窄一格**：
+Mole 会 `git ls-files` 探产物里是否混了签入的源码，我们**不 spawn 任何第三方二进制**，
+只用目录里看得见的证据（名单 / 邻居文件 / 清单文件 / CACHEDIR.TAG），认不出来的落 `protected`。
+
+**落地**：`ProjectArtifactScanner`（MMFileScanner，917 行 + 42 条新单测，包内 93 条全绿）
+→ `DevArtifactView`（MMCleaner 第四子页，`MM_OPEN_TAB=dev`）→ 设计稿 `02c-cleaner-dev.html`
+→ 夹具 `Scripts/purge-fixture.sh` → 5 枚钩子（`hook-ledger.md` §1）。
+还原度逐元素对照与"拍不到的三态"记在 `fidelity-cleaner.md` §7。
+
+### 三件只有真机才说出来的事
+
+1. **一个预算 bug（本轮唯一的功能缺陷，实机跑出来的）**：`rootBudgetSeconds` 被写成了
+   **全局**截止时间，第一个根就把预算吃光，后面 7 个根（含 `~/Documents`）**一秒都没扫**——
+   照片上"耗时 20.0 秒"正好等于预算值，这就是它的形状。修法：每根一份预算 **且** 全局封顶，
+   `rootDeadline = min(now + rootBudget, started + totalBudget)`（抽成纯函数好测），
+   并把 `Desktop`/`Documents` 提进显式根（**根的顺序就是预算的分配顺序**）。
+   修前：20.0 秒 / 缺 7 根；修后：16.2 秒 / 缺 2 根（`~/Desktop`、`~/Documents` 仍在截断，
+   页面用橙色那条点名，并写"截断范围内的项目没被扫过，不等于它们干净"）。
+2. **Mole 的八个默认根在这台 Mac 上一个都不存在**（`~/dev`、`~/www`、`~/Projects`…是**压根没有**，
+   不是读不动）。所以扫描器必须把"没有"和"读不动"分开报（`missingRoots` vs `unreadableRoots`），
+   并且保留"home 下一级目录当容器"这条路——否则这台机器上一个项目都扫不出来。
+   真机现在报 **100 个项目 · 145 处产物 · 可回收 19.37 GB**。
+3. **两道闸门必须说同一句话**：`DeletionGuard.protectedHomeSubtrees` 早就挡着
+   `Library/CloudStorage`，而扫描器原来只看名字和邻居，会给 iCloud 目录下的 `dist` 判"可回收"
+   ——UI 上就是一个**勾了也删不掉**的复选框。修法：云同步在 `verdict` 里早于名单和
+   CACHEDIR.TAG 拦下，理由原样带到行上（"位于 iCloud 同步目录：删除会同步到所有设备"）。
+   删除链路本身仍是双层的：`FileTrashService.moveToTrash` 对每条路径再问一次
+   `DeletionGuard.rejection(for:)`（`FileTrashService.swift:43`），扫描器的判定只是前置体验。
+
+### 数字口径（本轮定下的规矩）
+
+- **可回收 ≠ 批量按钮挑中的数**。真机 19.37 GB 里只有 6.79 GB 被"选中 7 天未触碰的"挑走，
+  差的是**判定可回收但近期在用/活动度未知**的行——它们有勾选框，用户自己决定，批量按钮不替用户挑。
+  夹具上这笔账逐行对得平（103.8 − 99.6 = 4.2 MB = `stale-site` 那两行"改动过"）。
+- 三种"没有数字"分开写：整页没有可选行 → "无可回收条目"；有可选行但体积没测全 → "可回收 —"；
+  单行体积读不到 → "—"（**绝不折成 0 字节**）。
+- 活动度探测没跑完 → `.unknown`，**不许**写成"很久没碰"；读不进产物目录 → `protected`
+  （无法确认里面没有签入的源码）。
+
+### 没能验证到的部分
+
+- **嵌套产物"已计入上一行"** 与 **夹具外软链被丢弃** 两态在真实扫描里构造不出来
+  （发现阶段命中产物就不再下钻；`lstat` 从不跟随软链），只有单测覆盖——见 `fidelity-cleaner.md` §7.3。
+- **真删一次**：这一屏的删除走 `FileTrashService`，但不对用户真项目演，也不做合成点击；
+  照片停在确认面板（`04-fixture-confirm-sheet.jpg`）。
+- 扫描器的 `progress:` 回调没接 UI（真机 16 秒，转圈可接受），本轮明确不做。
+
 ## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
@@ -545,13 +595,14 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 
 | # | 候选 | 外部证据（本地可读） | 现状 | 代价 | 红线 |
 |---|---|---|---|---|---|
-| 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | `DiskClassify` 只逐目录打斜纹，`DevToolCacheAudit` 只管全局工具缓存；**没有跨项目聚合与"多久没碰"** | M | 不撞：用户域只读报表、默认不勾、删除走 `FileTrashService`+`DeletionGuard`。需新增 `MM_PURGE_FIXTURE_HOME`（照 `MM_ORPHAN_FIXTURE_HOME` 只认 /tmp） |
+| 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | **已落地**：`ProjectArtifactScanner` + cleaner 第四子页「开发产物」（稿 02c），见上一节 | — | 红线全部避开；`MM_PURGE_FIXTURE_HOME` 已按只认 /tmp 落地 |
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | MMUninstaller 完全没有"来源"概念 | S–M | 不撞。夹具注入即可，复用 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`，不需要新钩子 |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | 现在只监听 `~/.Trash`，用户"立即删除"或 `rm` 掉 app 时残留提示完全不触发 | M | 不撞：不学它的常驻 LaunchAgent，照 `TrashWatcher` 的"页面存活期 arm"做进程内监听。需 `MM_APPS_WATCH_FIXTURE_DIR`（限 /tmp） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
+| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | 现在只做"如实报截断"，不做续扫；用户想扫完只能反复点重新扫描（每次都是全量重扫） | S–M | 不撞：纯只读扫描调度。要新增"这一批扫到哪了"的状态，别把它做成后台常驻进程 |
 
-**推荐顺序 1 → 2 → 3**：1 是"外部有、我们没有、不撞红线"里价值最高的一条；
-2 最便宜且直接改善卸载页的决策质量；3 补的是已落地功能的一个真实盲区。
+**推荐顺序 2 → 3 → 5**：1 已落地；2 最便宜且直接改善卸载页的决策质量；3 补的是已落地功能的一个真实盲区；
+5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了）。4 价值最低。
 另有两件内部欠账与它们并行：disktree 最后一项"跨重扫保留 marks"、
 以及 P4 记下的几处还原度瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、
 概览首帧 sparkline 稀疏）。
