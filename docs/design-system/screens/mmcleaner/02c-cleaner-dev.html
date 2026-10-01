@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px;align-items:center}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.win{height:auto}                       /* 本屏内容长，窗口按内容自适应出全稿 */
+.tblcard{border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;background:var(--c-content-bg)}
+.hdr{display:grid;grid-template-columns:22px 1fr 84px 132px;align-items:center;gap:var(--sp-2);
+     height:26px;padding:0 var(--sp-3);background:var(--c-card-bg-alt);
+     border-bottom:1px solid var(--c-separator);font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.hdr .r{text-align:right}
+/* 产物行：勾选 | 名称+相对路径+说明 | 体积 | 状态徽章 */
+.crow{display:grid;grid-template-columns:22px 1fr 84px 132px;align-items:center;gap:var(--sp-2);
+      min-height:44px;padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator)}
+.crow:last-child{border-bottom:0}
+.crow:hover{background:var(--c-fill-hover)}
+.crow.sel{background:var(--c-accent-soft)}
+.crow .nm{display:flex;flex-direction:column;gap:1px;min-width:0}
+.crow .nm b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .nm span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+               white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .nm i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-tertiary);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crow .sz{text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);font-variant-numeric:tabular-nums}
+.crow .bk{text-align:right}
+.crow.dis{background:var(--c-card-bg-alt)}
+.crow.dis .nm b,.crow.dis .sz{color:var(--c-label-secondary)}
+/* 最强证据档：目录自带 CACHEDIR.TAG —— 左侧强调条 + 蓝底，一眼与普通可回收行区分 */
+.crow.strong{background:var(--c-accent-soft);box-shadow:inset 3px 0 0 var(--c-accent)}
+.crow.strong .nm b{font-weight:600}
+/* 项目分组头：可展开区块的开关行 */
+.gtitle{display:flex;align-items:center;gap:var(--sp-2);min-height:34px;padding:0 var(--sp-3);
+        background:var(--c-content-bg);border-bottom:1px solid var(--c-separator);border-top:1px solid var(--c-separator);
+        font-size:var(--fs-callout);font-weight:600}
+.gtitle .pth{font-weight:400;font-size:var(--fs-caption);font-family:var(--font-mono);color:var(--c-label-secondary)}
+.gtitle .cnt{font-weight:400;font-size:var(--fs-caption);color:var(--c-label-tertiary);font-family:var(--font-mono)}
+.gtitle .sp{margin-left:auto}
+.gtitle .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.more{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+      font-size:var(--fs-caption);color:var(--c-label-tertiary);background:var(--c-card-bg-alt)}
+/* 扫描范围条 / 汇总条 */
+.scopebar{border:1px solid var(--c-separator);border-radius:var(--r-md);background:var(--c-content-bg);
+          padding:var(--sp-3) var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2)}
+.chip{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:var(--r-xs);
+      font-size:var(--fs-caption);font-weight:600;font-family:var(--font-mono);
+      background:var(--c-neutral-soft);color:var(--c-label-secondary)}
+.sumbar{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);
+        border:1px solid var(--c-separator);border-radius:var(--r-md);background:var(--c-content-bg)}
+.sumbar .sum{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sumbar .sum b{font-size:var(--fs-title3);font-weight:600;font-variant-numeric:tabular-nums}
+.sumbar .sum span{font-size:var(--fs-caption);color:var(--c-label-secondary)}</style></head>
+<body>
+
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span>
+          <span class="pct">6% 可用</span>
+        </div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>开发产物</h1><p>12 个项目 · 37 处产物 · 扫描于 21:47 · 2 个根部分截断</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span>缓存清理</span><span>用户文件夹</span><span>系统分析</span><span class="on">开发产物</span></div>
+      </div>
+
+      <div class="scroll" style="padding:0 var(--sp-4)">
+
+        <!-- ① 扫描范围条：从哪几个根开始、只读口径、部分截断的真实态 -->
+        <div class="scopebar">
+          <div class="row-h" style="flex-wrap:wrap;gap:6px">
+            <span class="t-sub" style="flex:0 0 auto">扫描根</span>
+            <span class="chip">~/dev</span><span class="chip">~/Projects</span><span class="chip">~/Code</span>
+            <span class="chip">~/Workspace</span><span class="chip">~/Repos</span><span class="chip">~/www</span>
+            <span class="chip" style="background:var(--c-warning-soft);color:var(--c-warning)">~/Library/CloudStorage</span>
+            <span class="btn sm" style="margin-left:auto"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+          </div>
+          <div class="row-h" style="gap:6px;align-items:flex-start">
+            <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+            <span class="note">只读扫描，不跟随符号链接；链接指向的目录一律不进入、不列出。</span>
+          </div>
+          <div class="row-h" style="gap:6px;align-items:flex-start">
+            <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-warn"></use></svg>
+            <span class="note" style="color:var(--c-warning)">2 个根扫到一半超时，已截断：~/Library/CloudStorage ——
+              截断范围内的项目本轮不报数，其余 6 个根扫完。</span>
+          </div>
+        </div>
+
+        <!-- ② 汇总条 + 批量选择 + 默认不勾选的说明 -->
+        <div class="sumbar">
+          <div class="sum">
+            <b>12 个项目 · 37 处产物 · 可回收 17.1 GB</b>
+            <span>默认一项都不勾选；本稿为按下「选中 7 天未触碰的」之后的状态——近期在用、受保护、未测得的行不会被自动选中。</span>
+          </div>
+          <span style="margin-left:auto;display:inline-flex;gap:var(--sp-2)">
+            <span class="btn sm"><svg class="i"><use href="#i-clock"></use></svg>选中 7 天未触碰的</span>
+            <span class="btn sm">取消全选</span>
+          </span>
+        </div>
+
+        <!-- ③ 项目分组卡：每组一个可展开区块，组头带小计与 monorepo 徽章 -->
+        <div class="tblcard">
+          <div class="hdr"><span class="chk"></span><span>产物 · 相对项目根的路径</span>
+            <span class="r">体积</span><span class="r">状态</span></div>
+
+          <!-- 组 1：macmaster-web（展开，pnpm monorepo，含最强证据行 + 近期在用行） -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            macmaster-web <span class="pth">~/Code/macmaster-web</span>
+            <span class="sp"></span><span class="cnt mono">2.9 GB · 2 处</span>
+            <span class="badge">pnpm-workspace</span></div>
+          <div class="crow sel"><span class="chk on">✓</span>
+            <div class="nm"><b>node_modules</b><span>packages/web/node_modules</span></div>
+            <div class="sz">2.4 GB</div><div class="bk"><span class="badge safe">23 天未触碰</span></div></div>
+          <div class="crow"><span class="chk"></span>
+            <div class="nm"><b>.next</b><span>apps/web/.next</span><i>可能正在编译，默认不选中</i></div>
+            <div class="sz">512 MB</div><div class="bk"><span class="badge warn">今天改动过</span></div></div>
+
+          <!-- 组 2：rust-pdf-engine（展开）——最强证据档：Cargo 自己往 target/ 写 CACHEDIR.TAG -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            rust-pdf-engine <span class="pth">~/dev/rust-pdf-engine</span>
+            <span class="sp"></span><span class="cnt mono">5.8 GB · 1 处</span></div>
+          <div class="crow sel strong"><span class="chk on">✓</span>
+            <div class="nm"><b>target</b><span>target</span>
+              <i>目录自带 CACHEDIR.TAG 标记文件 —— 最强的一档证据 · 42 天未触碰</i></div>
+            <div class="sz">5.8 GB</div>
+            <div class="bk"><span class="badge info"><svg class="i" style="width:10px;height:10px"><use href="#i-tag"></use></svg>目录自述为缓存</span></div></div>
+
+          <!-- 组 3：ios-playground（展开） -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            ios-playground <span class="pth">~/Workspace/ios-playground</span>
+            <span class="sp"></span><span class="cnt mono">2.9 GB · 1 处</span></div>
+          <div class="crow sel"><span class="chk on">✓</span>
+            <div class="nm"><b>DerivedData</b><span>DerivedData</span></div>
+            <div class="sz">2.9 GB</div><div class="bk"><span class="badge safe">27 天未触碰</span></div></div>
+
+          <!-- 组 4：data-platform（展开，nx monorepo，四种受保护原因 + 未测得） -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            data-platform <span class="pth">~/Repos/data-platform</span>
+            <span class="sp"></span><span class="cnt mono">3.5 GB · 5 处</span>
+            <span class="badge">nx</span></div>
+          <div class="crow sel"><span class="chk on">✓</span>
+            <div class="nm"><b>node_modules</b><span>packages/etl/node_modules</span></div>
+            <div class="sz">1.8 GB</div><div class="bk"><span class="badge safe">9 天未触碰</span></div></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>vendor</b><span>services/payments/vendor</span>
+              <i>vendor/ 旁有 go.mod：Go 的 vendoring 是源码的一部分</i></div>
+            <div class="sz">246 MB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>bin</b><span>tools/bin</span>
+              <i>bin/ 旁边没有 .csproj：无法确定它是构建输出</i></div>
+            <div class="sz">58 MB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>build</b><span>libs/opencv/build</span>
+              <i>产物目录内有 .git：可能是签出的源码，不是产物</i></div>
+            <div class="sz">1.4 GB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <div class="crow dis"><span class="chk off-allowed"></span>
+            <div class="nm"><b>node_modules</b><span>services/reporting/node_modules</span>
+              <i>存在但没有读取权限，不折成 0 字节，也不计入合计</i></div>
+            <div class="sz">—</div><div class="bk"><span class="badge warn">读不到</span></div></div>
+
+          <!-- 组 5：team-site（展开，iCloud 受保护） -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-lock"></use></svg>
+            team-site <span class="pth">~/Library/CloudStorage/iCloud Drive/team-site</span>
+            <span class="sp"></span><span class="cnt mono">1.1 GB · 1 处</span></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>node_modules</b><span>node_modules</span>
+              <i>位于 iCloud 同步目录：删了会同步到所有设备</i></div>
+            <div class="sz">1.1 GB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+
+          <!-- 组 6：legacy-admin（收起态：只画组头，chevron 向右） -->
+          <div class="gtitle" style="border-bottom:0"><svg class="i"><use href="#i-chev-r"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            legacy-admin <span class="pth">~/www/legacy-admin</span>
+            <span class="sp"></span><span class="cnt mono">4.9 GB · 3 处</span></div>
+
+          <div class="more"><svg class="i"><use href="#i-dots"></use></svg>
+            其余 6 个项目 · 24 处产物 —— 同样按上面四种状态逐行标注，点击各组的展开箭头查看。</div>
+        </div>
+
+        <!-- ⑥ 底部脚注：删除通道 + 证据口径 -->
+        <div class="row-h" style="padding-bottom:var(--sp-2);align-items:flex-start">
+          <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+          <span class="note">删除只走「移入废纸篓 + 可撤回」，不做任何直接抹除。<br>
+            只报你亲眼能核对的证据：项目根靠 package.json / Cargo.toml / Package.swift 这类清单文件认定，
+            认不出项目根的产物一律不列出来。</span>
+        </div>
+      </div>
+
+      <div class="actionbar">
+        <div class="sum"><b>已选 4 处 · 12.9 GB</b><span>未勾选项不会被修改；受保护的行没有勾选框</span></div>
+        <div class="sp" style="margin-left:auto"></div>
+        <span class="btn destructive lg">移 4 处产物入废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>开发产物页 = 按项目分组聚合的可重建目录清单，四种行状态是本页的语义骨架。</b>
+<b>可回收</b>（绿，safe 档，与 02 屏「安全」同色）＝久未触碰，勾选框可用；<b>近期在用</b>（橙，warn 档）＝今天改动过、
+可能正在编译，勾选框可用但绝不进「7 天未触碰」的批量选中；<b>受保护</b>（灰，readonly 档，同 02 屏「只读」）＝没有勾选框，
+右侧灰字写明具体原因（go.mod vendoring / 无 .csproj 佐证 / 目录内有 .git / iCloud 同步），原因永远比徽章信息量大；
+<b>未测得</b>（橙，warn 档）＝体积写「—」不写 0 B，读不到不是 0 字节，不计入合计也不给勾选。
+<b>CACHEDIR.TAG 是最强的一档证据</b>：目录自述为缓存，用蓝底强调行 + info 徽章与普通可回收行区分。
+本稿把它画在 Rust 的 <code>target/</code> 上是实测过的：Cargo 构建时会自己往 <code>target/CACHEDIR.TAG</code> 写这个签名行。
+<b>扫描如实报残</b>：超时的根显式标注「已截断」，截断范围内的项目本轮不报数——宁可少报，不把半截结果折成完整数字。
+默认全部不勾选；「重新扫描」「选中 7 天未触碰的」「取消全选」都在各自条内，底部操作栏只汇总已选口径。</div>
+</div>
+
+</body></html>

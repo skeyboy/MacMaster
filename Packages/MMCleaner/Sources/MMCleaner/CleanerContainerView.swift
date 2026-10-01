@@ -2,23 +2,25 @@ import SwiftUI
 import MMCore
 import MMUI
 
-/// 系统清理模块的三页容器：缓存清理 / 用户文件夹 / 系统分析。
+/// 系统清理模块的四页容器：缓存清理 / 用户文件夹 / 系统分析 / 开发产物。
 /// 只有当前选中的页会被实例化，其余页不会触发扫描。
 struct CleanerContainerView: View {
     enum Tab: String, CaseIterable, Identifiable {
         case cache = "缓存清理"
         case userFolders = "用户文件夹"
         case system = "系统分析"
+        case dev = "开发产物"
 
         var id: String { rawValue }
 
-        /// MM_OPEN_TAB=cache|folders|system：只用于逐屏截图核对设计稿，
+        /// MM_OPEN_TAB=cache|folders|system|dev：只用于逐屏截图核对设计稿，
         /// 正常启动不会带这个变量。
         var hookKey: String {
             switch self {
             case .cache: "cache"
             case .userFolders: "folders"
             case .system: "system"
+            case .dev: "dev"
             }
         }
 
@@ -40,6 +42,8 @@ struct CleanerContainerView: View {
                 UserFolderCleanView()
             case .system:
                 SystemAnalysisView()
+            case .dev:
+                DevArtifactView()
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
