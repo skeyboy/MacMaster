@@ -189,15 +189,20 @@ public struct DiskAnalyzerView: View {
         }
     }
 
-    /// 副标题只报事实：路径、文件数、占用、用时。
-    /// 受保护目录的口径声明不放这里——这条在 ~1100pt 宽度下本来就会被中间截断，
-    /// 再长就会把"占用/用时"挤没，摆到面包屑条的徽标位（见 breadcrumbBar）。
+    /// 副标题只报事实：占用、文件数、用时、路径。
+    /// **顺序按"窄窗被截时谁该活下来"排**：`MMPageHeader` 的副标题是
+    /// `lineLimit(1) + truncationMode(.middle)`，最小窗口下中段一定会掉，
+    /// 所以把最没用的"用时"放中间、把"这块占多少"放开头、把路径的尾（目录名）放最后。
+    /// 实测（1000pt 窗口 + 44 个文件的夹具）截完是 "77.8 MB · 44…aster-disk-fixture"：
+    /// 占用和目录名活着，用时整段被吃掉、文件数只剩个位数——这个代价换得值，
+    /// 反过来把路径放开头时被吃掉的就是 77.8 MB，磁盘页最不该没的就是这个数。
+    /// 受保护目录的口径声明也不放这里，摆面包屑条的徽标位（见 breadcrumbBar）。
     private var headerSubtitle: String? {
         guard let result = scanResult else {
             return isScanning ? scanningPath : "选择一个目录开始分析"
         }
-        return "\(result.path) · \(MMFormat.count(result.fileCount)) 个文件 · "
-            + "\(MMFormat.bytes(result.scannedSize)) · 扫描用时 \(String(format: "%.1f", scanDuration)) s"
+        return "\(MMFormat.bytes(result.scannedSize)) · \(MMFormat.count(result.fileCount)) 个文件 · "
+            + "扫描用时 \(String(format: "%.1f", scanDuration)) s · \(result.path)"
     }
 
     private var placeholder: some View {
