@@ -84,7 +84,7 @@
 | 4.3 开发工具缓存走 owner 命令 | ✅ 已落地（只报不执行） | `MMOptimizer/DevToolCacheAudit.swift` + 「开发工具」tab：位置来源/在不在/多大 + 可拷贝的 owner 命令。**刻意不执行第三方二进制**，判据见 `docs/analysis/devtool-owner-commands.md` |
 | 4.4 安装包残留查找 | ✅ 已落地 | `MMFileScanner/InstallerScanner.swift` 内容嗅探（koly / xar! / EOCD 中央目录）+ `UserFolderCleanView` 区块，见「P4.4 落地」节 |
 | 4.5 白名单持久化 | ✅ 已落地 | `CleanerExclusionStore`（`MMCleaner.swift:25-53`）已是唯一真源，表里那句"当前是会话级内存态"过期了 |
-| 4.6 purgeable / 本地快照只读报告 | ✅ 已落地 | `ReadOnlySpaceReport.swift`，读不到时整块说明原因，不显示 0 冒充事实 |
+| 4.6 purgeable / 本地快照只读报告 | 🟡→✅ **本轮修真后才落地** | `ReadOnlySpaceReport.swift` + `SystemSpaceReport.swift`。此前快照那一块在 macOS 11+ 上**永远**显示"不可用"（解析器只认旧表头），见「P4.6 复核」节 |
 
 ## 明确不采纳
 
@@ -500,3 +500,58 @@ D 降级态合集，含新增 D3a）、`08-optimizer.html`（08 首屏 / 08b 结
   实机图 `docs/verification/p1.7-deletion-guard/cleaner-refusal-panel.jpg` 来自
   `MM_FAILURE_FIXTURE=protected` 预演钩子，文案由 `DeletionGuard` 现场算出。
   **缺**："点击删除 → 被拒 → 回执"这条交互链没有实机照片，走完它需要合成点击（项目红线禁止）。
+
+## P4.6 复核：本地快照卡片在真机上从来没亮过（2026-10-01）
+
+表里这条原本写着"✅ 已落地"。本轮为了选型去跑一次真机 `tmutil`，才发现它落地了但从没工作过：
+
+```
+$ tmutil listlocalsnapshots /
+Snapshots for volume group containing disk /:      ← 本机实际表头
+com.apple.os.update-5203530F8BB2…
+com.apple.os.update-8847C532F7D8…
+com.apple.os.update-MSUPrepareUpdate
+```
+
+- **根因**：`TimeMachineSnapshotReader.headerPrefix` 只认 `Snapshots for disk`，
+  而 macOS 11 起带签名系统卷的机器输出的是 `Snapshots for volume group containing disk`。
+  解析器坚持"没有表头就整块判不可用"（这条防呆本身是对的，它挡的是把报错文本当成清单），
+  于是新系统上这块卡片**永远**是"本地快照：不可用"。
+- **为什么单测全绿**：五条样例全按旧表头写。这是"照着想象里的输出写测试"的教科书案例——
+  现在补了 `testRealMachineOutputParses`，只断言"解析得动"，不比条数（条数随机器状态变）。
+- **顺带纠正的第二处口径**：条目过滤只认 `com.apple.TimeMachine.`，可这台没接 TM 的机器
+  三条全是 `com.apple.os.update-*`。它们是系统更新的安全网，不是 TM 快照，
+  统称"Time Machine 快照"会把用户指向错误的方向（删它影响更新回滚）。
+  现在按 `timeMachine / systemUpdate / other` 分档，行上和条数后面都标来历。
+- **明确不报字节**：试过用 `diskutil apfs list` 的容器差值凑——本机
+  "各卷已用合计 486.7 GB"对"容器已用 488.1 GB"只差约 1.4 GB，那是元数据与预留，
+  不是快照足迹。APFS 不给单个快照的独立占用，无 root 读不到，所以这块只有条数，
+  并在界面上写清楚为什么没有 GB、以及第三方工具报的那个 GB 为什么不可信。
+- **改名**：`TimeMachineSnapshot*` → `LocalSnapshot*`（`LocalSnapshotReader` /
+  `LocalSnapshotListing`），因为列的已经不止 TM。
+- **取证**：`MM_SNAPSHOT_FIXTURE` 把快照那一块换成样例文本（卷容量仍真读），
+  四态照片在 `docs/verification/p6-snapshots/`：真机 / `mixed`（三档齐全）/
+  `overflow`（9 条 → 列 6 + "另有 3 个"）/ `broken`（不可用 + 原始错误）。
+  下方区块进不了画面这一条记在 `hook-ledger.md` §5：窗口高度被钳在约 1080pt，
+  得靠 `MM_CLEANER_FILTER=废纸篓` 把表格缩短，而不是把窗拉高。
+
+## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
+
+先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
+逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:52,93` 两处，
+都是 `try` 并逐条回 `TrashFailure`；MMUninstaller / MMCleaner / UserFolderCleanView /
+SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号也是编的
+（`MMUninstaller.swift:1316` 不存在）。**0.1 三条判据均已满足**，不要据此立项。
+
+| # | 候选 | 外部证据（本地可读） | 现状 | 代价 | 红线 |
+|---|---|---|---|---|---|
+| 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | `DiskClassify` 只逐目录打斜纹，`DevToolCacheAudit` 只管全局工具缓存；**没有跨项目聚合与"多久没碰"** | M | 不撞：用户域只读报表、默认不勾、删除走 `FileTrashService`+`DeletionGuard`。需新增 `MM_PURGE_FIXTURE_HOME`（照 `MM_ORPHAN_FIXTURE_HOME` 只认 /tmp） |
+| 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | MMUninstaller 完全没有"来源"概念 | S–M | 不撞。夹具注入即可，复用 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`，不需要新钩子 |
+| 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | 现在只监听 `~/.Trash`，用户"立即删除"或 `rm` 掉 app 时残留提示完全不触发 | M | 不撞：不学它的常驻 LaunchAgent，照 `TrashWatcher` 的"页面存活期 arm"做进程内监听。需 `MM_APPS_WATCH_FIXTURE_DIR`（限 /tmp） |
+| 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
+
+**推荐顺序 1 → 2 → 3**：1 是"外部有、我们没有、不撞红线"里价值最高的一条；
+2 最便宜且直接改善卸载页的决策质量；3 补的是已落地功能的一个真实盲区。
+另有两件内部欠账与它们并行：disktree 最后一项"跨重扫保留 marks"、
+以及 P4 记下的几处还原度瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、
+概览首帧 sparkline 稀疏）。

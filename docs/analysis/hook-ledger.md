@@ -6,7 +6,7 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **34 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 35 个，
+- 全仓现存钩子 **35 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 36 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
@@ -35,6 +35,7 @@
 | `MM_SHOW_CONFIRM` | `MMCleaner` | `MMCleaner.swift:359` `UserFolderCleanView.swift:116` | 弹出删除确认面板 | ✅ | 否（弹面板，删在按钮里） | 实际删除需用户点「确认」，过 `DeletionGuard` |
 | `MM_INSTALLER_FIXTURE_DIR` | `MMCleaner` | `UserFolderCleanView.swift:120,366` | 注入安装器残留夹具目录 | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
 | `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:365` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel` |
+| `MM_SNAPSHOT_FIXTURE` | `MMCleaner` | `MMCleaner.swift` `applySnapshotFixture` | 把"磁盘空间只读报告"里的**快照那一块**换成样例文本（`mixed`/`overflow`/`updateonly`/`none`/`broken`） | ✅ | 否 | 只替换解析器的输入字符串，卷容量仍是真读的；不起命令、不碰盘。未知取值整块忽略 |
 | `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:63` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps` |
 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除 |
 | `MM_UNINSTALL_CONFIRM_MODE` | `MMUninstaller` | `MMUninstaller.swift` | 夹具确认模式 `appOnly` / `withResiduals` | ✅ | 否 | 仅在上行有效时读取；省略则为 `appOnly` |
@@ -118,5 +119,12 @@
   截图用的正确顺序是 `Downloads,Movies,<root>`。另外 `MM_SHOW_TOAST=permanent` 那一支
   必须写在 `guard env["MM_SHOW_CONFIRM"] != nil` **之前**并自己 return，否则确认面板
   盖住吐司，拍到的还是面板。
+- **页面下方的区块靠"缩短上方内容"顶进画面，不靠滚窗**：4K 屏上窗口高度仍被钳在约 1080pt，
+  `MM_WINDOW_SIZE=1400x1900` 拿到的还是 1050pt 高的窗（照片看着像生效、其实没变）。
+  要看系统清理页底部的"磁盘空间只读报告"，正确做法是给 `MM_CLEANER_FILTER` 一个只命中
+  一类的词（`废纸篓`），表格缩到一行，区块自己就进画面了。
+- **夹具文本也要有测试**：Swift 多行字面量的收尾**不带换行**，
+  `"..." + join(...)` 拼出来的夹具会把第一条快照粘在表头行上被解析器吃掉——
+  照片上"另有 2 个快照"看着挺像溢出态，其实少了一条。判据在 `SnapshotFixtureTests`。
 - **不要写脚本用 NSColor 查语义色的值**：脱离真实绘制上下文解析动态色，明暗两档会给出同一个（错的）值。
   这条坑记在 `pixel-probe.swift` 文件头。
