@@ -64,6 +64,14 @@ public struct DiskAnalyzerView: View {
     /// 想一眼看清顶层构成时收到 1 层，想查缓存内部时放到 4 层。
     @State private var drawDepth = 3
     @State private var showMarkConfirm = false
+    /// 永久删除走自己那块面板：文案不复用废纸篓那套，勾选每次打开都从空的开始
+    /// （勾过一次就记住等于把"每一次都知道自己按了什么"降级成一次性的同意）。
+    @State private var showPermanentConfirm = false
+    @State private var permanentAcknowledged = false
+    @State private var permanentCount = 0
+    @State private var permanentSize: UInt64 = 0
+    /// 永久删除的回执秒数。它**没有撤回按钮**，只是把"走了多少字节"说一遍就退场。
+    @State private var permanentSeconds = 0
     @State private var isTrashing = false
     @State private var trashFailures: [TrashFailure] = []
     @State private var undoSeconds = 0
@@ -104,6 +112,7 @@ public struct DiskAnalyzerView: View {
             }
         }
         .sheet(isPresented: $showMarkConfirm) { markConfirmSheet }
+        .sheet(isPresented: $showPermanentConfirm) { permanentConfirmSheet }
         .overlay(alignment: .bottom) {
             if undoSeconds > 0 {
                 MMUndoToast(
@@ -114,6 +123,22 @@ public struct DiskAnalyzerView: View {
                     onRevealTrash: { NSWorkspace.shared.open(URL(fileURLWithPath: NSHomeDirectory() + "/.Trash")) }
                 )
                 .padding(.bottom, MMGap.lg)
+            } else if permanentSeconds > 0 {
+                // 不可恢复的事后通知：这里没有"撤回"，也不该顶着绿色对勾。
+                MMUndoToast(
+                    message: "已永久删除 \(MMFormat.bytes(permanentSize))",
+                    detail: "共 \(permanentCount) 项 · 无法恢复",
+                    secondsRemaining: permanentSeconds,
+                    leadingSymbol: "exclamationmark.triangle.fill",
+                    leadingTint: MMColor.caution
+                )
+                .padding(.bottom, MMGap.lg)
+            }
+        }
+        .task(id: permanentSeconds) {
+            while permanentSeconds > 0 {
+                do { try await Task.sleep(for: .seconds(1)) } catch { break }
+                permanentSeconds -= 1
             }
         }
         .task(id: undoSeconds) {
@@ -308,19 +333,20 @@ public struct DiskAnalyzerView: View {
                 let plan = removalPlan
                 MMBadge("已标记 \(plan.targets.count) 项 · \(MMFormat.bytes(plan.total))",
                         tint: MMColor.informational, systemImage: "checkmark.circle.fill")
+                    .help("这 \(MMFormat.bytes(plan.total)) 要清空废纸篓才真正腾出来；"
+                          + "走永久删除才当场腾。投影写在两块确认面板里，那里说得起条件")
                 if !plan.blocked.isEmpty {
                     MMBadge("\(plan.blocked.count) 项不能删", tint: MMColor.caution,
                             systemImage: "exclamationmark.triangle.fill")
                 }
             }
 
-            if marked.isEmpty {
-                MMBadge("卷可用 \(MMFormat.bytes(freeSize))", tint: MMColor.secondaryLabel)
-            } else {
-                // 删之前就把"删完还剩多少"摆在旁边：用户标记的就是为了看这个数。
-                MMBadge("卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))",
-                        tint: MMColor.secondaryLabel)
-            }
+            // 以前这里在"有标记"时换成"卷可用 X → Y"。Y 是按标记体积直接加出来的，
+            // 而同一卷上把条目移进废纸篓并不改变可用空间（200 MiB 文件实测 0 变化），
+            // 等于把一个没兑现的数摆在面包屑上。徽标位又窄（1000pt 窗口会被中间截断），
+            // 长不下"清空废纸篓之后"这个条件 —— 所以这里只报当下的事实，
+            // 投影留给两块确认面板。
+            MMBadge("卷可用 \(MMFormat.bytes(freeSize))", tint: MMColor.secondaryLabel)
         }
         .padding(.horizontal, MMGap.lg)
         .frame(height: 34)
@@ -1031,8 +1057,10 @@ public struct DiskAnalyzerView: View {
 
     /// 仅供截图验证：MM_DISK_SELECT 给路径（逗号分隔，最多 3 条），展开第一条所在的一层并选中，
     /// 这样详情面板能在没有任何人工点击的情况下被拍到。
-    /// 配合 MM_SHOW_CONFIRM 还会把它们标记进确认面板——验证时请指向
-    /// /tmp 下的夹具文件，别指向真实数据。
+    /// 叠加开关：MM_SHOW_CONFIRM 把选中的几项标记进确认面板；MM_SHOW_PERMANENT=acked
+    /// 再往前一步，把镜头对准永久删除那块面板（只换面板，不删任何东西）；
+    /// MM_SHOW_TOAST=permanent 只画"已永久删除"回执条。
+    /// 验证时请指向 /tmp 下的夹具文件，别指向真实数据。
     private func applySelectionHook() {
         let env = ProcessInfo.processInfo.environment
         guard let raw = env["MM_DISK_SELECT"], !raw.isEmpty else { return }
@@ -1052,6 +1080,17 @@ public struct DiskAnalyzerView: View {
             openDirectory(at: parent)
         }
         selected = node(atPath: first)
+        // 回执条摆在标记之前：它只需要"选中一项"，不需要确认面板，
+        // 放在下面那道 guard 里就永远拍不到（面板会盖住它）。
+        if env["MM_SHOW_TOAST"] == "permanent", let node = selected, node.size > 0 {
+            // 只把"已永久删除"的回执画出来给截图看（它没有撤回按钮），一个字节都没删。
+            // 真正的删除路径由 MMCoreTests.PermanentDeleteTests 覆盖，
+            // 那里在临时目录里真删自己写的文件。
+            permanentCount = 1
+            permanentSize = node.size
+            permanentSeconds = 10
+            return
+        }
         guard env["MM_SHOW_CONFIRM"] != nil else { return }
         for path in targets {
             // 这里刻意不走 toggleMark 的风险闸门：截图要拍的就是裁决面板，
@@ -1066,6 +1105,14 @@ public struct DiskAnalyzerView: View {
             }
         }
         showMarkConfirm = true
+        // 截图用：MM_SHOW_PERMANENT 把镜头直接对准永久删除面板。它只换面板，
+        // 一个字节都不动——删除仍然要用户在那块面板里勾确认再按按钮。
+        // 值写 acked 时顺手把勾选打上，好拍到"确认后按钮才亮"的那一态。
+        if let ack = env["MM_SHOW_PERMANENT"] {
+            permanentAcknowledged = ack == "acked"
+            showMarkConfirm = false
+            showPermanentConfirm = true
+        }
         // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
         // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
         if env["MM_SHOW_TOAST"] != nil, let node = selected, node.size > 0 {
@@ -1083,66 +1130,26 @@ public struct DiskAnalyzerView: View {
         VStack(alignment: .leading, spacing: MMGap.md) {
             Text("把 \(plan.targets.count) 项移入废纸篓？")
                 .font(.title3.weight(.semibold))
-            Text("回收 \(MMFormat.bytes(plan.total)) · 卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))")
+            // "回收多少"和"什么时候真回来"是两件事，实测过才敢这么写：同一卷上
+            // trashItem 只是把条目挪进 ~/.Trash，200 MiB 的文件移进去，卷可用空间
+            // 一位没变（Scripts/trash-space-measure.swift）。写成"卷可用 X → Y"
+            // 就是把一个还没发生的收益摆在用户眼前。
+            Text("回收 \(MMFormat.bytes(plan.total)) · 清空废纸篓后卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))")
                 .font(.callout)
                 .foregroundStyle(MMColor.secondaryLabel)
 
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(plan.targets) { target in
-                    HStack(spacing: MMGap.sm) {
-                        Image(systemName: risk(of: target.path).allowsDeletion ? "trash" : "exclamationmark.triangle")
-                            .foregroundStyle(risk(of: target.path).color)
-                            .frame(width: MMGap.xxl)
-                        Text(target.name).font(.callout).lineLimit(1).truncationMode(.middle)
-                        Spacer(minLength: MMGap.sm)
-                        Text(MMFormat.bytes(target.size))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(MMColor.secondaryLabel)
-                    }
-                    .padding(.horizontal, MMGap.md)
-                    .frame(height: MMMetric.rowCompact)
-                    Divider()
-                }
-                if !plan.blocked.isEmpty {
-                    ForEach(plan.blocked) { item in
-                        HStack(spacing: MMGap.sm) {
-                            Image(systemName: "lock.fill")
-                                .font(.caption)
-                                .foregroundStyle(MMColor.caution)
-                                .frame(width: MMGap.xxl)
-                            Text(item.name)
-                                .font(.callout)
-                                .foregroundStyle(MMColor.secondaryLabel)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Text(item.reason.note)
-                                .font(.caption)
-                                .foregroundStyle(MMColor.caution)
-                                .lineLimit(1)
-                            Spacer(minLength: MMGap.sm)
-                        }
-                        .padding(.horizontal, MMGap.md)
-                        .frame(height: MMMetric.rowCompact)
-                        .background(MMColor.recessedSurface)
-                        Divider()
-                    }
-                }
-            }
-            .background(MMColor.recessedSurface)
-            .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
+            removalList(plan)
 
-            if plan.absorbed > 0 {
-                Text("另有 \(plan.absorbed) 项已经在被标记的父目录里，没有重复计入回收量。")
-                    .font(.caption)
-                    .foregroundStyle(MMColor.secondaryLabel)
-            }
-
-            Text("项目进入废纸篓，15 秒内可一键撤回；之后需要自己在访达里恢复。")
+            Text("项目进入废纸篓，15 秒内可一键撤回；之后需要自己在访达里恢复。"
+                 + "空间要等废纸篓清空才真正腾出来——想当场腾出来就走下面的永久删除。")
                 .font(.caption)
                 .foregroundStyle(MMColor.secondaryLabel)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack {
+            HStack(spacing: MMGap.md) {
+                Button("这些项改为永久删除…") { requestPermanentDelete() }
+                    .buttonStyle(.link)
+                    .disabled(plan.targets.isEmpty)
                 Spacer()
                 Button("取消") { showMarkConfirm = false }
                     .keyboardShortcut(.cancelAction)
@@ -1157,6 +1164,119 @@ public struct DiskAnalyzerView: View {
         }
         .padding(MMGap.lg)
         .frame(width: 460)
+    }
+
+    /// 永久删除面板。和废纸篓那块分开写、不共用文案，是当初定下的条件：
+    /// 这条路径的最坏情况是"数据不可恢复"，确认文字必须自己把这句话说明白，
+    /// 并且点名走的是哪几项、当场回来多少空间。
+    @ViewBuilder
+    private var permanentConfirmSheet: some View {
+        let plan = removalPlan
+        VStack(alignment: .leading, spacing: MMGap.md) {
+            Label("永久删除 \(plan.targets.count) 项 · 共 \(MMFormat.bytes(plan.total))？",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(MMColor.destructive)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("这一步当场生效：卷可用 \(MMFormat.bytes(freeSize)) → \(MMFormat.bytes(projectedFree))")
+                .font(.callout)
+                .foregroundStyle(MMColor.secondaryLabel)
+            Text("不经过废纸篓，本应用也留不下任何记录。除了 Time Machine 或你自己做的备份，没有任何办法找回。")
+                .font(.caption)
+                .foregroundStyle(MMColor.destructive)
+                .fixedSize(horizontal: false, vertical: true)
+
+            removalList(plan)
+
+            Toggle(isOn: $permanentAcknowledged) {
+                Text("我确认要永久删除上面列出的 \(plan.targets.count) 项（\(MMFormat.bytes(plan.total))），知道它们无法恢复。")
+                    .font(.caption)
+            }
+            .toggleStyle(.checkbox)
+            .disabled(plan.targets.isEmpty)
+
+            HStack {
+                Spacer()
+                Button("取消") { showPermanentConfirm = false }
+                    .keyboardShortcut(.cancelAction)
+                // 故意不给 defaultAction：回车键不该是一条不可恢复路径的触发器。
+                Button("永久删除 \(MMFormat.bytes(plan.total))") {
+                    Task { await deleteMarkedPermanently(plan: plan) }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
+                .disabled(plan.isEmpty || !permanentAcknowledged)
+            }
+        }
+        .padding(MMGap.lg)
+        .frame(width: 460)
+        .interactiveDismissDisabled(isTrashing)
+    }
+
+    /// 裁决清单。两块面板共用同一份 plan：行、被拦项与"被父目录吞掉"的说明必须逐字一致，
+    /// 同一屏出现两份对不上的清单，比没有清单更糟。
+    @ViewBuilder
+    private func removalList(_ plan: DiskRemoval.Plan) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(plan.targets) { target in
+                HStack(spacing: MMGap.sm) {
+                    Image(systemName: risk(of: target.path).allowsDeletion ? "trash" : "exclamationmark.triangle")
+                        .foregroundStyle(risk(of: target.path).color)
+                        .frame(width: MMGap.xxl)
+                    Text(target.name).font(.callout).lineLimit(1).truncationMode(.middle)
+                    Spacer(minLength: MMGap.sm)
+                    Text(MMFormat.bytes(target.size))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(MMColor.secondaryLabel)
+                }
+                .padding(.horizontal, MMGap.md)
+                .frame(height: MMMetric.rowCompact)
+                Divider()
+            }
+            if !plan.blocked.isEmpty {
+                ForEach(plan.blocked) { item in
+                    HStack(spacing: MMGap.sm) {
+                        Image(systemName: "lock.fill")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.caution)
+                            .frame(width: MMGap.xxl)
+                        Text(item.name)
+                            .font(.callout)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(item.reason.note)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.caution)
+                            .lineLimit(1)
+                        Spacer(minLength: MMGap.sm)
+                    }
+                    .padding(.horizontal, MMGap.md)
+                    .frame(height: MMMetric.rowCompact)
+                    .background(MMColor.recessedSurface)
+                    .help(item.detail.isEmpty ? item.reason.note : item.detail)
+                    Divider()
+                }
+            }
+        }
+        .background(MMColor.recessedSurface)
+        .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
+
+        if plan.absorbed > 0 {
+            Text("另有 \(plan.absorbed) 项已经在被标记的父目录里，没有重复计入回收量。")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+        }
+    }
+
+    private func requestPermanentDelete() {
+        guard !removalPlan.targets.isEmpty else { return }
+        // 每次进这条路径都从"没勾过"开始，且不把面板停在两层之上：
+        // SwiftUI 在同一个视图上叠两张 sheet 不可靠，换面板比叠面板稳。
+        permanentAcknowledged = false
+        showMarkConfirm = false
+        showPermanentConfirm = true
     }
 
     private func trashMarked(plan: DiskRemoval.Plan) async {
@@ -1183,6 +1303,40 @@ public struct DiskAnalyzerView: View {
         undoSeconds = trashedCount > 0 ? 15 : 0
 
         // 删完之后磁盘和内存里的数字必须一致：重新枚举当前层
+        if let path = navigationStack.last { await doNavigate(path: path) }
+    }
+
+    private func deleteMarkedPermanently(plan: DiskRemoval.Plan) async {
+        isTrashing = true
+        defer { isTrashing = false }
+        showPermanentConfirm = false
+        permanentAcknowledged = false
+        let paths = plan.targets.map(\.path)
+        for item in plan.blocked where item.reason == .vanished { marked.removeValue(forKey: item.path) }
+        guard !paths.isEmpty else {
+            selected = nil
+            return
+        }
+
+        let result = await FileTrashService.shared.permanentlyDelete(paths: paths)
+        let gone = Set(result.deleted.map(\.path))
+        for path in Array(marked.keys) where DiskRemoval.wasMoved(path, under: gone) {
+            marked.removeValue(forKey: path)
+        }
+        trashFailures = result.failures
+        permanentCount = result.successCount
+        permanentSize = result.totalSize
+        permanentSeconds = result.successCount > 0 ? 10 : 0
+        selected = nil
+
+        // 这条路径真的把字节送走了，卷可用数字当场就变。继续用扫描时那份快照，
+        // 下一次面板上的"卷可用 X"会低报，"→ Y"也跟着算错。
+        // 废纸篓那条不刷：同卷移动不改变可用空间（实测 0 变化），旧快照反而是对的。
+        if let path = scanResult?.path, let volume = SystemSampler.volume(atPath: path),
+           let total = scanResult?.totalSize {
+            scanResult?.freeSize = volume.available
+            scanResult?.usedSize = total > volume.available ? total - volume.available : 0
+        }
         if let path = navigationStack.last { await doNavigate(path: path) }
     }
 
@@ -1439,8 +1593,11 @@ final class ScanProgressTracker: @unchecked Sendable {
 struct DiskScanResult {
     let path: String
     let totalSize: UInt64
-    let usedSize: UInt64
-    let freeSize: UInt64
+    var usedSize: UInt64
+    /// 扫描那一刻的卷可用空间。**永久删除**之后要连着"已用"一起重读（字节真的走了，
+    /// 只刷可用会让两处数字对不上）；移入废纸篓不刷，因为同卷移动不改变可用空间，
+    /// 旧快照就是当下事实。
+    var freeSize: UInt64
     /// 被扫描那棵树自己的占用，和"卷总容量"是两回事，页面上不能混用。
     let scannedSize: UInt64
     let fileCount: Int

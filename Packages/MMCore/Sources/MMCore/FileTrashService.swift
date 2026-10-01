@@ -68,6 +68,37 @@ public final class FileTrashService: ObservableObject {
         return TrashResult(operation: operation)
     }
 
+    /// 永久删除：字节直接从盘上走，不经过废纸篓，**没有任何撤回**。
+    ///
+    /// 和 `moveToTrash` 放在同一个类里是刻意的：闸门只有一道，多一个出口就多一次
+    /// "忘了接"的机会，而这条路径出错的代价是不可恢复。同样逐条上报拒绝，不静默跳过。
+    ///
+    /// 两点必须说清的边界：
+    /// - **不写台账**。`TrashOperation` 存的是"从哪来、到哪去"，为的是放回原处；
+    ///   这里没有"到哪去"，写进「最近操作」只会多出一个点不动的撤回按钮。
+    /// - **目录连同整棵子树一起消失**。`removeItem` 逐层递归，中途失败会留下半个目录，
+    ///   失败的那条照样上报 —— 所以确认面板必须点名是哪几项，不能只给一个合计字节。
+    public func permanentlyDelete(paths: [String]) async -> PermanentDeleteResult {
+        var deleted: [PermanentDeletion] = []
+        var failures: [TrashFailure] = []
+
+        for path in paths {
+            if let rejection = DeletionGuard.rejection(for: path) {
+                failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "PROTECTED"))
+                continue
+            }
+            // 删之前量一次：删完之后原路径只剩 0，"释放了多少"就变成编的。
+            let size = Self.allocatedBytes(of: URL(fileURLWithPath: path))
+            do {
+                try FileManager.default.removeItem(at: URL(fileURLWithPath: path))
+                deleted.append(PermanentDeletion(path: path, size: size))
+            } catch {
+                failures.append(TrashFailure(path: path, error: error))
+            }
+        }
+        return PermanentDeleteResult(deleted: deleted, failures: failures)
+    }
+
     public func undoLastOperation() async -> UndoResult {
         guard let lastOp = trashHistory.first(where: \.canUndo) else {
             return UndoResult(restoredCount: 0, failures: [
@@ -253,6 +284,22 @@ public struct TrashResult {
     public var successCount: Int { operation.files.count }
     public var errorCount: Int { operation.failures.count }
     public var totalSize: UInt64 { operation.totalSize }
+}
+
+/// 一条永久删除的凭据：路径 + **删除当时**量到的占用字节。没有"落到哪儿"这一项，
+/// 因为无处可回。
+public struct PermanentDeletion: Hashable, Identifiable, Sendable {
+    public var id: String { path }
+    public let path: String
+    public let size: UInt64
+}
+
+public struct PermanentDeleteResult {
+    public let deleted: [PermanentDeletion]
+    public let failures: [TrashFailure]
+    public var successCount: Int { deleted.count }
+    public var errorCount: Int { failures.count }
+    public var totalSize: UInt64 { deleted.reduce(0) { $0 + $1.size } }
 }
 
 public struct UndoResult {

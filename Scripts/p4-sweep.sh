@@ -3,11 +3,15 @@
 # 为什么按 pid 而不是按应用名：并发改动期间同机器可能跑着多个 MacMaster，
 # 名字匹配会抓到别人的窗口，产出的照片"看着真、来源错"，比没照片更糟。
 #
-# 用法：./Scripts/p4-sweep.sh <app 路径> <输出目录> [light|dark] [宽x高] [屏名...]
+# 用法：./Scripts/p4-sweep.sh <app 路径> <输出目录> [light|dark] [宽x高] [屏名...] [附加环境变量]
 #   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-light light
 #   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-min  light 900x600
 #   ./Scripts/p4-sweep.sh /tmp/mmapp-p4/MacMaster.app /tmp/p4-disk  dark "" disk
+#   ./Scripts/p4-sweep.sh /tmp/mm-p5-app/MacMaster.app /tmp/p5-sheet light "" disk \
+#       "MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_SHOW_CONFIRM=1"
 # 第 5 个参数用来只跑关心的几屏（一次全扫 8 屏要 40 秒，逐屏返工时太慢）。
+# 第 6 个参数是逐屏共用的附加环境变量：确认面板这类"要先把数据摆上桌才拍得到"的屏，
+# 靠模块钩子把状态推到位，而不是靠合成点击（点击会逃逸到用户其它应用）。
 set -e
 
 cd "$(dirname "$0")/.."
@@ -16,6 +20,7 @@ OUT=${2:?需要输出目录}
 APPEARANCE=${3:-light}
 SIZE=${4:-}
 SELECTED=${5:-}
+EXTRA=${6:-}
 
 mkdir -p "$OUT"
 # 两个钩子要同时生效过：之前写成两次赋值，第二个把第一个覆盖掉了，
@@ -23,6 +28,7 @@ mkdir -p "$OUT"
 typeset -a extra=()
 [[ -n "$APPEARANCE" ]] && extra+=(MM_APPEARANCE="$APPEARANCE")
 [[ -n "$SIZE" ]] && extra+=(MM_WINDOW_SIZE="$SIZE")
+[[ -n "$EXTRA" ]] && extra+=(${=EXTRA})
 
 # 设置页不是模块目的地，它靠 MM_SHOW_SETTINGS 弹出，所以单独列一行
 targets=(dashboard cleaner uninstaller disk monitor guardian optimizer settings)
@@ -49,7 +55,7 @@ for m in $targets; do
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
   # 取证标记落在文件名之外还要能追溯：这一行是钩子是否真生效的凭据
-  marks=$(grep -E "MM_APPEARANCE|MM_WINDOW_SIZE" "$log" | head -2 | tr '\n' '；')
+  marks=$(grep -E "MM_APPEARANCE|MM_WINDOW_SIZE|MM_DISK|MM_SHOW" "$log" | head -4 | tr '\n' '；')
   print -r -- "✅ $m windowid=$wid ${marks}"
 done
 

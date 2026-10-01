@@ -69,6 +69,30 @@ final class DiskRemovalTests: XCTestCase {
         XCTAssertEqual(userLibrary.targets.map(\.path), ["/Users/lee/Library/Caches"])
     }
 
+    /// 执行那一层的闸口（`DeletionGuard`）本来就会拒绝的路径，不能列进"要删的清单"。
+    /// 废纸篓和永久删除共用这一份裁决：写在面板上的清单必须和真会发生的事一致，
+    /// 否则用户看到"3 项待删"、按下只成 2 项，还多一条事后才冒出来的失败。
+    /// 探针路径本机不存在：闸门万一失效，被动的也是我编出来的名字。
+    func testGuardedPathIsBlockedUpFrontWithItsReason() {
+        let probe = NSHomeDirectory() + "/Library/Keychains/探针-\(UUID().uuidString).keychain-db"
+        let plan = DiskRemoval.plan(marks: [mark(probe, size: 300)], root: "/")
+        XCTAssertTrue(plan.targets.isEmpty)
+        let blocked = plan.blocked.first
+        XCTAssertEqual(blocked?.reason, .guarded)
+        XCTAssertFalse(blocked?.detail.isEmpty ?? true,
+                       "闸口给的整句原因要能显示出来，光一个标签说明不了为什么")
+    }
+
+    /// 顺序也要钉住：闸口排在"已消失"之前。探针同时满足两条时，面板该说的是
+    /// "这条路本来就不给删"，而不是"它不在了"——后者会把用户支去重新扫描。
+    func testGuardedIsReportedBeforeVanished() {
+        let plan = DiskRemoval.plan(
+            marks: [mark(NSHomeDirectory() + "/.gnupg/private-keys-v1.d/探针-\(UUID().uuidString).key")],
+            root: "/"
+        )
+        XCTAssertEqual(plan.blocked.map(\.reason), [.guarded])
+    }
+
     func testMarkingAParentAbsorbsItsChild() {
         let parent = root! + "/Projects"
         let child = parent + "/node_modules"

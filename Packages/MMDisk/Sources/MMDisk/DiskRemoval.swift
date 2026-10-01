@@ -1,4 +1,5 @@
 import Foundation
+import MMCore
 
 /// 把"用户标了什么"裁决成"能删什么、不能删什么、为什么不能删"。
 ///
@@ -27,6 +28,7 @@ enum DiskRemoval {
         case isHome
         case isVolumeRoot
         case systemTree
+        case guarded
         case vanished
 
         var note: String {
@@ -36,6 +38,9 @@ enum DiskRemoval {
             case .isHome: return "用户主目录"
             case .isVolumeRoot: return "整块卷的根目录"
             case .systemTree: return "系统目录树"
+            // 这一条的完整句子在 detail 里（闸口那边已经写好），面板只放短标签，
+            // 窄窗口下整行不会被长句撑爆。
+            case .guarded: return "删除闸口不允许"
             case .vanished: return "扫描之后已经不在磁盘上了"
             }
         }
@@ -46,6 +51,8 @@ enum DiskRemoval {
         let name: String
         let size: UInt64
         let reason: BlockReason
+        /// `.guarded` 用：闸口给出的原句，逐字搬到面板的提示里。
+        var detail: String = ""
         var id: String { path }
     }
 
@@ -88,6 +95,11 @@ enum DiskRemoval {
                 blocked.append(Blocked(path: path, name: mark.name, size: mark.size, reason: .systemTree))
             } else if isVolumeRoot(path) {
                 blocked.append(Blocked(path: path, name: mark.name, size: mark.size, reason: .isVolumeRoot))
+            } else if let rejection = DeletionGuard.rejection(for: path) {
+                // 闸口在执行那一层本来就会拒绝，写进"要删的清单"等于给它一个假承诺；
+                // 摆在面板上注明原因，用户看到的清单才和真正会发生的事一致。
+                blocked.append(Blocked(path: path, name: mark.name, size: mark.size,
+                                       reason: .guarded, detail: rejection.reason))
             } else if !exists(path) {
                 blocked.append(Blocked(path: path, name: mark.name, size: mark.size, reason: .vanished))
             } else if alreadyCovered(path, by: accepted) {

@@ -588,38 +588,50 @@ public struct MMScanProgress: View {
     }
 }
 
-/// 撤回回执。统一实现，取代此前 4 处手写 toast。
+/// 操作回执条。统一实现，取代此前 4 处手写 toast。
 /// 撤回的长期入口是操作历史，这个 toast 只是事后兜底。
+///
+/// `onUndo` 可空是因为有些操作**没有撤回**（磁盘页的永久删除）。给这种操作画一个
+/// 点下去只会失败的"撤回"按钮，比不写回执更糟。图标/着色同理：不可恢复的事后
+/// 通知不该顶着绿色对勾。
 public struct MMUndoToast: View {
     let message: String
     let detail: String?
-    let onUndo: () -> Void
+    var onUndo: (() -> Void)? = nil
     var onRevealTrash: (() -> Void)? = nil
     var secondsRemaining: Int? = nil
+    var leadingSymbol: String = "checkmark.circle.fill"
+    var leadingTint: Color = MMColor.safe
 
     public init(
         message: String,
         detail: String? = nil,
         secondsRemaining: Int? = nil,
-        onUndo: @escaping () -> Void,
-        onRevealTrash: (() -> Void)? = nil
+        onUndo: (() -> Void)? = nil,
+        onRevealTrash: (() -> Void)? = nil,
+        leadingSymbol: String = "checkmark.circle.fill",
+        leadingTint: Color = MMColor.safe
     ) {
         self.message = message
         self.detail = detail
         self.secondsRemaining = secondsRemaining
         self.onUndo = onUndo
         self.onRevealTrash = onRevealTrash
+        self.leadingSymbol = leadingSymbol
+        self.leadingTint = leadingTint
     }
 
     public var body: some View {
         HStack(spacing: MMGap.sm) {
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(MMColor.safe)
+            Image(systemName: leadingSymbol).foregroundStyle(leadingTint)
             Text(message).font(.callout.weight(.medium))
             if let detail {
                 Text(detail).font(.caption).foregroundStyle(.white.opacity(0.65))
             }
             Spacer(minLength: MMGap.md)
-            Button("撤回", action: onUndo).buttonStyle(.plain).foregroundStyle(.white)
+            if let onUndo {
+                Button("撤回", action: onUndo).buttonStyle(.plain).foregroundStyle(.white)
+            }
             if let onRevealTrash {
                 Text("|").opacity(0.35)
                 Button("打开废纸篓", action: onRevealTrash).buttonStyle(.plain).foregroundStyle(.white)
