@@ -343,3 +343,35 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
    `light-disk-fixture.jpg`（改挂徽标，副标题恢复）。
 
 浅色档其余色面（卡片/次级/页面底）的实测与判定统一记在 `fidelity-light-dark.md` §2。
+
+## 8. P5 追加（2026-10-01）：两块删除确认面板与回执
+
+补上 §提请协调者 #2 里"确认删除 sheet + 撤回 toast"那格里长期只有文字、没有画的一块，
+并顺带纠正一处**说错话的 UI**（不是像素偏差，是事实偏差）。
+
+设计稿：`docs/design-system/screens/mmdisk/04b-disk-confirm.html`（三栏 artboard：
+04b 回收面板 / 04c 永久删除面板 + "默认态（未勾选）"附卡 / 04d 两条回执吐司并排，
+注释里点名对应的实现符号）· 渲染 `04b-disk-confirm.png`（1200×2130；先按 1000×1300
+渲会把第二栏裁掉，加 04d 后 2620 又留一屏白边）。
+
+实机截图（浅色档，无合成点击）在 `docs/verification/p5-disk-permanent/`：
+
+| 文件 | 拍到什么 | 判定 |
+|---|---|---|
+| `trash.jpg` | 回收面板：`回收 58.7 MB · 清空废纸篓后卷可用 6.86 GB → 6.91 GB`、Downloads 50.3 MB / Movies 8.4 MB 两行、一行 blocked、底部 `这些项改为永久删除…` 链接；面包屑**只剩** `卷可用 X` | ✅ 与 04b 第一栏一致；箭头徽章按实测口径撤掉了 |
+| `perm.jpg` | 永久删除面板：红色标题、`这一步当场生效：卷可用 6.89 GB → 6.95 GB`、不可恢复警示、未勾选的确认框、灰掉的 `永久删除 58.7 MB` | ✅ 按钮在未勾选时确实点不动 |
+| `perm-acked.jpg` | 同一块面板勾上以后按钮变红亮 | ✅ 单次会话内 consent，重开归零 |
+| `toast.jpg` | 回执吐司：橙色三角 + `已永久删除 50.3 MB`、`共 1 项 · 无法恢复`、倒计时 `7s`、**没有**撤回按钮 | ✅ 与 04d 右条一致；左条（绿勾 + 撤回）是同一组件传了 `onUndo` 的样子，`trash.jpg` 之后的真实那一拍没单独拍 |
+
+截图命令（`SEL` 的顺序是踩出来的，见 `hook-ledger.md` §5 末）：
+
+```zsh
+SEL="/tmp/macmaster-disk-fixture/Downloads,/tmp/macmaster-disk-fixture/Movies,/tmp/macmaster-disk-fixture"
+./Scripts/p4-sweep.sh /tmp/mm-p5-app/MacMaster.app /tmp/p5-sheet/trash light "" disk \
+  "MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_DISK_SELECT=$SEL MM_SHOW_CONFIRM=1"
+# perm / perm-acked 追加 MM_SHOW_PERMANENT=1|acked；toast 用 MM_SHOW_TOAST=permanent
+```
+
+未拍到的两态与原因：`.guarded` blocked 行（钩子进不去 `DeletionGuard` 的保护清单，
+只有单测覆盖）、按下红色按钮之后的界面（禁止合成点击）。都记在
+`hook-ledger.md` §3，不当 bug。

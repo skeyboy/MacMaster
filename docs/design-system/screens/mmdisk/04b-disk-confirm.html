@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:flex-start;gap:26px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:8px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.65;max-width:920px}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.sheet-wrap{position:relative;display:flex}
+.dialog{width:460px}
+.dialog h3{display:flex;align-items:flex-start;gap:var(--sp-2)}
+.dialog h3.danger{color:var(--c-danger)}
+.dialog .sub{font-size:var(--fs-callout);color:var(--c-label-secondary);margin:0}
+.dialog .fine{font-size:var(--fs-caption);color:var(--c-label-secondary);margin:0;line-height:1.55}
+.dialog .fine.danger{color:var(--c-danger)}
+.dialog .acts{align-items:center}
+.dialog .acts .lead-out{margin-right:auto}
+
+/* 裁决清单：可删项 + 被拦项同屏，被拦项用凹陷底 */
+.plist{border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;background:var(--c-card-bg-alt)}
+.prow{display:flex;align-items:center;gap:var(--sp-2);height:30px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);font-size:var(--fs-callout)}
+.prow:last-child{border-bottom:0}
+.prow .ic{width:18px;flex:0 0 18px;display:grid;place-items:center}
+.prow .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .why{font-size:var(--fs-caption);color:var(--c-warning);white-space:nowrap;margin-left:4px}
+.prow .z{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.prow.block{background:var(--c-card-bg-alt);color:var(--c-label-secondary)}
+.prow.block .ic{color:var(--c-warning)}
+
+/* 勾选确认：只有永久删除面板有。默认态画空心框 + 灰按钮，勾上才是实框 */
+.ack{display:flex;align-items:flex-start;gap:var(--sp-2);font-size:var(--fs-caption);
+     color:var(--c-label);line-height:1.5}
+.ack .box{width:14px;height:14px;flex:0 0 14px;border-radius:3px;margin-top:1px;
+          border:1px solid var(--c-label-tertiary);background:var(--c-content-bg);display:grid;place-items:center}
+.ack.on .box{background:var(--c-accent);border-color:var(--c-accent);color:#fff}
+.ack.on .box svg{width:10px;height:10px;stroke-width:2.6}
+.absorbed{font-size:var(--fs-caption);color:var(--c-label-secondary);margin:0}
+
+/* 回执吐司：.toast 的基线在 05-states 里，这里只画"同一条组件的两种前导" */
+.toast{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+       background:rgba(40,40,40,.94);color:#fff;border-radius:8px;
+       font-size:var(--fs-callout);box-shadow:var(--shadow-pop);width:max-content}
+.toast b{font-weight:600}
+.toast .det{color:rgba(255,255,255,.7)}
+.toast .sp{margin-left:var(--sp-3)}
+.toast u{text-decoration:none;color:#8FC7FF;font-weight:500}
+.toast .lead{display:grid;place-items:center}
+.toast .lead.ok{color:#6BD48A}
+.toast .lead.warn{color:#F5B94C}
+</style></head>
+<body>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>04b · 磁盘分析 —— 移入废纸篓的确认面板（MMDiskView.markConfirmSheet）。</b>
+入口是底部操作条的「移入废纸篓」按钮，<b>460pt 宽 sheet</b>。面板列的是
+<b>DiskRemoval.plan 裁决之后</b>的结果：可删项与被拦项同屏，被拦项注明原因（宽句放不进行的，
+tooltip 给全文）。第二行文字里的口径是<b>实测</b>来的，不是文案修辞：同一卷上
+<code>FileManager.trashItem</code> 只是把条目挪进 <code>~/.Trash</code>，200 MiB 的文件移进去，
+<code>volumeAvailableCapacityForImportantUsage</code> 前后<b>一分没变</b>，从废纸篓真删掉才回来
+200.0 MiB（<code>Scripts/trash-space-measure.swift</code>）。所以这里写的是
+「<b>清空废纸篓后</b>卷可用 X → Y」，而不是「卷可用 X → Y」；那条箭头曾挂在面包屑徽标上，
+现在从徽标位撤了——徽标在 1000pt 窗口会被中间截断，装不下"清空之后"这个条件。
+左下角 <b>「这些项改为永久删除…」</b>是通往 04c 的唯一入口，操作条上没有第二个红按钮。</div>
+<div class="sheet-wrap">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+    </aside>
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>磁盘分析</h1><p>175.0 MB · 44 个文件 · 扫描用时 0.3 s · /tmp/macmaster-disk-fixture</p></div>
+        <div class="sp"></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+      </div>
+      <div class="crumbs"><span>fixture</span><span class="sep">›</span><b>视频素材</b>
+        <div style="margin-left:auto"></div>
+        <span class="badge info">已标记 3 项 · 105.0 MB</span>
+        <span class="badge readonly">卷可用 6.4 GB</span></div>
+      <div style="position:relative;flex:1;background:var(--c-under-page)">
+        <div class="tm dim" style="position:absolute;left:8px;top:8px;right:52%;bottom:52%;
+             background:#AF52DE;display:flex;flex-direction:column;justify-content:center;padding:0 8px">
+          <span class="l1">视频素材</span><span class="l2">105.0 MB</span></div>
+        <div class="tm dim" style="position:absolute;right:8px;top:8px;left:48%;height:44%;
+             background:#FF9500;display:flex;flex-direction:column;justify-content:center;padding:0 8px">
+          <span class="l1">DerivedData</span><span class="l2">42.0 MB</span></div>
+        <div class="tm dim" style="position:absolute;left:8px;right:8px;top:52%;bottom:8px;
+             background:#8E8E93;display:flex;flex-direction:column;justify-content:center;padding:0 8px">
+          <span class="l1">其它</span><span class="l2">28.0 MB</span></div>
+      </div>
+      <div class="actionbar"><span class="t-cap">已标记 3 项 · 105.0 MB</span>
+        <span style="margin-left:auto"></span><span class="btn sm">清空标记</span>
+        <span class="btn sm destructive">移入废纸篓</span></div>
+    </main>
+  </div>
+  <div class="scrim">
+    <div class="dialog mm-screen">
+      <h3>把 3 项移入废纸篓？</h3>
+      <p class="sub">回收 105.0 MB · 清空废纸篓后卷可用 6.4 GB → 6.5 GB</p>
+      <div class="plist">
+        <div class="prow"><span class="ic" style="color:var(--c-danger)"><svg class="i"><use href="#i-trash"></use></svg></span>
+          <span class="nm">短片素材</span><span class="z">64.0 MB</span></div>
+        <div class="prow"><span class="ic" style="color:var(--c-warning)"><svg class="i"><use href="#i-warn"></use></svg></span>
+          <span class="nm">Recordings</span><span class="z">27.0 MB</span></div>
+        <div class="prow"><span class="ic" style="color:var(--c-success)"><svg class="i"><use href="#i-trash"></use></svg></span>
+          <span class="nm">node_modules</span><span class="z">14.0 MB</span></div>
+        <div class="prow block"><span class="ic"><svg class="i"><use href="#i-lock"></use></svg></span>
+          <span class="nm">Keychains</span><span class="why">删除闸口不允许</span><span class="z">8.0 MB</span></div>
+      </div>
+      <p class="absorbed">另有 1 项已经在被标记的父目录里，没有重复计入回收量。</p>
+      <p class="fine">项目进入废纸篓，15 秒内可一键撤回；之后需要自己在访达里恢复。空间要等废纸篓清空才真正腾出来——想当场腾出来就走下面的永久删除。</p>
+      <div class="acts">
+        <span class="btn borderless lead-out">这些项改为永久删除…</span>
+        <span class="btn">取消</span>
+        <span class="btn destructive">移入废纸篓 105.0 MB</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>04c · 磁盘分析 —— 永久删除的确认面板（MMDiskView.permanentConfirmSheet）。</b>
+从 04b 左下角那行链接进来，<b>不复用废纸篓那块的面板与文案</b>：这条路径的最坏情况是
+「数据不可恢复」，确认文字必须自己把这句说明白，并且点名<b>走的是哪几项</b>、<b>当场回来多少</b>。
+三点结构上的差别：① 标题与警示句用 <b>danger 色</b>，图标换成三角感叹号；② 空间投影是
+<b>无条件</b>的「这一步当场生效：卷可用 X → Y」，因为永久删除确实让字节离开磁盘；
+③ 底部有一个<b>每次打开都从空开始</b>的勾选框，没勾上「永久删除」按钮就是灰的（右下的
+<b>空心框 + 灰按钮</b>是它的默认态，画在同一张稿上供对照），而且这个按钮<b>不绑回车键</b>
+（<code>.keyboardShortcut(.defaultAction)</code> 只给「取消」那条 .cancelAction）。
+清单与 04b 共用同一份 <code>DiskRemoval.plan</code>，逐字一致。
+执行侧走 <code>FileTrashService.permanentlyDelete</code>：同一个 <code>DeletionGuard</code> 闸口、
+逐条上报失败，<b>不写删除台账</b>——台账存的是"从哪来、到哪去"，这里没有"到哪去"，
+写进去只会多出一个点不动的撤回按钮。</div>
+<div class="sheet-wrap">
+<div class="win mm-screen" style="opacity:.55">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px"><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <main class="content" style="justify-content:center;align-items:center;color:var(--c-label-tertiary)">
+      磁盘分析 · 背景与 04b 同一扇窗口
+    </main>
+  </div>
+</div>
+<div class="scrim">
+  <div style="display:flex;gap:20px;align-items:flex-start">
+    <div class="dialog mm-screen">
+      <h3 class="danger"><svg class="i" style="color:var(--c-danger)"><use href="#i-warn"></use></svg>
+        <span>永久删除 3 项 · 共 105.0 MB？</span></h3>
+      <p class="sub">这一步当场生效：卷可用 6.4 GB → 6.5 GB</p>
+      <p class="fine danger">不经过废纸篓，本应用也留不下任何记录。除了 Time Machine 或你自己做的备份，没有任何办法找回。</p>
+      <div class="plist">
+        <div class="prow"><span class="ic" style="color:var(--c-danger)"><svg class="i"><use href="#i-trash"></use></svg></span>
+          <span class="nm">短片素材</span><span class="z">64.0 MB</span></div>
+        <div class="prow"><span class="ic" style="color:var(--c-warning)"><svg class="i"><use href="#i-warn"></use></svg></span>
+          <span class="nm">Recordings</span><span class="z">27.0 MB</span></div>
+        <div class="prow"><span class="ic" style="color:var(--c-success)"><svg class="i"><use href="#i-trash"></use></svg></span>
+          <span class="nm">node_modules</span><span class="z">14.0 MB</span></div>
+        <div class="prow block"><span class="ic"><svg class="i"><use href="#i-lock"></use></svg></span>
+          <span class="nm">Keychains</span><span class="why">删除闸口不允许</span><span class="z">8.0 MB</span></div>
+      </div>
+      <div class="ack on"><span class="box"><svg class="i"><use href="#i-check"></use></svg></span>
+        <span>我确认要永久删除上面列出的 3 项（105.0 MB），知道它们无法恢复。</span></div>
+      <div class="acts">
+        <span class="btn">取消</span>
+        <span class="btn destructive">永久删除 105.0 MB</span>
+      </div>
+    </div>
+    <div class="dialog mm-screen" style="width:300px;gap:var(--sp-2)">
+      <h3 style="font-size:var(--fs-body)">默认态（未勾选）</h3>
+      <p class="fine">同一块面板刚打开的样子：勾选框是空的，红色按钮不可点，回车也不会触发。
+        勾上才亮；关掉再开又回到这一态——同意不是一次性的。</p>
+      <div class="ack"><span class="box"></span><span>我确认要永久删除上面列出的 3 项…</span></div>
+      <div class="acts"><span class="btn">取消</span><span class="btn destructive disabled">永久删除 105.0 MB</span></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+<div class="artboard">
+<div class="cap"><b>04d · 两条回执吐司（MMUndoToast 的两种前导）。</b>
+同一块组件，前导图形 / 正文 / 有没有那个可点的动作三样一起变，为的是让用户在
+<b>余光里就能分辨"还能救"和"救不回来"</b>：左边进废纸篓——绿勾 + 「撤回」+ 15 秒倒计时；
+右边永久删除——橙色三角 + <b>「无法恢复」写进明细里</b> + 10 秒倒计时，
+并且<b>不画撤回按钮</b>。这条是硬要求：<code>MMUndoToast</code> 的 <code>onUndo</code>
+因此改成可选参数，传 nil 就整颗按钮不出现，而不是摆一个点了没反应的死按钮。
+倒计时归零后两态都只剩一条普通提示，不再有动作。<br>
+实机取证：<code>docs/verification/p5-disk-permanent/toast.jpg</code>
+（<code>MM_SHOW_TOAST=permanent</code>，只摆数字、不删文件）。</div>
+<div class="sheet-wrap" style="gap:var(--sp-4);padding:24px;background:var(--c-content-bg);border-radius:11px;border:1px solid var(--c-hairline)">
+  <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+    <div class="toast">
+      <span class="lead ok"><svg class="i i-16"><use href="#i-check"></use></svg></span>
+      <b>已移入废纸篓 50.3 MB</b>
+      <span class="det">共 1 项 · 12s</span>
+      <span class="sp"></span><u>撤回</u>
+    </div>
+    <div class="cap" style="max-width:none">回收站路径：写台账，所以撤回有东西可撤。</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:var(--sp-2)">
+    <div class="toast">
+      <span class="lead warn"><svg class="i i-16"><use href="#i-warn"></use></svg></span>
+      <b>已永久删除 50.3 MB</b>
+      <span class="det">共 1 项 · 无法恢复 · 7s</span>
+    </div>
+    <div class="cap" style="max-width:none">永久路径：<b>没有</b>右侧动作，也不写台账——写了也撤不回，摆出来就是假承诺。</div>
+  </div>
+</div>
+</div>
+
+</body></html>

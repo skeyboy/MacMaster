@@ -6,15 +6,16 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **33 个独立变量名**（`grep -rhoE 'MM_[A-Z_]+' Packages Sources --include='*.swift' | sort -u` 得 34 个，
+- 全仓现存钩子 **34 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 35 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
-  P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫。
+  P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
+  磁盘永久删除路径新增 `MM_SHOW_PERMANENT`，并给 `MM_SHOW_TOAST` 加 `permanent` 取值（见下表）。
   **全部为只读展示/状态钩子，无任何钩子会直接触发删除或写盘。**
 - **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
 - 需要特别留意的"看似会动"的钩子：
   - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。
-  - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_SHOW_TOAST`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。
+  - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。`MM_SHOW_TOAST=permanent` 摆的是"已永久删除"回执，它**没有撤回按钮**、也不会删任何东西（数字借自选中标项）；`MM_SHOW_PERMANENT` 只是把确认面板换成永久删除那块，一个字节都不动。
 - `README §2` 矩阵**已过期**：漏了 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（代码已落地，矩阵未同步）。
   → 已在本轮补正（见文末「提请协调者」）。
 
@@ -47,8 +48,9 @@
 | `MM_DISK_SCAN` | `MMDisk` | `MMDisk.swift:135` | 对指定根路径触发扫描 | ✅ | 否（只读扫描） | 仅枚举，不写。**本轮补 /tmp 守卫**：非 `/tmp`/`/private/tmp` 前缀写 stderr 并忽略 |
 | `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:998` | 预选路径并展开 | ✅ | 否 | 仅展示选中态。**本轮补 /tmp 守卫**：任一目标非 /tmp 前缀则整体忽略 |
 | `MM_DISK_HOLD` | `MMDisk` | `MMDisk.swift`（本轮新增） | `=hold` 冻结在"正在分析磁盘结构"首帧，不触发扫描 | ✅ | 否 | 见 `fidelity-disk.md` §提请协调者 #4 |
-| `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1009` | 弹出删除确认面板 | ✅ | 否（删在按钮里） | 过 `DeletionGuard` |
-| `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1025` | 弹出吐司提示 | ✅ | 否 | — |
+| `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1094` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked |
+| `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1111` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘 |
+| `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1085,1118` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法恢复"那一支（橙色三角、**无撤回按钮**），数字借自当前选中项，不移动任何文件 |
 | `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:374` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项 |
 | `MM_TCC_FIXTURE` | `MMGuardian` | `MMGuardian.swift:388` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
 | `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:402` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
@@ -77,6 +79,20 @@
   2. `DeletionGuard` 闸门判定（PROTECTED → 拒绝，走 shield/caution 分档）；
   3. `FileTrashService` 执行移入废纸篓（**不是**直接 `rm`，可撤回）。
 - 因此：钩子台账里**没有任何一条**需要标"可能触发破坏性流程 = 是"。集成阶段若发现某钩子绕过了上述链路（例如直接调用删除而非走确认面板），属于越界 bug，应退回模块路由修。
+- 永久删除路径同构，且更窄：`MM_SHOW_PERMANENT` 只把 `showMarkConfirm` 关掉、
+  `showPermanentConfirm` 打开（一次事务里交换两个 `@State`，SwiftUI 能正常叠出第二块面板，
+  截图已证）。真正 `removeItem` 的只有 `permanentConfirmSheet` 那颗按钮，而它要求
+  **本次打开面板内**勾过 `permanentAcknowledged`（`@State`，不持久化，关窗归零），
+  且刻意没挂 `.keyboardShortcut(.defaultAction)`——回车点不亮它。
+- **一条拍不到的状态**：`.guarded` blocked 行。`MM_DISK_SELECT` 只接受 /tmp 前缀路径，
+  而 `DeletionGuard` 的保护清单里没有任何 /tmp 路径，两者没有交集，所以这一行在磁盘页
+  无法用截图取证。它的判定由 `DiskRemovalTests`
+  （`testGuardedPathIsBlockedUpFrontWithItsReason` / `testGuardedIsReportedBeforeVanished`）
+  和 `PermanentDeleteTests.testProtectedPathIsRefusedAndUntouched` 覆盖。
+  这不是 bug，是取证手法的边界，记在这里免得下轮又去找脚本。
+- 同样**没拍**的还有"按下永久删除按钮那一瞬间之后"的界面——不允许对原生 UI 合成点击。
+  `docs/verification/p5-disk-permanent/toast.jpg` 拍的是回执吐司本身
+  （`MM_SHOW_TOAST=permanent` 摆数字，不删文件），不等于删除动作的产物。
 
 ## 4. 提请协调者
 
@@ -92,8 +108,15 @@
 | `Scripts/pixel-probe.swift` | 从 PNG 定点取色 / 沿一条线打色带 | 肉眼看截图会把"整体偏亮"当成"浅色档生效"，局部混档只有逐点量才看得见 |
 | `Scripts/disk-fixture.sh` | 造 `/tmp/macmaster-disk-fixture`（175 MB，含一块会被扫描层跳过的 `Library/`） | `MM_DISK_SCAN` 只认 /tmp；夹具固定大小才能核对"页面报的数对不对" |
 | `Scripts/window-ids.swift` | 按 pid 列窗口 id | 见 `docs/design-system/README.md` §5 红线：`--pid` 不是可选项 |
+| `Scripts/trash-space-measure.swift` | 写 200 MiB → `trashItem` → 从废纸篓删掉，三步各读一次卷可用 | "移入废纸篓就回收了 X"是本模块差点写进 UI 的假话；只有实测能把它证伪。读的是应用自己用的那两个 `URLResourceKey`，所以差值就是页面上会显示的口径 |
 
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
+- **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个
+  `node(atPath:)` 往下钻的，把扫描根本身写在第一个，钩子就会一路向上选到 `/tmp`，
+  既暴露了无关目录又让 `selected == nil`，于是"借选中项数字摆一拍"的吐司支路整条哑掉。
+  截图用的正确顺序是 `Downloads,Movies,<root>`。另外 `MM_SHOW_TOAST=permanent` 那一支
+  必须写在 `guard env["MM_SHOW_CONFIRM"] != nil` **之前**并自己 return，否则确认面板
+  盖住吐司，拍到的还是面板。
 - **不要写脚本用 NSColor 查语义色的值**：脱离真实绘制上下文解析动态色，明暗两档会给出同一个（错的）值。
   这条坑记在 `pixel-probe.swift` 文件头。

@@ -109,24 +109,62 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 - **重复文件查找**：disktree 本身没有，不属本条采纳范围（另案，见功能演化清单 P0）。
 - **`Known` 加宽扫描记忆化**：MacMaster 尚无"加宽扫描根"的交互，等根切换需求出现后再议。
 
-## 落地进度（2026-09-30）
+## 落地进度（2026-10-01）
 
 | 清单项 | 状态 | 落点 |
 |---|---|---|
 | #1 口径（st_blocks / 硬链 / readError / dataless） | ✅ 已落地 | `MMDisk.swift` `DiskScanner` |
 | #2 Category + Reclaim 着色、可回收斜纹 | ✅ 已落地 | `DiskClassify.swift` + `TreemapView` 斜纹 |
-| #3 marks → Review → Trash | 🟡 部分落地 | `DiskRemoval.plan` 裁决 + 审查面板 + Trash/撤回已通；**Permanent 删除未做**（见下） |
+| #3 marks → Review → Trash / Permanent | ✅ 已落地 | `DiskRemoval.plan` 裁决 + 审查面板 + Trash/撤回 + `permanentConfirmSheet` 独立永久删除面板，见 `docs/verification/p5-disk-permanent/` |
 | #4 Worth a look | ✅ 已落地 | `DiskInsights.swift`，8 条单测 |
 | #5 嵌套 treemap / Canvas / header 带 / Others | ✅ 已落地 | `TreemapLayoutOptions` |
-| #6 空间投影 afterRemoving | ✅ 已落地 | `DiskRemoval.afterRemoving`，面包屑与审查面板共用 |
+| #6 空间投影 afterRemoving | ✅ 已落地（口径已修正） | `DiskRemoval.afterRemoving`；**无条件箭头只出现在永久删除面板**，面包屑与 Trash 面板改成"清空废纸篓后"的条件式说法——实测同卷 `trashItem` 当场回收 0 字节，见下 |
 | #7 键盘导航 / filter / 深度切换 / 面包屑回跳不重扫 | ✅ 已落地 | `DiskTreeFilter.swift` + `MMDisk.swift`，口径见 `feature-roadmap.md` 的「P1.7 落地」；filter 从"只过滤当前层"改成全树命中体积 |
 
-### 刻意推迟的两件事
+### 投影口径的修正（2026-10-01）
 
-- **永久删除（Permanent delete）**：机制上只剩"确认文案 + 二次对话框"，但它把本模块的
-  最坏情况从"进废纸篓、可撤回"提升到"数据不可恢复"。在 #7 的键盘导航落地之前，
-  误标概率已经足够低，先不引入这条路径；引入时它必须走独立的确认文案，
-  点名"什么会走、回来多少"，而不是复用 Trash 的面板。
+`afterRemoving` 本身算得没错，错的是**挂在哪儿**。同一卷上 `FileManager.trashItem`
+就是一次改名，字节还在那块盘上：
+
+```
+写入 200 MiB，实测占用 200.0 MiB
+① 删除前：important 6775.9 MiB · plain 6362.1 MiB
+② trashItem 之后（同一卷）：important 6775.9 MiB · plain 6362.1 MiB   ← 一点没动
+③ 从废纸篓彻底删掉之后：important 6975.8 MiB · plain 6562.1 MiB   ← 这里才回来
+```
+
+取证脚本 `Scripts/trash-space-measure.swift` 用的就是本应用读数的那两个
+`URLResourceKey`，所以它报的差值与 UI 上显示的口径一致。据此改口三处：面包屑只报
+当前 `卷可用 X`（去掉 `→ Y` 箭头）；Trash 面板写
+`回收 X · 清空废纸篓后卷可用 A → B`，并补一句"想当场腾出来就走下面的永久删除"；
+无条件的 `卷可用 A → B` 只留给永久删除面板，因为那一趟字节确实当场回来。
+
+### 永久删除已引入，不再是推迟项
+
+引入时守住了当初写下的约束（独立面板、独立文案、点名"什么会走、回来多少"），
+另加三条：
+
+- **每次打开都要重新勾**：`permanentAcknowledged` 不落盘、不进 `@AppStorage`，
+  面板关闭即归零；未勾选时主按钮 disabled。
+- **不能回车触发**：主按钮刻意没有 `.keyboardShortcut(.defaultAction)`，
+  只有"取消"挂 `.cancelAction`。
+- **同一道闸口、且提前裁决**：`FileTrashService.permanentlyDelete` 与
+  `moveToTrash` 写在同一个类里，先过 `DeletionGuard.rejection`；
+  `DiskRemoval.plan` 也把闸口拒绝项标成 `.guarded` blocked（带 `detail` 原话），
+  两种模式都不再给"列进清单、按下去才失败"的假承诺。
+- **不留撤回记录**：不写 `trashHistory`，回执 Toast 因此换成橙色三角 +
+  "无法恢复"，`MMUndoToast` 的撤回按钮改为可选（传 nil 就不画），
+  免得摆一个点了没反应的按钮。
+
+执行路径由 `Packages/MMCore/Tests/MMCoreTests/PermanentDeleteTests.swift` 覆盖
+（临时目录里写真文件真删，5 条）；UI 三态由
+`docs/verification/p5-disk-permanent/` 的 4 张无点击截图取证。**按下红色按钮那一瞬
+间的界面没有拍**——不允许对原生 UI 合成点击，该路径只有单测覆盖。
+
+### 仍然推迟的一项
+
 - **跨重扫保留 marks**（disktree 的"凭绝对路径重新挂回树"）：当前实现是重扫即清空标记。
   保留标记要连带解决"旧快照的大小与新扫描不一致"的口径问题，收益是少点几次标记，
-  风险是面板上的数字来自两个时间点。留到 #7 一起做。
+  风险是面板上的数字来自两个时间点。#7 已经落地，这一条不再被它挡着，
+  但仍排在磁盘模块下一轮：先把两件事分开——标记按路径存续，体积以新扫描为准，
+  新扫描里没有的旧标记直接丢弃，而不是显示一个过期数字。
