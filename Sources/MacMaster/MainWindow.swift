@@ -286,7 +286,7 @@ struct DashboardView: View {
         .padding(.horizontal, MMGap.lg)
         .frame(height: 24)
         .frame(maxWidth: .infinity)
-        .background(MMColor.controlBackground)
+        .background(MMColor.recessedSurface)
         .overlay(alignment: .top) { Divider() }
     }
 

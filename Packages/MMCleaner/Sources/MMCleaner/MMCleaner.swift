@@ -468,7 +468,7 @@ public struct CleanerView: View {
         .foregroundStyle(MMColor.secondaryLabel)
         .padding(.horizontal, MMGap.md)
         .frame(height: 26)
-        .background(MMColor.cardBackground)
+        .background(MMColor.recessedSurface)
         .overlay(alignment: .bottom) { Divider() }
     }
 
@@ -597,7 +597,7 @@ public struct CleanerView: View {
         .padding(.leading, MMGap.xl + MMGap.sm)
         .padding(.trailing, MMGap.md)
         .frame(height: MMMetric.rowCompact)
-        .background(MMColor.cardBackground.opacity(0.5))
+        .background(MMColor.recessedSurface.opacity(0.5))
         .overlay(alignment: .bottom) { Divider().opacity(0.5) }
 
         if model.expandedSubItemPath == item.path {
@@ -694,7 +694,7 @@ public struct CleanerView: View {
             }
             .padding(MMGap.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control))
+            .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
             Toggle("清理后 15 秒内可一键撤回", isOn: $settings.allowUndo)
@@ -769,7 +769,7 @@ public struct CleanerView: View {
             }
             .padding(MMGap.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control))
+            .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
             VStack(alignment: .leading, spacing: MMGap.xs) {

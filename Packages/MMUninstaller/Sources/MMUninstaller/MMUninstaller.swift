@@ -257,7 +257,7 @@ public struct UninstallerView: View {
             .padding(.horizontal, MMGap.md)
             .frame(height: MMMetric.rowCompact)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             .overlay(alignment: .bottom) { Divider() }
 
             if model.isScanningApps {
@@ -490,7 +490,7 @@ public struct UninstallerView: View {
                     Divider()
                 }
             }
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
@@ -717,7 +717,7 @@ public struct UninstallerView: View {
                     }
                 }
                 .frame(maxHeight: 200)
-                .background(MMColor.cardBackground)
+                .background(MMColor.recessedSurface)
                 .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
             }
@@ -811,7 +811,7 @@ public struct UninstallerView: View {
                     Divider()
                 }
             }
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
@@ -987,14 +987,14 @@ struct AppDetailView: View {
                     .foregroundStyle(MMColor.secondaryLabel)
                     .padding(MMGap.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+                    .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             } else if app.residuals.isEmpty {
                 Text("没有按当前敏感度匹配到残留文件。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                     .padding(MMGap.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+                    .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             } else {
                 residualGroups
             }
@@ -1036,7 +1036,7 @@ struct AppDetailView: View {
                     .padding(.horizontal, MMGap.md)
                     .padding(.vertical, MMGap.xs)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(MMColor.cardBackground)
+                    .background(MMColor.recessedSurface)
 
                     ForEach(group.items) { item in
                         ResidualRow(item: item, isSelected: binding(for: item), onToggle: { onToggle(item) })

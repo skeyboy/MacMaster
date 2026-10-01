@@ -210,7 +210,7 @@ struct SystemAnalysisView: View {
         }
         .padding(.horizontal, MMGap.md)
         .frame(height: 30)
-        .background(MMColor.cardBackground)
+        .background(MMColor.recessedSurface)
     }
 
     private func groupCleanableAllLabel(_ group: SystemAnalysisGroup) -> String {

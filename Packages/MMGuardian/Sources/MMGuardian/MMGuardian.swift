@@ -112,7 +112,7 @@ public struct GuardianView: View {
         }
         .padding(MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
@@ -176,7 +176,7 @@ public struct GuardianView: View {
         }
         .padding(MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
@@ -245,7 +245,7 @@ public struct GuardianView: View {
         }
         .padding(MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
@@ -330,13 +330,13 @@ public struct GuardianView: View {
                     }
                     .frame(height: MMMetric.rowCompact)
                     .padding(.horizontal, MMGap.md)
-                    .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+                    .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
                 }
             }
         }
         .padding(MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
         )
@@ -584,7 +584,7 @@ struct LoginItemRow: View {
         .frame(height: item.fileKind == .renamedDisabled || anomaly != nil
                ? MMMetric.rowRegular + MMGap.sm : MMMetric.rowRegular)
         .padding(.horizontal, MMGap.md)
-        .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
 
     /// 这三条都是"两处记录对不上"，不是"确认坏了"：用 caution，绝不借红色。
@@ -632,7 +632,7 @@ struct DeviceUsageRow: View {
         .frame(minHeight: MMMetric.rowRegular)
         .padding(.horizontal, MMGap.md)
         .padding(.vertical, MMGap.xs)
-        .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
 
     /// 颜色只走语义三档：红=正在被使用，绿=测到了空闲，灰=无法确定/没有设备。
@@ -687,7 +687,7 @@ struct TCCAuthorizationRow: View {
         .frame(minHeight: MMMetric.rowRegular)
         .padding(.horizontal, MMGap.md)
         .padding(.vertical, MMGap.xs)
-        .background(MMColor.contentBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
 }
 

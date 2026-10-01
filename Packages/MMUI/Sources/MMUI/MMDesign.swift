@@ -4,9 +4,10 @@ import MMCore
 
 // MARK: - 设计令牌
 //
-// 全站唯一的颜色、栅格、圆角与行高来源。规则：一律取 AppKit 动态语义色，
-// 不写死 RGBA —— 这样深色模式、强调色变更、辅助功能高对比度都能自动跟随。
-// 旧的 ThemeColor 保留只是为了不破坏未迁移的调用点，新代码一律用 MM*。
+// 全站唯一的颜色、栅格、圆角与行高来源。规则：文字、分隔线、风险色一律取 AppKit 动态
+// 语义色，不写死 RGBA——强调色变更、辅助功能高对比度都能自动跟随。
+// 唯一的破例是下面三个"面"（卡片底 / 次级底 / 页面底），它们按 tokens.css 的明暗两档钉死，
+// 理由写在各自注释里。旧的 ThemeColor 保留只是为了不破坏未迁移的调用点，新代码一律用 MM*。
 
 public enum MMColor {
     public static let accent = Color(nsColor: .controlAccentColor)
@@ -16,7 +17,34 @@ public enum MMColor {
 
     public static let contentBackground = Color(nsColor: .textBackgroundColor)
     public static let controlBackground = Color(nsColor: .windowBackgroundColor)
-    public static let cardBackground = Color(nsColor: .underPageBackgroundColor)
+
+    /// 按明暗两档取值的面色。对应 tokens.css 里同名的一对十六进制值。
+    private static func surface(lightHex: Int, darkHex: Int) -> Color {
+        func gray(_ v: Int) -> NSColor {
+            NSColor(srgbRed: CGFloat(v) / 255, green: CGFloat(v) / 255, blue: CGFloat(v) / 255, alpha: 1)
+        }
+        return Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? gray(darkHex) : gray(lightHex)
+        })
+    }
+
+    /// 卡片面（`--c-card-bg`：浅 #FFFFFF / 深 #2A2A2A）。
+    ///
+    /// 为什么不复用语义色：实测量对不上稿。MM_APPEARANCE 钩子逐屏截图（见
+    /// docs/analysis/fidelity-light-dark.md）——概览卡片用 windowBackgroundColor 渲染成
+    /// #E9E9E9，稿要 #FFFFFF；语义色在命令行/位图里解析还会整体退化成一个值，
+    /// 只能靠截图逐点量，所以这里把两档钉死。深色档取的是此前已验收的实测近似值。
+    /// 代价：增强对比度模式不自动跟随，需要时在这里补分支。
+    public static let cardSurface = surface(lightHex: 0xFF, darkHex: 0x2A)
+
+    /// 次级面（`--c-card-bg-alt`：浅 #F7F7F7 / 深 #232323）：底部操作栏、分组表头、
+    /// 详情侧栏、行内 chip。名字刻意不叫 card——上一版它叫 cardBackground，
+    /// 于是"卡片该用什么底"被这个名字误导，监控页整页灰卡就是这么来的。
+    public static let recessedSurface = surface(lightHex: 0xF7, darkHex: 0x23)
+
+    /// 页面底/凹陷面（`--c-under-page`：浅 #E4E4E4 / 深 #161616）：监控页的指标卡和
+    /// 磁盘 Treemap 画布，设计稿里就是沉在内容底之下的一档。
+    public static let underPageSurface = surface(lightHex: 0xE4, darkHex: 0x16)
 
     public static let separator = Color(nsColor: .separatorColor)
     public static let hairline = Color(nsColor: .gridColor)
@@ -308,7 +336,7 @@ public struct MMActionBar<Leading: View, Trailing: View>: View {
         }
         .padding(.horizontal, MMGap.lg)
         .frame(height: MMMetric.actionBar)
-        .background(MMColor.cardBackground)
+        .background(MMColor.recessedSurface)
         .overlay(alignment: .top) { Divider() }
     }
 }
@@ -365,7 +393,7 @@ public struct MMStatItem: View {
         .padding(.vertical, MMGap.sm)
         .padding(.horizontal, MMGap.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardBackground, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .background(MMColor.underPageSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous).stroke(MMColor.separator))
     }
 }
@@ -844,19 +872,20 @@ extension MMItemRow where Accessory == EmptyView {
 
 // MARK: - 卡片与数据可视化
 
-/// 卡片底色档（S4）：此前 MMCard 只用 controlBackground，monitor 私有卡用 cardBackground(underPage)，
-/// cleaner 内联卡用 contentBackground——三处各写各的，令牌层也没有对应 token。
-/// 收口成一个枚举，让"卡浮在哪一层"这个语义在选择处显式表达。
+/// 卡片底色档（S4）：设计稿里"卡浮在哪一层"本来就有两档——概览/列表的卡是 `.card`
+/// （内容底之上，#FFFFFF），监控页的指标卡是 `.mcard`（页面底之下，--c-under-page #E4E4E4）。
+/// 之前两档都用语义色凑，浅色档实测分别是 #E9E9E9 和 #959595，两档都错，
+/// 所以这里改接 MMColor 里按稿钉死的面色。
 public enum MMCardStyle {
-    /// 浮在内容底（controlBackground）上，列表/表格卡默认档。
+    /// 设计稿 `.card`：白底 + 1px 分隔描边，列表/表格区块默认档。
     case content
-    /// 浮在页面底（underPageBackground）上，monitor 私有卡那一档。
+    /// 设计稿 `.mcard`：沉到页面底那一档，监控页指标卡用。
     case underPage
 
     var color: Color {
         switch self {
-        case .content: MMColor.controlBackground
-        case .underPage: MMColor.cardBackground
+        case .content: MMColor.cardSurface
+        case .underPage: MMColor.underPageSurface
         }
     }
 }
