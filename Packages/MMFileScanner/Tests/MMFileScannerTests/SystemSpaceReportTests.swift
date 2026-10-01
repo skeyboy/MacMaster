@@ -14,7 +14,7 @@ final class SystemSpaceReportTests: XCTestCase {
         com.apple.TimeMachine.2026-05-01-120100.local
         com.apple.TimeMachine.2026-05-02-093312.local
         """
-        let listing = TimeMachineSnapshotReader.parse(output, fallbackVolume: "/")
+        let listing = LocalSnapshotReader.parse(output, fallbackVolume: "/")
         guard case .available(let snapshots) = listing else {
             return XCTFail("应当解析成功，实际不可用：\(listing.reason ?? "—")")
         }
@@ -27,6 +27,45 @@ final class SystemSpaceReportTests: XCTestCase {
         XCTAssertNotNil(snapshots.first?.date, "标准命名里的时间戳要能读出来")
     }
 
+    /// macOS 11 起带签名系统卷的机器上，表头写的是"卷组"而不是"盘"。
+    /// 只认老式表头会让这块卡片在新系统上**永远**显示"不可用"——
+    /// 而单测当时全按老式表头写样例，所以全绿。这条钉住真机形态。
+    func testParsesVolumeGroupHeader() throws {
+        let output = """
+        Snapshots for volume group containing disk /:
+        com.apple.os.update-5203530F8BB20B9DABC5CE76A0FFE87CCC885EE69B8A5488C24B458A7555E3AB
+        com.apple.os.update-MSUPrepareUpdate
+        """
+        let listing = LocalSnapshotReader.parse(output, fallbackVolume: "/")
+        guard case .available(let snapshots) = listing else {
+            return XCTFail("卷组表头是当代 macOS 的正常输出：\(listing.reason ?? "—")")
+        }
+        XCTAssertEqual(snapshots.count, 2)
+        XCTAssertEqual(snapshots.first?.volumePath, "/", "表头里的 / 要当作卷路径")
+    }
+
+    /// 没接 Time Machine 的 Mac 上也会有快照，全是系统更新留的安全网。
+    /// 把它们统称"Time Machine 快照"会指错方向：动了会影响更新回滚。
+    func testSnapshotKindsAreSeparated() throws {
+        let output = """
+        Snapshots for volume group containing disk /:
+        com.apple.TimeMachine.2026-05-01-120100.local
+        com.apple.os.update-MSUPrepareUpdate
+        com.apple.os.update-5203530F8BB20B9D
+        com.apple.ThirdPartyTool.2026-01-01
+        """
+        let listing = LocalSnapshotReader.parse(output, fallbackVolume: "/")
+        guard case .available(let snapshots) = listing else {
+            return XCTFail("应当解析成功：\(listing.reason ?? "—")")
+        }
+        XCTAssertEqual(snapshots.map(\.kind), [LocalSnapshot.Kind](
+            [.timeMachine, .systemUpdate, .systemUpdate, .other]
+        ))
+        XCTAssertEqual(listing.count(of: .timeMachine), 1)
+        XCTAssertEqual(listing.count(of: .systemUpdate), 2)
+        XCTAssertEqual(listing.count(of: .other), 1)
+    }
+
     func testParsesPerVolumeHeadersAndIgnoresNoiseLines() throws {
         let output = """
         Snapshots for disk /System/Volumes/Data:
@@ -34,7 +73,7 @@ final class SystemSpaceReportTests: XCTestCase {
         warning: something unrelated
         Snapshots for disk /:
         """
-        let listing = TimeMachineSnapshotReader.parse(output, fallbackVolume: "/")
+        let listing = LocalSnapshotReader.parse(output, fallbackVolume: "/")
         guard case .available(let snapshots) = listing else {
             return XCTFail("应当解析成功，实际不可用：\(listing.reason ?? "—")")
         }
@@ -43,7 +82,7 @@ final class SystemSpaceReportTests: XCTestCase {
     }
 
     func testHeaderWithoutSnapshotsMeansNoSnapshots() throws {
-        let listing = TimeMachineSnapshotReader.parse("Snapshots for disk /:\n", fallbackVolume: "/")
+        let listing = LocalSnapshotReader.parse("Snapshots for disk /:\n", fallbackVolume: "/")
         guard case .available(let snapshots) = listing else {
             return XCTFail("有表头没有条目是合法的「本机没有快照」")
         }
@@ -55,11 +94,12 @@ final class SystemSpaceReportTests: XCTestCase {
             "tmutil: Error: Getting snapshot infos failed with error: 70",
             "%%% not a snapshot listing %%%",
             "com.apple.TimeMachine.2026-05-01-120100.local",   // 没有表头，孤行不足以认定格式
+            "Snapshots for something else entirely:",           // 两种已知表头都不匹配
             "",
             "   \n\t\n",
         ]
         for text in cases {
-            let listing = TimeMachineSnapshotReader.parse(text, fallbackVolume: "/")
+            let listing = LocalSnapshotReader.parse(text, fallbackVolume: "/")
             guard case .unavailable(let reason) = listing else {
                 return XCTFail("这段输出不该被当成快照清单：\(text)")
             }
@@ -72,7 +112,7 @@ final class SystemSpaceReportTests: XCTestCase {
         Snapshots for disk /:
         com.apple.TimeMachine.local-snapshot-weird
         """
-        guard case .available(let snapshots) = TimeMachineSnapshotReader.parse(output),
+        guard case .available(let snapshots) = LocalSnapshotReader.parse(output),
               let snapshot = snapshots.first else {
             return XCTFail("命名异常也应列出条目")
         }
@@ -82,8 +122,8 @@ final class SystemSpaceReportTests: XCTestCase {
     // MARK: - 命令执行失败也要降级，不能报成"没有快照"
 
     func testCommandFailureBecomesUnavailable() {
-        let listing = TimeMachineSnapshotReader.read(volumePath: "/") { _, _, _ in
-            throw TimeMachineSnapshotReader.CommandError.exited(70, "Operation not permitted")
+        let listing = LocalSnapshotReader.read(volumePath: "/") { _, _, _ in
+            throw LocalSnapshotReader.CommandError.exited(70, "Operation not permitted")
         }
         guard case .unavailable(let reason) = listing else {
             return XCTFail("退出码非 0 不能被当成正常清单")
@@ -92,10 +132,18 @@ final class SystemSpaceReportTests: XCTestCase {
     }
 
     func testMissingBinaryBecomesUnavailable() {
-        let listing = TimeMachineSnapshotReader.read(volumePath: "/") { _, _, _ in
-            throw TimeMachineSnapshotReader.CommandError.launchFailed("找不到可执行文件")
+        let listing = LocalSnapshotReader.read(volumePath: "/") { _, _, _ in
+            throw LocalSnapshotReader.CommandError.launchFailed("找不到可执行文件")
         }
         guard case .unavailable = listing else { return XCTFail("命令缺失应报告不可用") }
+    }
+
+    /// 真机结构断言：不猜这台机器有几条快照，只要求**解析得动**。
+    /// 上面那条 bug 正是"样例全对、真机全废"，只有把真机输出喂进来才拦得住。
+    /// 快照条数随机器状态变，所以这里不比数量。
+    func testRealMachineOutputParses() {
+        let listing = LocalSnapshotReader.read(volumePath: "/")
+        XCTAssertTrue(listing.isAvailable, "真机 tmutil 输出必须能解析：\(listing.reason ?? "—")")
     }
 
     // MARK: - APFS 可清除空间

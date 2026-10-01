@@ -5,8 +5,10 @@ import Foundation
 /// 两件事都**只读取、只展示**：
 /// - APFS 可清除空间：口径与访达/「关于本机」对齐，用 `volumeAvailableCapacityForImportantUsage`
 ///   减去普通可用容量。真正的 `purge` 需要 root，本项目不做。
-/// - Time Machine 本地快照：只解析 `tmutil listlocalsnapshots` 的文本输出。
-///   删除快照需要 root 且会影响备份语义，明确不做（见 feature-roadmap「明确不采纳」）。
+/// - Time Machine 本地快照：只解析 `tmutil listlocalsnapshots` 的文本输出，
+///   并且**只报条数和来历，不报字节**——APFS 不给单个快照的独立占用，无 root 也读不到，
+///   拿"容器已用 − 各卷已用合计"去凑只会凑出元数据和预留空间（本机实测约 1.4 GB），
+///   那不是快照足迹。删除快照需要 root 且会影响备份语义，明确不做（见 feature-roadmap「明确不采纳」）。
 /// 一旦解析不出可信结构，整块降级成"不可用 + 原因"，绝不猜数字。
 
 // MARK: - APFS 可清除空间
@@ -88,14 +90,32 @@ public enum PurgeableSpaceReader {
     }
 }
 
-// MARK: - Time Machine 本地快照
+// MARK: - APFS 本地快照
 
-public struct TimeMachineSnapshot: Hashable, Sendable, Identifiable {
-    /// 完整快照标识，例如 com.apple.TimeMachine.2026-05-01-120000.local
+public struct LocalSnapshot: Hashable, Sendable, Identifiable {
+    /// 快照的来历。分这一档是因为本机上一台没接 Time Machine 的 Mac
+    /// 也会有好几条 `com.apple.os.update-*`，把它们统称"Time Machine 快照"
+    /// 会指错方向：前者是系统更新的安全网，动了会影响回滚。
+    public enum Kind: String, Hashable, Sendable {
+        case timeMachine
+        case systemUpdate
+        case other
+
+        public var label: String {
+            switch self {
+            case .timeMachine: return "Time Machine"
+            case .systemUpdate: return "系统更新"
+            case .other: return "其他"
+            }
+        }
+    }
+
+    /// 完整快照标识，例如 com.apple.TimeMachine.2026-05-01-120100.local
     public let name: String
     public let volumePath: String?
     /// 名字里的时间戳读不出来时为 nil：此时只显示名字，不编造时间。
     public let date: Date?
+    public let kind: Kind
 
     public var id: String { "\(volumePath ?? "")/\(name)" }
 
@@ -103,16 +123,23 @@ public struct TimeMachineSnapshot: Hashable, Sendable, Identifiable {
         self.name = name
         self.volumePath = volumePath
         self.date = date
+        if name.contains("TimeMachine.") {
+            self.kind = .timeMachine
+        } else if name.hasPrefix("com.apple.os.update") {
+            self.kind = .systemUpdate
+        } else {
+            self.kind = .other
+        }
     }
 }
 
 /// 快照清单的两态。把"没有快照"和"读不出来"分开，是为了不把
 /// "拿不到信息"渲染成"你的 Mac 很干净、多占了 0 GB"。
-public enum TimeMachineSnapshotListing: Hashable, Sendable {
-    case available([TimeMachineSnapshot])
+public enum LocalSnapshotListing: Hashable, Sendable {
+    case available([LocalSnapshot])
     case unavailable(reason: String)
 
-    public var snapshots: [TimeMachineSnapshot] {
+    public var snapshots: [LocalSnapshot] {
         if case .available(let items) = self { return items }
         return []
     }
@@ -126,9 +153,13 @@ public enum TimeMachineSnapshotListing: Hashable, Sendable {
         if case .available = self { return true }
         return false
     }
+
+    public func count(of kind: LocalSnapshot.Kind) -> Int {
+        snapshots.filter { $0.kind == kind }.count
+    }
 }
 
-public enum TimeMachineSnapshotReader {
+public enum LocalSnapshotReader {
     public enum CommandError: Error, Hashable {
         case launchFailed(String)
         case exited(Int32, String)
@@ -138,11 +169,17 @@ public enum TimeMachineSnapshotReader {
     /// `tmutil` 是系统自带的只读命令行工具；这里只用 `listlocalsnapshots`。
     public static let tmutilPath = "/usr/bin/tmutil"
 
-    private static let headerPrefix = "Snapshots for disk"
-    private static let snapshotMarker = "com.apple.TimeMachine."
+    /// 表头有两种写法，都见过：
+    /// - 老式：`Snapshots for disk /:`
+    /// - macOS 11 起带签名系统卷的卷组：`Snapshots for volume group containing disk /:`
+    /// 只认前一种会让这块卡片在新系统上**永远**显示"不可用"。
+    private static let headerHeads = ["Snapshots for disk ", "Snapshots for volume group containing disk "]
+    /// 快照标识都以 `com.apple.` 开头（含 `tmutil localsnapshot` 手工建的）。
+    /// 其余行——警告、说明、空行——一律不算条目。
+    private static let snapshotPrefix = "com.apple."
 
     /// 纯解析：单测直接喂样例文本，不依赖真机快照。
-    public static func parse(_ output: String, fallbackVolume: String? = nil) -> TimeMachineSnapshotListing {
+    public static func parse(_ output: String, fallbackVolume: String? = nil) -> LocalSnapshotListing {
         let lines = output
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -153,26 +190,25 @@ public enum TimeMachineSnapshotReader {
         }
 
         var volume: String? = fallbackVolume
-        var snapshots: [TimeMachineSnapshot] = []
+        var snapshots: [LocalSnapshot] = []
         var sawHeader = false
 
         for line in lines {
-            if line.hasPrefix(headerPrefix) {
+            let (isHeader, headerVolume) = headerMatch(in: line)
+            if isHeader {
                 sawHeader = true
-                volume = headerVolume(from: line) ?? fallbackVolume
+                volume = headerVolume ?? fallbackVolume
                 continue
             }
-            // 快照行必须带 com.apple.TimeMachine. 前缀；其余行（表头、警告、
-            // 空行以外的说明）一律忽略，不能当成快照名计入清单。
-            guard line.contains(snapshotMarker) else { continue }
-            snapshots.append(TimeMachineSnapshot(
+            guard line.hasPrefix(snapshotPrefix) else { continue }
+            snapshots.append(LocalSnapshot(
                 name: line, volumePath: volume, date: date(fromSnapshotName: line)
             ))
         }
 
-        // 没有 `Snapshots for disk …:` 表头就认定这不是 listlocalsnapshots 的正常输出：
+        // 没有表头就认定这不是 listlocalsnapshots 的正常输出：
         // 报错文本、命令缺失时的包装信息、被本地化改写的版本都可能含
-        // "com.apple.TimeMachine." 字样，认下来就会把一份不存在的清单显示成"本机有 N 个快照"。
+        // "com.apple." 字样，认下来就会把一份不存在的清单显示成"本机有 N 个快照"。
         guard sawHeader else {
             let first = lines.first ?? ""
             return .unavailable(reason: "无法解析 tmutil 输出：\(first.prefix(120))")
@@ -180,14 +216,17 @@ public enum TimeMachineSnapshotReader {
         return .available(snapshots)
     }
 
-    /// 从 `Snapshots for disk /System/Volumes/Data:` 里取卷路径。取不到返回 nil，
-    /// 让调用方回落到 fallbackVolume，而不是把整行文案当路径显示。
-    private static func headerVolume(from line: String) -> String? {
-        guard let colon = line.lastIndex(of: ":") else { return nil }
-        let head = line[..<colon]
-        let path = String(head.dropFirst(headerPrefix.count))
-            .trimmingCharacters(in: .whitespaces)
-        return path.isEmpty ? nil : path
+    /// 是不是表头，以及表头里写的卷路径（写了但读不出来就是 nil，让调用方回落）。
+    private static func headerMatch(in line: String) -> (Bool, String?) {
+        for head in headerHeads where line.hasPrefix(head) {
+            guard let colon = line.lastIndex(of: ":"), head.endIndex <= colon else {
+                return (true, nil)
+            }
+            let path = String(line[head.endIndex..<colon])
+                .trimmingCharacters(in: .whitespaces)
+            return (true, path.isEmpty ? nil : path)
+        }
+        return (false, nil)
     }
 
     /// 快照名里的时间戳是 `yyyy-MM-dd-HHmmss`。格式随 macOS 版本变体很多，
@@ -208,7 +247,7 @@ public enum TimeMachineSnapshotReader {
         volumePath: String = "/",
         timeout: TimeInterval = 5,
         runner: (String, [String], TimeInterval) throws -> String = run
-    ) -> TimeMachineSnapshotListing {
+    ) -> LocalSnapshotListing {
         do {
             let output = try runner(tmutilPath, ["listlocalsnapshots", volumePath], timeout)
             return parse(output, fallbackVolume: volumePath)
@@ -274,11 +313,11 @@ public enum TimeMachineSnapshotReader {
 
 public struct SystemSpaceReadout: Sendable {
     public let purgeable: PurgeableSpaceReport
-    public let snapshots: TimeMachineSnapshotListing
+    public let snapshots: LocalSnapshotListing
     public let readAt: Date
 
     public init(purgeable: PurgeableSpaceReport,
-                snapshots: TimeMachineSnapshotListing,
+                snapshots: LocalSnapshotListing,
                 readAt: Date = Date()) {
         self.purgeable = purgeable
         self.snapshots = snapshots
@@ -294,7 +333,7 @@ public actor SystemSpaceReporter {
     public func readout(volumePath: String = "/") -> SystemSpaceReadout {
         SystemSpaceReadout(
             purgeable: PurgeableSpaceReader.read(at: volumePath),
-            snapshots: TimeMachineSnapshotReader.read(volumePath: volumePath)
+            snapshots: LocalSnapshotReader.read(volumePath: volumePath)
         )
     }
 }

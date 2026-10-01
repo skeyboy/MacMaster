@@ -74,19 +74,22 @@ struct ReadOnlySpaceReportSection: View {
                 .font(.caption).foregroundStyle(MMColor.secondaryLabel)
         } else if let listing = readout?.snapshots, listing.isAvailable {
             let snapshots = listing.snapshots
-            MMKeyRow("本地快照", "\(snapshots.count) 个", monospaced: true)
+            MMKeyRow("本地快照", "\(snapshots.count) 个" + kindSummary(listing), monospaced: true)
             if snapshots.isEmpty {
-                Text("这台 Mac 目前没有 Time Machine 本地快照。")
+                Text("这台 Mac 目前没有本地快照。")
                     .font(.caption).foregroundStyle(MMColor.secondaryLabel)
             } else {
                 // 只列前若干条：快照数量可以很多，全列出来这块就没完没了了。
                 ForEach(snapshots.prefix(6)) { snapshot in
                     HStack(spacing: MMGap.sm) {
-                        Image(systemName: "clock.arrow.circlepath")
+                        Image(systemName: snapshot.kind == .timeMachine
+                              ? "clock.arrow.circlepath" : "shippingbox")
                             .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
                         Text(snapshot.name)
                             .font(.caption.monospaced())
                             .lineLimit(1).truncationMode(.middle)
+                        Text(snapshot.kind.label)
+                            .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
                         Spacer(minLength: MMGap.sm)
                         Text(snapshot.volumePath ?? "—")
                             .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
@@ -98,9 +101,29 @@ struct ReadOnlySpaceReportSection: View {
                         .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
                 }
             }
+            // 这里只有条数、没有 GB，是刻意的：APFS 不按快照单独计量占用，
+            // 无管理员权限读不到。拿"容器已用 − 各卷已用合计"去凑，凑出来的是
+            // 元数据和预留空间（本机实测约 1.4 GB），不是快照足迹。
+            Text("只报条数：APFS 不给单个快照的独立占用，无管理员权限读不到，"
+                 + "所以这里没有一个「快照占了 X GB」的数字。第三方工具报的那个 GB "
+                 + "多半是拿容器差值凑的，别照着它判断要不要删。")
+                .font(.caption2)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .fixedSize(horizontal: false, vertical: true)
         } else {
             unavailableRow(title: "本地快照", reason: readout?.snapshots.reason ?? "尚未读取")
         }
+    }
+
+    /// 条数后面的来历拆分。全是一类时不啰嗦，混着才列——
+    /// 把系统更新快照说成 Time Machine 快照会指错方向（动了影响更新回滚）。
+    private func kindSummary(_ listing: LocalSnapshotListing) -> String {
+        let kinds: [LocalSnapshot.Kind] = [.timeMachine, .systemUpdate, .other]
+        let parts = kinds.compactMap { kind -> String? in
+            let count = listing.count(of: kind)
+            return count > 0 ? "\(kind.label) \(count)" : nil
+        }
+        return parts.count > 1 ? "（" + parts.joined(separator: " · ") + "）" : ""
     }
 
     private func unavailableRow(title: String, reason: String) -> some View {

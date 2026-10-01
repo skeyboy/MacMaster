@@ -237,10 +237,49 @@ final class CleanerModel: ObservableObject {
         isLoadingSpaceReadout = true
         Task { [weak self] in
             let readout = await SystemSpaceReporter().readout()
-            self?.spaceReadout = readout
+            self?.spaceReadout = Self.applySnapshotFixture(readout)
             self?.isLoadingSpaceReadout = false
         }
     }
+
+    /// 截图预演（`MM_SNAPSHOT_FIXTURE=mixed|updateonly|none|broken`）：
+    /// 只把快照那一块换成样例文本，卷容量仍是真读的。
+    /// 本机上一刻只有一条什么快照都没有、下一刻有三条，"另有 N 个"和
+    /// "多种来历"这两支没法靠真机稳定拍到——而这两支恰恰最容易写错。
+    /// 解析是纯函数：不碰磁盘、不起命令，未知取值整块忽略走真实结果。
+    static func applySnapshotFixture(_ readout: SystemSpaceReadout) -> SystemSpaceReadout {
+        guard let name = ProcessInfo.processInfo.environment["MM_SNAPSHOT_FIXTURE"],
+              let text = snapshotFixtureText[name] else { return readout }
+        return SystemSpaceReadout(
+            purgeable: readout.purgeable,
+            snapshots: LocalSnapshotReader.parse(text, fallbackVolume: "/"),
+            readAt: readout.readAt
+        )
+    }
+
+    /// 内部而非私有：`SnapshotFixtureTests` 要逐条喂回解析器，
+    /// 保证夹具文本本身长得像 tmutil 的输出（多行字面量漏个换行就会把第一条吃掉）。
+    static let snapshotFixtureText: [String: String] = [
+        "mixed": """
+        Snapshots for volume group containing disk /:
+        com.apple.TimeMachine.2026-05-01-120100.local
+        com.apple.TimeMachine.2026-05-02-093312.local
+        com.apple.os.update-5203530F8BB20B9DABC5CE76A0FFE87CCC885EE69B8A5488C24B458A7555E3AB
+        com.apple.os.update-MSUPrepareUpdate
+        com.apple.ThirdPartyTool.weekly-2026-05-03-010101
+        """,
+        // 多行字面量收尾不带换行，直接拼会把第一条粘到表头上被吃掉——这里显式补一个。
+        "overflow": "Snapshots for disk /System/Volumes/Data:\n"
+            + (1...9).map { "com.apple.TimeMachine.2026-05-0\($0)-0\(100000 + $0)000.local" }
+                .joined(separator: "\n"),
+        "updateonly": """
+        Snapshots for volume group containing disk /:
+        com.apple.os.update-5203530F8BB20B9DABC5CE76A0FFE87CCC885EE69B8A5488C24B458A7555E3AB
+        com.apple.os.update-MSUPrepareUpdate
+        """,
+        "none": "Snapshots for disk /:\n",
+        "broken": "tmutil: Error: Getting snapshot infos failed with error: 70",
+    ]
 
     func undo() {
         let operationID = lastResult?.operation.id
