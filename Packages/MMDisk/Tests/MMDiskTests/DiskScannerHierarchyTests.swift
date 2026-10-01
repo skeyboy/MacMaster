@@ -51,4 +51,28 @@ final class DiskScannerHierarchyTests: XCTestCase {
         let withChildren = output.topItems.filter { !$0.children.isEmpty }
         XCTAssertFalse(withChildren.isEmpty, "顶层块全部没有 children，treemap 会退化成单层图")
     }
+
+    /// 扫描层跳过 Library 是既定行为，但"跳过了"必须能在结果里查到：
+    /// 否则页面上 ~/Library 一片空白会被读成"它真的是空的"。这条钉住披露口径。
+    func testProtectedDirectorySkipIsReported() async throws {
+        let extra = root + "/Library/Caches"
+        try FileManager.default.createDirectory(atPath: extra, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: extra + "/big.bin",
+                                       contents: Data(repeating: 0x11, count: 60_000))
+
+        let output = await DiskScanner.performScan(rootPath: root)
+        XCTAssertEqual(output.skippedProtected, ["Library"])
+        XCTAssertFalse(output.topItems.contains { $0.name == "Library" },
+                       "Library 既被跳过就不该出现在顶层块里")
+    }
+
+    /// 根目录干净时不要凭空造一句"未纳入受保护目录"。
+    func testNothingSkippedLeavesEmptyDisclosure() async throws {
+        let clean = root + "/solo"
+        try FileManager.default.createDirectory(atPath: clean, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: clean + "/a.bin",
+                                       contents: Data(repeating: 0x22, count: 10_000))
+        let output = await DiskScanner.performScan(rootPath: clean)
+        XCTAssertTrue(output.skippedProtected.isEmpty)
+    }
 }

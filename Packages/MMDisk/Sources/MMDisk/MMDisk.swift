@@ -190,6 +190,8 @@ public struct DiskAnalyzerView: View {
     }
 
     /// 副标题只报事实：路径、文件数、占用、用时。
+    /// 受保护目录的口径声明不放这里——这条在 ~1100pt 宽度下本来就会被中间截断，
+    /// 再长就会把"占用/用时"挤没，摆到面包屑条的徽标位（见 breadcrumbBar）。
     private var headerSubtitle: String? {
         guard let result = scanResult else {
             return isScanning ? scanningPath : "选择一个目录开始分析"
@@ -280,6 +282,14 @@ public struct DiskAnalyzerView: View {
             breadcrumbTrail
 
             Spacer(minLength: MMGap.md)
+
+            // 扫描层会整目录跳过 Library / .Trash 这类受保护项。不写出来的话，
+            // "图上没有这块"会被读成"这里真的是空的"，而它其实是"这里我们没看"。
+            if let skipped = scanResult?.skippedProtected, !skipped.isEmpty {
+                MMBadge("未纳入 \(skipped.count) 个受保护目录",
+                        tint: MMColor.secondaryLabel, systemImage: "lock")
+                    .help("这些目录在扫描时被整体跳过（\(skipped.joined(separator: "、"))），不计面积也不计总量")
+            }
 
             // 没扫到深度的目录：判不了是否命中。既不画进布局（面积编不出来），
             // 也不装死——数量和占用如实报在这里，"未测量"绝不能被读成"零命中"。
@@ -376,7 +386,7 @@ public struct DiskAnalyzerView: View {
             .padding(.horizontal, MMGap.md)
             .padding(.vertical, MMGap.sm)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             .overlay(alignment: .bottom) { Divider() }
         }
     }
@@ -716,7 +726,7 @@ public struct DiskAnalyzerView: View {
             }
             .padding(MMGap.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             Divider()
 
             ScrollView {
@@ -1108,12 +1118,12 @@ public struct DiskAnalyzerView: View {
                         }
                         .padding(.horizontal, MMGap.md)
                         .frame(height: MMMetric.rowCompact)
-                        .background(MMColor.cardBackground)
+                        .background(MMColor.recessedSurface)
                         Divider()
                     }
                 }
             }
-            .background(MMColor.cardBackground)
+            .background(MMColor.recessedSurface)
             .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
@@ -1296,7 +1306,8 @@ public struct DiskAnalyzerView: View {
                 usedSize: usedSize,
                 freeSize: freeSize,
                 scannedSize: output.topItems.reduce(UInt64(0)) { $0 + $1.size },
-                fileCount: output.fileCount
+                fileCount: output.fileCount,
+                skippedProtected: output.skippedProtected
             )
             self.navigationStack = [rootPath]
             self.marked = [:]
@@ -1428,6 +1439,8 @@ struct DiskScanResult {
     /// 被扫描那棵树自己的占用，和"卷总容量"是两回事，页面上不能混用。
     let scannedSize: UInt64
     let fileCount: Int
+    /// 根目录下未纳入统计的受保护子目录名（Library、Photos Library.photoslibrary 等）。
+    var skippedProtected: [String] = []
 }
 
 enum DiskScanner {
@@ -1439,6 +1452,9 @@ enum DiskScanner {
         let topItems: [DiskTreeNode]
         let largeFilesList: [DiskTreeNode]
         let fileCount: Int
+        /// 根目录下被 protectedNames 挡掉、没进统计的那几个名字。
+        /// 统计口径必须能自证：不报出来的话，"~/Library 一片空白"会被读成"它真的是空的"。
+        let skippedProtected: [String]
     }
 
     private struct FileEntry: Sendable {
@@ -1504,8 +1520,18 @@ enum DiskScanner {
         return ScanOutput(
             topItems: topItems,
             largeFilesList: largeFiles,
-            fileCount: fileCount
+            fileCount: fileCount,
+            skippedProtected: Self.skippedProtectedNames(rootPath: rootPath)
         )
+    }
+
+    /// 根目录里被扫描层挡掉的受保护目录名。单独列一次根目录（不递归），
+    /// 是为了能在页面上说清楚"这块没算进去"，而不是让用户自己猜。
+    private static func skippedProtectedNames(rootPath: String) -> [String] {
+        readEntries(path: rootPath, ledger: nil)
+            .filter { $0.isDirectory && protectedNames.contains($0.name) }
+            .map(\.name)
+            .sorted()
     }
 
     static func childrenOfDirectory(
