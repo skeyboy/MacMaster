@@ -29,7 +29,11 @@ struct MacMasterApp: App {
                 .environmentObject(moduleRegistry)
                 .environmentObject(appState)
                 .environmentObject(settings)
-                .frame(minWidth: 900, minHeight: 600)
+                // 下限不是拍脑袋：设计稿 `tokens.css` 里 `.content { min-width: --content-min }`
+                // 钉的是 760pt，侧栏实测 220pt，所以窗口内容区要到 1000pt 才不违反稿自己的
+                // 地板值。之前写 900 时内容区只有 670pt，磁盘页头部（分段控件 + 筛选框 +
+                // 两个按钮）直接放不下，按钮标题被截成"重新…""选择…"。
+                .frame(minWidth: 1000, minHeight: 600)
                 .onAppear {
                     MenuBarManager.shared.enable()
                 }

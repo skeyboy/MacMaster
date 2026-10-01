@@ -125,7 +125,18 @@ enum LaunchWindowSizeOverride {
             for window in NSApp.windows where Self.isMainWindow(window) {
                 window.setContentSize(NSSize(width: width, height: height))
                 window.center()
-                LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 已把内容区设为 \(width)x\(height)pt")
+                // 报"生效值"而不是"请求值"，而且要等布局稳定再读：内容区有 minWidth 地板，
+                // 夹取发生在 setContentSize 之后的布局轮里——就地读、甚至再排一轮 async 都
+                // 还会拿到没夹过的 900（实测：同一批截图 2000px 宽 = 1000pt，日志却写 900）。
+                // 日志说"实际 900x600"、照片其实是 1000x600，拿它当"最小窗口"的证据就是假的。
+                // 0.3s 远早于截图脚本的 3.5s 等待，所以这条凭据一定在照片之前落进日志。
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    let size = window.frame.size
+                    let clamped = Int(size.width) != Int(width) || Int(size.height) != Int(height)
+                    LaunchAppearanceOverride.note(
+                        "MM_WINDOW_SIZE=\(raw) 请求 \(Int(width))x\(Int(height))pt，窗口实际 \(Int(size.width))x\(Int(size.height))pt"
+                            + (clamped ? "（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）" : ""))
+                }
                 return
             }
             LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 没找到主窗口，尺寸未改")
