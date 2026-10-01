@@ -72,3 +72,69 @@ enum LaunchMinimizeHandler {
         }
     }
 }
+
+/// 截图核对用的外观强制。设计稿是浅色档、以往实机取证清一色深色档，两边从来没在
+/// 同一档上对照过，"色档一致"其实是拿浅色稿比深色照片得出来的。这里只改本进程的
+/// `NSApp.appearance`，不动用户的系统外观设置；未设 `MM_APPEARANCE` 时零影响。
+enum LaunchAppearanceOverride {
+    static func applyIfNeeded(_ env: [String: String] = ProcessInfo.processInfo.environment) {
+        guard let raw = env["MM_APPEARANCE"] else { return }
+        guard let name = Self.name(for: raw) else { return }
+        NSApplication.shared.appearance = NSAppearance(named: name)
+        note("MM_APPEARANCE=\(raw) 已强制 \(raw) 外观（仅本进程，不改系统设置）")
+    }
+
+    private static func name(for raw: String) -> NSAppearance.Name? {
+        switch raw.lowercased() {
+        case "light", "aqua": return .aqua
+        case "dark", "darkaqua": return .darkAqua
+        default:
+            // 写错值会静默沿用系统外观，而截图看上去照样"是真的"——必须留痕
+            note("MM_APPEARANCE=\(raw) 不是 light/dark，沿用系统外观")
+            return nil
+        }
+    }
+
+    /// 取证标记：截图的人要能在启动日志里看到这一档到底生效了没有。
+    static func note(_ text: String) {
+        if let data = (text + "\n").data(using: .utf8) {
+            FileHandle.standardError.write(data)
+        }
+    }
+}
+
+/// 截图核对用的窗口尺寸强制。走 `setContentSize` 而不是 `.defaultSize`：后者只在
+/// "没有恢复记录"时生效，而 SwiftUI 会按窗口标识自动存档frame，第二次起就被忽略，
+/// 于是同一份脚本两次跑出来的可视区高度不一样，逐屏几何结论就不成立了。
+@MainActor
+enum LaunchWindowSizeOverride {
+    private static var didApply = false
+
+    static func applyOnce(_ env: [String: String] = ProcessInfo.processInfo.environment) {
+        guard !didApply else { return }
+        didApply = true
+        guard let raw = env["MM_WINDOW_SIZE"] else { return }
+        let parts = raw.lowercased().split(separator: "x")
+        guard parts.count == 2, let width = Double(parts[0]), let height = Double(parts[1]),
+              width >= 320, height >= 200 else {
+            LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 解析失败（要写成 900x600），沿用默认尺寸")
+            return
+        }
+        // 与 LaunchMinimizeHandler 同理：onAppear 时窗口尚未完成上屏。
+        DispatchQueue.main.async {
+            for window in NSApp.windows where Self.isMainWindow(window) {
+                window.setContentSize(NSSize(width: width, height: height))
+                window.center()
+                LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 已把内容区设为 \(width)x\(height)pt")
+                return
+            }
+            LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 没找到主窗口，尺寸未改")
+        }
+    }
+
+    private static func isMainWindow(_ window: NSWindow) -> Bool {
+        let className = String(describing: type(of: window))
+        guard className.contains("StatusBar") == false, window is NSPanel == false else { return false }
+        return window.isVisible
+    }
+}

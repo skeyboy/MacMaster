@@ -17,6 +17,9 @@ struct MacMasterApp: App {
     @StateObject private var settings = AppSettings.shared
 
     init() {
+        // 外观要在第一个窗口上屏之前定下来：晚一步就会拍到半深半浅的窗口，
+        // 那种照片看起来只是"截图失败了"，实际是把整轮色档结论污染掉。
+        LaunchAppearanceOverride.applyIfNeeded()
         registerAllModules()
     }
 

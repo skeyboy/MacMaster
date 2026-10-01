@@ -30,6 +30,7 @@ struct MainWindow: View {
         .onAppear {
             LaunchMinimizeHandler.applyOnceIfEnabled(settings: settings)
             applyLaunchTargetIfNeeded()
+            LaunchWindowSizeOverride.applyOnce()
         }
     }
 
