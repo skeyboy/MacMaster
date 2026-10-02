@@ -222,3 +222,51 @@
 
 单测注入 `/tmp` 下的假收据目录，覆盖匹配收据、损坏 plist 和候选清单不包含收据路径；
 真实运行才传 `/private/var/db/receipts`，`MM_ORPHAN_FIXTURE_HOME` 夹具运行不读真实收据。
+
+## 8. P5.2 追加（2026-10-02）：安装来源 03d ↔ 实现
+
+设计稿 `docs/design-system/screens/mmuninstaller/03d-uninstaller-provenance.html`（渲染图同目录 `.png`，
+三块：列表+详情、确认面板、五档文案合同表），实机证据 9 张在 `docs/verification/p7-brew/`。
+**零合成点击**：五档来源靠 `Scripts/provenance-fixture.sh` 造一棵假 home + 一份假 brew 账本
+（`<root>/.homebrew/Caskroom`），再用 `MM_UNINSTALL_SELECT=<bundleName>` 点名选中那一行；
+`MM_UNINSTALL_CONFIRM_MODE=none` 让面板不弹出来（弹了会盖掉这一轮真正要拍的列表与详情）。
+
+### 8.1 逐元素对照
+
+| 元素 | 设计稿 | 实机（照片编号） | 判定 |
+|---|---|---|---|
+| 列表行内 chip：`brew`（accent）/ `疑似 brew`（caution 橙） | `.src` / `.src.brew` / `.src.maybe`，16pt 高 | `01`（Highball `brew`）`02`（CodeEdit `疑似 brew`） | ✅ 16pt 而不是 `MMBadge` 的 18pt：行只有两行文字的空间 |
+| 后三档**不给**行内 chip | 合同表"列表无徽章" | `03`（歧义）`04`（App Store）`05`（无法判定）三张里 Firefox/WeChat/MysteryApp 行都干净 | ✅ 这一条是设计决定：chip 存在的理由是"它会改变你下一步的动作"，只有 brew 两档会 |
+| 详情标题旁徽章：`Homebrew cask · highball` / `疑似 Homebrew cask` / `App Store` / `安装包` | `.badge` 三档色 | `01` `02` `04` | ✅ 用 `MMBadge`（18pt），图标 `shippingbox` / `questionmark.circle` / `app.badge` / `square.and.arrow.down`；`unknown` 没有徽章——把"没查到"做成一种属性是假话 |
+| 键值行「来源」 | 合同表逐档一句 | `01`「Homebrew cask · highball 0.9.39（tap homebrew/cask）」/ `02`「可能是 Homebrew cask · codeedit（只有名字对上）」/ `04`「Mac App Store」/ `05`「无法判定」 | ✅ 强档带版本与 tap，弱档把"只有名字对上"写在标题里而不是小字里 |
+| 键值行「来源凭据」 | 指到那份 json | `01` `02` 指向 `<home>/.homebrew/Caskroom/<token>/.metadata/INSTALL_RECEIPT.json`；`04` `05` 整行不出现 | ✅ 只有 brew 两档有账本可指；`MMKeyRow` 不拿空串占位 |
+| 键值行「对应命令」 | 只展示，不执行 | `01` `brew uninstall --cask highball`；`02` 起就没有这一行 | ✅ 弱证据不配一条会改动系统状态的命令 |
+| 「判定依据」小字（info 图标 + 一句） | 合同表 `.sub` | `01`（设备号 + inode 相同）`02`（staged 链接指向别处）`03`（两份账本在抢同一份文件）`04`（收据跟着 bundle 走）`05`（不等于「手动安装」） | ✅ 五档各有自己的一句话，没有共用一条兜底文案 |
+| 确认面板「来源」行 + 橙色 brew 提醒 | `.dialog .callout` | `06`（提醒点名 `path` 与 `brew uninstall --cask highball`，末尾"MacMaster 不会代你运行 brew"） | ✅ 提醒只在 brew 两档出现，其余三档面板与 P1.5 之前一致 |
+| 深色档 | 同一套令牌 | `07` | ✅ chip/badge 的 soft 底色在深色下仍可读（截图里主按钮呈灰是**窗口非活动态**，不是配色漏档） |
+| 最小窗口（请求 900×600 → 夹到 1000 宽） | — | `08` | ✅ 「来源凭据」折成三行、「判定依据」折成两行，都不与相邻键重叠、不截尾 |
+| 真机（不注入夹具，读 `/opt/homebrew`） | — | `09`：44 个应用全部测完，Highball 一行给出设备号级凭据 + 对应命令 | ✅ 与夹具同一套代码路径，说明解析器不是只对着夹具写的 |
+
+### 8.2 取证这一步抓出来的两个真问题
+
+1. **歧义事实被"省一次赋值"吃掉了**。`UninstallerModel.provenanceMap` 当初写的是
+   `if found.source != .unknown { map[app.path] = found }`——理由是"默认值就是 unknown，
+   没必要为 44 个应用各存一份空结构"。但**两个 cask 抢同一份 bundle 也是 `.unknown`，却带着事实**，
+   于是 `03` 第一次拍出来是一句空白的「无法判定」，看不出 firefox 与 firefox-beta 在打架。
+   判据改成"没有事实才不入表"（`source != .unknown || ambiguousCaskTokens.isEmpty == false`），
+   回归测试是 `testLoadAppsKeepsAmbiguousCaskTokensOnAnUnknownSource`——它走的是模型装配路径，
+   纯引擎测试（`testTwoCasksStagingTheSameBundleIsAmbiguous`）当时全绿也照样漏掉这个。
+2. **两种歧义的可信度不一样，文案不能混着说**。合同表原本只有一句「两个 cask 都声明了这个名字」，
+   而 `03` 的夹具是**两份 staged 链接解析后都指向同一个 inode**——这比"名字撞上"强得多，
+   说成"名字"是把已知的事实说小了。于是 `AppProvenance` 记一个 `ambiguousByDeviceIdentity`，
+   来源行与判定依据各自分叉，设计稿合同表补了第二行。
+
+### 8.3 拍不到的（点名，免得下轮又去找脚本）
+
+- **安装包档（`.installerPackage`）没有实机照片**。判定要 `bundleID ∈ /var/db/receipts`，
+  而夹具运行刻意把 `provenanceReceiptsRootFactory` 置 `nil`（假 home 不该去读真机系统收据，
+  否则"这一档没命中"到底是没凭据还是没读系统就分不出来）。合同文案与降级路径由
+  `AppProvenancePresentationTests` 覆盖，照片只有稿子第三块。
+- **"账本声明了 app、但那份 bundle 早就不在"的悬空链**只在弱档里出现（`02` 就是它），
+  没有单独一屏——它的 UI 表现就是"没有徽章"，与 `05` 同框。
+

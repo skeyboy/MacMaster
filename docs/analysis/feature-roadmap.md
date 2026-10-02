@@ -585,6 +585,52 @@ Mole 会 `git ls-files` 探产物里是否混了签入的源码，我们**不 sp
   照片停在确认面板（`04-fixture-confirm-sheet.jpg`）。
 - 扫描器的 `progress:` 回调没接 UI（真机 16 秒，转圈可接受），本轮明确不做。
 
+## P5.2 落地：安装来源识别（卸载页 03d，只读 brew 账本）（2026-10-02）
+
+候选表 #2。给「已装应用」每一行标出它是**怎么装上的**，并在删除前把后果说清楚：
+brew cask 装的应用被拖进废纸篓，`brew list` 仍然说它装着。
+
+- **事实层** `AppProvenance.swift`（248 行）+ `AppProvenanceScanner`：
+  只读 `<prefix>/Caskroom/<token>/.metadata/INSTALL_RECEIPT.json` 与 bundle 自己的元数据，
+  **不 spawn 任何第三方二进制**（brew / git / pkgutil / mdls 一个都不叫），不碰私有框架。
+  两个前缀（`/opt/homebrew`、`/usr/local`）都探，不按 CPU 架构猜——ARM 机器上另装一份 Intel brew 很常见。
+- **判据强度排序**：设备身份 `(st_dev, st_ino)`（Caskroom 里 staged 的 `.app` 链接解析后与本 bundle
+  是同一个 inode）> MAS 收据 `Contents/_MASReceipt/receipt` > 只有声明的名字对上 > 包名出现在
+  `/var/db/receipts` > 无。命中两个 token 就**降级并点名**，不替用户挑第一个。
+  "unknown ≠ 手动安装"写进了文案：装在别的卷、换了名字、用了别的安装器都会落在这里。
+- **呈现层**全部在 `MMUninstaller.swift` 的 `extension UninstallCandidate`（`sourceChip` /
+  `sourceBadge` / `sourceValue` / `sourceReceipt` / `sourceCommand` / `sourceBasis` / `sourceWarning`），
+  文案合同 = 设计稿 03d 第三块那张表，逐字一致。**列表行内徽章只给 brew 两档**：
+  这枚标记存在的理由是"它会改变你下一步的动作"，App Store 与安装包没有这种后果就不在列表里打扰。
+- **对应命令只展示，绝不代跑**：`brew uninstall --cask <token>` 只在**设备号级凭据**那一档出现；
+  只有名字对上时不给命令——凭据不足就推荐一条会改动系统状态的指令，是这一页最贵的一种错。
+- 来源识别排在**测体积之前**：一条 stat 一次的开销，不需要等几十秒的 `DirectoryMetrics`
+  才有徽章，列表刚出来就该说得出这一行是什么。
+
+### 真机现状（`09-real-machine.jpg`，不注入任何夹具）
+
+44 个应用全部测完：3 个设备号级 cask 命中（highball / homebrew-app / wailbrew）、
+9 个 MAS 收据、0 个安装包命中、**0 个误报**（其余全部如实落在"无法判定"）。
+Highball 那一屏给的是 `/opt/homebrew/Caskroom/highball/.metadata/INSTALL_RECEIPT.json`
+与 `brew uninstall --cask highball`。这一张存在的意义是：解析器不是只对着夹具写的。
+
+### 取证这一步抓出来的两个问题（详见 `fidelity-uninstaller.md` §8.2）
+
+1. `provenanceMap` 用 `source != .unknown` 过滤"没必要存的空结构"，把**歧义这一档的事实**
+   一起丢了（歧义也是 `.unknown`）。照片第一次拍出来是一句空白的「无法判定」。
+   引擎单测当时全绿——漏的是模型装配路径，回归测试因此写在 `AppProvenanceTests` 而不是引擎测试里。
+2. 两种歧义可信度不同：一份是"两份账本都**声明**了这个名字"，另一份是"两份 staged 链接
+   解析后**都是这一份文件**"。合同表原本只有一句，实现照抄就把已知的事实说小了。
+   补 `ambiguousByDeviceIdentity`，来源行与判定依据各自分叉，设计稿补第二行。
+
+### 没能验证到的部分
+
+- **安装包档（`.installerPackage`）没有实机照片**：夹具运行刻意不读真机 `/var/db/receipts`
+  （否则"这一档没命中"到底是没凭据还是没读系统就分不出来），真机上这台也没有 bundleID 命中的包。
+  只有设计稿合同表那一行 + 单测。
+- **不删任何东西**：来源识别是纯读；照片停在确认面板（`06-fixture-confirm-sheet.jpg`），
+  删除链路仍是 `DeletionGuard` → `FileTrashService`，本轮没有改动。
+
 ## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
@@ -596,12 +642,12 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 | # | 候选 | 外部证据（本地可读） | 现状 | 代价 | 红线 |
 |---|---|---|---|---|---|
 | 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | **已落地**：`ProjectArtifactScanner` + cleaner 第四子页「开发产物」（稿 02c），见上一节 | — | 红线全部避开；`MM_PURGE_FIXTURE_HOME` 已按只认 /tmp 落地 |
-| 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | MMUninstaller 完全没有"来源"概念 | S–M | 不撞。夹具注入即可，复用 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`，不需要新钩子 |
+| 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | 现在只监听 `~/.Trash`，用户"立即删除"或 `rm` 掉 app 时残留提示完全不触发 | M | 不撞：不学它的常驻 LaunchAgent，照 `TrashWatcher` 的"页面存活期 arm"做进程内监听。需 `MM_APPS_WATCH_FIXTURE_DIR`（限 /tmp） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
 | 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | 现在只做"如实报截断"，不做续扫；用户想扫完只能反复点重新扫描（每次都是全量重扫） | S–M | 不撞：纯只读扫描调度。要新增"这一批扫到哪了"的状态，别把它做成后台常驻进程 |
 
-**推荐顺序 2 → 3 → 5**：1 已落地；2 最便宜且直接改善卸载页的决策质量；3 补的是已落地功能的一个真实盲区；
+**推荐顺序 3 → 5**：1、2 已落地；3 补的是已落地功能的一个真实盲区（`/Applications` 装卸事件监听）；
 5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了）。4 价值最低。
 另有两件内部欠账与它们并行：disktree 最后一项"跨重扫保留 marks"、
 以及 P4 记下的几处还原度瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、
