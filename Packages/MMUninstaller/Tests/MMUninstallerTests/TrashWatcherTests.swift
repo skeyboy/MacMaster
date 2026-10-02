@@ -55,6 +55,32 @@ final class TrashWatchRuleTests: XCTestCase {
         setenv(key, "", 1)
         XCTAssertNil(TrashWatcher.fixtureEnvironmentValue(key: key), "空值等于没设")
     }
+
+    /// 我们自己卸载出来的那一条不读盘：目的地在 `~/.Trash`，而没有「完全磁盘访问」时
+    /// 那里连列目录都做不到。拿不存在的路径构造也得成功 —— 一旦它去 stat 或读 Info.plist，
+    /// 这张回声卡在真实机器上就会时隐时现。
+    func testSelfMovedArrivalNeedsNoDiskAccess() {
+        let ghost = "/tmp/does-not-exist-anywhere/Highball.app"
+        guard let arrival = TrashArrival(selfMovedPath: ghost, name: "Highball",
+                                         bundleID: "com.example.Highball") else {
+            return XCTFail("卸载回声不该依赖读得到废纸篓")
+        }
+        XCTAssertEqual(arrival.path, ghost)
+        XCTAssertEqual(arrival.id, ghost)
+        XCTAssertEqual(arrival.entry, "Highball.app", "标题与「还在不在」都按条目名说话")
+        XCTAssertEqual(arrival.name, "Highball", "名字用卸载前已读到的显示名，不是磁盘名")
+        XCTAssertEqual(arrival.bundleID, "com.example.Highball")
+
+        // 同一位置交给读盘的那条构造路径：文件不存在 → 读不出包名 → 不成立。
+        XCTAssertNil(TrashArrival(trashDirectory: "/tmp/does-not-exist-anywhere", entry: "Highball.app"))
+    }
+
+    /// 系统自带应用即便被我们移走也不报：删它的数据是破坏系统，不是回收空间。
+    func testSelfMovedArrivalRejectsSystemOwned() {
+        XCTAssertNil(TrashArrival(selfMovedPath: "/tmp/x/Safari.app", name: "Safari",
+                                  bundleID: "com.apple.Safari"))
+        XCTAssertNil(TrashArrival(selfMovedPath: "/tmp/x/Foo.app", name: "Foo", bundleID: ""))
+    }
 }
 
 // MARK: - 监听器（/tmp 夹具）

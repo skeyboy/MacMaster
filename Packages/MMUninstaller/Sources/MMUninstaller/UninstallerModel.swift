@@ -145,6 +145,10 @@ public final class UninstallerModel: ObservableObject {
     /// 「仅卸载应用」不在这里——那条路径确实只带走了本体，提示有价值，只该换文案。
     @Published public private(set) var selfMovedWithResidualsBundleIDs: Set<String> = []
 
+    /// 「仅卸载应用」那一条被我们送进废纸篓后的凭据（目的地路径 + 包标识）。
+    /// 它不来自列目录：废纸篓读不动的机器上，卸载回声是这张卡唯一的来源。
+    @Published public private(set) var selfEchoArrival: TrashArrival?
+
     /// 扫描参数注入点：单测把 home 指到临时目录，真实运行用默认值（当前用户）。
     var optionsFactory: () -> ResidualScanOptions = { ResidualScanOptions() }
     var appDirectoriesFactory: (String) -> [String] = AppScanner.defaultSearchDirectories
@@ -395,13 +399,19 @@ public final class UninstallerModel: ObservableObject {
         let moved = Set(result.operation.files.map(\.originalPath))
         if moved.contains(appID) {
             // 我们自己移走的那条，两个监听都不该再报：那是自己的动作的回声。
-            if let bundleID = apps.first(where: { $0.id == appID })?.bundleID, bundleID.isEmpty == false {
+            if let app = apps.first(where: { $0.id == appID }), app.bundleID.isEmpty == false {
+                let bundleID = app.bundleID
                 selfMovedBundleIDs.insert(bundleID)
                 if movedResidualsToo {
                     selfMovedWithResidualsBundleIDs.insert(bundleID)
                 } else {
                     // 撤回后重卸（或反过来）要按最新那条路径处理，集合里不能留旧档位。
                     selfMovedWithResidualsBundleIDs.remove(bundleID)
+                    // 「仅卸载应用」留下的残留没人管，那张提示卡不能等列目录的监听来发现：
+                    // 本机没有「完全磁盘访问」时 `~/.Trash` 根本列不动，而卸载确实成功了。
+                    if let trashPath = result.operation.files.first(where: { $0.originalPath == appID })?.trashPath {
+                        selfEchoArrival = TrashArrival(selfMovedPath: trashPath, name: app.name, bundleID: bundleID)
+                    }
                 }
             }
             apps.removeAll { $0.id == appID }
@@ -429,6 +439,14 @@ public final class UninstallerModel: ObservableObject {
         let back = Set(apps.map(\.bundleID))
         selfMovedBundleIDs.subtract(back)
         selfMovedWithResidualsBundleIDs.subtract(back)
+        // 本体被我们放回应用目录了：那条回声不再是"在废纸篓里等清理"。
+        selfEchoArrival = nil
+    }
+
+    /// 「忽略」这张回声卡。要清的是来源本身，只清选中项的话下一次同步又把它选回来。
+    public func dismissSelfEchoArrival() {
+        selfEchoArrival = nil
+        selectTrashArrival(nil)
     }
 
     // MARK: - 卸载后遗症（反向扫描）

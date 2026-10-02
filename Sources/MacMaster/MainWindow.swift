@@ -31,6 +31,7 @@ struct MainWindow: View {
             LaunchMinimizeHandler.applyOnceIfEnabled(settings: settings)
             applyLaunchTargetIfNeeded()
             LaunchWindowSizeOverride.applyOnce()
+            MMWindowProbe.start()
         }
     }
 

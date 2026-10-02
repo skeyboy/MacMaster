@@ -55,6 +55,18 @@ public struct TrashArrival: Identifiable, Equatable, Sendable {
         self.bundleID = bundleID
         self.name = AppScanner.displayName(at: path, bundleName: String(entry.dropLast(4)))
     }
+
+    /// 由**我们自己的卸载动作**构造那一条：目的地是 `FileTrashService` 回填的废纸篓路径，
+    /// 名字和包标识取自卸载前已经读好的应用记录 —— 全程不必读废纸篓目录。
+    /// 没有「完全磁盘访问」的机器列不动 `~/.Trash`，可卸载确实发生了，那张卡不能因此消失。
+    init?(selfMovedPath path: String, name: String, bundleID: String) {
+        guard TrashWatchRule.isReportable(bundleID: bundleID) else { return nil }
+        self.id = path
+        self.path = path
+        self.entry = (path as NSString).lastPathComponent
+        self.name = name
+        self.bundleID = bundleID
+    }
 }
 
 // MARK: - 监听器

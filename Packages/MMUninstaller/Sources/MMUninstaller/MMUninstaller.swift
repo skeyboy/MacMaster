@@ -276,6 +276,9 @@ public struct UninstallerView: View {
         }
         .onChange(of: model.selfMovedBundleIDs) { _, _ in
             syncDepartureNotice(with: appWatcher.departures)
+            // 同一次卸载既写回声抑制集合、也写下我们自己那条废纸篓凭据。
+            // 监听读不动废纸篓时不会再有别的触发点，卡片只能在这里被同步出来。
+            syncTrashNotice(with: trashWatcher.arrivals)
         }
         .onChange(of: settings.watchAppFolderChanges) { _, enabled in
             if enabled {
@@ -741,13 +744,15 @@ public struct UninstallerView: View {
         let candidates = arrivals.filter {
             model.selfMovedWithResidualsBundleIDs.contains($0.bundleID) == false
         }
-        if candidates.isEmpty {
+        // 监听读得到废纸篓时以它为准（还原、清空都会让条目从清单里消失）。
+        // 只有它读不动的时候，才退回我们自己那条卸载凭据。
+        let echoFallback = trashWatcher.status == .watching ? nil : model.selfEchoArrival
+        if let current = model.trashArrival,
+           candidates.contains(where: { $0.id == current.id }) || current.id == echoFallback?.id { return }
+        guard let chosen = candidates.last ?? echoFallback else {
             model.selectTrashArrival(nil)
             return
         }
-        if let current = model.trashArrival,
-           candidates.contains(where: { $0.id == current.id }) { return }
-        guard let chosen = candidates.last else { return }
         model.selectTrashArrival(chosen)
         Task {
             await model.scanTrashResiduals(home: Self.trashScanHome)
@@ -757,8 +762,11 @@ public struct UninstallerView: View {
 
     /// 这张卡是**我们自己的卸载按钮**造成的。那时候「刚拖进废纸篓」的主语是假的 ——
     /// 用户没拖。徽章要说谁干的，标题要用第二人称。
+    /// 读 `selfEchoArrival` 兜底：卸载刚完成、同步还没跑的那一帧里 `trashArrival` 还是空的，
+    /// 慢半拍就会闪出一句「刚拖进废纸篓：」——主语错一句话比空一帧贵。
     private var isSelfEchoTrashArrival: Bool {
-        guard let bundleID = model.trashArrival?.bundleID, bundleID.isEmpty == false else { return false }
+        guard let bundleID = (model.trashArrival ?? model.selfEchoArrival)?.bundleID,
+              bundleID.isEmpty == false else { return false }
         return model.selfMovedBundleIDs.contains(bundleID)
     }
 
@@ -900,7 +908,6 @@ public struct UninstallerView: View {
                      + "否则它会把自己散在 ~/Library 的文件当成「有主人」漏掉。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack(spacing: MMGap.sm) {
@@ -971,7 +978,6 @@ public struct UninstallerView: View {
                  + "监听范围与列举范围一致，只覆盖应用目录第一层的 .app。")
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, MMGap.lg)
         .padding(.vertical, MMGap.sm)
@@ -997,7 +1003,6 @@ public struct UninstallerView: View {
                          + "目录不存在与读不到是两种原因，这里不混为一谈，也不放授权按钮。")
                         .font(.caption)
                         .foregroundStyle(MMColor.secondaryLabel)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: MMGap.sm)
             }
@@ -1014,6 +1019,10 @@ public struct UninstallerView: View {
         if settings.watchTrashForResidualCleanup == false {
             // 关掉就不留任何痕迹：把"已关闭"再在这页复述一遍，等于把设置页的话说两次。
             EmptyView()
+        } else if hasTrashNotice, pane == .apps {
+            // 有可说的卡片时先说卡片。横幅讲的是"我们看不见废纸篓"，
+            // 而回声卡讲的是"我们刚亲手做过一件事"——后者才是用户此刻要的答案。
+            trashNoticeCard
         } else if case .unreadable(let reason, let needsFullDiskAccess) = trashWatcher.status {
             MMPermissionBanner(
                 title: needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了",
@@ -1022,16 +1031,22 @@ public struct UninstallerView: View {
                     : reason + " 这和权限无关，所以这里不放授权按钮。",
                 settingsPane: needsFullDiskAccess ? Self.fullDiskAccessPane : nil
             )
-        } else if trashWatcher.arrivals.isEmpty == false, pane == .apps {
-            trashNoticeCard
         }
+    }
+
+    /// 卡片有没有内容可讲：监听报到的拖入，或我们自己那次「仅卸载应用」。
+    private var hasTrashNotice: Bool {
+        trashWatcher.arrivals.isEmpty == false || model.selfEchoArrival != nil
     }
 
     private var trashNoticeCard: some View {
         let arrivals = trashWatcher.arrivals
+        /// 卡片讲的是"当前选中的那一条"。监听读不到废纸篓时它会是空的，
+        /// 这时候拿 `arrivals[0]` 念名字既不对也会越界 —— 主语得跟着选中项走。
+        let subject = model.trashArrival ?? model.selfEchoArrival ?? arrivals.last
         let items = model.trashResidualItems
         let selfEcho = isSelfEchoTrashArrival
-        let arrivalPath = model.trashArrival?.path ?? arrivals.last?.path ?? ""
+        let arrivalPath = subject?.path ?? ""
         let arrivalDisplayPath = ResidualCollector.display(arrivalPath, home: NSHomeDirectory())
         return VStack(alignment: .leading, spacing: MMGap.sm) {
             HStack(spacing: MMGap.sm) {
@@ -1049,9 +1064,9 @@ public struct UninstallerView: View {
                     Text("有 \(arrivals.count) 个应用刚进废纸篓").font(.callout.weight(.semibold))
                 } else if selfEcho {
                     // 第二人称才是实话：用户没拖，是我们自己的按钮把它移走的。
-                    Text("你刚卸载了 \(arrivals[0].name)，残留还在").font(.callout.weight(.semibold))
+                    Text("你刚卸载了 \(subject?.name ?? "")，残留还在").font(.callout.weight(.semibold))
                 } else {
-                    Text("刚拖进废纸篓：\(arrivals[0].name)").font(.callout.weight(.semibold))
+                    Text("刚拖进废纸篓：\(subject?.name ?? "")").font(.callout.weight(.semibold))
                 }
 
                 MMBadge(selfEcho ? "由 MacMaster 移入" : "本体已在废纸篓",
@@ -1061,14 +1076,17 @@ public struct UninstallerView: View {
                 Spacer(minLength: MMGap.sm)
 
                 Button {
-                    MMReveal.open(model.trashArrival?.path ?? arrivals.last?.path ?? "")
+                    MMReveal.open(subject?.path ?? "")
                 } label: {
                     Label("在访达中显示", systemImage: "folder")
                 }
                 .controlSize(.small)
                 .buttonStyle(.borderless)
 
-                Button("忽略") { trashWatcher.dismiss() }
+                Button("忽略") {
+                    trashWatcher.dismiss()
+                    model.dismissSelfEchoArrival()
+                }
                     .controlSize(.small)
                     .buttonStyle(.borderless)
             }
@@ -1081,7 +1099,7 @@ public struct UninstallerView: View {
                     .truncationMode(.middle)
                 Text("·")
                     .foregroundStyle(MMColor.tertiaryLabel)
-                Text(model.trashArrival?.bundleID ?? arrivals.last?.bundleID ?? "")
+                Text(subject?.bundleID ?? "")
                     .font(.caption.monospaced())
                     .foregroundStyle(MMColor.secondaryLabel)
                     .lineLimit(1)
