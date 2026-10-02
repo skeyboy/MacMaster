@@ -53,7 +53,16 @@
         border:1px solid var(--c-separator);border-radius:var(--r-md);background:var(--c-content-bg)}
 .sumbar .sum{display:flex;flex-direction:column;gap:2px;min-width:0}
 .sumbar .sum b{font-size:var(--fs-title3);font-weight:600;font-variant-numeric:tabular-nums}
-.sumbar .sum span{font-size:var(--fs-caption);color:var(--c-label-secondary)}</style></head>
+.sumbar .sum span{font-size:var(--fs-caption);color:var(--c-label-secondary)}
+/* —— P6.1 续扫档 —— */
+.atitle{font-size:var(--fs-callout);font-weight:600;color:var(--c-label-secondary);
+        align-self:flex-start;margin-left:calc((100vw - var(--win-w)) / 2)}
+/* chip 三态：无色 = 第一批就扫完；绿 = 本轮（第二批）扫完；橙 = 仍在截断 */
+.chip.new{background:var(--c-success-soft);color:var(--c-success)}
+.chip.bad{background:var(--c-warning-soft);color:var(--c-warning)}
+.batchtag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:var(--r-xs);
+          font-size:10px;font-weight:600;background:var(--c-accent-soft);color:var(--c-accent)}
+.rowbtns{display:inline-flex;gap:var(--sp-2);margin-left:auto}</style></head>
 <body>
 
 <div class="artboard">
@@ -235,6 +244,200 @@
 本稿把它画在 Rust 的 <code>target/</code> 上是实测过的：Cargo 构建时会自己往 <code>target/CACHEDIR.TAG</code> 写这个签名行。
 <b>扫描如实报残</b>：超时的根显式标注「已截断」，截断范围内的项目本轮不报数——宁可少报，不把半截结果折成完整数字。
 默认全部不勾选；「重新扫描」「选中 7 天未触碰的」「取消全选」都在各自条内，底部操作栏只汇总已选口径。</div>
+</div>
+
+<!-- ═══════════════ ② P6.1 续扫：第二批扫完之后的同一屏 ═══════════════ -->
+<div class="atitle">② 续扫之后 —— 按「继续扫描这 2 个根」跑完第二批</div>
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span>
+          <span class="pct">6% 可用</span>
+        </div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>开发产物</h1>
+          <p>15 个项目 · 49 处产物 · 本清单由 2 批拼成 · 1 个根仍在扫</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span>缓存清理</span><span>用户文件夹</span><span>系统分析</span><span class="on">开发产物</span></div>
+      </div>
+
+      <div class="scroll" style="padding:0 var(--sp-4)">
+
+        <!-- ① 扫描根芯片三态：第一批扫完 / 本轮扫完 / 仍在截断 -->
+        <div class="scopebar">
+          <div class="row-h" style="flex-wrap:wrap;gap:6px">
+            <span class="t-sub" style="flex:0 0 auto">扫描根</span>
+            <span class="chip">~/dev</span><span class="chip">~/Projects</span><span class="chip">~/Code</span>
+            <span class="chip">~/Workspace</span><span class="chip">~/Repos</span><span class="chip">~/www</span>
+            <span class="chip new">~/Documents ✓ 本轮</span>
+            <span class="chip bad">~/Library/CloudStorage</span>
+            <span class="rowbtns">
+              <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+              <span class="btn sm primary"><svg class="i"><use href="#i-play"></use></svg>继续扫描这 1 个根</span>
+            </span>
+          </div>
+          <div class="row-h" style="gap:6px;align-items:flex-start">
+            <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+            <span class="note">只读扫描，不跟随符号链接；链接指向的目录一律不进入、不列出。<br>
+              「继续扫描」只重跑被截断的那个根，不重新发现新的顶层目录——新项目要按「重新扫描」才会进来。</span>
+          </div>
+          <div class="row-h" style="gap:6px;align-items:flex-start">
+            <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-warn"></use></svg>
+            <span class="note" style="color:var(--c-warning)">1 个根扫到一半超时，已截断：~/Library/CloudStorage ——
+              截断范围内的项目本轮仍不报数，其余 7 个根已扫完。</span>
+          </div>
+          <div class="row-h" style="gap:6px;align-items:flex-start">
+            <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-clock"></use></svg>
+            <span class="note">第 2 批用了 4.2 秒：第一批已经量到的行直接复用，这一批的预算全花在没测完的行上。</span>
+          </div>
+        </div>
+
+        <!-- ② 汇总条：数字变大，勾选不变 -->
+        <div class="sumbar">
+          <div class="sum">
+            <b>15 个项目 · 49 处产物 · 可回收 22.6 GB</b>
+            <span>续扫不替你勾选：第二批新扫出来的 12 行全部未选中，批量按钮也不会自动再跑一遍。</span>
+          </div>
+          <span style="margin-left:auto;display:inline-flex;gap:var(--sp-2)">
+            <span class="btn sm"><svg class="i"><use href="#i-clock"></use></svg>选中 7 天未触碰的</span>
+            <span class="btn sm">取消全选</span>
+          </span>
+        </div>
+
+        <div class="tblcard">
+          <div class="hdr"><span class="chk"></span><span>产物 · 相对项目根的路径</span>
+            <span class="r">体积</span><span class="r">状态</span></div>
+
+          <!-- 组：data-platform —— 第二批把两行补完了 -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            data-platform <span class="pth">~/Repos/data-platform</span>
+            <span class="batchtag">第 2 批补全</span>
+            <span class="sp"></span><span class="cnt mono">4.1 GB · 6 处</span>
+            <span class="badge">nx</span></div>
+          <!-- 第二批重看后判成受保护：勾选框消失，已选数字跟着变小 -->
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>node_modules</b><span>packages/etl/node_modules</span>
+              <i>产物目录内有 .git：可能是签出的源码，不是产物（两批之间新出现的）</i></div>
+            <div class="sz">1.8 GB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <!-- 第一批"读不到"（体积没测到）→ 第二批量到了：这一行现在才有勾选框 -->
+          <div class="crow"><span class="chk"></span>
+            <div class="nm"><b>node_modules</b><span>services/reporting/node_modules</span></div>
+            <div class="sz">620 MB</div><div class="bk"><span class="badge safe">14 天未触碰</span></div></div>
+          <!-- 第一批的兜底保护被重看推翻：邻居证据这轮成立了 -->
+          <div class="crow"><span class="chk"></span>
+            <div class="nm"><b>bin</b><span>tools/bin</span>
+              <i>旁边有 .csproj 且含 Debug/Release —— 本轮补上的邻居证据</i></div>
+            <div class="sz">58 MB</div><div class="bk"><span class="badge safe">31 天未触碰</span></div></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>vendor</b><span>services/payments/vendor</span>
+              <i>vendor/ 旁有 go.mod：Go 的 vendoring 是源码的一部分</i></div>
+            <div class="sz">246 MB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>build</b><span>libs/opencv/build</span>
+              <i>产物目录内有 .git：可能是签出的源码，不是产物</i></div>
+            <div class="sz">1.4 GB</div><div class="bk"><span class="badge readonly">受保护</span></div></div>
+          <!-- 嵌套行：祖先也是候选时只标不量，体积写"—" -->
+          <div class="crow dis"><span></span>
+            <div class="nm"><b>node_modules</b><span>libs/opencv/build/node_modules</span>
+              <i>嵌套在另一处产物里，体积只在祖先那一行计一次，不重复统计</i></div>
+            <div class="sz">—</div><div class="bk"><span class="badge readonly">已计入上一行</span></div></div>
+
+          <!-- 组：macmaster-web —— 第一批就扫完的组，逐字节不变 -->
+          <div class="gtitle"><svg class="i"><use href="#i-chev-d"></use></svg>
+            <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-folder"></use></svg>
+            macmaster-web <span class="pth">~/Code/macmaster-web</span>
+            <span class="sp"></span><span class="cnt mono">2.9 GB · 2 处</span>
+            <span class="badge">pnpm-workspace</span></div>
+          <div class="crow sel"><span class="chk on">✓</span>
+            <div class="nm"><b>node_modules</b><span>packages/web/node_modules</span></div>
+            <div class="sz">2.4 GB</div><div class="bk"><span class="badge safe">23 天未触碰</span></div></div>
+          <div class="crow"><span class="chk"></span>
+            <div class="nm"><b>.next</b><span>apps/web/.next</span><i>可能正在编译，默认不选中</i></div>
+            <div class="sz">512 MB</div><div class="bk"><span class="badge warn">今天改动过</span></div></div>
+
+          <div class="more"><svg class="i"><use href="#i-dots"></use></svg>
+            其余 13 个项目 · 42 处产物 —— 其中第二批新扫出 ~/Documents 的 3 个项目 · 6.6 GB，整组排在后面；
+            第一批就扫完的组逐行与 ① 号稿一致（同样的路径、同样的体积、同样的判定）。
+            可回收 22.6 GB = ① 号稿的 17.1 − 改判受保护的 1.8 + 本轮量到的 0.68 + 新项目的 6.6。</div>
+        </div>
+      </div>
+
+      <div class="actionbar">
+        <div class="sum"><b>已选 3 处 · 11.1 GB</b>
+          <span>第二批把其中一行改判为「受保护」，它自动退出勾选——已选的数字只会变小，不会变大。</span></div>
+        <div class="sp" style="margin-left:auto"></div>
+        <span class="btn destructive lg">移 3 处产物入废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>续扫不是"再扫一遍"，是"只把没扫完的根接着扫完"。</b>
+<b>扫描根芯片三态</b>：无色 = 第一批就走完；绿（success 档）= 本轮扫完，徽章跟着「✓ 本轮」；橙 = 仍在截断，
+只有橙的那一个根会被下一批重跑。<b>按钮换了主语</b>：从「重新扫描」（全量、清空勾选）变成
+「继续扫描这 1 个根」——数字是这一批真正要重跑的根数，不是截断根的总数。<b>清单由几批拼出来要写在脸上</b>，
+所以副标题写「本清单由 2 批拼成」，点名条里再写第二批的耗时与"复用已量到的行"。<br>
+<b>合并的三条规矩在这一屏都能看见</b>：① 被续扫的根<b>整区替换</b>（组头挂「第 2 批补全」），
+没被续扫的组逐字节不变；② 判定只会朝<b>更安全</b>的方向变——第一批勾上的行这轮重看判成受保护，
+勾选框消失、已选从 4 处 12.9 GB 缩到 3 处 11.1 GB，反方向（受保护变可勾）不会由续扫产生，
+它属于「重新扫描」；③ 第一批"读不到"的行这轮量到了才有勾选框，<b>新扫出的行一律不自动选中</b>。
+嵌套行写「已计入上一行」、体积「—」，是合并后按候选全集重算标记的结果——体积不重复计，
+「可回收」这个总数才不会虚高。</div>
+</div>
+
+<!-- ═══════════════ ③ 同一个根第二次仍截断：改口，不再给按钮 ═══════════════ -->
+<div class="atitle">③ 已试过 2 次 —— 同一个根再截断时的点名条（局部，无整窗）</div>
+<div class="artboard">
+  <div class="scopebar" style="width:var(--win-w)">
+    <div class="row-h" style="flex-wrap:wrap;gap:6px">
+      <span class="t-sub" style="flex:0 0 auto">扫描根</span>
+      <span class="chip">~/dev</span><span class="chip">~/Projects</span><span class="chip">~/Code</span>
+      <span class="chip">~/Documents</span><span class="chip">~/Repos</span>
+      <span class="chip bad">~/Library/CloudStorage</span>
+      <span class="rowbtns">
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+        <span class="btn sm disabled"><svg class="i"><use href="#i-play"></use></svg>继续扫描这 1 个根</span>
+      </span>
+    </div>
+    <div class="row-h" style="gap:6px;align-items:flex-start">
+      <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-warn"></use></svg>
+      <span class="note" style="color:var(--c-warning)">~/Library/CloudStorage 已经扫过 2 次，15 秒内扫不完。
+        这里的产物本轮仍不报数——"扫不完"是这一处的结论，不是"里面很干净"。</span>
+    </div>
+    <div class="row-h" style="gap:6px;align-items:flex-start">
+      <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+      <span class="note">想把它扫完，两条路都比再按一次有效：把项目放到更浅一层的目录，
+        或者把某一个项目目录单独设为搜索根（单项目模式允许产物直接落在根上，深度 0 也认）。
+        本应用不做后台常驻扫描——那等于一直在读你的 iCloud 目录。</span>
+    </div>
+  </div>
+<div class="cap"><b>第三次按钮不该还存在。</b>同一个根第二次仍截断，说明它在预算内就是扫不完，
+点名条从"给一个继续扫的按钮"改成"说清这是这一处的上限 + 给出两条出路"，按钮置灰留着是为了说明
+"不是坏了，是不该再按"。<b>预算不递加</b>是刻意的：把 15 秒换成 60 秒只是把一次白屏换成四次白屏，
+而且让"再按一次"的代价变得不可预期。这一档由内存里的尝试计数驱动，不跨启动保存。</div>
 </div>
 
 </body></html>
