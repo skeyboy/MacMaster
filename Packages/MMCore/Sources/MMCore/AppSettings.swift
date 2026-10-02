@@ -33,6 +33,7 @@ public final class AppSettings: ObservableObject {
         case excludedFolderPaths = "settings.cleaner.excludedFolderPaths"
 
         case watchTrashForResidualCleanup = "settings.uninstaller.watchTrashForResidualCleanup"
+        case watchAppFolderChanges = "settings.uninstaller.watchAppFolderChanges"
     }
 
     /// 「更新间隔」仅允许的取值（秒），与 Settings UI 的分段选项一致。
@@ -129,6 +130,13 @@ public final class AppSettings: ObservableObject {
         didSet { defaults.set(watchTrashForResidualCleanup, forKey: Key.watchTrashForResidualCleanup.rawValue) }
     }
 
+    /// 停在「应用卸载」页时监听应用目录，把"清单已经不反映磁盘"这件事报出来：
+    /// 应用被废纸篓以外的方式删走（立即删除、`rm`、自带卸载器）时提示去扫残留，
+    /// 装了新应用时提示清单过期。与上一条同样只在页面存活期监听，不是后台常驻。
+    @Published public var watchAppFolderChanges: Bool {
+        didSet { defaults.set(watchAppFolderChanges, forKey: Key.watchAppFolderChanges.rawValue) }
+    }
+
     // MARK: - Setup
 
     public static let defaultMonitorRefreshInterval = 2
@@ -154,6 +162,7 @@ public final class AppSettings: ObservableObject {
             Key.excludedFolderPaths.rawValue: [String](),
 
             Key.watchTrashForResidualCleanup.rawValue: true,
+            Key.watchAppFolderChanges.rawValue: true,
         ]
     }
 
@@ -185,6 +194,7 @@ public final class AppSettings: ObservableObject {
         self.allowUndo = defaults.bool(forKey: Key.allowUndo.rawValue)
         self.excludedFolderPaths = defaults.stringArray(forKey: Key.excludedFolderPaths.rawValue) ?? []
         self.watchTrashForResidualCleanup = defaults.bool(forKey: Key.watchTrashForResidualCleanup.rawValue)
+        self.watchAppFolderChanges = defaults.bool(forKey: Key.watchAppFolderChanges.rawValue)
     }
 
     /// 供 MenuBarManager 等处使用的秒数（保底 >= 1，避免除零）。

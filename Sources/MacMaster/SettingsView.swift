@@ -145,10 +145,16 @@ struct SettingsView: View {
                 Toggle("允许撤回操作", isOn: $settings.allowUndo)
             }
 
-            Section("废纸篓") {
+            Section("监听") {
                 Toggle("在应用卸载页提示清理刚拖入应用的残留", isOn: $settings.watchTrashForResidualCleanup)
                 Text("只在停在「应用卸载」这一页时监听，离开就停，不是后台常驻。"
                      + "监听只列目录里的条目名，并读新进入的 .app 的 Info.plist 取包标识。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Toggle("提示应用目录里的装卸变化", isOn: $settings.watchAppFolderChanges)
+                Text("应用被废纸篓以外的方式删走（「立即删除」、清空废纸篓、自带卸载器、"
+                     + "终端里的 rm）时，这里不会静默：清单已经不反映磁盘了，会提示去扫卸载后遗症。"
+                     + "同样只在停在这一页时监听，只读目录，不写任何东西。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }

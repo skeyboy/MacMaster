@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:22px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.split{flex:1;min-height:0;display:flex}
+.applist{width:300px;flex:0 0 300px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:52px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow .ic{width:28px;height:28px;border-radius:7px;flex:0 0 28px;display:grid;place-items:center;
+          color:#fff;font-size:11px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono)}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.detail{flex:1;min-width:0;display:grid;place-items:center;background:var(--c-content-bg);color:var(--c-label-tertiary)}
+
+/* ---------- 应用目录监听（UninstallerView.appsWatchCard / appsArrivalStrip） ---------- */
+.notice{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);
+        background:color-mix(in srgb, var(--c-info) 8%, transparent);border-bottom:1px solid var(--c-separator)}
+.notice .head{display:flex;align-items:center;gap:var(--sp-2);min-width:0}
+.notice .head .lead{color:var(--c-accent);display:grid;place-items:center}
+.notice .head h2{margin:0;font-size:var(--fs-callout);font-weight:600;white-space:nowrap}
+.notice .path{display:flex;align-items:center;gap:4px;font-family:var(--font-mono);
+              font-size:var(--fs-caption);color:var(--c-label-secondary);
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notice .note{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.5}
+.notice .foot{display:flex;align-items:center;gap:var(--sp-2)}
+.notice .foot .s{font-size:var(--fs-caption);color:var(--c-label-secondary);font-variant-numeric:tabular-nums}
+/* 只报事实、不给删除动作的轻提示 */
+.soft{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2) var(--sp-4);
+      background:color-mix(in srgb, var(--c-info) 6%, transparent);border-bottom:1px solid var(--c-separator)}
+.soft .head{display:flex;align-items:center;gap:var(--sp-2)}
+.soft .head .lead{color:var(--c-accent);display:grid;place-items:center}
+.soft .head h2{margin:0;font-size:var(--fs-callout);font-weight:600}
+.soft ul{margin:0;padding:0 0 0 18px;font-size:var(--fs-caption);color:var(--c-label-secondary);
+         font-family:var(--font-mono);line-height:1.7}
+
+/* ---------- 降级横幅（MMPermissionBanner） ---------- */
+.perm{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);
+      background:color-mix(in srgb, var(--c-warning) 10%, transparent);border-bottom:1px solid var(--c-separator)}
+.perm.info{background:color-mix(in srgb, var(--c-info) 8%, transparent)}
+.perm .lk{color:var(--c-warning);display:grid;place-items:center;padding-top:1px}
+.perm.info .lk{color:var(--c-info)}
+.perm .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.perm .tx b{font-size:var(--fs-callout);font-weight:600}
+.perm .tx span{font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.spin{width:12px;height:12px;flex:0 0 12px;border-radius:50%;border:1.6px solid var(--c-label-tertiary);
+      border-top-color:transparent;display:inline-block}
+.stale{color:var(--c-warning)!important}
+/* 局部窗口壳（与 03c 同一套）：第二、三块图版只画页头 + 卡片 */
+.mini{width:var(--win-w);display:flex;flex-direction:column;gap:0;background:var(--c-window-bg);
+      border:1px solid rgba(0,0,0,.18);border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden}</style></head>
+<body>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03e · 应用卸载 —— 应用目录监听的「消失」提示卡（P5.3）。</b>
+补的是 P1.5 的盲区：用户走<b>废纸篓以外的路径</b>让应用离开磁盘（废纸篓里「立即删除」、清空废纸篓、
+<code>rm -rf /Applications/Foo.app</code>、应用自带的卸载器），页原来<b>一点反应都没有</b>，
+残留要用户自己想到去扫。卡片与 P1.5 那张同层（页头与左右分栏之间），但<b>样式分工明确</b>：
+图标 <code>xmark.app</code> + 徽章<b>「本体已不在应用目录」</b>，不是 P1.5 的
+<code>tray.and.arrow.down</code> +「本体已在废纸篓」——<b>我们已经不知道它去哪了</b>。
+说「已卸载」是假话：我们只观察到它离开了这个目录，谁做的、有没有留安装凭据都不知道。
+第二行是<b>最后已知路径 · 包标识 · 「最后已知位置」</b>：本体没了就读不到 <code>Info.plist</code>，
+这两个字段来自<b>监听建立时的基线</b>，不是当场读的。
+<b>这张卡上没有删除按钮，也不内嵌残留清单</b> —— 这是它和 P1.5 那张最大的差别，理由有两条：
+① 删除通路已经有一条测透的（<b>卸载后遗症</b>页：归属判定 + 逐条勾选 + 撤回），
+再造一条能删文件的平行状态就是再造一批要防的错；
+② 孤儿判定的<b>依据是「本机已装应用清单」</b>，而此刻清单<b>还是旧的、里面仍有 Highball</b> ——
+直接扫会把它自己的残留判成"有主人"，<b>恰好漏掉我们正要提示的那几项</b>。
+所以唯一的动作是<b>「重新载入并扫描」</b>：先把清单刷新（它从归属表里消失），再扫后遗症，
+然后切到那一页展示结果。说明行把这一步的因果写在脸上，不假装是两步独立操作。
+左侧列表此刻仍是旧快照，Highball 那行还挂着（标了<b>「已在目录里消失，待重新载入」</b>）：
+<b>不自动刷新</b>，因为刷新会把用户正在看的那一行换掉；要更新由用户按按钮。</div>
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">1.3 GB</span></div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载<span class="tail t-num">45</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span>
+          <span class="pct">6% 可用</span>
+        </div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>45 个应用 · 合计 50.6 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="notice">
+        <div class="head">
+          <span class="lead"><svg class="i i-18"><use href="#i-app-x"></use></svg></span>
+          <h2>刚从应用目录消失：Highball</h2>
+          <span class="badge info"><svg class="i"><use href="#i-app-x"></use></svg>本体已不在应用目录</span>
+          <div style="margin-left:auto"></div>
+          <span class="btn borderless sm">忽略</span>
+        </div>
+        <div class="path">/Applications/Highball.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.highball&nbsp;&nbsp;·&nbsp;&nbsp;最后已知位置</div>
+        <div class="note">我们只看见它离开了 <code>/Applications</code>：不知道是谁删的，也不知道它去了哪里。
+          它的残留现在<b>还没有主人</b>，但左侧清单里它还在 —— 要先刷新归属清单，扫描才不会把它自己的文件当成"有主人"漏掉。</div>
+        <div class="foot">
+          <span class="s">未扫描 · 扫描会先重新载入清单</span>
+          <div style="margin-left:auto"></div>
+          <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>只重新载入清单</span>
+          <span class="btn primary sm"><svg class="i"><use href="#i-list"></use></svg>重新载入并扫描残留</span>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow"><span class="ic" style="background:#3DDC84">Ad</span>
+              <div class="m"><b>ADB Link</b><span>0.1.0 · 47 MB</span></div><div class="z">1 项残留</div></div>
+            <div class="arow" style="background:color-mix(in srgb, var(--c-warning) 7%, transparent)">
+              <span class="ic" style="background:#E8543F;opacity:.55">Hi</span>
+              <div class="m"><b>Highball</b><span class="stale">已在目录里消失，待重新载入</span></div>
+              <div class="z" style="color:var(--c-warning)">不在磁盘</div></div>
+            <div class="arow"><span class="ic" style="background:#2B7FFF">aD</span>
+              <div class="m"><b>aDrive</b><span>6.9.3 · 435.1 MB</span></div><div class="z">2 项残留</div></div>
+            <div class="arow"><span class="ic" style="background:#41444B">Ch</span>
+              <div class="m"><b>ChatGPT</b><span>26.9.24 · 221 MB</span></div><div class="z">3 项残留</div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">45 个应用 · 已测 45 · <span class="stale">清单是载入时的快照，未自动刷新</span></span></div>
+        </div>
+        <div class="detail">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:var(--sp-2)">
+            <svg class="i" style="width:34px;height:34px;color:var(--c-label-tertiary)"><use href="#i-app-x"></use></svg>
+            <b class="t-headline">未选择应用</b>
+            <span class="t-cap">从左侧列表选择一个应用，查看它的信息与将被一并移除的残留文件。</span></div>
+        </div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 0 项残留 · 0 字节</b>
+          <span>未勾选项不会被修改</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm disabled">仅卸载应用</span>
+        <span class="btn destructive lg disabled"><svg class="i"><use href="#i-trash"></use></svg>移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03e-2 · 反向问题（目录里多了东西）与两个方向的同屏。</b>
+用户把新应用拖进 <code>/Applications</code>、或 installer 刚落盘，而列表还是旧的 ——
+<b>不自动重扫</b>（列表是用户正在看的表格，自动刷新会把他选中的应用换掉），
+只报一条<b>轻提示</b>：<code>plus.circle</code> + 「应用目录里有 N 个新条目」+ 条目名，
+唯一的动作是<b>「重新载入」</b>。没有残留清单、没有删除按钮 ——
+"刚装好"和"该清理"之间没有因果关系，把两张卡画成一个样就是在暗示一个不存在的结论。
+新条目<b>只列目录名</b>：包标识读不出来（替身、缺 <code>Info.plist</code>）也照样算"多了个条目"，
+因为这里报的是<b>清单过期</b>这个事实，不是"这是个可卸载应用"。
+<b>口径必须等于列举口径</b>：监听 <code>/Applications</code> 与 <code>~/Applications</code> 的
+<b>第一层</b> <code>.app</code>（与 <code>AppScanner.defaultSearchDirectories</code> 完全一致），
+所以 <code>/Applications/Utilities/Foo.app</code> 这种从来就不在清单里的条目<b>不进这条提示</b>；
+装在别处的应用我们看不见，文案只能说<b>「应用目录里没有它」</b>，不能说「安装未被检测到」。
+下面那张是<b>同一批里两个方向都发生</b>（删一个装一个很常见）：消失卡在上，因为它是可执行的那一张。
+<b>两种情况不报消失</b>：① 包标识命中 P1.5 废纸篓清单时<b>让位</b> —— 拖进废纸篓会同时触发两个监听，
+而废纸篓那条更强（本体还能还原，而且动词是真的「拖」）；
+② <b>本次会话里我们自己移走的应用不报</b>（见 03e-3 最后一档，那是一条 P1.5 的自我回声缺陷）。</div>
+<div class="mini">
+  <div class="toolbar" style="border-bottom:1px solid var(--c-separator)">
+    <div class="title-block"><h1 style="font-size:var(--fs-title2)">应用卸载</h1>
+      <p>45 个应用 · 合计 50.6 GB · 大小已实测</p></div>
+    <div class="sp"></div>
+    <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+    <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+  </div>
+
+  <div class="soft">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-plus"></use></svg></span>
+      <h2>应用目录里有 2 个新条目</h2>
+      <span class="badge info"><svg class="i"><use href="#i-refresh"></use></svg>当前清单是旧快照</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <ul>
+      <li>Notion.app&nbsp;&nbsp;·&nbsp;&nbsp;/Applications</li>
+      <li>TablePlus.app&nbsp;&nbsp;·&nbsp;&nbsp;~/Applications</li>
+    </ul>
+    <div class="note">只列出目录名；不会自动改动左侧清单。</div>
+  </div>
+
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-app-x"></use></svg></span>
+      <h2>刚从应用目录消失：Visual Studio Code</h2>
+      <span class="badge info"><svg class="i"><use href="#i-app-x"></use></svg>本体已不在应用目录</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">/Applications/Visual Studio Code.app&nbsp;&nbsp;·&nbsp;&nbsp;com.microsoft.VSCode&nbsp;&nbsp;·&nbsp;&nbsp;最后已知位置</div>
+    <div class="note">不知道是谁删的、也不知道它去了哪里。它的残留现在没有主人。</div>
+    <div class="foot">
+      <span class="s">未扫描 · 扫描会先重新载入清单</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>只重新载入清单</span>
+      <span class="btn primary sm"><svg class="i"><use href="#i-list"></use></svg>重新载入并扫描残留</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>03e-3 · 这一路的过渡态、降级态，以及它不该说什么。</b>
+<b>①「重新载入并扫描」进行中</b>：按钮变禁用、汇总行写<b>「正在刷新归属清单…」</b>，
+不提前给任何数字 —— 这一步是两次串行工作（刷新清单 + 扫全部残留根），
+在它返回之前说"没有残留"和说"0 项"都是假话。清单刷新会走一次完整枚举，
+<b>体积测量在后台继续</b>，不挡这一路的结论。
+<b>②默认态</b>（未扫描）：汇总行必须写<b>「未扫描」</b>而不是"0 项 · 0 字节" ——
+<b>没看过 ≠ 没有</b>，与 03c 同一条红线。
+<b>③目录读不到</b>：只有 <code>EPERM/EACCES</code> 才提授权。<code>/Applications</code> 是世界可读的
+（真机实测 <code>AppScanner</code> 一直列举得动），所以这一档在正常机器上不该出现；
+一旦出现照 P1.5 的横幅写法带上<b>真实错误码</b>，并且<b>不说"应用目录是空的"</b>。
+<b>④<code>~/Applications</code> 不存在</b>是另一回事：很多机器上根本没有用户级应用目录，
+这是事实不是故障，所以<b>不占横幅</b>；只有<b>两个目标都读不到</b>才升成 ③。
+把"不存在"说成"要授权"就是猜原因。
+<b>⑤自我回声</b>（P1.5 遗留缺陷，与这一路同一个抑制机制）：
+「仅卸载应用」走的也是 <code>FileTrashService.moveToTrash</code>，本体真的进了 <code>~/.Trash</code>，
+于是我们自己的按钮触发我们自己的监听，弹出一张写着<b>「刚拖进废纸篓」</b>的卡 ——
+<b>主语是假的</b>（用户没拖），<code>withResiduals</code> 模式下还<b>重复</b>（用户刚在确认面板逐项勾选过）。
+修法：模型记住<b>本次会话自己移走过的 bundleID</b>，P1.5 卡与这一路的消失卡都按它抑制；
+而「仅卸载应用」之后这张卡本该有价值（本体走了、残留确实还活着），所以<b>换成第二人称的实话</b>：
+「你刚卸载了 Highball，残留还在」，徽章从「本体已在废纸篓」改成<b>「由 MacMaster 移入」</b>。
+这张卡保留内嵌残留清单与删除按钮 —— 它删的只有残留，本体在废纸篓里可还原，
+这条通路 P1.5 已经测透（<code>report.deletionRoots(for:)</code> 永不含本体），不在本次改动范围内。</div>
+<div class="mini">
+  <div class="toolbar" style="border-bottom:1px solid var(--c-separator)">
+    <div class="title-block"><h1 style="font-size:var(--fs-title2)">应用卸载</h1>
+      <p>监听范围与列举范围一致：<code>/Applications</code> + <code>~/Applications</code> 第一层 <code>.app</code></p></div>
+    <div class="sp"></div>
+    <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+  </div>
+
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-app-x"></use></svg></span>
+      <h2>刚从应用目录消失：Highball</h2>
+      <div style="margin-left:auto"></div>
+    </div>
+    <div class="row-h" style="gap:var(--sp-2)"><span class="spin"></span>
+      <span class="t-cap">正在刷新归属清单…</span></div>
+    <div class="foot"><span class="s">扫描中 · 这一步不提前给数字</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn sm disabled"><svg class="i"><use href="#i-refresh"></use></svg>只重新载入清单</span>
+      <span class="btn primary sm disabled"><svg class="i"><use href="#i-list"></use></svg>重新载入并扫描残留</span></div>
+  </div>
+
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-app-x"></use></svg></span>
+      <h2>刚从应用目录消失：Highball</h2>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">/Applications/Highball.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.highball&nbsp;&nbsp;·&nbsp;&nbsp;最后已知位置</div>
+    <div class="foot"><span class="s">未扫描</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>只重新载入清单</span>
+      <span class="btn primary sm"><svg class="i"><use href="#i-list"></use></svg>重新载入并扫描残留</span></div>
+  </div>
+
+  <div class="perm">
+    <span class="lk"><svg class="i i-18"><use href="#i-warn"></use></svg></span>
+    <div class="tx"><b>读不到应用目录</b>
+      <span>无法读取 <code>/Applications</code>：Operation not permitted（错误码 1）。
+      这和「目录是空的」是两件事，所以这里不给出任何残留判定。
+      监听在页面存活期内进行，重新进入这一页才会重试。</span></div>
+  </div>
+
+  <div class="perm info">
+    <span class="lk"><svg class="i i-18"><use href="#i-info"></use></svg></span>
+    <div class="tx"><b><code>~/Applications</code> 不在这台机器上</b>
+      <span>不是故障：这台机器没有用户级应用目录，监听只覆盖 <code>/Applications</code>。
+      目录不存在与读不到是两种原因，不混为一谈，也不放授权按钮。</span></div>
+  </div>
+
+  <div class="notice">
+    <div class="head">
+      <span class="lead"><svg class="i i-18"><use href="#i-tray-down"></use></svg></span>
+      <h2>你刚卸载了 Highball，残留还在</h2>
+      <span class="badge info"><svg class="i"><use href="#i-tag"></use></svg>由 MacMaster 移入</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn borderless sm"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示</span>
+      <span class="btn borderless sm">忽略</span>
+    </div>
+    <div class="path">~/.Trash/Highball.app&nbsp;&nbsp;·&nbsp;&nbsp;com.example.highball&nbsp;&nbsp;·&nbsp;&nbsp;可还原</div>
+    <div class="note">本体在废纸篓里还能还原；下面只列散在 <code>~/Library</code> 的部分。
+      这句话不能写成「刚拖进废纸篓」—— 用户没拖，是我们的按钮移走的。</div>
+    <div class="foot"><span class="s">已选 3 项 · 212.4 MB · 未勾选 1 项</span>
+      <div style="margin-left:auto"></div>
+      <span class="btn destructive sm"><svg class="i"><use href="#i-trash"></use></svg>清理勾选的残留</span></div>
+  </div>
+</div>
+</div>
+
+</body></html>

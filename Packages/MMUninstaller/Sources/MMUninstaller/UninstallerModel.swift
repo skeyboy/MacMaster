@@ -136,6 +136,15 @@ public final class UninstallerModel: ObservableObject {
     @Published public var failures: [TrashFailure] = []
     @Published public var undoFailures: [TrashFailure] = []
 
+    /// 本次会话里**我们自己**移进废纸篓的包标识。两个监听（废纸篓、应用目录）都按它抑制：
+    /// 那是自己动作的回声 —— 而且「刚拖进废纸篓」这个主语在这种情况下是假的，用户没拖。
+    @Published public private(set) var selfMovedBundleIDs: Set<String> = []
+
+    /// 其中**连勾选的残留一起**移走的那些。废纸篓提示对它们没有新信息：
+    /// 用户刚在确认面板里逐项勾选过残留，紧接着又收到一张「清理勾选的残留」是重复。
+    /// 「仅卸载应用」不在这里——那条路径确实只带走了本体，提示有价值，只该换文案。
+    @Published public private(set) var selfMovedWithResidualsBundleIDs: Set<String> = []
+
     /// 扫描参数注入点：单测把 home 指到临时目录，真实运行用默认值（当前用户）。
     var optionsFactory: () -> ResidualScanOptions = { ResidualScanOptions() }
     var appDirectoriesFactory: (String) -> [String] = AppScanner.defaultSearchDirectories
@@ -174,6 +183,16 @@ public final class UninstallerModel: ObservableObject {
     // MARK: 载入
 
     public func loadApps() async {
+        await reloadListing()
+        let options = optionsFactory()
+        await enrich(options: ResidualScanOptions(home: options.home, systemRoot: options.systemRoot,
+                                                  sensitivity: sensitivity))
+    }
+
+    /// 只重举清单与来源凭据，**不等体积测量**。
+    /// 给"应用刚消失，要先把归属清单刷新"这一步用：孤儿判定的依据就是这份清单，
+    /// 慢的那一半（测大小，真机几十秒）不该挡在结论前面。
+    public func reloadListing() async {
         isScanningApps = true
         apps = []
         selectedAppID = nil
@@ -195,8 +214,6 @@ public final class UninstallerModel: ObservableObject {
 
         apps = discovered.map { makeCandidate(from: $0, provenance: provenances[$0.path]) }
         isScanningApps = false
-        await enrich(options: ResidualScanOptions(home: options.home, systemRoot: options.systemRoot,
-                                                  sensitivity: sensitivity))
     }
 
     /// 路径 → 来源。纯 `unknown` 不入表：默认值就是它，没必要为 44 个应用各存一份空结构。
@@ -362,21 +379,31 @@ public final class UninstallerModel: ObservableObject {
         guard let app = selectedApp else { return }
         let paths = UninstallSelection.deletionPaths(appPath: app.path, items: app.residuals,
                                                      selectedIDs: selectedResidualIDs)
-        await move(to: paths, removing: app.id)
+        await move(to: paths, removing: app.id, movedResidualsToo: true)
     }
 
     /// 只卸载 app 本体，不动任何残留。
     public func uninstallAppOnly() async {
         guard let app = selectedApp else { return }
-        await move(to: [app.path], removing: app.id)
+        await move(to: [app.path], removing: app.id, movedResidualsToo: false)
     }
 
-    private func move(to paths: [String], removing appID: String) async {
+    private func move(to paths: [String], removing appID: String, movedResidualsToo: Bool) async {
         let result = await FileTrashService.shared.moveToTrash(paths: paths)
         lastResult = result
         failures = result.operation.failures
         let moved = Set(result.operation.files.map(\.originalPath))
         if moved.contains(appID) {
+            // 我们自己移走的那条，两个监听都不该再报：那是自己的动作的回声。
+            if let bundleID = apps.first(where: { $0.id == appID })?.bundleID, bundleID.isEmpty == false {
+                selfMovedBundleIDs.insert(bundleID)
+                if movedResidualsToo {
+                    selfMovedWithResidualsBundleIDs.insert(bundleID)
+                } else {
+                    // 撤回后重卸（或反过来）要按最新那条路径处理，集合里不能留旧档位。
+                    selfMovedWithResidualsBundleIDs.remove(bundleID)
+                }
+            }
             apps.removeAll { $0.id == appID }
             selectedAppID = nil
             selectedResidualIDs = []
@@ -397,6 +424,11 @@ public final class UninstallerModel: ObservableObject {
         undoFailures = restored.failures
         lastResult = nil
         await loadApps()
+        // 撤回把本体放回应用目录了：它之后的离开就不再是我们的动作。不清这两个集合，
+        // 用户真把它拖进废纸篓时那张卡还会说「你刚卸载了」—— 正是这一路要修的假主语。
+        let back = Set(apps.map(\.bundleID))
+        selfMovedBundleIDs.subtract(back)
+        selfMovedWithResidualsBundleIDs.subtract(back)
     }
 
     // MARK: - 卸载后遗症（反向扫描）

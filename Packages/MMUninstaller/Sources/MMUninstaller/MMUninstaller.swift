@@ -77,6 +77,26 @@ public struct UninstallerView: View {
         }
     }
 
+    /// 自动走一遍消失卡的「重新载入并扫描」。合成点击进不了原生按钮，而这张卡片的终点
+    /// （刷新归属清单 → 反查残留 → 切到后遗症页）不跑一次就截不到证据。
+    /// 只有应用目录夹具成立时才允许 —— 那个钩子本身只认 /tmp。
+    private static var autoRunDepartureScan: Bool {
+        guard TrashWatcher.fixtureEnvironmentValue(key: "MM_APPS_WATCH_FIXTURE_DIR") != nil else {
+            return false
+        }
+        return ProcessInfo.processInfo.environment["MM_APPS_WATCH_AUTO_SCAN"] == "1"
+    }
+
+    /// 自动执行一次「仅卸载应用」，用来拍 §5 那两种自我回声文案
+    /// （「你刚卸出了 X，残留还在」+「由 MacMaster 移入」）。
+    /// 这两句只有我们自己的按钮能触发，而合成点击是禁用的；同时这一跑也在验证
+    /// 回声抑制：我们自己移走的那个应用，不该再冒出一张「刚从应用目录消失」。
+    /// 只有确认夹具成立时才允许（它会把那个应用真的移进废纸篓）。
+    private static var autoUninstallForSelfEcho: Bool {
+        guard confirmationFixtureHome != nil else { return false }
+        return ProcessInfo.processInfo.environment["MM_UNINSTALL_SELF_ECHO"] == "1"
+    }
+
     /// `.task` 里要选中的那一行：`MM_UNINSTALL_SELECT` 点名优先（拍"某一档来源"用），
     /// 没点名时退回夹具 home 里的第一个应用（沿用 P1.5 那批截图的口径）。
     /// 点名点不到就什么都不选——宁可拍出一张空态，也不要悄悄换成别的应用。
@@ -95,12 +115,23 @@ public struct UninstallerView: View {
 
     @StateObject private var model = UninstallerModel()
     @StateObject private var trashWatcher = TrashWatcher()
+    @StateObject private var appWatcher = AppFolderWatcher()
     @ObservedObject private var settings = AppSettings.shared
     @State private var searchText = ""
     @State private var showConfirm = false
     @State private var confirmationMode: ConfirmationMode = .withResiduals
     @State private var showOrphanConfirm = false
     @State private var showTrashConfirm = false
+    /// 消失提示当前展示的那一条。它和 `appWatcher.departures` 是两回事：
+    /// 清单里可以有好几条历史，而"正在提示的"只能有一条，且用户点了忽略就不再回来。
+    @State private var shownDeparture: AppDeparture?
+    @State private var dismissedDepartureIDs: Set<String> = []
+    /// 「重新载入并扫描」正在跑：这一步是两次串行工作（刷新归属清单 + 扫全部残留根），
+    /// 在它返回之前不给任何数字，也不让用户重复点。
+    @State private var isRunningDepartureScan = false
+    /// 自动执行钩子只跑一次：它由"出现了一条消失提示"触发，而那条提示之后还会因
+    /// 废纸篓清单变化被重新算好几次。
+    @State private var didAutoRunDepartureScan = false
     @State private var toastSeconds = 0
     @State private var pane: Pane =
         Pane(hookValue: ProcessInfo.processInfo.environment["MM_UNINSTALL_PANE"] ?? "") ?? .apps
@@ -145,6 +176,8 @@ public struct UninstallerView: View {
                 .disabled(model.isScanningApps)
             }
 
+            appsWatchRegion
+
             trashRegion
 
             HStack(spacing: 0) {
@@ -185,6 +218,7 @@ public struct UninstallerView: View {
             // 监听不能排在 `.task` 里 `await model.loadApps()` 之后：应用列表要测几十个大文件
             // 才算得完，那样废纸篓要等几分钟才开始看，第一条拖入还会被当成基线漏掉。
             startTrashWatching()
+            startAppWatching()
         }
         .task {
             if let home = Self.confirmationFixtureHome {
@@ -205,11 +239,18 @@ public struct UninstallerView: View {
                 if Self.confirmationFixtureHome != nil, let mode = Self.confirmationModeToOpen {
                     requestConfirmation(mode)
                 }
+                if Self.autoUninstallForSelfEcho {
+                    // 走按钮走的同一条路：`move()` 会记下包标识，两张卡都按它处理。
+                    await model.uninstallAppOnly()
+                }
             }
             // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
             startOrphanScanIfNeeded()
         }
-        .onDisappear { trashWatcher.stop() }
+        .onDisappear {
+            trashWatcher.stop()
+            appWatcher.stop()
+        }
         .task(id: toastSeconds) {
             guard toastSeconds > 0 else { return }
             try? await Task.sleep(for: .seconds(1))
@@ -227,6 +268,23 @@ public struct UninstallerView: View {
         .sheet(isPresented: $showTrashConfirm) { trashConfirmSheet }
         .onChange(of: trashWatcher.arrivals) { _, arrivals in
             syncTrashNotice(with: arrivals)
+            // 双向都要同步：拖进废纸篓让消失卡让位，从废纸篓里彻底删掉又把它请回来。
+            syncDepartureNotice(with: appWatcher.departures)
+        }
+        .onChange(of: appWatcher.departures) { _, departures in
+            syncDepartureNotice(with: departures)
+        }
+        .onChange(of: model.selfMovedBundleIDs) { _, _ in
+            syncDepartureNotice(with: appWatcher.departures)
+        }
+        .onChange(of: settings.watchAppFolderChanges) { _, enabled in
+            if enabled {
+                appWatcher.start()
+                syncDepartureNotice(with: appWatcher.departures)
+            } else {
+                appWatcher.stop()
+                shownDeparture = nil
+            }
         }
         .onChange(of: settings.watchTrashForResidualCleanup) { _, enabled in
             if enabled {
@@ -308,7 +366,8 @@ public struct UninstallerView: View {
                     set: { model.selectedAppID = $0 }
                 )) {
                     ForEach(filteredApps) { app in
-                        AppListRow(app: app)
+                        AppListRow(app: app,
+                                   goneFromDirectory: appWatcher.departures.contains { $0.path == app.path })
                             .tag(app.id)
                             .contextMenu {
                                 Button {
@@ -323,12 +382,23 @@ public struct UninstallerView: View {
             }
 
             Divider()
-            Text(listFooter)
-                .font(.caption)
-                .foregroundStyle(MMColor.tertiaryLabel)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, MMGap.md)
-                .padding(.vertical, MMGap.xs)
+            HStack(spacing: MMGap.xs) {
+                Text(listFooter)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                // 不自动刷新是有意的：这张表是用户正在看的，悄悄换行会把他选中的那个换掉。
+                // 但"没刷新"必须说出来，否则旧快照看着就像实时视图。
+                if isListingStale {
+                    Text("· 清单是载入时的快照，未自动刷新")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, MMGap.md)
+            .padding(.vertical, MMGap.xs)
         }
         .frame(maxHeight: .infinity)
         .background(MMColor.contentBackground)
@@ -340,6 +410,13 @@ public struct UninstallerView: View {
         var line = "\(model.apps.count) 个应用 · 已测 \(measured)"
         if pending > 0 { line += " · \(pending) 个测量中" }
         return line
+    }
+
+    /// 监听观察到了目录变化、而清单还停在载入时的那一帧。
+    /// 这只说"对不上"，不说哪个应用装了或卸了 —— 那要重新载入之后才知道。
+    private var isListingStale: Bool {
+        guard settings.watchAppFolderChanges, appWatcher.status == .watching else { return false }
+        return appWatcher.departures.isEmpty == false || appWatcher.appearances.isEmpty == false
     }
 
     // MARK: 右侧详情
@@ -399,14 +476,16 @@ public struct UninstallerView: View {
     private func startOrphanScanIfNeeded() {
         guard pane == .orphans else { return }
         guard model.hasScannedOrphans == false, model.isScanningOrphans == false else { return }
+        Task { await runOrphanScan() }
+    }
+
+    private func runOrphanScan() async {
         let fixtureHome = Self.orphanFixtureHome
-        Task {
-            await model.scanOrphans(home: fixtureHome)
-            guard let fixtureHome else { return }
-            model.selectedOrphanIDs = Set(model.orphans.map(\.id))
-            showOrphanConfirm = true
-            FileHandle.standardError.write("已用夹具目录 \(fixtureHome) 自动勾选并打开确认面板\n".data(using: .utf8)!)
-        }
+        await model.scanOrphans(home: fixtureHome)
+        guard let fixtureHome else { return }
+        model.selectedOrphanIDs = Set(model.orphans.map(\.id))
+        showOrphanConfirm = true
+        FileHandle.standardError.write("已用夹具目录 \(fixtureHome) 自动勾选并打开确认面板\n".data(using: .utf8)!)
     }
 
     private var orphanPane: some View {
@@ -654,18 +733,279 @@ public struct UninstallerView: View {
 
     /// 监听端的清单是真相源：选中项不在清单里了（用户把它还原或彻底删除）就整块撤掉提示。
     /// 还原回去的应用残留是活的，这时候再挂着"清理残留"入口就是害人的。
+    ///
+    /// 「带残留卸载」那条路也在这里过滤掉：用户刚在确认面板里逐项勾选过残留，
+    /// 紧接着再收到一张「清理勾选的残留」是重复提示（`docs/analysis/apps-watch.md` §5）。
+    /// 「仅卸载应用」不在这里过滤 —— 那条路径确实留下了没人管的残留，只是主语要换。
     private func syncTrashNotice(with arrivals: [TrashArrival]) {
-        if arrivals.isEmpty {
+        let candidates = arrivals.filter {
+            model.selfMovedWithResidualsBundleIDs.contains($0.bundleID) == false
+        }
+        if candidates.isEmpty {
             model.selectTrashArrival(nil)
             return
         }
         if let current = model.trashArrival,
-           arrivals.contains(where: { $0.id == current.id }) { return }
-        guard let chosen = arrivals.last else { return }
+           candidates.contains(where: { $0.id == current.id }) { return }
+        guard let chosen = candidates.last else { return }
         model.selectTrashArrival(chosen)
         Task {
             await model.scanTrashResiduals(home: Self.trashScanHome)
             if Self.trashConfirmHook { showTrashConfirm = true }
+        }
+    }
+
+    /// 这张卡是**我们自己的卸载按钮**造成的。那时候「刚拖进废纸篓」的主语是假的 ——
+    /// 用户没拖。徽章要说谁干的，标题要用第二人称。
+    private var isSelfEchoTrashArrival: Bool {
+        guard let bundleID = model.trashArrival?.bundleID, bundleID.isEmpty == false else { return false }
+        return model.selfMovedBundleIDs.contains(bundleID)
+    }
+
+    // MARK: 应用目录监听提示
+
+    private func startAppWatching() {
+        guard settings.watchAppFolderChanges else { return }
+        appWatcher.start()
+        syncDepartureNotice(with: appWatcher.departures)
+    }
+
+    /// 三条不报消失的规则，缺一不可：
+    /// ① 用户点过「忽略」的不再回来；
+    /// ② 本次会话里我们自己移走的 —— 那是自己动作的回声；
+    /// ③ 包标识命中 P1.5 废纸篓清单时**让位**：拖进废纸篓会同时触发两个监听，
+    ///    而废纸篓那条更强（本体还在、能还原，而且动词是真的「拖」）。
+    ///    在废纸篓里被"立即删除"后 `arrivals` 会把它过滤掉，这张卡就该重新出现。
+    private func syncDepartureNotice(with departures: [AppDeparture]) {
+        let visible = departures.filter { departure in
+            guard dismissedDepartureIDs.contains(departure.id) == false else { return false }
+            guard model.selfMovedBundleIDs.contains(departure.bundleID) == false else { return false }
+            return trashWatcher.arrivals.contains { $0.bundleID == departure.bundleID } == false
+        }
+        // 正在展示的这条仍然成立就不换：换卡会被读成"又消失了一个"。
+        if let shown = shownDeparture, visible.contains(where: { $0.id == shown.id }) { return }
+        shownDeparture = visible.last
+        if shownDeparture != nil, Self.autoRunDepartureScan, didAutoRunDepartureScan == false {
+            didAutoRunDepartureScan = true
+            reloadListingAndScan()
+        }
+    }
+
+    private func dismissDeparture(_ departure: AppDeparture) {
+        dismissedDepartureIDs.insert(departure.id)
+        shownDeparture = nil
+        syncDepartureNotice(with: appWatcher.departures)
+    }
+
+    /// 两个动作都必须**先把归属清单刷新**：孤儿判定的依据就是这份清单
+    /// （`OrphanScanner` 拿 `model.apps` 当主人集合）。停在旧快照上扫，
+    /// 刚消失的那个应用还在清单里，它自己的残留会被判成"有主人"——
+    /// 恰好漏掉我们正要提示的那几项。所以这里不是"扫一下看看"。
+    private func reloadListingOnly() {
+        guard isRunningDepartureScan == false else { return }
+        isRunningDepartureScan = true
+        Task {
+            await model.reloadListing()
+            isRunningDepartureScan = false
+            resolveWatchNotices()
+        }
+    }
+
+    private func reloadListingAndScan() {
+        guard isRunningDepartureScan == false else { return }
+        isRunningDepartureScan = true
+        Task {
+            await model.reloadListing()
+            await runOrphanScan()
+            isRunningDepartureScan = false
+            resolveWatchNotices()
+            pane = .orphans
+        }
+    }
+
+    /// 清单一旦重新反映了磁盘，两张提示的使命就完成了。
+    private func resolveWatchNotices() {
+        appWatcher.dismiss()
+        shownDeparture = nil
+    }
+
+    @ViewBuilder
+    private var appsWatchRegion: some View {
+        if settings.watchAppFolderChanges == false {
+            // 与废纸篓那一路同一条规矩：设置页已经说过"关掉了"，这里不再复述一遍。
+            EmptyView()
+        } else {
+            if pane == .apps, let departure = shownDeparture {
+                appsDepartureCard(departure)
+            }
+            if pane == .apps, appWatcher.appearances.isEmpty == false {
+                appsArrivalStrip
+            }
+            appsSkippedNote
+            if case .unreadable(let reason, let needsFullDiskAccess) = appWatcher.status {
+                MMPermissionBanner(
+                    title: needsFullDiskAccess ? "读不到应用目录" : "应用目录现在读不了",
+                    detail: (needsFullDiskAccess
+                        ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页才会重试。"
+                        : reason + " 这和权限无关，所以这里不放授权按钮；重新进入这一页会重试。")
+                    + " 在恢复监听之前，这里不会给出任何残留判定。",
+                    settingsPane: needsFullDiskAccess ? Self.fullDiskAccessPane : nil
+                )
+            }
+        }
+    }
+
+    private func appsDepartureCard(_ departure: AppDeparture) -> some View {
+        VStack(alignment: .leading, spacing: MMGap.sm) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "xmark.app").foregroundStyle(MMColor.accent)
+                Text("刚从应用目录消失：\(departure.name)")
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                MMBadge("本体已不在应用目录", tint: MMColor.informational, systemImage: "xmark.app")
+                Spacer(minLength: MMGap.sm)
+                Button("忽略") { dismissDeparture(departure) }
+                    .controlSize(.small)
+                    .buttonStyle(.borderless)
+            }
+
+            HStack(spacing: MMGap.xs) {
+                Text(ResidualCollector.display(departure.path, home: NSHomeDirectory()))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("·").foregroundStyle(MMColor.tertiaryLabel)
+                Text(departure.bundleID.isEmpty ? "无包标识" : departure.bundleID)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text("·").foregroundStyle(MMColor.tertiaryLabel)
+                Text("最后已知位置")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.tertiaryLabel)
+                    .fixedSize()
+            }
+
+            if isRunningDepartureScan {
+                HStack(spacing: MMGap.sm) {
+                    ProgressView().controlSize(.small)
+                    Text("正在刷新归属清单…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                }
+            } else {
+                Text("我们只看见它离开了应用目录：不知道是谁删的，也不知道它去了哪里。"
+                     + "左侧清单里它还挂着，所以扫描会先重新载入清单——"
+                     + "否则它会把自己散在 ~/Library 的文件当成「有主人」漏掉。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: MMGap.sm) {
+                Text(isRunningDepartureScan ? "扫描中 · 这一步不提前给数字" : "未扫描 · 扫描会先重新载入清单")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                Spacer(minLength: MMGap.sm)
+                Button {
+                    reloadListingOnly()
+                } label: {
+                    Label("只重新载入清单", systemImage: "arrow.clockwise")
+                }
+                .controlSize(.small)
+                .disabled(isRunningDepartureScan || model.isScanningApps)
+
+                Button {
+                    reloadListingAndScan()
+                } label: {
+                    Label("重新载入并扫描残留", systemImage: "list.bullet.below.rectangle")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(isRunningDepartureScan || model.isScanningApps)
+            }
+        }
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.informational, 0.08))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// 反向问题：目录里多了条目。这里**没有删除按钮、也不内嵌残留清单** ——
+    /// "刚装好"和"该清理"之间没有因果关系，把两张卡画成一个样就是在暗示一个不存在的结论。
+    private var appsArrivalStrip: some View {
+        let appearances = appWatcher.appearances
+        return VStack(alignment: .leading, spacing: MMGap.xs) {
+            HStack(spacing: MMGap.sm) {
+                Image(systemName: "plus.circle").foregroundStyle(MMColor.informational)
+                Text("应用目录里有 \(appearances.count) 个新条目")
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                MMBadge("当前清单是旧快照", tint: MMColor.informational, systemImage: "arrow.clockwise")
+                Spacer(minLength: MMGap.sm)
+                Button {
+                    Task {
+                        await model.loadApps()
+                        appWatcher.dismissAppearances()
+                    }
+                } label: {
+                    Label("重新载入", systemImage: "arrow.clockwise")
+                }
+                .controlSize(.small)
+                .disabled(model.isScanningApps || isRunningDepartureScan)
+
+                Button("忽略") { appWatcher.dismissAppearances() }
+                    .controlSize(.small)
+                    .buttonStyle(.borderless)
+            }
+
+            Text(appearances.map(\.entry).joined(separator: "  ·  "))
+                .font(.caption.monospaced())
+                .foregroundStyle(MMColor.secondaryLabel)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Text("只列出目录名；不会自动改动左侧清单。装在别处的应用我们看不见——"
+                 + "监听范围与列举范围一致，只覆盖应用目录第一层的 .app。")
+                .font(.caption)
+                .foregroundStyle(MMColor.tertiaryLabel)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.informational, 0.05))
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// 没监起来的目录。`~/Applications` 不存在是常态，所以它**不占横幅**：
+    /// 只有所有目标都没打开才升成上面那条 `MMPermissionBanner`。
+    /// 把"不存在"说成"要授权"就是猜原因。
+    @ViewBuilder
+    private var appsSkippedNote: some View {
+        if appWatcher.status == .watching, appWatcher.skippedDirectories.isEmpty == false,
+           pane == .apps {
+            let first = appWatcher.skippedDirectories.sorted { $0.key < $1.key }.first!
+            HStack(alignment: .top, spacing: MMGap.sm) {
+                Image(systemName: "info.circle").foregroundStyle(MMColor.informational).padding(.top, 1)
+                VStack(alignment: .leading, spacing: MMGap.xxs) {
+                    Text("\(ResidualCollector.display(first.key, home: NSHomeDirectory())) 不在这台机器上")
+                        .font(.callout.weight(.semibold))
+                    Text("不是故障：这台机器没有这个应用目录，所以监听只覆盖已经打开的那些。"
+                         + "目录不存在与读不到是两种原因，这里不混为一谈，也不放授权按钮。")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: MMGap.sm)
+            }
+            .padding(.horizontal, MMGap.lg)
+            .padding(.vertical, MMGap.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(MMColor.soft(MMColor.informational, 0.05))
+            .overlay(alignment: .bottom) { Divider() }
         }
     }
 
@@ -690,6 +1030,7 @@ public struct UninstallerView: View {
     private var trashNoticeCard: some View {
         let arrivals = trashWatcher.arrivals
         let items = model.trashResidualItems
+        let selfEcho = isSelfEchoTrashArrival
         let arrivalPath = model.trashArrival?.path ?? arrivals.last?.path ?? ""
         let arrivalDisplayPath = ResidualCollector.display(arrivalPath, home: NSHomeDirectory())
         return VStack(alignment: .leading, spacing: MMGap.sm) {
@@ -706,11 +1047,16 @@ public struct UninstallerView: View {
                     .pickerStyle(.menu)
                     .fixedSize()
                     Text("有 \(arrivals.count) 个应用刚进废纸篓").font(.callout.weight(.semibold))
+                } else if selfEcho {
+                    // 第二人称才是实话：用户没拖，是我们自己的按钮把它移走的。
+                    Text("你刚卸载了 \(arrivals[0].name)，残留还在").font(.callout.weight(.semibold))
                 } else {
                     Text("刚拖进废纸篓：\(arrivals[0].name)").font(.callout.weight(.semibold))
                 }
 
-                MMBadge("本体已在废纸篓", tint: MMColor.informational, systemImage: "trash")
+                MMBadge(selfEcho ? "由 MacMaster 移入" : "本体已在废纸篓",
+                        tint: MMColor.informational,
+                        systemImage: selfEcho ? "tag" : "trash")
 
                 Spacer(minLength: MMGap.sm)
 
@@ -1026,37 +1372,54 @@ private struct SourceChip: View {
 
 struct AppListRow: View {
     let app: UninstallCandidate
+    /// 监听观察到这个路径已经从应用目录里消失了，而清单还是载入时的快照。
+    /// 判据来自监听端的目录清单差异，不是这一行自己去 stat —— 一行一次 stat
+    /// 会把 45 行的列表变成 45 次系统调用，而那件事监听已经做过一次了。
+    var goneFromDirectory: Bool = false
 
     var body: some View {
         HStack(spacing: MMGap.md) {
             Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
                 .resizable()
+                .opacity(goneFromDirectory ? 0.55 : 1)
                 .frame(width: MMMetric.iconApp, height: MMMetric.iconApp)
 
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(app.name).font(.body).lineLimit(1)
-                HStack(spacing: MMGap.xs) {
-                    if let chip = app.sourceChip {
-                        SourceChip(text: chip.text, tint: chip.tint)
+                if goneFromDirectory {
+                    Text("已在目录里消失，待重新载入")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                } else {
+                    HStack(spacing: MMGap.xs) {
+                        if let chip = app.sourceChip {
+                            SourceChip(text: chip.text, tint: chip.tint)
+                        }
+                        // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
+                        // 把整行撑高。这里不能用 fixedSize：它会把空间全部划给大小，
+                        // 反过来把 "6.9.3" 这种短版本号截成 "6.…"。让大小优先、版本让步。
+                        Text(app.version.isEmpty ? "未知版本" : app.version)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text(MMFormat.bytes(app.size))
+                            .lineLimit(1)
+                            .layoutPriority(1)
                     }
-                    // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
-                    // 把整行撑高。这里不能用 fixedSize：它会把空间全部划给大小，
-                    // 反过来把 "6.9.3" 这种短版本号截成 "6.…"。让大小优先、版本让步。
-                    Text(app.version.isEmpty ? "未知版本" : app.version)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                    Text(MMFormat.bytes(app.size))
-                        .lineLimit(1)
-                        .layoutPriority(1)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .monospacedDigit()
                 }
-                .font(.caption)
-                .foregroundStyle(MMColor.secondaryLabel)
-                .monospacedDigit()
             }
 
             Spacer(minLength: MMGap.sm)
 
-            if app.residuals.isEmpty == false {
+            if goneFromDirectory {
+                Text("不在磁盘")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(MMColor.caution)
+            } else if app.residuals.isEmpty == false {
                 VStack(alignment: .trailing, spacing: MMGap.xxs) {
                     Text("\(app.residuals.count) 项残留")
                         .font(.caption.weight(.medium))
@@ -1072,6 +1435,7 @@ struct AppListRow: View {
         }
         .padding(.horizontal, MMGap.md)
         .frame(height: MMMetric.rowApp)
+        .background(goneFromDirectory ? MMColor.soft(MMColor.caution, 0.07) : Color.clear)
     }
 }
 
