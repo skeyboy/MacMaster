@@ -662,7 +662,7 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | **已落地**：`AppFolderWatcher`（进程内 kqueue，监听口径 = `AppScanner` 列举口径）+ 稿 03e 三档，见上一节 | — | 不撞：没学它的常驻 LaunchAgent。比原计划多一个钩子 `MM_UNINSTALL_SELF_ECHO`——它是全仓**唯一会真的动文件**的钩子，被"夹具 home 必须是 /tmp"+"必须点名"两道锁钉住，跑完按 bundle 标识清掉（见 `hook-ledger.md` §0） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
-| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | 现在只做"如实报截断"，不做续扫；用户想扫完只能反复点重新扫描（每次都是全量重扫） | S–M | 不撞：纯只读扫描调度。要新增"这一批扫到哪了"的状态，别把它做成后台常驻进程 |
+| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **调研已落档**：`docs/analysis/dev-artifact-continuation.md`（P6.1a）。定下"续扫的单位 = 搜索根、复用单位 = 已量完的行"，实测证明截断吃在**成案/测量**阶段而不是遍历阶段（两根浅层遍历合计 0.13 秒，单个 `node_modules` 子树 4 万条目、要两趟全遍历）。代价从 S–M 上调到 **M**：难点不在续扫本身，在合并要重算嵌套与分组（§4.3/§4.4） | M | 不撞：纯只读扫描调度。要做的是"这一批扫到哪了"的内存态账本，**不做后台常驻、不做游标落盘**（§6、§8）；预算不递加 |
 
 **推荐顺序 5 → 4**：1、2、3 已落地；5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了），
 代价 S–M 且纯只读；4 价值最低（本机 Mac mini 无风扇，正分支只有温度）。
