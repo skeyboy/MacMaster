@@ -631,6 +631,23 @@ Highball 那一屏给的是 `/opt/homebrew/Caskroom/highball/.metadata/INSTALL_R
 - **不删任何东西**：来源识别是纯读；照片停在确认面板（`06-fixture-confirm-sheet.jpg`），
   删除链路仍是 `DeletionGuard` → `FileTrashService`，本轮没有改动。
 
+## P5.3 落地：应用目录装卸监听（卸载页 03e，进程内 kqueue）（2026-10-02）
+
+- **补的是 P1.5 的一个真实盲区**：只监听 `~/.Trash` 时，用户"立即删除"或 `rm` 掉一个 app，
+  残留提示完全不触发。现在监听**与列举同一套目录**（`/Applications` + `~/Applications`，第一层 `.app`），
+  离开的那一张卡直接送到已有的「卸载后遗症」页，新来的那一条只报"清单过期"。
+- **不学 Pearcleaner 的常驻 LaunchAgent**：照 `TrashWatcher` 的"页面存活期 arm"做进程内监听，
+  kqueue 已实测能收到目录增删（`apps-watch.md` §3），FSEvents 这一轮不需要。
+- **不自动重扫**：列表是用户正在看的表格，自动刷新会把他选中的应用换掉。
+  消失卡的动作是「重新载入并扫描残留」，**先重载再扫**——清单还挂着那个应用时，
+  反查会把它自己散在 `~/Library` 的文件当成"有主人"漏掉。
+- **自我回声两头都堵**（§5 of `apps-watch.md`）：我们自己移走的那条不再报"刚从应用目录消失"；
+  「仅卸载应用」那张卡的主语换成第二人称「你刚卸载了 X，残留还在」+ 徽章「由 MacMaster 移入」。
+- **本轮取证顺带修掉两个真缺陷**：一个 `.fixedSize` 让整页比窗口高 397pt（并因此立了
+  `Scripts/window-probe-sweep.sh` 这道逐屏几何守卫，7 页 × 两尺寸全部齐平）；
+  回声卡把"我们动过手"寄托在"列得动废纸篓"上，没有完全磁盘访问的机器上它永远不出现。
+  两条的来龙去脉在 `apps-watch.md` §6，照片在 `docs/verification/p9-apps-watch/`（4 张，零合成点击）。
+
 ## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
@@ -643,12 +660,12 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 |---|---|---|---|---|---|
 | 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | **已落地**：`ProjectArtifactScanner` + cleaner 第四子页「开发产物」（稿 02c），见上一节 | — | 红线全部避开；`MM_PURGE_FIXTURE_HOME` 已按只认 /tmp 落地 |
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
-| 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | 现在只监听 `~/.Trash`，用户"立即删除"或 `rm` 掉 app 时残留提示完全不触发 | M | 不撞：不学它的常驻 LaunchAgent，照 `TrashWatcher` 的"页面存活期 arm"做进程内监听。需 `MM_APPS_WATCH_FIXTURE_DIR`（限 /tmp） |
+| 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | **已落地**：`AppFolderWatcher`（进程内 kqueue，监听口径 = `AppScanner` 列举口径）+ 稿 03e 三档，见上一节 | — | 不撞：没学它的常驻 LaunchAgent。比原计划多一个钩子 `MM_UNINSTALL_SELF_ECHO`——它是全仓**唯一会真的动文件**的钩子，被"夹具 home 必须是 /tmp"+"必须点名"两道锁钉住，跑完按 bundle 标识清掉（见 `hook-ledger.md` §0） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
 | 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | 现在只做"如实报截断"，不做续扫；用户想扫完只能反复点重新扫描（每次都是全量重扫） | S–M | 不撞：纯只读扫描调度。要新增"这一批扫到哪了"的状态，别把它做成后台常驻进程 |
 
-**推荐顺序 3 → 5**：1、2 已落地；3 补的是已落地功能的一个真实盲区（`/Applications` 装卸事件监听）；
-5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了）。4 价值最低。
+**推荐顺序 5 → 4**：1、2、3 已落地；5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了），
+代价 S–M 且纯只读；4 价值最低（本机 Mac mini 无风扇，正分支只有温度）。
 另有两件内部欠账与它们并行：disktree 最后一项"跨重扫保留 marks"、
 以及 P4 记下的几处还原度瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、
 概览首帧 sparkline 稀疏）。

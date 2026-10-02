@@ -4,6 +4,7 @@
 #   ./Scripts/apps-watch-run.sh notice            # 消失卡 + 新条目提示 + 旧快照列表行
 #   ./Scripts/apps-watch-run.sh scan              # 「重新载入并扫描」的终点（后遗症确认面板）
 #   ./Scripts/apps-watch-run.sh echo light        # 自我回声：你刚卸载了 X + 由 MacMaster 移入
+#   ./Scripts/apps-watch-run.sh skipped           # 真机：~/Applications 不存在那张说明卡
 #
 # 为什么不复用 p4-sweep.sh：它按固定延时截图，而这一档的时序是
 # "启动 → 等监听建好基线 → 改目录 → 再截"。改动必须发生在监听之后，
@@ -17,7 +18,7 @@
 set -e
 
 cd "$(dirname "$0")/.."
-CASE=${1:?用法：notice|scan|echo}
+CASE=${1:?用法：notice|scan|echo|skipped}
 APPEARANCE=${2:-light}
 APP=${APP:-build/MacMaster.app}
 OUT=${OUT:-docs/verification/p9-apps-watch}
@@ -30,13 +31,18 @@ typeset -a run_env=(MM_APPEARANCE="$APPEARANCE"
                     MM_OPEN_MODULE=uninstaller
                     MM_UNINSTALL_PANE=apps
                     MM_UNINSTALL_CONFIRM_FIXTURE_HOME="$FIX"
-                    MM_UNINSTALL_CONFIRM_MODE=none
-                    MM_APPS_WATCH_FIXTURE_DIR="$FIX/Applications")
+                    MM_UNINSTALL_CONFIRM_MODE=none)
 case "$CASE" in
-    notice) ;;
-    scan)   run_env+=(MM_ORPHAN_FIXTURE_HOME="$FIX" MM_APPS_WATCH_AUTO_SCAN=1) ;;
-    echo)   run_env+=(MM_TRASH_SCAN_HOME="$FIX" MM_UNINSTALL_SELF_ECHO=1 MM_UNINSTALL_SELECT=Highball) ;;
-    *)      print -u2 -- "未知档位：$CASE（notice|scan|echo）"; exit 2 ;;
+    # 「不在这台机器上」那张说明卡要的是**真机**：监听口径 = `AppScanner` 的列举口径，
+    # 本机恰好有 /Applications 而没有 ~/Applications，一开机就是那个态。
+    # 用了夹具目录反而拍不到——钩子会把监听根整个换成那一个目录，没有"跳过"可言。
+    skipped) run_env=($run_env[1,3] MM_PROBE_WINDOW=1) ;;
+    notice)  run_env+=(MM_APPS_WATCH_FIXTURE_DIR="$FIX/Applications") ;;
+    scan)    run_env+=(MM_APPS_WATCH_FIXTURE_DIR="$FIX/Applications"
+                       MM_ORPHAN_FIXTURE_HOME="$FIX" MM_APPS_WATCH_AUTO_SCAN=1) ;;
+    echo)    run_env+=(MM_APPS_WATCH_FIXTURE_DIR="$FIX/Applications"
+                       MM_TRASH_SCAN_HOME="$FIX" MM_UNINSTALL_SELF_ECHO=1 MM_UNINSTALL_SELECT=Highball) ;;
+    *)      print -u2 -- "未知档位：$CASE（notice|scan|echo|skipped）"; exit 2 ;;
 esac
 
 # 只有 echo 那一档会让本体真的进 ~/.Trash（那是它要证明的事）。
@@ -60,7 +66,7 @@ print -r -- "已启动 pid=$pid（外观=$APPEARANCE 档位=$CASE），等监听
 print -r -- "钩子：${run_env[*]}"
 sleep 12
 
-if [[ "$CASE" != "echo" ]]; then
+if [[ "$CASE" != "echo" && "$CASE" != "skipped" ]]; then
     ./Scripts/apps-watch-fixture.sh depart
     sleep 3      # 合并窗口 400ms + 一次目录列举，留够但不靠它决定结果
 fi

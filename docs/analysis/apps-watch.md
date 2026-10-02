@@ -178,11 +178,85 @@ P1.5 的 `TrashWatcher` 监听 `~/.Trash`，能抓住"用户把 `.app` 拖进废
 `.appOnly` 模式下这张卡本该有价值（用户确实只带走了本体、残留还活着），
 但它该说"你刚卸载了 X，残留还在"而不是"刚拖进废纸篓" —— 属于文案分档，不是新增功能。
 
-## 6. 下一轮
+## 6. 取证时查出来的两处缺陷（本轮修掉）
 
-落地顺序：设计稿 `03e-uninstaller-watch.html`（三档：消失提示 / 新出现提示 / 读不到）
+### 6.1 回声卡把"我们动过手"寄托在"列得动目录"上
+
+§5 那张「你刚卸载了 X，残留还在」在**没有「完全磁盘访问」的机器上永远不出现**。
+原因不在文案，在数据来源：卡片读的是 `trashWatcher.arrivals`，而 arrivals 来自
+`contentsOfDirectory(~/.Trash)` —— 本机实测这一步是 `NSCocoaErrorDomain 257`
+（见 `trash-watch-fda.md`）。于是监听那一支只能报 `.unreadable`，`trashRegion` 把横幅排在
+卡片前面，卸载确实成功了、残留确实还在，界面却只说"我读不到废纸篓"。
+
+这是**产品缺陷**，不只是取证障碍：这张卡讲的是我们自己的按钮刚做过的事，
+凭据本该来自卸载动作本身。`FileTrashService` 在移动时就回填了目的地
+（`TrashRecord.trashPath`），包标识与显示名卸载前已经读好——一个字节都不必再读废纸篓。
+
+改法（`UninstallerModel.swift:396-410` / `TrashArrival(selfMovedPath:)`）：
+
+- 「仅卸载应用」成功时，模型记下 `selfEchoArrival`（目的地路径 + 名字 + 包标识，不读盘）。
+- 视图只在**监听读不动废纸篓**时拿它兜底（`syncTrashNotice` 里的 `echoFallback`）。
+  监听看得见时一切照旧以它为准——用户在访达里还原或清空废纸篓，条目从清单里消失，卡就跟着消失；
+  兜底那条没有这个能力，所以绝不能让它盖在权威来源上面。
+- 「忽略」清的是来源本身（`dismissSelfEchoArrival`），只清选中项的话下一次同步又把它选回来。
+- 撤回（`undoLast`）把本体放回应用目录，回声随之作废。
+- 卡片标题改读 `model.trashArrival ?? arrivals.last`：原来写的是 `arrivals[0].name`，
+  兜底路径下 arrivals 是空的，那是一句会越界的假话。
+
+路径必须用 `FileTrashService` 回填的那一条，不能拿 `~/.Trash/<原目录名>.app` 自己拼：
+取证时废纸篓里已经躺着上一轮的 `Highball.app`，系统把这一次改名叫
+`Highball 12-29-703.app`（`echo.jpg` 拍到的就是它）。拼出来的那条既不是删除历史里的目的地，
+也不是撤回时要找回的位置。
+
+顺带定下的次序：有可讲的卡片时**卡片排在横幅前面**。横幅讲的是"我们看不见废纸篓"，
+卡片讲的是"我们刚亲手做过一件事"，后者才是用户此刻要的答案。
+
+### 6.2 一个 `.fixedSize` 让整页比窗口高 397pt
+
+现象：卸载页整窗内容上下溢出，照片看着像"窗口错位"，别的页正常。
+量出来的凭据（`MM_PROBE_WINDOW=1`，见下节）：窗口 `content` 是 760pt，
+而 `AppKitPlatformViewHost<…NavigationSplitRepresentable…>` 是 **1157pt**——
+SwiftUI 按页面的**理想高度**给了宿主视图尺寸，窗口只是把它裁了。
+
+成因是 P5.3 三张提示卡正文上的 `.fixedSize(horizontal: false, vertical: true)`。
+这个修饰符要的是"按内容要多高就多高"，落在**直接挂在页面根 `VStack` 上、
+且位于弹性区（`HStack{…}.frame(maxHeight: .infinity)`）之上**的卡片里，
+就会把整页的理想高度抬到超过窗口高度，弹性区跟着被顶出去。
+去掉这三处（`MMUninstaller.swift` 的 `appsDepartureCard` / `appsArrivalStrip` / `appsSkippedNote`）
+后宿主回到 760pt，段落照样换行——宽度由 `frame(maxWidth: .infinity)` + `Spacer(minLength:)`
+约束，本来就不靠 vertical fixedSize 撑开。
+
+`AppDetailView` 里那两处同名修饰符**没动**：它们在滚动视图内部，HEAD 版本一直如此且量出来是齐平的。
+教训不是"别用 fixedSize"，是**同一句文案，放在滚动区和放在根 VStack 上是两种几何**。
+
+## 7. 逐屏几何守卫：`Scripts/window-probe-sweep.sh`
+
+上面那个 bug 的麻烦在于它不像"某一页坏了"，而像"整个窗口坏了"——侧边栏也跟着位移。
+所以补了一个便宜的守卫：每页起一个实例，量窗口帧与宿主帧，不相等就是溢出。
+
+```
+./Scripts/window-probe-sweep.sh light                          # 默认 1100x760
+MM_WINDOW_SIZE=1000x620 ./Scripts/window-probe-sweep.sh light  # 夹取后的实际最小档
+```
+
+本轮结论（`docs/verification/window-probe/sweep.txt`）：7 页在两个尺寸下**全部齐平**。
+探针本身（`Sources/MacMaster/WindowProbe.swift`）只在 `MM_PROBE_WINDOW` 存在时工作，
+只读帧不改帧，产物里等于不存在——留着是因为它是这一类 bug 唯一的量化工具，
+而照片看不出"差 397pt"这种数。
+
+## 8. 下一轮
+
+本轮已按 §6 之前的落地顺序走完：设计稿 `03e-uninstaller-watch.html`（三档：消失提示 / 新出现提示 / 读不到）
 → `AppFolderWatcher` + 单测（纯函数判据先立，照 `TrashWatchRule` 的形状）
-→ UI 卡片与 §5 的抑制集合 → `Scripts/apps-watch-fixture.sh` + 实机窗口截图取证。
+→ UI 卡片与 §5 的抑制集合 → `Scripts/apps-watch-fixture.sh` + 实机窗口截图取证（三档，零合成点击）。
+
+留到下轮的：
+
+- **消失卡与回声卡的"过期"没有统一口径**。监听读得动废纸篓时靠目录清单掉出来；
+  读不动时那条兜底只能等撤回或「忽略」。没有授权就没有"它还在不在"的可靠问法——
+  `lstat` 一个已知路径在本机能不能成功没实测过，不拿它当结论。
+- **应用目录监听只覆盖第一层 `.app`**，装在自定义目录里的应用看不见（卡片正文已写明）。
+- **`~/Applications` 不存在是常态**，所以它不占横幅；只有所有目标都读不到才升级。
 
 明确不做：常驻代理、FSEvents（kqueue 够用且已验证）、自定义 URL scheme、
 `NSWorkspace` 通知（它只报前台激活与启动，报不了"某个 bundle 不见了"）、

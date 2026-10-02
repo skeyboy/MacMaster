@@ -1,0 +1,21 @@
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+PROBE win t=0.2 AppKitWindow vis=true title=MacMaster frame=W1100xH760@Y217 content=W1100xH760@Y0 bounds=W1100xH760@Y0 layout=W1100xH708@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1100xH760@Y0
+PROBE win t=0.2 NSStatusBarWindow vis=true title=Item-0 frame=W177xH30@Y1050 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=0.2 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=0.2 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=1.0 AppKitWindow vis=true title=MacMaster frame=W1100xH760@Y217 content=W1100xH760@Y0 bounds=W1100xH760@Y0 layout=W1100xH708@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1100xH760@Y0
+PROBE win t=1.0 NSStatusBarWindow vis=true title=Item-0 frame=W177xH30@Y1050 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=1.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=1.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=2.0 AppKitWindow vis=true title=MacMaster frame=W1100xH760@Y217 content=W1100xH760@Y0 bounds=W1100xH760@Y0 layout=W1100xH708@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1100xH760@Y0
+PROBE win t=2.0 NSStatusBarWindow vis=true title=Item-0 frame=W177xH30@Y1050 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=2.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=2.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=4.0 AppKitWindow vis=true title=MacMaster frame=W1100xH760@Y217 content=W1100xH760@Y0 bounds=W1100xH760@Y0 layout=W1100xH708@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1100xH760@Y0
+PROBE win t=4.0 NSStatusBarWindow vis=true title=Item-0 frame=W299xH30@Y1050 content=W299xH30@Y0 bounds=W299xH30@Y0 layout=W299xH30@Y0 | sub NSView W299xH22@Y4
+PROBE win t=4.0 NSStatusBarWindow vis=true title= frame=W299xH30@Y-30 content=W299xH30@Y0 bounds=W299xH30@Y0 layout=W299xH30@Y0 | sub NSView W299xH22@Y4
+PROBE win t=4.0 NSStatusBarWindow vis=true title= frame=W299xH30@Y-30 content=W299xH30@Y0 bounds=W299xH30@Y0 layout=W299xH30@Y0 | sub NSView W299xH22@Y4
+PROBE win t=6.0 AppKitWindow vis=true title=MacMaster frame=W1100xH760@Y217 content=W1100xH760@Y0 bounds=W1100xH760@Y0 layout=W1100xH708@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1100xH760@Y0
+PROBE win t=6.0 NSStatusBarWindow vis=true title=Item-0 frame=W320xH30@Y1050 content=W320xH30@Y0 bounds=W320xH30@Y0 layout=W320xH30@Y0 | sub NSView W320xH22@Y4
+PROBE win t=6.0 NSStatusBarWindow vis=true title= frame=W320xH30@Y-30 content=W320xH30@Y0 bounds=W320xH30@Y0 layout=W320xH30@Y0 | sub NSView W320xH22@Y4
+PROBE win t=6.0 NSStatusBarWindow vis=true title= frame=W320xH30@Y-30 content=W320xH30@Y0 bounds=W320xH30@Y0 layout=W320xH30@Y0 | sub NSView W320xH22@Y4

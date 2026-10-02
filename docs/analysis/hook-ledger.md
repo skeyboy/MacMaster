@@ -6,7 +6,7 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **41 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 42 个，
+- 全仓现存钩子 **45 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 46 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
@@ -14,8 +14,13 @@
   P5.1「开发产物」页新增 `MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM` 共 5 个（见下表）；
   P5.2「安装来源」新增 `MM_UNINSTALL_SELECT`（点名要选中的那一行），并给 `MM_UNINSTALL_CONFIRM_MODE` 加 `none`
   （只拍列表与详情、不弹面板——面板会盖掉这一轮真正要拍的两块）。
-  **全部为只读展示/状态钩子，无任何钩子会直接触发删除或写盘。**
-- **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
+  P5.3「应用装卸监听」新增 `MM_APPS_WATCH_FIXTURE_DIR`、`MM_APPS_WATCH_AUTO_SCAN`、`MM_UNINSTALL_SELF_ECHO`
+  与取证用的 `MM_PROBE_WINDOW` 共 4 个。
+- **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
+  （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
+  目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
+  其余钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
+- **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。
 - 需要特别留意的"看似会动"的钩子：
   - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。`MM_PURGE_FIXTURE_HOME` 同理——它只换扫描根，扫的仍是 `/tmp` 下的假项目。
   - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_DEV_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。`MM_SHOW_TOAST=permanent` 摆的是"已永久删除"回执，它**没有撤回按钮**、也不会删任何东西（数字借自选中标项）；`MM_SHOW_PERMANENT` 只是把确认面板换成永久删除那块，一个字节都不动。
@@ -52,6 +57,10 @@
 | `MM_TRASH_FIXTURE_DIR` | `MMUninstaller` | `TrashWatcher.swift:94` | 注入废纸篓夹具目录 | ✅ | 否 | 同上，只认 `/tmp` |
 | `MM_TRASH_SCAN_HOME` | `MMUninstaller` | `TrashWatcher.swift:100` | 注入废纸篓扫描 home | ✅ | 否 | 同上，只认 `/tmp` |
 | `MM_SHOW_TRASH_CONFIRM` | `MMUninstaller` | `MMUninstaller.swift:535` | 弹出废纸篓确认面板 | ✅ | 否（弹面板，删在按钮里） | 删除走 `FileTrashService`，过闸门 |
+| `MM_APPS_WATCH_FIXTURE_DIR` | `MMUninstaller` | `AppFolderWatcher.swift:117` | 把「应用目录监听」的根换成夹具目录 | ✅ | 否 | **P5.3 新增。只认 `/tmp`**（复用 `TrashWatcher.fixtureEnvironmentValue`）。只改监听根，不写盘；配合 `Scripts/apps-watch-fixture.sh` |
+| `MM_APPS_WATCH_AUTO_SCAN` | `MMUninstaller` | `MMUninstaller.swift:84-87` | 启动后自动走一次消失卡的「重新载入并扫描」 | ✅ | 否（扫描只读，删在按钮里） | **P5.3 新增**。**必须 `MM_APPS_WATCH_FIXTURE_DIR` 成立才生效**，否则忽略。合成点击进不了原生按钮，而这张卡的终点不跑一次就拍不到 |
+| `MM_UNINSTALL_SELF_ECHO` | `MMUninstaller` | `MMUninstaller.swift:95-98` | 自动执行一次「仅卸载应用」，用来拍自我回声文案与回声抑制 | ⚠️ 会动文件 | **是**：把夹具里那个 app 真的移进废纸篓 | **P5.3 新增**。**必须 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`（/tmp 假 home）成立才生效**；`MM_UNINSTALL_SELECT` 点名，取不到就不动。跑完 `Scripts/apps-watch-run.sh` 会按 bundle 标识（不认名字）清掉本次进废纸篓的夹具应用 |
+| `MM_PROBE_WINDOW` | 壳 `Sources/MacMaster` | `WindowProbe.swift:12` | 按 0.2…16s 若干时间点把每个真实窗口的 AppKit 帧写到 stderr | ✅ | 否 | **P5.3 新增**（取证工具，不是界面钩子）。只读 `frame/bounds/contentLayoutRect/subviews`，不改任何帧；没有这个变量时 `start()` 直接返回。量的是"宿主视图有没有比窗口高"，见 `apps-watch.md` §7 |
 | `MM_OPEN_TAB` | `MMDisk` | `MMDisk.swift:44` | disk 页默认 tab（tree/list/large） | ✅ | 否 | 非法值回落 `.treemap` |
 | `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:128` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略 |
 | `MM_DISK_FILTER` | `MMDisk` | `MMDisk.swift:132` | 过滤串 | ✅ | 否 | — |

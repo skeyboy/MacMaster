@@ -270,3 +270,51 @@
 - **"账本声明了 app、但那份 bundle 早就不在"的悬空链**只在弱档里出现（`02` 就是它），
   没有单独一屏——它的 UI 表现就是"没有徽章"，与 `05` 同框。
 
+## 9. P5.3 追加（2026-10-02）：应用装卸监听 03e ↔ 实现
+
+设计稿 `docs/design-system/screens/mmuninstaller/03e-uninstaller-watch.html`（三块：消失卡 /
+两个方向同屏 / 过渡与降级合同表），实机证据 4 张在 `docs/verification/p9-apps-watch/`
+（`notice` `scan` `echo` `skipped`，各带同名 `.log`）。
+**零合成点击**：改动由 `Scripts/apps-watch-fixture.sh depart` 真的往夹具目录里增删条目
+（探针已证明这类改动会送 kqueue 事件，见 `apps-watch.md` §3），
+两个"替用户按下按钮"的钩子（`MM_APPS_WATCH_AUTO_SCAN`、`MM_UNINSTALL_SELF_ECHO`）
+都要求 /tmp 夹具成立才生效。
+
+### 9.1 逐元素对照
+
+| 元素 | 设计稿 | 实机（照片编号） | 判定 |
+|---|---|---|---|
+| 消失卡标题「刚从应用目录消失：X」+ 徽章「本体已不在应用目录」 | `.notice` + `.badge.info` | `notice` | ✅ 图标 `xmark.app`；徽章用 `MMBadge` 而不是稿里的 16pt `.badge` |
+| 路径行「最后已知位置」 | `.path` monospace | `notice`：`/tmp/mmapps/Applications/Highball.app · com.example.Highball · 最后已知位置` | ✅ 三段一条线，中间点分隔 |
+| 脚注「未扫描 · 扫描会先重新载入清单」+ 两按钮 | `.foot` | `notice` | ✅ 「只重新载入清单」是普通按钮，「重新载入并扫描残留」才是 prominent |
+| 新条目轻提示「应用目录里有 N 个新条目」+ 徽章「当前清单是旧快照」 | `.soft` + `<ul>` 条目名 | `notice`：1 个新条目 `Notion.app` | ✅ 没有残留清单、没有删除按钮，唯一动作是「重新载入」 |
+| 两方向同屏时**消失卡在上** | 03e-2 说明文字 | `notice`（消失卡在上、新条目在下） | ✅ 稿子原本画反了（新条目在上），本轮把 HTML 调正并重渲染 |
+| 列表页脚「清单是载入时的快照，未自动刷新」 | 页脚橙字 | `notice` `echo` `skipped` 三张都在 | ✅ 这一句是"不自动重扫"这个决定的可见代价，不能省 |
+| 「不在这台机器上」说明卡 | 03e-3 第三档 | `skipped`：`~/Applications 不在这台机器上` + 一句"目录不存在与读不到是两种原因" | ✅ 真机拍的，不带夹具钩子——用了夹具就把监听根换成那一个目录，"跳过"这个态反而造不出来 |
+| 回声卡「你刚卸载了 X，残留还在」+ 徽章「由 MacMaster 移入」 | 03e-3 最后一档 | `echo` | ✅ 本轮修完才拍得到，见 §9.2 第 2 条。路径行写的是 `~/.Trash/Highball 12-29-703.app` —— 上一轮取证留下的 `Highball.app` 还在废纸篓里，系统给这一次改了名。这一句恰好证明路径是 `FileTrashService` 回填的目的地，不是拿原名拼的 |
+| 回声抑制：自己卸载后不再冒「刚从应用目录消失」 | 03e-2 说明 ② | `echo`：列表只剩 Keeper/Lumen，没有消失卡 | ✅ 与 `notice` 对照着看才有意义，单看一张证不了"没出现" |
+| 终点：重新载入并扫描 → 后遗症页 + 确认面板 | 03e-3 第一档 | `scan` | ✅ 「可疑残留 2 项 · 已选 2 项」，面板明说"找不到不等于没在用" |
+
+### 9.2 取证这一步抓出来的两个真问题
+
+1. **一个 `.fixedSize` 让整页比窗口高 397pt**。窗口 `content` 760pt，宿主视图 1157pt，
+   整窗内容上下溢出，看着像"整个窗口错位"。量出来后定位到 P5.3 三张提示卡正文上的
+   `.fixedSize(horizontal: false, vertical: true)`——卡片直接挂在页面根 `VStack`、又在弹性区之上时，
+   它抬的是**整页的理想高度**。细节与教训在 `apps-watch.md` §6.2；
+   守卫脚本 `Scripts/window-probe-sweep.sh`（结论 `docs/verification/window-probe/sweep.txt`）：
+   7 页 × 两个尺寸全部齐平。
+2. **回声卡把"我们动过手"寄托在"列得动废纸篓"上**。没有「完全磁盘访问」的机器上
+   `~/.Trash` 列不动，`trashWatcher` 只能报 `.unreadable`，横幅排在卡片前面——
+   卸载确实成功了、残留确实还在，界面只说"我读不到废纸篓"。改成卸载动作自己留凭据
+   （`FileTrashService` 回填的目的地路径 + 卸载前读好的包标识），监听读得动时仍以监听为准。
+   细节在 `apps-watch.md` §6.1。
+
+### 9.3 拍不到的
+
+- **03e-3「读不到目录」那一档（EPERM）没有照片**。它要求监听根存在、可 `open`、但列举被拒；
+  /tmp 下的目录不会这样，真机的 `/Applications` 也不会。代码路径由
+  `AppFolderWatcherTests` 覆盖（`listing(of:)` 返回 nil 时状态必须是"读不到"而不是"目录是空的"）。
+- **`~/Applications` 里真的装了应用**时的两目录同报没有照片——本机那个目录压根不存在（`skipped` 拍的就是它）。
+- **子目录条目**（`/Applications/Utilities/Foo.app`）按设计**不该**进任何提示，
+  所以它没有"正面照片"，只有 `AppWatchRule` 的那组单测守着监听口径 = 列举口径。
+
