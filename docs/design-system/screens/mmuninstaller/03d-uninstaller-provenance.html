@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:24px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px;align-items:center}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.win{height:auto}                       /* 本屏要展示到残留列表底部，窗口按内容出全稿 */
+.split{flex:1;min-height:0;display:flex}
+.applist{width:268px;flex:0 0 268px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow:hover{background:var(--c-fill-hover)}
+.arow.sel{background:var(--c-accent-soft)}
+.arow .ic{width:32px;height:32px;border-radius:8px;flex:0 0 32px;display:grid;place-items:center;
+          color:#fff;font-size:12px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+              display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.arow .z small{display:block;font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+/* 行内来源标记：只有 brew 相关才占这一格（见 03d 说明），App Store / 安装包不在列表里打扰 */
+.src{display:inline-flex;align-items:center;height:16px;padding:0 5px;border-radius:var(--r-xs);
+     font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.2px;flex:0 0 auto}
+.src.brew{background:var(--c-accent-soft);color:var(--c-accent)}
+.src.maybe{background:var(--c-warning-soft);color:var(--c-warning)}
+.detail{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.dsec{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);overflow:hidden}
+.dsec+.dsec{border-top:1px solid var(--c-separator)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-2)}
+.cards .c{border:1px solid var(--c-separator);border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);
+          display:flex;flex-direction:column;gap:2px;background:var(--c-card-bg-alt)}
+.cards .c i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.cards .c b{font-family:var(--font-mono);font-size:var(--fs-title3);font-weight:500}
+.res{display:flex;align-items:center;gap:var(--sp-2);height:28px;padding:0 var(--sp-3);
+     border-bottom:1px solid var(--c-separator);font-size:var(--fs-callout)}
+.res:last-child{border-bottom:0}
+.res .p{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary);
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;text-align:left}
+.res .z{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);white-space:nowrap}
+.res .why{font-size:var(--fs-caption);color:var(--c-label-tertiary);white-space:nowrap}
+/* 来源判定依据那一行小字：紧跟 kv，负责说清"这句话凭什么" */
+.basis{display:flex;gap:var(--sp-2);font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.55}
+.dialog{width:420px}
+.dialog .fine{font-size:var(--fs-caption);color:var(--c-label-secondary);margin:0;line-height:1.55}
+.dialog .callout{display:flex;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);
+                 background:var(--c-warning-soft);color:var(--c-warning);
+                 font-size:var(--fs-caption);line-height:1.55}
+.dialog .callout.info{background:var(--c-accent-soft);color:var(--c-accent)}
+.dialog .acts{align-items:center}
+/* 五档来源的文案合同：实现里逐字照这张表 */
+.matrix{display:grid;grid-template-columns:150px 1fr;gap:1px;background:var(--c-separator);
+        border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:920px}
+.matrix>div{background:var(--c-content-bg);padding:var(--sp-3) var(--sp-4);font-size:var(--fs-callout)}
+.matrix .h{background:var(--c-card-bg-alt);font-weight:600;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.matrix .k{font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.matrix .v{display:flex;flex-direction:column;gap:5px}
+.matrix .v .line{font-family:var(--font-mono)}
+.matrix .v .plain{font-family:var(--font)}
+.matrix .v .sub{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.55}</style></head>
+<body>
+
+<!-- ───────────── 画板 1：列表徽章 + 详情「来源」 ───────────── -->
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span><span class="pct">6% 可用</span></div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>44 个应用 · 合计 62.4 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow sel"><span class="ic" style="background:#5E5CE6">Hb</span>
+              <div class="m"><b>Highball</b><span><i class="src brew">brew</i>0.9.39 · 6.2 MB</span></div>
+              <div class="z">3 项残留<small>1.4 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#F0513E">Hb</span>
+              <div class="m"><b>Homebrew</b><span><i class="src brew">brew</i>0.4.4 · 24.1 MB</span></div>
+              <div class="z">2 项残留<small>512 KB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#28CD41">Wb</span>
+              <div class="m"><b>WailBrew</b><span><i class="src brew">brew</i>0.13.1 · 38.4 MB</span></div>
+              <div class="z">4 项残留<small>2.1 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#3E8EF7">Ce</span>
+              <div class="m"><b>CodeEdit</b><span><i class="src maybe">疑似 brew</i>0.3.6 · 46.8 MB</span></div>
+              <div class="z">5 项残留<small>3.9 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#07C160">Wx</span>
+              <div class="m"><b>WeChat</b><span>4.1.6 · 892 MB</span></div>
+              <div class="z">6 项残留<small>1.24 GB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#FF9500">Dd</span>
+              <div class="m"><b>DingTalk</b><span>7.6 · 486 MB</span></div>
+              <div class="z">2 项残留<small>640 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#8E8E93">My</span>
+              <div class="m"><b>MysteryApp</b><span>1.0 · 128 MB</span></div>
+              <div class="z">0 项残留<small>—</small></div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">44 个应用 · 已测 44</span></div>
+        </div>
+
+        <div class="detail">
+          <div class="dsec">
+            <div class="row-h" style="gap:var(--sp-3)">
+              <span class="ic" style="width:38px;height:38px;border-radius:9px;background:#5E5CE6;display:grid;place-items:center;color:#fff;font-weight:700">Hb</span>
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span class="row-h" style="gap:var(--sp-2)"><span class="t-title2">Highball</span>
+                  <span class="badge info"><svg class="i" style="width:11px;height:11px"><use href="#i-box"></use></svg>Homebrew cask · highball</span></span>
+                <span class="t-mono ter" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">app.highball.Highball · 6.2 MB · /Applications</span></div>
+              <div style="margin-left:auto" class="row-h"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>打开所在文件夹</span></div>
+            </div>
+            <div class="cards">
+              <div class="c"><i>应用大小</i><b>6.2 MB</b></div>
+              <div class="c"><i>包含文件</i><b>318</b></div>
+              <div class="c"><i>残留大小</i><b>1.4 MB</b></div>
+              <div class="c"><i>残留项</i><b>3</b></div>
+            </div>
+          </div>
+
+          <div class="dsec">
+            <span class="section-title">基本信息</span>
+            <dl class="kv" style="margin:0">
+              <dt>来源</dt><dd>Homebrew cask · highball 0.9.39（tap homebrew/cask）</dd>
+              <dt>来源凭据</dt><dd>/opt/homebrew/Caskroom/highball/.metadata/INSTALL_RECEIPT.json</dd>
+              <dt>对应命令</dt><dd>brew uninstall --cask highball</dd>
+              <dt>包名</dt><dd>app.highball.Highball</dd>
+              <dt>版本</dt><dd class="plain">0.9.39 (1)</dd>
+              <dt>开发者</dt><dd class="plain">第三方开发者（来自代码签名）</dd>
+              <dt>所在文件夹</dt><dd>/Applications</dd>
+            </dl>
+            <div class="basis">
+              <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-info"></use></svg>
+              <span>判定依据：Caskroom 里 staged 的 <b>Highball.app</b> 链接解析后与本 bundle 是同一个文件（设备号 + inode 相同）。
+                这里只读账本，不执行 brew；把 bundle 移进废纸篓不会让 brew 的账本同步。</span></div>
+          </div>
+
+          <div class="dsec" style="gap:var(--sp-2);flex:1;min-height:0">
+            <div class="row-h"><span class="section-title">将一并移除的残留</span>
+              <span class="badge warn">1 项默认不勾选</span>
+              <div style="margin-left:auto"></div><span class="t-cap">按包名与容器证据匹配 · 不含其他应用共享文件</span></div>
+            <div style="border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden">
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-sparkles"></use></svg>
+                <span class="p">~/Library/Caches/app.highball.Highball</span><span class="why">缓存</span><span class="z">1.1 MB</span></div>
+              <div class="res"><span class="chk on">✓</span><svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-list"></use></svg>
+                <span class="p">~/Library/Preferences/app.highball.Highball.plist</span><span class="why">偏好设置</span><span class="z">4 KB</span></div>
+              <div class="res"><span class="chk"></span><svg class="i" style="color:var(--c-warning)"><use href="#i-box"></use></svg>
+                <span class="p">~/Library/Application Support/Highball</span><span class="why">可能含账号与下载状态</span><span class="z">268 KB</span></div>
+            </div>
+            <div class="row-h" style="margin-top:auto;gap:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-info"></use></svg>
+              <span class="note">卸载会把 Highball 以及勾选的 2 项残留（合计 6.4 MB）移到废纸篓，可在 15 秒内或「最近操作」中撤回。</span>
+            </div>
+            <div class="row-h" style="gap:var(--sp-2)">
+              <span class="btn destructive lg" style="flex:1">卸载应用并移除勾选的残留</span>
+              <span class="btn borderless sm">仅卸载应用，保留所有残留</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 2 项残留 · 1.1 MB</b>
+          <span>未勾选项不会被修改</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm">仅卸载应用</span>
+        <span class="btn destructive lg">移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>03d · 应用卸载 —— 安装来源（P5.2）第一块：列表徽章 + 详情「来源」。</b>
+  列表里的行内标记<b>只给 brew 相关</b>：这个徽章存在的理由是它会改变你接下来的动作——brew 装的应用被拖进废纸篓，
+  brew 的账本不会同步，下次 <code>brew list</code> 就说它还装着。App Store 与安装包没有这种后果，所以不在列表里打扰（详情面板照实说）。
+  "疑似 brew"用警示色而不是强调色：凭据只对上名字，没有验证到同一份文件。<b>对应命令只展示，绝不执行</b>——
+  全页没有一处会 spawn brew。<b>来源凭据</b>写的是账本文件自身的绝对路径，用户能自己打开核对。
+  无法判定的应用（画板里 MysteryApp / DingTalk 那种）在列表里没有徽章，避免把"没查到"写成一种属性。</div>
+</div>
+
+<!-- ───────────── 画板 2：确认面板里的来源提醒 ───────────── -->
+<div class="artboard">
+<div class="sheet-wrap" style="width:920px;justify-content:center;background:#DCDCDC;padding:26px 0">
+  <div class="dialog">
+    <h3>确认卸载</h3>
+    <dl class="kv" style="margin:0">
+      <dt>应用</dt><dd class="plain">Highball</dd>
+      <dt>来源</dt><dd>Homebrew cask · highball 0.9.39</dd>
+      <dt>包名</dt><dd>app.highball.Highball</dd>
+      <dt>本体</dt><dd>6.2 MB</dd>
+      <dt>残留</dt><dd>2 项 · 1.1 MB</dd>
+      <dt>合计</dt><dd>7.3 MB</dd>
+    </dl>
+    <div class="callout">
+      <svg class="i" style="flex:0 0 14px"><use href="#i-warn"></use></svg>
+      <span>这个应用由 Homebrew cask 安装。移到废纸篓只会动 <b>/Applications/Highball.app</b>，
+        brew 的账本不会跟着更新；要连账本一起清，请自己执行
+        <b>brew uninstall --cask highball</b>。MacMaster 不会代你运行 brew。</span></div>
+    <p class="fine">列出的路径将移入废纸篓；未勾选与只读项不修改，谨慎项仅在主动勾选时移除。可在「最近操作」中撤回。</p>
+    <div class="acts"><span class="btn">取消</span><span class="btn destructive">卸载</span></div>
+  </div>
+</div>
+<div class="cap" style="max-width:920px"><b>第二块：确认面板加一行「来源」+ 一条 brew 提醒。</b>
+  提醒用警示底而不是普通说明，因为它说的是一件<b>做完之后才会发现</b>的事：账本失同步。文案必须同时讲清
+  "我们不会替你执行 brew"——这一页的删除动作只有废纸篓一条路径，来源识别不新增任何执行能力。
+  名字对上但设备号没对上的那一档（CodeEdit）这里换成"来源只是名字对上，未按设备号验证"，并且<b>不给命令</b>：
+  凭据不足时不推荐一条会改动系统状态的指令。</div>
+</div>
+
+<!-- ───────────── 画板 3：五档来源文案合同 ───────────── -->
+<div class="artboard">
+<div class="matrix">
+  <div class="h">证据档</div><div class="h">「来源」行 + 判定依据小字（实现逐字照此）</div>
+
+  <div class="k">.homebrewCask<br>列表 brew<br><span class="badge info" style="margin-top:4px">Homebrew cask</span></div>
+  <div class="v">
+    <span class="line">来源　　Homebrew cask · highball 0.9.39（tap homebrew/cask）</span>
+    <span class="line">来源凭据　/opt/homebrew/Caskroom/highball/.metadata/INSTALL_RECEIPT.json</span>
+    <span class="line">对应命令　brew uninstall --cask highball</span>
+    <span class="sub">判定依据：Caskroom 里 staged 的 Highball.app 链接解析后与本 bundle 是同一个文件（设备号 + inode 相同）。这里只读账本，不执行 brew；把 bundle 移进废纸篓不会让 brew 的账本同步。</span>
+  </div>
+
+  <div class="k">.homebrewCaskNameOnly<br>列表 疑似 brew<br><span class="badge warn" style="margin-top:4px">疑似 Homebrew cask</span></div>
+  <div class="v">
+    <span class="line">来源　　可能是 Homebrew cask · codeedit（只有名字对上）</span>
+    <span class="line">来源凭据　/opt/homebrew/Caskroom/codeedit/.metadata/INSTALL_RECEIPT.json</span>
+    <span class="sub">判定依据：账本声明了 CodeEdit.app，但那一份 staged 链接指向别处或已经失效，没验证到与本 bundle 是同一个文件。这一档不给 brew 命令。</span>
+  </div>
+
+  <div class="k">.appStore<br><span class="badge readonly" style="margin-top:4px">App Store</span></div>
+  <div class="v">
+    <span class="line">来源　　Mac App Store</span>
+    <span class="sub">判定依据：bundle 内有 Contents/_MASReceipt/receipt。收据跟着 bundle 走，拷贝一份也带着，所以排在设备号证据之后。</span>
+  </div>
+
+  <div class="k">.installerPackage<br><span class="badge readonly" style="margin-top:4px">安装包</span></div>
+  <div class="v">
+    <span class="line">来源　　安装包 · cn.i4tools.mac</span>
+    <span class="sub">判定依据：包名出现在 /var/db/receipts 的已装包清单里。收据可能在卸载后仍然留着，所以它只用来标来源，不参与任何删除判断。</span>
+  </div>
+
+  <div class="k">.unknown<br>列表无徽章</div>
+  <div class="v">
+    <span class="line">来源　　无法判定</span>
+    <span class="sub">判定依据：没有 brew 账本、App Store 收据或安装包凭据对得上。"无法判定"不等于"手动安装"——装在别的卷、换了名字、用了别的安装器都会落在这里。</span>
+    <span class="line" style="color:var(--c-warning)">两个 cask 都声明同名时：来源　无法判定（两个 cask 都声明了这个名字：firefox、firefox-beta）</span>
+    <span class="line" style="color:var(--c-warning)">两份 staged 链接抢同一个 bundle 时：来源　无法判定（firefox、firefox-beta 两份账本把同一个 .app 摆到了这里）</span>
+  </div>
+</div>
+<div class="cap" style="max-width:920px"><b>第三块：五档来源的文案合同。</b>
+  这张表是实现与截图的对照基准：<b>没有凭据就是没有凭据</b>，所以最后一档写"无法判定"，绝不写"手动安装"；
+  两个 token 抢同一个名字时不替用户挑第一个，降级并点名；抢的是<b>同一份文件</b>（设备号 + inode 相同）时，
+  这句要照实说成"两份账本把同一个 .app 摆到了这里"——两种歧义的可信度不同，文案不能混着一句带过。
+  <b>行内徽章（列表）只覆盖前两档</b>，后三档只在详情与确认面板里出现。</div>
+</div>
+
+</body></html>

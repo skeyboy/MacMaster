@@ -27,12 +27,16 @@ public struct UninstallCandidate: Identifiable, Sendable {
     public var residualScanFailed: Bool
     /// 系统自带应用不提供残留扫描（`com.apple.*` 的数据由系统管理）。
     public var isSystemOwned: Bool
+    /// 怎么来到这台机器上的（只读凭据推断，见 `AppProvenance.swift`）。
+    /// 载入时一次算好贴在条目上：证据是"账本 + 设备号"，与残留扫描无关，不必跟着敏感度重算。
+    public let provenance: AppProvenance
 
     init(id: String, name: String, bundleName: String, path: String, bundleID: String, version: String,
          build: String, minSystemVersion: String, executable: String, developer: String, teamID: String,
          modificationDate: Date?, size: UInt64? = nil, fileCount: Int? = nil,
          residuals: [ResidualItem] = [], residualSize: UInt64? = nil,
-         residualScanFailed: Bool = false, isSystemOwned: Bool = false) {
+         residualScanFailed: Bool = false, isSystemOwned: Bool = false,
+         provenance: AppProvenance = .unknown) {
         self.id = id
         self.name = name
         self.bundleName = bundleName
@@ -51,6 +55,7 @@ public struct UninstallCandidate: Identifiable, Sendable {
         self.residualSize = residualSize
         self.residualScanFailed = residualScanFailed
         self.isSystemOwned = isSystemOwned
+        self.provenance = provenance
     }
 }
 
@@ -134,6 +139,12 @@ public final class UninstallerModel: ObservableObject {
     /// 扫描参数注入点：单测把 home 指到临时目录，真实运行用默认值（当前用户）。
     var optionsFactory: () -> ResidualScanOptions = { ResidualScanOptions() }
     var appDirectoriesFactory: (String) -> [String] = AppScanner.defaultSearchDirectories
+    /// 来源凭据的根：真实运行同时探两个 brew 前缀（不按 CPU 架构猜），
+    /// 无头截图把它换成 /tmp 夹具目录。
+    var provenancePrefixesFactory: (String) -> [String] = { _ in AppProvenanceScanner.defaultPrefixes() }
+    /// 安装包收据目录。夹具截图下给 nil：假 home 不该去读真机的系统收据，
+    /// 那样"这一档没有命中"到底是凭据缺失还是没读系统，就分不出来了。
+    var provenanceReceiptsRootFactory: (String) -> String? = { _ in "/private/var/db/receipts" }
 
     public init() {}
 
@@ -171,17 +182,41 @@ public final class UninstallerModel: ObservableObject {
 
         let options = optionsFactory()
         let directories = appDirectoriesFactory(options.home)
+        let prefixes = provenancePrefixesFactory(options.home)
+        let receiptsRoot = provenanceReceiptsRootFactory(options.home)
         let discovered = await Task.detached(priority: .userInitiated) {
             AppScanner.applications(in: directories)
         }.value
+        // 来源识别只读账本与 bundle 的元数据（一次 stat 一条），不遍历任何应用树，
+        // 所以放在测大小之前算：列表刚出来就该有 brew 徽章，而不是等几十秒。
+        let provenances = await Task.detached(priority: .userInitiated) {
+            Self.provenanceMap(for: discovered, prefixes: prefixes, receiptsRoot: receiptsRoot)
+        }.value
 
-        apps = discovered.map { makeCandidate(from: $0) }
+        apps = discovered.map { makeCandidate(from: $0, provenance: provenances[$0.path]) }
         isScanningApps = false
         await enrich(options: ResidualScanOptions(home: options.home, systemRoot: options.systemRoot,
                                                   sensitivity: sensitivity))
     }
 
-    private func makeCandidate(from app: DiscoveredApp) -> UninstallCandidate {
+    /// 路径 → 来源。纯 `unknown` 不入表：默认值就是它，没必要为 44 个应用各存一份空结构。
+    /// 但"两个 cask 都声明了同一份 bundle"也是 `unknown` 却带着事实，丢了就只剩一句空白的"无法判定"。
+    nonisolated private static func provenanceMap(for discovered: [DiscoveredApp],
+                                                  prefixes: [String],
+                                                  receiptsRoot: String?) -> [String: AppProvenance] {
+        let index = AppProvenanceScanner.buildIndex(prefixes: prefixes)
+        let packages = receiptsRoot.map { ReceiptOwnerIndex.identifiers(at: $0) } ?? []
+        var map: [String: AppProvenance] = [:]
+        for app in discovered {
+            let found = AppProvenanceScanner.provenance(for: app, index: index, packageIdentifiers: packages)
+            if found.source != .unknown || found.ambiguousCaskTokens.isEmpty == false {
+                map[app.path] = found
+            }
+        }
+        return map
+    }
+
+    private func makeCandidate(from app: DiscoveredApp, provenance: AppProvenance?) -> UninstallCandidate {
         let info = AppScanner.infoDictionary(at: app.path)
         let signature = AppScanner.signatureInfo(of: app.path)
         return UninstallCandidate(
@@ -197,7 +232,8 @@ public final class UninstallerModel: ObservableObject {
             developer: signature.developer,
             teamID: signature.teamID,
             modificationDate: AppScanner.modificationDate(of: app.path),
-            isSystemOwned: AppScanner.isSystemOwned(bundleID: app.bundleID)
+            isSystemOwned: AppScanner.isSystemOwned(bundleID: app.bundleID),
+            provenance: provenance ?? .unknown
         )
     }
 

@@ -67,6 +67,32 @@ public struct UninstallerView: View {
         return home
     }
 
+    /// 自动打开确认面板时选哪一档；`none` = 只拍页面不拍面板（面板会盖住列表与详情）。
+    /// 省略沿用旧口径 `appOnly`，那批 P1.5 截图的跑法不变。
+    private static var confirmationModeToOpen: ConfirmationMode? {
+        switch ProcessInfo.processInfo.environment["MM_UNINSTALL_CONFIRM_MODE"] {
+        case "none": nil
+        case "withResiduals": .withResiduals
+        default: .appOnly
+        }
+    }
+
+    /// `.task` 里要选中的那一行：`MM_UNINSTALL_SELECT` 点名优先（拍"某一档来源"用），
+    /// 没点名时退回夹具 home 里的第一个应用（沿用 P1.5 那批截图的口径）。
+    /// 点名点不到就什么都不选——宁可拍出一张空态，也不要悄悄换成别的应用。
+    private func confirmationTarget() -> UninstallCandidate? {
+        let named = ProcessInfo.processInfo.environment["MM_UNINSTALL_SELECT"]
+        if let named, named.isEmpty == false {
+            let hit = model.apps.first { $0.bundleName.caseInsensitiveCompare(named) == .orderedSame }
+            if hit == nil {
+                FileHandle.standardError.write("MM_UNINSTALL_SELECT=\(named) 没有对应的应用\n".data(using: .utf8)!)
+            }
+            return hit
+        }
+        guard let home = Self.confirmationFixtureHome else { return nil }
+        return model.apps.first { $0.path.hasPrefix(home + "/Applications/") }
+    }
+
     @StateObject private var model = UninstallerModel()
     @StateObject private var trashWatcher = TrashWatcher()
     @ObservedObject private var settings = AppSettings.shared
@@ -164,15 +190,21 @@ public struct UninstallerView: View {
             if let home = Self.confirmationFixtureHome {
                 model.optionsFactory = { ResidualScanOptions(home: home) }
                 model.appDirectoriesFactory = { _ in [home + "/Applications"] }
+                // 假 home 配假账本：让来源去读真机的 /opt/homebrew，
+                // 拍出来的表里每一行"brew 装的"都和画面里那个假应用无关。
+                model.provenancePrefixesFactory = { _ in [home + "/.homebrew"] }
+                model.provenanceReceiptsRootFactory = { _ in nil }
             }
             if model.apps.isEmpty, model.isScanningApps == false {
                 await model.loadApps()
             }
-            if let home = Self.confirmationFixtureHome,
-               let app = model.apps.first(where: { $0.path.hasPrefix(home + "/Applications/") }) {
-                model.select(app.id)
-                let mode = ProcessInfo.processInfo.environment["MM_UNINSTALL_CONFIRM_MODE"]
-                requestConfirmation(mode == "withResiduals" ? .withResiduals : .appOnly)
+            if let target = self.confirmationTarget() {
+                model.select(target.id)
+                // 确认面板只有夹具目录成立时才自动打开；`MM_UNINSTALL_CONFIRM_MODE=none`
+                // 用来只拍列表与详情（面板会盖住它们）。
+                if Self.confirmationFixtureHome != nil, let mode = Self.confirmationModeToOpen {
+                    requestConfirmation(mode)
+                }
             }
             // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
             startOrphanScanIfNeeded()
@@ -532,6 +564,7 @@ public struct UninstallerView: View {
                 let residualSize = includeResiduals ? model.selectedResidualSize : 0
                 VStack(alignment: .leading, spacing: MMGap.xs) {
                     MMKeyRow("应用", app.name)
+                    MMKeyRow("来源", app.sourceValue)
                     MMKeyRow("包名", app.bundleID, monospaced: true)
                     MMKeyRow("本体", MMFormat.bytes(app.size))
                     MMKeyRow("残留", includeResiduals
@@ -539,6 +572,22 @@ public struct UninstallerView: View {
                         : "保留，不修改")
                     MMKeyRow("合计", MMFormat.bytes(UninstallSelection.confirmationSize(
                         appSize: app.size, residualSize: residualSize, includeResiduals: includeResiduals)))
+                }
+
+                // brew 装的应用被拖进废纸篓，账本不会同步——这句话说在动手之前，
+                // 因为做完之后没人会想起来。这里仍然只有废纸篓一条路径，不新增执行能力。
+                if let warning = app.sourceWarning {
+                    HStack(alignment: .top, spacing: MMGap.sm) {
+                        Image(systemName: "exclamationmark.triangle").foregroundStyle(MMColor.caution)
+                        Text(warning)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.caution)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(MMGap.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(MMColor.soft(MMColor.caution, 0.10),
+                                in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
                 }
 
                 ScrollView {
@@ -837,6 +886,142 @@ public struct UninstallerView: View {
     }
 }
 
+// MARK: - 安装来源的呈现口径
+//
+// 事实层在 `AppProvenance.swift`：它只回答"对上的是哪一档凭据"。颜色、措辞、
+// 哪一档值得在列表里占一格，全部收在这里。
+// 文案合同 = 设计稿 `docs/design-system/screens/mmuninstaller/03d-uninstaller-provenance.html`
+// 第三块那张五行表，逐字一致；改这里要同步改那张表，否则还原度对照就失去基准。
+
+extension UninstallCandidate {
+    /// 列表行内的短标记。**只有 brew 相关才占这一格**：这枚标记存在的理由是它会改变
+    /// 你接下来的动作——brew 装的应用被拖进废纸篓，brew 的账本不会同步，
+    /// 下次 `brew list` 还说它装着。App Store 与安装包没有这种后果，就不在列表里打扰。
+    var sourceChip: (text: String, tint: Color)? {
+        switch provenance.source {
+        case .homebrewCask: ("brew", MMColor.accent)
+        case .homebrewCaskNameOnly: ("疑似 brew", MMColor.caution)
+        default: nil
+        }
+    }
+
+    /// 详情标题旁的徽章。`unknown` 没有徽章：把"没查到"做成一种属性是假话。
+    var sourceBadge: (text: String, tint: Color, symbol: String)? {
+        switch provenance.source {
+        case .homebrewCask:
+            ("Homebrew cask · \(provenance.cask?.token ?? "")", MMColor.informational, "shippingbox")
+        case .homebrewCaskNameOnly:
+            ("疑似 Homebrew cask", MMColor.caution, "questionmark.circle")
+        case .appStore:
+            ("App Store", MMColor.secondaryLabel, "app.badge")
+        case .installerPackage:
+            ("安装包", MMColor.secondaryLabel, "square.and.arrow.down")
+        case .unknown:
+            nil
+        }
+    }
+
+    /// 「来源」键值行。
+    var sourceValue: String {
+        guard let cask = provenance.cask else {
+            switch provenance.source {
+            case .appStore: return "Mac App Store"
+            case .installerPackage: return "安装包 · \(provenance.packageIdentifier ?? "")"
+            case .unknown:
+                let tokens = provenance.ambiguousCaskTokens
+                if tokens.isEmpty { return "无法判定" }
+                return provenance.ambiguousByDeviceIdentity
+                    ? "无法判定（\(tokens.joined(separator: "、")) 两份账本把同一个 .app 摆到了这里）"
+                    : "无法判定（两个 cask 都声明了这个名字：\(tokens.joined(separator: "、"))）"
+            default: return "无法判定"
+            }
+        }
+        switch provenance.source {
+        case .homebrewCask:
+            var line = "Homebrew cask · \(cask.token)"
+            if let version = cask.version { line += " \(version)" }
+            if let tap = cask.tap { line += "（tap \(tap)）" }
+            return line
+        case .homebrewCaskNameOnly:
+            return "可能是 Homebrew cask · \(cask.token)（只有名字对上）"
+        default: return "无法判定"
+        }
+    }
+
+    /// 「来源凭据」：能说出这句话是哪份文件写的。只有 brew 两档有账本可指。
+    var sourceReceipt: String? {
+        provenance.cask.map(\.receiptPath)
+    }
+
+    /// 「对应命令」——**只展示，本应用不会代用户执行**。
+    /// 名字对上而设备号没对上的那一档不给：凭据不足时不推荐一条会改动系统状态的指令。
+    var sourceCommand: String? {
+        guard provenance.source == .homebrewCask, let token = provenance.cask?.token else { return nil }
+        return "brew uninstall --cask \(token)"
+    }
+
+    /// 「判定依据」小字：把结论的强度写在脸上。
+    var sourceBasis: String {
+        switch provenance.source {
+        case .homebrewCask:
+            "判定依据：Caskroom 里 staged 的 \(bundleName).app 链接解析后与本 bundle 是同一个文件"
+                + "（设备号 + inode 相同）。这里只读账本，不执行 brew；把 bundle 移进废纸篓不会让 brew 的账本同步。"
+        case .homebrewCaskNameOnly:
+            "判定依据：账本声明了 \(bundleName).app，但那一份 staged 链接指向别处或已经失效，"
+                + "没验证到与本 bundle 是同一个文件。这一档不给 brew 命令。"
+        case .appStore:
+            "判定依据：bundle 内有 Contents/_MASReceipt/receipt。收据跟着 bundle 走，拷贝一份也带着，"
+                + "所以排在设备号证据之后。"
+        case .installerPackage:
+            "判定依据：包名出现在 /var/db/receipts 的已装包清单里。收据可能在卸载后仍然留着，"
+                + "所以它只用来标来源，不参与任何删除判断。"
+        case .unknown:
+            provenance.ambiguousCaskTokens.isEmpty
+                ? "判定依据：没有 brew 账本、App Store 收据或安装包凭据对得上。"
+                    + "「无法判定」不等于「手动安装」——装在别的卷、换了名字、用了别的安装器都会落在这里。"
+                : (provenance.ambiguousByDeviceIdentity
+                    ? "判定依据：\(provenance.ambiguousCaskTokens.joined(separator: " 与 ")) 的 Caskroom staged 链接"
+                        + "解析后都是本 bundle（设备号 + inode 相同）——两份账本在抢同一份文件，不替用户挑一个。"
+                    : "判定依据：\(provenance.ambiguousCaskTokens.joined(separator: " 与 ")) 两份账本都声明了同一个 "
+                        + ".app 名字，不替用户挑第一个。")
+        }
+    }
+
+    /// 确认面板的提醒。只有 brew 两档有：这一页的删除动作只有废纸篓一条路径，
+    /// 而 brew 装的app走这条路会让账本失真——那是一件做完之后才会发现的事。
+    var sourceWarning: String? {
+        switch provenance.source {
+        case .homebrewCask:
+            guard let token = provenance.cask?.token else { return nil }
+            return "这个应用由 Homebrew cask 安装。移到废纸篓只会动 \(path)，"
+                + "brew 的账本不会跟着更新；要连账本一起清，请自己执行 brew uninstall --cask \(token)。"
+                + "MacMaster 不会代你运行 brew。"
+        case .homebrewCaskNameOnly:
+            guard let token = provenance.cask?.token else { return nil }
+            return "来源只是名字对上（token：\(token)），没有按设备号验证。"
+                + "若是 brew 装的，删除后 brew 的账本可能与实际不符。"
+        default: return nil
+        }
+    }
+}
+
+/// 行内来源标记：比 `MMBadge` 小一号（列表行只有两行文字的空间），
+/// 对应设计稿 `.src` 那枚 16pt 高的等宽小胶囊。
+private struct SourceChip: View {
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 5)
+            .frame(height: 16)
+            .background(MMColor.soft(tint, 0.14), in: RoundedRectangle(cornerRadius: MMRadius.badge, style: .continuous))
+            .fixedSize()
+    }
+}
+
 // MARK: - 应用列表行
 
 struct AppListRow: View {
@@ -851,6 +1036,9 @@ struct AppListRow: View {
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(app.name).font(.body).lineLimit(1)
                 HStack(spacing: MMGap.xs) {
+                    if let chip = app.sourceChip {
+                        SourceChip(text: chip.text, tint: chip.tint)
+                    }
                     // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
                     // 把整行撑高。这里不能用 fixedSize：它会把空间全部划给大小，
                     // 反过来把 "6.9.3" 这种短版本号截成 "6.…"。让大小优先、版本让步。
@@ -922,7 +1110,12 @@ struct AppDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
 
             VStack(alignment: .leading, spacing: MMGap.xxs) {
-                Text(app.name).font(.title2.weight(.semibold)).lineLimit(1)
+                HStack(spacing: MMGap.sm) {
+                    Text(app.name).font(.title2.weight(.semibold)).lineLimit(1)
+                    if let badge = app.sourceBadge {
+                        MMBadge(badge.text, tint: badge.tint, systemImage: badge.symbol)
+                    }
+                }
                 Text("\(app.bundleID) · \(MMFormat.bytes(app.size)) · \((app.path as NSString).deletingLastPathComponent)")
                     .font(.caption.monospaced())
                     .foregroundStyle(MMColor.tertiaryLabel)
@@ -950,6 +1143,13 @@ struct AppDetailView: View {
         VStack(alignment: .leading, spacing: MMGap.sm) {
             Text("基本信息").font(.headline)
             VStack(alignment: .leading, spacing: MMGap.xs) {
+                MMKeyRow("来源", app.sourceValue)
+                if let receipt = app.sourceReceipt {
+                    MMKeyRow("来源凭据", receipt, monospaced: true)
+                }
+                if let command = app.sourceCommand {
+                    MMKeyRow("对应命令", command, monospaced: true)
+                }
                 MMKeyRow("包名", app.bundleID, monospaced: true)
                 MMKeyRow("版本", app.version.isEmpty ? "" : "\(app.version) (\(app.build))")
                 MMKeyRow("开发者", app.developer.isEmpty ? "" : "\(app.developer)（来自代码签名）")
@@ -959,6 +1159,14 @@ struct AppDetailView: View {
                 MMKeyRow("所在文件夹", (app.path as NSString).deletingLastPathComponent)
             }
             .textSelection(.enabled)
+
+            HStack(alignment: .top, spacing: MMGap.sm) {
+                Image(systemName: "info.circle").foregroundStyle(MMColor.tertiaryLabel)
+                Text(app.sourceBasis)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
