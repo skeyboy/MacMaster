@@ -59,7 +59,13 @@ public struct DiskAnalyzerView: View {
     @State private var findingsDismissed = false
     @State private var nameFilter = ""
     /// 标记待处理的目录/文件：Treemap 上 ⌘ 点击打点，底部统一结算。
+    /// 重扫不清空：按绝对路径挂回新树，体积以新扫描为准（见 `DiskMarks.reattach`）。
     @State private var marked: [String: DiskTreeNode] = [:]
+    /// 最近一次重扫里挂不回去的标记路径，用来在面包屑条上说一句"这几个没了"。
+    @State private var marksDroppedByRescan: [String] = []
+    /// MM_DISK_SELECT 只在首次扫描落地：它代表的是"用户动手标记过一次"这个动作，
+    /// 每次扫描都重放的话，第二次扫描会把该丢弃的标记重新加回来，取证就看不出丢弃了。
+    @State private var selectionHookApplied = false
     /// treemap 往下画几层。默认 3 层：再深块就比标签还小，读不出东西；
     /// 想一眼看清顶层构成时收到 1 层，想查缓存内部时放到 4 层。
     @State private var drawDepth = 3
@@ -179,6 +185,18 @@ public struct DiskAnalyzerView: View {
                 return
             }
             await scan(rootPath: (root as NSString).expandingTildeInPath)
+            // 截图验证 P6.2a「标记跨重扫存续」：没有真点击，第二次扫描由这里自己发起。
+            // 值给同一个根 = 复现「选择目录后重扫同一个根」；给另一个 /tmp 根 = 复现换根重扫，
+            // 前者拍"标记还在、体积换新"，后者拍"挂不回去的丢弃并说出来"。
+            if let again = env["MM_DISK_RESCAN"], !again.isEmpty {
+                let target = (again as NSString).expandingTildeInPath
+                guard target.hasPrefix("/tmp/") || target.hasPrefix("/private/tmp/") else {
+                    FileHandle.standardError.write(
+                        "MM_DISK_RESCAN=\(target) 不在 /tmp 之下，忽略该钩子\n".data(using: .utf8)!)
+                    return
+                }
+                await scan(rootPath: target)
+            }
         }
     }
 
@@ -339,6 +357,15 @@ public struct DiskAnalyzerView: View {
                     MMBadge("\(plan.blocked.count) 项不能删", tint: MMColor.caution,
                             systemImage: "exclamationmark.triangle.fill")
                 }
+            }
+
+            if !marksDroppedByRescan.isEmpty {
+                MMBadge("重扫后 \(marksDroppedByRescan.count) 个标记已经不在了 · 已移除",
+                        tint: MMColor.caution, systemImage: "exclamationmark.triangle")
+                    .help("标记按绝对路径挂回新扫描，体积以新扫描为准；"
+                          + "这些路径这次没扫到（多半是已经删了，或者换了扫描根），"
+                          + "旧数字直接丢弃，不再算进上面的待删总量：\n"
+                          + marksDroppedByRescan.joined(separator: "\n"))
             }
 
             // 以前这里在"有标记"时换成"卷可用 X → Y"。Y 是按标记体积直接加出来的，
@@ -1062,6 +1089,7 @@ public struct DiskAnalyzerView: View {
     /// MM_SHOW_TOAST=permanent 只画"已永久删除"回执条。
     /// 验证时请指向 /tmp 下的夹具文件，别指向真实数据。
     private func applySelectionHook() {
+        guard !selectionHookApplied else { return }
         let env = ProcessInfo.processInfo.environment
         guard let raw = env["MM_DISK_SELECT"], !raw.isEmpty else { return }
         let targets = raw.split(separator: ",").prefix(3).map {
@@ -1074,6 +1102,9 @@ public struct DiskAnalyzerView: View {
                 "MM_DISK_SELECT 含非 /tmp 路径（\(target)），整个钩子已忽略\n".data(using: .utf8)!)
             return
         }
+        // 只重放一次：它代表的是"用户动手标记过一次"，每次扫描落地都重放的话，
+        // 重扫该丢弃的标记会被它重新加回来，取证就看不出丢弃那条分支。
+        selectionHookApplied = true
         let parent = (first as NSString).deletingLastPathComponent
         if parent != navigationStack.last {
             navigationStack.append(parent)
@@ -1367,6 +1398,11 @@ public struct DiskAnalyzerView: View {
             isScanning = false
             return
         }
+        // 「重新扫描」按钮走的就是这条路：这一层底下的标记换成新体积，
+        // 这一层判明确实不在了的丢弃，这一层没覆盖到的不动（DiskMarks.refresh）。
+        let refreshed = DiskMarks.refresh(marked, with: items, under: path)
+        marked = refreshed.marks
+        marksDroppedByRescan = refreshed.dropped
         apply(children: items, for: path)
         isScanning = false
     }
@@ -1469,7 +1505,11 @@ public struct DiskAnalyzerView: View {
                 skippedProtected: output.skippedProtected
             )
             self.navigationStack = [rootPath]
-            self.marked = [:]
+            // 标记按路径挂回新树：命中的换成新节点（体积以新扫描为准），
+            // 挂不回去的直接丢弃并说出来，不留一个过期数字在合计里。
+            let reattached = DiskMarks.reattach(self.marked, rootPath: rootPath, into: output.topItems)
+            self.marked = reattached.marks
+            self.marksDroppedByRescan = reattached.dropped
             self.selected = nil
             self.trashFailures = []
             self.largeFiles = Array(output.largeFilesList.prefix(100))

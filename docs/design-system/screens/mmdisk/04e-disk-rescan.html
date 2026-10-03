@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:flex-start;gap:26px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:8px}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.65;max-width:980px}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+/* 块右下角的 ✓：实现里是 markedIDs 命中后画的小圆勾，稿里用同一个位置同一个色 */
+.tm .mk{position:absolute;right:5px;bottom:4px;width:14px;height:14px;border-radius:50%;
+        background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff}
+.tm .mk svg{width:9px;height:9px;stroke-width:2.8}
+.tm.stripe{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.10) 0 6px,transparent 6px 12px)}
+</style></head>
+<body>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>04e · 磁盘分析 —— 标记跨重扫存续（DiskMarks.reattach / DiskMarks.refresh）。</b>
+这一格画的是<b>重扫之后</b>的磁盘页，不是首次扫描：标记按<b>绝对路径</b>挂回新扫描的树，
+体积一律<b>换成新扫描那一份</b>。两条口径必须分开说，因为它们各自的失败模式不一样——
+只保路径不换数字，面板上「已标记 2 项 · 67.1 MB」就是<b>两个时间点之和</b>；
+只换数字不保路径，重扫等于把用户手工打下的点全清了（改动前正是如此，「选择目录」重扫一次，
+标记全没）。<b>挂不回去的直接丢弃</b>并在面包屑上点名（右边那一格），
+而不是留一个过期数字混进待删总量。<br>
+同一扇窗口上「<b>重新扫描</b>」按钮走的是另一条口径：它只重新枚举<b>当前这一层</b>，
+所以只有这一层底下的标记有资格判生死，<b>这一层没扫到的兄弟目录上的标记原样留着</b>
+（没扫到 ≠ 不存在，"它没了"只有整根重扫说得起）。<br>
+实机取证：<code>docs/verification/p62-marks/</code> 三张（零点击，
+<code>MM_DISK_SCAN</code> + <code>MM_DISK_SELECT</code> + 新增的 <code>MM_DISK_RESCAN</code>）。</div>
+<div class="sheet-wrap" style="gap:26px;align-items:flex-start;flex-direction:column">
+
+  <!-- ① 同一个根重扫：标记全在 -->
+  <div class="artboard">
+    <div class="cap"><b>① 同一个根重扫之后</b>：两条标记都挂回来了，数字是新扫描的。</div>
+    <div class="win mm-screen">
+      <div class="titlebar">
+        <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+        <div class="row-h" style="gap:6px;margin-left:6px">
+          <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+      </div>
+      <div class="body-row">
+        <aside class="sidebar">
+          <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+          <div class="nav-item active"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+        </aside>
+        <main class="content">
+          <div class="toolbar">
+            <div class="title-block"><h1>磁盘分析</h1><p>77.8 MB · 44 个文件 · /tmp/macmaster-disk-fixture</p></div>
+            <div class="sp"></div>
+            <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+          </div>
+          <div class="crumbs"><span>macmaster-disk-fixture</span>
+            <div style="margin-left:auto"></div>
+            <span class="badge readonly">未纳入 1 个受保护目录</span>
+            <span class="badge info">已标记 2 项 · 67.1 MB</span>
+            <span class="badge readonly">卷可用 53.88 GB</span></div>
+          <div style="position:relative;flex:1;background:var(--c-under-page)">
+            <div class="tm stripe dim" style="left:8px;top:8px;right:48%;bottom:8px;background-color:#5E5CE6">
+              <span class="l1" style="position:absolute;left:8px;top:6px">Downloads</span>
+              <span class="z" style="position:absolute;right:8px;top:6px;font-family:var(--font-mono);font-size:var(--fs-caption);color:rgba(255,255,255,.8)">50.3 MB</span>
+              <span class="mk"><svg class="i"><use href="#i-check"></use></svg></span></div>
+            <div class="tm stripe dim" style="right:8px;top:8px;left:53%;height:30%;background-color:#30D158">
+              <span class="l1" style="position:absolute;left:8px;top:6px">Documents</span>
+              <span class="z" style="position:absolute;right:8px;top:6px;font-family:var(--font-mono);font-size:var(--fs-caption);color:rgba(255,255,255,.8)">16.9 MB</span>
+              <span class="mk"><svg class="i"><use href="#i-check"></use></svg></span></div>
+            <div class="tm dim" style="right:8px;top:38%;left:53%;bottom:8px;background:#5AC8FA">
+              <span class="l1" style="position:absolute;left:8px;top:6px">Movies</span>
+              <span class="z" style="position:absolute;right:8px;top:6px;font-family:var(--font-mono);font-size:var(--fs-caption);color:rgba(255,255,255,.8)">8.4 MB</span></div>
+          </div>
+          <div class="actionbar"><span class="t-cap">已标记 2 项 · 67.1 MB</span>
+            <span style="margin-left:auto"></span><span class="btn sm">清空标记</span>
+            <span class="btn sm destructive">移入废纸篓</span></div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 换根重扫：挂不回去的丢弃并点名 -->
+  <div class="artboard">
+    <div class="cap"><b>② 换了扫描根重扫</b>（这里换成 <code>…/disk-fixture/Documents</code>）：
+      <code>report-2026.pdf</code> 在新树里，挂回来、体积按新扫描；
+      <code>Downloads</code> 不在这棵树里，<b>直接丢弃</b>，橙色徽章把丢了几条说出来。
+      待删总量随之从 67.1 MB 变成 16.8 MB——<b>少掉的那 50.3 MB 是"这次没扫到"，
+      不是"它不存在"</b>，所以宁可移除并声明，也不拿旧快照凑数。</div>
+    <div class="win mm-screen">
+      <div class="titlebar">
+        <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+        <div class="row-h" style="gap:6px;margin-left:6px">
+          <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+      </div>
+      <div class="body-row">
+        <aside class="sidebar">
+          <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+          <div class="nav-item active"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+          <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+        </aside>
+        <main class="content">
+          <div class="toolbar">
+            <div class="title-block"><h1>磁盘分析</h1><p>16.9 MB · 41 个文件 · /tmp/macmaster-disk-fixture/Documents</p></div>
+            <div class="sp"></div>
+            <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
+          </div>
+          <div class="crumbs"><span>Documents</span>
+            <div style="margin-left:auto"></div>
+            <span class="badge info">已标记 1 项 · 16.8 MB</span>
+            <span class="badge warn"><svg class="i i-14" style="margin-right:4px"><use href="#i-warn"></use></svg>重扫后 1 个标记已经不在了 · 已移除</span>
+            <span class="badge readonly">卷可用 53.86 GB</span></div>
+          <div style="position:relative;flex:1;background:var(--c-under-page)">
+            <div class="tm stripe dim" style="left:8px;top:8px;right:8px;bottom:8px;background-color:#30D158">
+              <span class="l1" style="position:absolute;left:8px;top:6px">report-2026.pdf</span>
+              <span class="z" style="position:absolute;right:8px;top:6px;font-family:var(--font-mono);font-size:var(--fs-caption);color:rgba(255,255,255,.8)">16.8 MB</span>
+              <span class="mk"><svg class="i"><use href="#i-check"></use></svg></span></div>
+          </div>
+          <div class="actionbar"><span class="t-cap">已标记 1 项 · 16.8 MB</span>
+            <span style="margin-left:auto"></span><span class="btn sm">清空标记</span>
+            <span class="btn sm destructive">移入废纸篓</span></div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+</body></html>

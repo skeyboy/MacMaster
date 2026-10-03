@@ -6,7 +6,7 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **48 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 49 个，
+- 全仓现存钩子 **49 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 50 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
@@ -19,6 +19,8 @@
   P6.1「开发产物截断根续扫」新增 `MM_DEV_ROOT_BUDGET_SECONDS`、`MM_DEV_CONTINUE_BUDGET_SECONDS`、
   `MM_DEV_AUTO_CONTINUE` 共 3 个：前两把预算调到极小好让首批**必然**截断，第三把续扫批自动跑掉——
   有了这三个，①含截断 / ②续扫之后 / ③同一根再截断三档全部零点击（见下表）。
+  P6.2a「磁盘标记跨重扫存续」新增 `MM_DISK_RESCAN` 1 个：首扫落地后自动再扫一次（值同样只认 /tmp），
+  配合"标记钩子只重放一次"才拍得到 ②同根重扫（标记还在）与 ③换根重扫（挂不回去的丢弃并点名）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -71,7 +73,8 @@
 | `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:128` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略 |
 | `MM_DISK_FILTER` | `MMDisk` | `MMDisk.swift:132` | 过滤串 | ✅ | 否 | — |
 | `MM_DISK_SCAN` | `MMDisk` | `MMDisk.swift:135` | 对指定根路径触发扫描 | ✅ | 否（只读扫描） | 仅枚举，不写。**本轮补 /tmp 守卫**：非 `/tmp`/`/private/tmp` 前缀写 stderr 并忽略 |
-| `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:998` | 预选路径并展开 | ✅ | 否 | 仅展示选中态。**本轮补 /tmp 守卫**：任一目标非 /tmp 前缀则整体忽略 |
+| `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:1094` | 预选路径并展开 | ✅ | 否 | 仅展示选中态。**本轮补 /tmp 守卫**：任一目标非 /tmp 前缀则整体忽略。**P6.2a 起只重放一次**（`selectionHookApplied`）：它代表"用户动手标记过一次"，每次扫描都重放会把该丢弃的标记重新加回来 |
+| `MM_DISK_RESCAN` | `MMDisk` | `MMDisk.swift:191` | 首扫落地后**自动再扫一次**指定根（P6.2a 新增） | ✅ | 否（只读扫描） | 值同样只认 `/tmp`/`/private/tmp` 前缀，越界写 stderr 并忽略。给同一个根=拍"标记跨重扫还在"，给另一个根=拍"挂不回去的丢弃并点名" |
 | `MM_DISK_HOLD` | `MMDisk` | `MMDisk.swift`（本轮新增） | `=hold` 冻结在"正在分析磁盘结构"首帧，不触发扫描 | ✅ | 否 | 见 `fidelity-disk.md` §提请协调者 #4 |
 | `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1094` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked |
 | `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1111` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘 |
@@ -91,7 +94,7 @@
 - **壳（Sources/MacMaster）**：5 个，纯导航/打开/取证档（`MM_APPEARANCE` `MM_WINDOW_SIZE`），零副作用。
 - **MMCleaner**：16 个（P5.1 新增 5 个：`MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM`；P6.1 再新增 3 个预算/自动续扫钩子；含 P4.6 的 `MM_SNAPSHOT_FIXTURE`，早前列数漏计它）。含 2 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`、`MM_PURGE_FIXTURE_HOME`，越界即忽略）。
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
-- **MMDisk**：8 个（新增 `MM_DISK_HOLD`），`MM_DISK_SCAN`/`MM_DISK_SELECT` 本轮补 `/tmp` 守卫。
+- **MMDisk**：9 个（新增 `MM_DISK_HOLD`；P6.2a 再新增 `MM_DISK_RESCAN`），`MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_DISK_RESCAN` 都带 `/tmp` 守卫。
 - **MMGuardian**：5 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`），全 `com.example.*` 合成，不写盘。
 - **MMOptimizer**：2 个（新增 `MM_OPTIMIZER_FIXTURE`）。`DevToolCacheAudit.swift:166` 读的 `env` 是 **PATH 探测**（找可执行文件），**不是 `MM_` 夹具钩子**，与截图无关，不计入台账。
 - **MMMonitor**：`MM_OPEN_MODULE` + #50 新增 2 个（`MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`），全只读。
@@ -137,6 +140,7 @@
 | `Scripts/purge-fixture.sh` | 造 `/tmp/macmaster-purge-fixture`（108 MB，14 个项目 / 22 处产物）：覆盖 CACHEDIR.TAG、`node_modules`、`build`+`package.json`、近期在用、读不进、云同步、受保护作者内容、无体积各行 | **P5.1 新增**。`MM_PURGE_FIXTURE_HOME` 只认 /tmp，所以真机上拍不到的分支必须在这里凑齐；脚本末尾的「产物目录清点」会把 23 个目录逐个列年龄，跑一遍就能核对页面报的数对不对（含两个**不该出现**的诱饵：游离的 `node_modules` 和 `Projects/sneaky` 里指向外部的软链） |
 | `Scripts/provenance-fixture.sh` | 造一棵假 home + 一份假 brew 账本（`<root>/.homebrew/Caskroom`），五档来源一次凑齐：设备号同一（Highball）、只有名字对上（CodeEdit，staged 链接指向别处）、MAS 收据（WeChat）、两份账本抢同一个 bundle（Firefox：firefox 与 firefox-beta）、什么都没有（MysteryApp） | **P5.2 新增**。真机上一台机器通常只有一两档拍得到，而这一屏的文案合同是**按档给的**（弱档不给 brew 命令、歧义档要点名两个 token），必须逐档摆拍。账本跟着假 home 走：`provenancePrefixesFactory` 指到 `<home>/.homebrew`、`provenanceReceiptsRootFactory` 给 `nil`，否则照片里"这一档没命中"到底是没凭据还是没读系统收据就分不出来了 |
 
+| `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个
@@ -145,6 +149,11 @@
   截图用的正确顺序是 `Downloads,Movies,<root>`。另外 `MM_SHOW_TOAST=permanent` 那一支
   必须写在 `guard env["MM_SHOW_CONFIRM"] != nil` **之前**并自己 return，否则确认面板
   盖住吐司，拍到的还是面板。
+- **"代表用户动手"的钩子必须只重放一次**（P6.2a 踩到）：`MM_DISK_SELECT` 过去挂在每次扫描
+  落地的收尾上。单拍一屏时看不出来，一旦加上 `MM_DISK_RESCAN` 让页面自己扫第二次，
+  它就会把第二次扫描**本该丢弃**的标记原地重新打上——③ 那一档拍出来永远像"标记都挂回来了"，
+  丢弃那条分支在照片里消失。现在它由 `selectionHookApplied` 钉成一次性动作，
+  语义也就和"用户手工标记过一次"对齐了。
 - **页面下方的区块靠"缩短上方内容"顶进画面，不靠滚窗**：4K 屏上窗口高度仍被钳在约 1080pt，
   `MM_WINDOW_SIZE=1400x1900` 拿到的还是 1050pt 高的窗（照片看着像生效、其实没变）。
   要看系统清理页底部的"磁盘空间只读报告"，正确做法是给 `MM_CLEANER_FILTER` 一个只命中

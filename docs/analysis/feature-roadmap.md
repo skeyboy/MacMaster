@@ -668,6 +668,34 @@ Highball 那一屏给的是 `/opt/homebrew/Caskroom/highball/.metadata/INSTALL_R
   `fidelity-cleaner.md` §8.2 / §8.4；一处 P5.1 就在、本轮没修的不自洽（根报"已扫完"而组里挂着
   「读不到（预算用尽）」）记在 §8.6，留给 P6.2 判。
 
+## P6.2a 落地：磁盘标记跨重扫存续（04e）（2026-10-03）
+
+disktree 那张"仍然推迟的一项"的账，本轮收掉。推迟的理由从来不是难写，而是它有两种**互相打架**的
+错法，选错任何一种都比不做更糟——所以先把口径拆开再动手。
+
+- **一件是存续，一件是过期，两件事必须同时做对**：标记按**绝对路径**挂回新扫描的树，
+  体积**一律换成新扫描那一份**。只挂路径不换体积，底部那行「已标记 N 项 · X」就成了两个时间点的和，
+  谁也核对不了；只换体积不挂路径，就是改动前的行为——用户重扫一次，半天的勾选白做。
+  两条都落在 `Packages/MMDisk/Sources/MMDisk/DiskMarks.swift`（纯函数，9 条单测钉住）。
+- **两套丢弃口径，故意不一样**：整根重扫（`scan(rootPath:)`、「选择目录」、`MM_DISK_RESCAN`）
+  有资格说"这个路径不在了"，挂不回去就丢弃并点名；单层重新枚举（工具栏「重新扫描」、下钻未缓存目录）
+  只对自己那层有管辖权——**没扫到 ≠ 不存在**，scope 之外的标记原样留着。
+  另一个不显眼的边界：被枚举的那个目录永远不在自己的孩子里，所以 `path == rootPath` / `path == scope`
+  的标记是**保留**，不是丢弃（`testReattachKeepsAMarkOnTheScannedRootItself`、`testRefreshKeepsAMarkOnTheEnumeratedDirectoryItself`）。
+- **丢弃要说出来**：面包屑条上「重扫后 N 个标记已经不在了 · 已移除」，hover 逐个列路径。
+  静默丢弃和静默保留一样坏——用户需要知道总量为什么变小了。
+  `DiskRemoval.plan(marks:root:)` 是唯一的裁决入口（徽章 + 两块确认面板都从它走），
+  所以 `marksDroppedByRescan` 是把待删总量**诚实缩小**，而不是让一个旧字节混进面板。
+- **拍得到靠一个新钩子，零合成点击**：`MM_DISK_RESCAN` 让应用自己发起第二次扫描
+  （给同一个根 = 拍"标记还在、体积换新"；给另一个 /tmp 根 = 拍"挂不回去的丢弃并说出来"），
+  三档照片在 `docs/verification/p62-marks/`，脚本 `Scripts/p62-capture.sh`。
+  配套改了一处钩子语义：`MM_DISK_SELECT` **只在首次扫描重放**——它代表的是"用户动手标记过一次"这个动作，
+  每次扫描都重放的话，第二次扫描会把本该丢弃的标记重新加回来，照片上就看不出丢弃这条分支了
+  （这条记在 `hook-ledger.md` §5，是本轮唯一一处"改钩子而不是改 UI"才能取证的地方）。
+- 设计稿 `docs/design-system/screens/mmdisk/04e-disk-rescan.png`（两帧窗口，逐元素对照表在
+  `fidelity-disk.md` §9.2）。§9.3 记了**三处拍不到**的：体积变化那一拍要求两次扫描之间磁盘真的动过，
+  `refresh` 那条路要真点击（只有单测），`isUnder` 的整组件语义同理——都写清了对应钉住它的测试，不当已验证。
+
 ## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
@@ -687,9 +715,12 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 **P6.1 之后重排**：1、2、3、5 均已落地，外部候选只剩 4（温度/风扇），而它价值最低
 （本机 Mac mini 无风扇，正分支只有温度，且要新引一条 IOReport 读取路径）。
 下一轮因此按**内部欠账**排：
-- **P6.2 · 还原度收口**：disktree 最后一项"跨重扫保留 marks"，加上 P4 记下的四处瑕疵
-  （守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、概览首帧 sparkline 稀疏）。
+- **P6.2 · 还原度收口**：disktree 最后一项"跨重扫保留 marks"**已落地**（P6.2a，2026-10-03，见上一节）。
+  剩下 P4 记下的四处瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、概览首帧 sparkline 稀疏）。
   都是看得见的小口子，攒在一起拍一轮就是一次收口。
+  **开工前先重测侧栏那一条**：P4 记的是 229↔245pt，而仓里三处写的全是 220
+  （`MainWindow.swift:18 ideal: 220`、`MMDesign.swift:117 sidebar = 220`、`tokens.css:32 --sidebar-w: 220px`），
+  两个数都对不上的意思是"瑕疵的度量本身没核实"，先量再改，别照着旧数字动手。
 - **P6.3 · 吞吐**：把 `activityProbe` 与 `FileTreeWalker.stats` 两趟全遍历并成一趟
   （P6.1a §2 实测：单个 `node_modules` 子树 4 万条目、要两趟）。它同时也是 `fidelity-cleaner.md` §8.6
   "根报已扫完而组里挂着读不到"的修法窗口——一趟遍历才说得出"每个候选都出了结论"。

@@ -375,3 +375,67 @@ SEL="/tmp/macmaster-disk-fixture/Downloads,/tmp/macmaster-disk-fixture/Movies,/t
 未拍到的两态与原因：`.guarded` blocked 行（钩子进不去 `DeletionGuard` 的保护清单，
 只有单测覆盖）、按下红色按钮之后的界面（禁止合成点击）。都记在
 `hook-ledger.md` §3，不当 bug。
+
+## 9. P6.2a 追加（2026-10-03）：标记跨重扫存续（04e）
+
+补掉 `disktree-adoption.md` 末尾那条"仍然推迟的一项"：**重扫不再清空标记**。
+改动前 `scan(rootPath:)` 落地时执行 `self.marked = [:]`，也就是「选择目录」重扫一次，
+用户在图上 ⌘ 点出来的那串标记全没；而工具栏那颗「重新扫描」走的是另一条路
+（`doNavigate`，只重枚举当前层），它**从来不清标记**——于是同一屏上"重扫"有两种后果，
+其中一种还留着旧快照的字节。
+
+### 9.1 两条口径，各自守各的失败模式
+
+| 场景 | 走哪个函数 | 命中的标记 | 没命中的标记 |
+|---|---|---|---|
+| 整根重扫（首次扫描、`选择目录`、`MM_DISK_RESCAN`） | `DiskMarks.reattach(_:rootPath:into:)` | 换成新扫描那份节点（体积跟着新扫描走） | **丢弃**，并在面包屑上点名丢了几条 |
+| 单层重新枚举（工具栏「重新扫描」、下钻未缓存的目录） | `DiskMarks.refresh(_:with:under:)` | 同上 | **scope 之外的原样留着** |
+
+分开的理由写在这条规则上：**没扫到 ≠ 不存在**。单层重新枚举只看得见当前这一层底下的东西，
+它没有资格判兄弟目录上那条标记的生死；只有整根重扫说得出"这棵树里没有它"。
+两个函数都不判扫描根自己——树里存的是根的孩子，根这一层没被这次枚举观察到
+（`testReattachKeepsAMarkOnTheScannedRootItself` / `testRefreshKeepsAMarkOnTheEnumeratedDirectoryItself`
+把这条钉住）。
+
+反过来，只保路径不换数字也不行：那底部「已标记 N 项 · X」就成了两个时间点之和，
+正是 `disktree-adoption.md` 当初推迟这一条时点名的风险。所以命中即换节点，
+数字一律以新扫描为准。
+
+### 9.2 逐元素对照（04e ↔ 实机）
+
+设计稿：`docs/design-system/screens/mmdisk/04e-disk-rescan.html`（两栏：① 同根重扫后标记还在
+② 换根重扫后丢弃并点名）· 渲染 `04e-disk-rescan.png`（1200×1640）。
+实机三张在 `docs/verification/p62-marks/`，命令 `./Scripts/p62-capture.sh <app> <目录> light`。
+
+| 元素 | 稿 | 实机 | 判定 |
+|---|---|---|---|
+| ① 同根重扫后的面包屑 | `已标记 2 项 · 67.1 MB` | `02-marks-after-rescan.png` 同一条，67.1 MB | ✅ 改动前这一张会是"无标记" |
+| ① 确认面板清单 | （04e 不画面板，画的是主窗） | 同一张里 sheet 列 `Downloads 50.3 MB` + `report-2026.pdf 16.8 MB` | ✅ 两条都挂回来了 |
+| ① 图上 ✓ 角标 | Downloads / Documents 两块右下角 | ② 那张两块右下角各一个圆勾；① 因为钩子下钻进了 Documents，图上只有 `report-2026.pdf` 这一块带勾 | ✅ |
+| ② 换根后保留的那条 | `已标记 1 项 · 16.8 MB` | `03-marks-after-root-switch.png` 同一条 | ✅ 体积取自新扫描 |
+| ② 丢弃徽章 | `⚠ 重扫后 1 个标记已经不在了 · 已移除` | 同一张，橙色，位置一致 | ✅ tooltip 里逐条列路径 |
+| ② 待删总量随之变小 | 67.1 → 16.8 MB | 面板与底部条都只算 16.8 MB | ✅ 少掉的 50.3 MB 是"这次没扫到"，不是"它不存在" |
+| ② 受保护目录徽章消失 | 第二栏不画 `未纳入 1 个受保护目录` | 换根到 Documents 后确实没有这条 | ✅ 新根里没有受保护条目 |
+
+夹具沿用磁盘页一直在用的 `Scripts/disk-fixture.sh`（本次不新增夹具），
+两条标记刻意分在 `Documents/report-2026.pdf` 与 `Downloads` 两个顶层目录，
+③ 换根重扫时正好一条挂得回去、一条挂不回去。
+
+### 9.3 拍不到的，逐条写明
+
+1. **"体积以新扫描为准"这一拍需要两次扫描之间磁盘真的变了**。钩子做不到（应用自己不写文件），
+   所以照片上 ① 和 ② 的数字一样。这条只有单测钉住：
+   `testReattachKeepsMarksAndReplacesTheirSizeWithTheNewScan`（100→40、200→900）。
+2. **「重新扫描」按钮那条 `refresh` 路径需要真点击**（禁止合成点击），照片里没有。
+   覆盖它的还是单测：`testRefreshDropsOnlyWithinTheEnumeratedLevelAndKeepsSiblings`
+   ——一条 scope 内消失的丢弃、一条 scope 内还在的换新、一条兄弟目录上的原样留着。
+3. **`isUnder` 按路径组件而不是纯前缀**（`/tmp/build` 不算 `/tmp/bu` 底下）：
+   界面上看不出区别，`testIsUnderComparesWholePathComponents` 钉住。
+
+### 9.4 顺带改的一处钩子行为
+
+`MM_DISK_SELECT` 过去每次扫描落地都重放。新增 `MM_DISK_RESCAN` 之后这会**把该丢弃的标记重新
+加回来**，取证就看不出丢弃那条分支，于是它改成只重放一次（`selectionHookApplied`）——
+它代表的是"用户动手标记过一次"这个动作，而不是一个常驻状态。
+既有单档取证（`p4-sweep.sh … disk` 那一类）都只扫一次，行为不变。
+
