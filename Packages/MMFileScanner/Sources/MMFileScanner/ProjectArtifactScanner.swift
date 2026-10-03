@@ -200,11 +200,15 @@ public struct ProjectArtifact: Identifiable, Hashable, Sendable {
     public let activity: ArtifactActivity
     /// 见"嵌套去重"：祖先目录本身也是候选时，这里只标不量、不重复计体积。
     public let isNestedInAnotherArtifact: Bool
+    /// 发现这一行的搜索根。合并两批报表要按根分区
+    /// （`docs/analysis/dev-artifact-continuation.md` §4.1）：续扫**整区替换**被重跑的那个根，
+    /// 其余根逐行原样保留——没有这个字段就分不出"哪些行属于被续扫的根"。
+    public let sourceRoot: String
 
     public init(path: String, name: String, projectRoot: String, relativeToProject: String,
                 monorepoIndicator: String?, size: UInt64?, fileCount: Int, lastTouched: Date?,
                 verdict: ArtifactVerdict, activity: ArtifactActivity,
-                isNestedInAnotherArtifact: Bool) {
+                isNestedInAnotherArtifact: Bool, sourceRoot: String) {
         self.id = path
         self.path = path
         self.name = name
@@ -217,6 +221,22 @@ public struct ProjectArtifact: Identifiable, Hashable, Sendable {
         self.verdict = verdict
         self.activity = activity
         self.isNestedInAnotherArtifact = isNestedInAnotherArtifact
+        self.sourceRoot = sourceRoot
+    }
+
+    /// 只改"嵌套标注"，观测字段一个都不动。合并两批时要在**候选全集**上重算
+    /// `nestedFlags`（§4.3）：第一批量完的父和第二批才发现的子凑到一起，
+    /// 不重算就是同一坨体积计两遍。改成嵌套后体积写 nil 而不是保留原值——
+    /// "只标不量"是扫描器一贯的口径，留着原值会让这一行看上去还在被合计。
+    public func withNestedFlag(_ nested: Bool) -> ProjectArtifact {
+        guard nested != isNestedInAnotherArtifact else { return self }
+        return ProjectArtifact(path: path, name: name, projectRoot: projectRoot,
+                               relativeToProject: relativeToProject,
+                               monorepoIndicator: monorepoIndicator,
+                               size: nested ? nil : size,
+                               fileCount: nested ? 0 : fileCount,
+                               lastTouched: lastTouched, verdict: verdict, activity: activity,
+                               isNestedInAnotherArtifact: nested, sourceRoot: sourceRoot)
     }
 }
 
@@ -298,9 +318,18 @@ public actor ProjectArtifactScanner {
 
     // MARK: - 扫描入口
 
-    public func scan(progress: (@Sendable (String) -> Void)? = nil) async -> ProjectArtifactReport {
+    /// - Parameters:
+    ///   - explicitRoots: 续扫批次传入的根集合。**给了显式根就不再探测 home 一级容器**
+    ///     （§3.4：容器探测依赖当时的 home 状态，重探会让"哪些根要重试"有两个答案；
+    ///     新出现的顶层项目属于「重新扫描」的语义，不属于续扫）。nil = 全量扫描。
+    ///   - reuse: 上一批已经看完证据的行（`isCompleteObservation`）。命中即整行复用、
+    ///     不再跑活动探测与体积测量——实测截断吃在成案阶段而不是遍历阶段（§2），
+    ///     所以续扫省下来的预算正好落在"上一批没量完的行"上。
+    public func scan(progress: (@Sendable (String) -> Void)? = nil,
+                     roots explicitRoots: [String]? = nil,
+                     reuse: [String: ProjectArtifact] = [:]) async -> ProjectArtifactReport {
         let started = Date()
-        let roots = Self.dedupeRoots(expandedSearchRoots()) { Self.physicalPath(of: $0) }
+        let roots = Self.dedupeRoots(explicitRoots ?? expandedSearchRoots()) { Self.physicalPath(of: $0) }
 
         var truncated: [String] = []
         var inaccessible: [String] = []
@@ -360,17 +389,27 @@ public actor ProjectArtifactScanner {
         var outOfRoot = 0
         for path in ordered {
             guard let info = infoByPath[path] else { continue }
-            if Task.isCancelled || Date() >= info.deadline {
-                complete = false
-                if !truncated.contains(info.root) { truncated.append(info.root) }
-                continue
-            }
             // 物理包含校验：词面前缀不算包含（抄 Mole is_safe_project_artifact 的
             // 动机）——一个指到根外的符号链接祖先就能把"清理产物"变成"清理 /etc"。
             // 发现遍历本身不跟随符号链接，这里是成案前的再验证，双保险。
+            // 复用行也要过这一关：上次的安全不等于这次的安全，符号链接随时可能改指。
             guard Self.validateContainment(candidate: path, searchRoot: info.root,
                                            resolving: Self.physicalPath(of:)) else {
                 outOfRoot += 1
+                continue
+            }
+            // 复用放在时限检查**之前**：这一行不花预算，时限到了也照样把上一批量完的
+            // 结果留下。反过来（先查时限）会让续扫把已经看到的行退回成"—"，
+            // 用户按一次「继续」反而少了几行。
+            // 完成度在这里再筛一遍，不信任调用方：漏筛的后果是"读不到"那行永远
+            // 留在清单上，按多少次继续都不会有人去重测它。
+            if let prior = reuse[path], Self.isCompleteObservation(prior) {
+                artifacts.append(prior.withNestedFlag(nested.contains(path)))
+                continue
+            }
+            if Task.isCancelled || Date() >= info.deadline {
+                complete = false
+                if !truncated.contains(info.root) { truncated.append(info.root) }
                 continue
             }
             artifacts.append(await process(path: path, searchRoot: info.root,
@@ -570,7 +609,7 @@ public actor ProjectArtifactScanner {
             path: path, name: name, projectRoot: projectRoot, relativeToProject: relative,
             monorepoIndicator: resolved.monorepo, size: size, fileCount: fileCount,
             lastTouched: rootModified, verdict: verdict, activity: activity,
-            isNestedInAnotherArtifact: isNested
+            isNestedInAnotherArtifact: isNested, sourceRoot: root
         )
     }
 
@@ -856,6 +895,133 @@ public actor ProjectArtifactScanner {
     /// Mobile Documents。这两处的 build/dist 常常是仓库签入内容的一部分。
     nonisolated static func isCloudSyncedPath(_ path: String) -> Bool {
         path.contains("/Library/CloudStorage") || path.contains("/Library/Mobile Documents")
+    }
+
+    // MARK: - 分批续扫：合并与调度（纯函数；口径见 docs/analysis/dev-artifact-continuation.md §4）
+
+    /// 一次观测是否"看完证据了"——续扫复用的准入判据。
+    /// 只问这两条：体积没量到（预算耗尽或读不动）、活动探测没跑完（`.unknown`）。
+    /// "读不进产物目录"那档兜底 protected 必然同时中这两条（`process` 里 readable=false
+    /// 就不量体积、probe 直接 `.incomplete`），所以不必再比对理由字符串——那会很脆弱。
+    public nonisolated static func isCompleteObservation(_ artifact: ProjectArtifact) -> Bool {
+        guard artifact.size != nil else { return false }
+        if case .unknown = artifact.activity { return false }
+        return true
+    }
+
+    /// 下一批要重跑的根。**只挑被截断的**：读不动是权限事实，重试只烧预算；
+    /// 压根不存在的根没什么可扫。顺序沿用报表里的根顺序（根的先后就是预算的分配先后）。
+    public nonisolated static func rootsToContinue(report: ProjectArtifactReport) -> [String] {
+        report.truncatedRoots
+    }
+
+    /// 每个根试过几次：**只有这一批真正跑过的根**才动计数。
+    /// 上一批截断、这一批没续扫的根必须原样留着次数，否则每续扫一次别的根，
+    /// 它就白捡一次重试机会，「两次就改口」的上限形同虚设。
+    /// 计数只活在内存里，不跨启动——它唯一的作用是"这个根在预算内就是扫不完"那句改口。
+    public nonisolated static func attemptCounts(rootsRun: [String], stillTruncated: Set<String>,
+                                                 previous: [String: Int]) -> [String: Int] {
+        var counts = previous
+        for root in Set(rootsRun) {
+            if stillTruncated.contains(root) { counts[root, default: 0] += 1 }
+            else { counts[root] = nil }
+        }
+        return counts
+    }
+
+    /// 根账本的并：旧账里没被续扫的根先留下（**保持原顺序**，排序等于改掉预算分配顺序），
+    /// 再接新账。`continued` 只从旧账里摘，不挡新账——新账里的根本来就都在 `continued` 里。
+    nonisolated static func mergedRootList(_ previous: [String], continued: Set<String>,
+                                           adding next: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for root in previous where continued.contains(root) == false && seen.insert(root).inserted {
+            out.append(root)
+        }
+        for root in next where seen.insert(root).inserted {
+            out.append(root)
+        }
+        return out
+    }
+
+    /// 合并两批报表。四条规矩，缺一条报表就假：
+    /// 1. 被续扫的根**整区替换**（按 `sourceRoot` 分区）：这一区以第二批为准，
+    ///    第二批没再发现的行（目录被删了、改名了）就此消失，不留旧行骗人；
+    /// 2. `nestedFlags` 在**候选全集**上重算：第一批量完的父和第二批才发现的子凑到一起，
+    ///    不重算就是同一坨体积计两遍（§4.3）；
+    /// 3. `group` 重跑：monorepo 边界可能第二批才发现，同一 workspace 会裂成两组（§4.4）；
+    /// 4. 根账本先摘掉被续扫的根再并，让"一个根只出现在 scanned / truncated /
+    ///    inaccessible 之一"这条不变式在**合并这一步自己成立**，不依赖两张输入报表干净。
+    ///    `missingRoots` 也要并进 `continued`：两批之间目录被删掉时，旧账里它还是
+    ///    `truncated`，新账里是 `missing`——不摘就同一个根同时占两个账本。
+    public nonisolated static func mergedReport(base: ProjectArtifactReport,
+                                                continuation: ProjectArtifactReport,
+                                                home: String) -> ProjectArtifactReport {
+        let continued = Set(continuation.scannedRoots)
+            .union(continuation.truncatedRoots)
+            .union(continuation.inaccessibleRoots)
+            .union(continuation.missingRoots)
+        let kept = base.groups.flatMap(\.artifacts)
+            .filter { continued.contains($0.sourceRoot) == false }
+
+        // 同一个 path 只留一条，新观测覆盖旧观测：搜索根互相包含时（~/Repos 与
+        // 单独配成根的 ~/Repos/app）同一目录会被两批各扫一次，留着两条就是同一行
+        // 在清单上出现两遍。
+        var byPath: [String: ProjectArtifact] = [:]
+        for artifact in kept { byPath[artifact.path] = artifact }
+        for artifact in continuation.groups.flatMap(\.artifacts) { byPath[artifact.path] = artifact }
+        let nested = nestedFlags(paths: Array(byPath.keys))
+        let artifacts = byPath.keys.sorted().map { path in
+            byPath[path]!.withNestedFlag(nested.contains(path))
+        }
+
+        let truncated = mergedRootList(base.truncatedRoots, continued: continued,
+                                       adding: continuation.truncatedRoots)
+        let inaccessible = mergedRootList(base.inaccessibleRoots, continued: continued,
+                                          adding: continuation.inaccessibleRoots)
+        let compromised = Set(truncated).union(inaccessible)
+        return ProjectArtifactReport(
+            groups: group(artifacts: artifacts, home: home),
+            scannedRoots: mergedRootList(base.scannedRoots, continued: continued,
+                                         adding: continuation.scannedRoots)
+                .filter { compromised.contains($0) == false },
+            truncatedRoots: truncated,
+            inaccessibleRoots: inaccessible,
+            missingRoots: mergedRootList(base.missingRoots, continued: continued,
+                                         adding: continuation.missingRoots)
+                .filter { compromised.contains($0) == false },
+            outOfSearchRootCandidateCount: base.outOfSearchRootCandidateCount
+                + continuation.outOfSearchRootCandidateCount,
+            isComplete: compromised.isEmpty,
+            duration: base.duration + continuation.duration
+        )
+    }
+
+    /// 最近一批**补全**的行：这一批看完证据（体积量到、活动度探到）、而上一批要么没报过
+    /// 这一行、要么报过但没看全。组头的「第 N 批补全」按这个点名，不按"这一组的根有没有
+    /// 被重跑"——根重跑过而组里每行都是整行复用，"补全"就是在报一件没发生过的事；
+    /// 重测完还是「读不到」的那行也不算，它这批复刻的还是上一批的结论。
+    public nonisolated static func rowsCompletedByBatch(base: ProjectArtifactReport,
+                                                        merged: ProjectArtifactReport) -> Set<String> {
+        func complete(_ report: ProjectArtifactReport) -> Set<String> {
+            Set(report.groups.flatMap(\.artifacts)
+                .filter { isCompleteObservation($0) }.map(\.id))
+        }
+        return complete(merged).subtracting(complete(base))
+    }
+
+    /// 续扫之后还剩什么可删：勾选要按"合并后仍然 `isSelectable`"修剪（§5.1）。
+    /// 判据不是"路径还在"——被重标成"已计入上一行"的路径还在，但勾选框必须消失，
+    /// 留着就是「已选 X GB」虚高。`isSelectable` 住在 MMCleaner（它才知道 UI 的口径），
+    /// 所以这里只做"按 id 集合修剪"，谁可选由调用方给判据。
+    public nonisolated static func survivingSelection(_ selected: Set<String>,
+                                                      report: ProjectArtifactReport,
+                                                      isSelectable: (ProjectArtifact) -> Bool) -> Set<String> {
+        var kept = Set<String>()
+        for artifact in report.groups.flatMap(\.artifacts) where selected.contains(artifact.id) {
+            if isSelectable(artifact) { kept.insert(artifact.id) }
+        }
+        return kept
     }
 
     // MARK: - 遍历与路径工具

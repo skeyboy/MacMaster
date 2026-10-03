@@ -648,6 +648,26 @@ Highball 那一屏给的是 `/opt/homebrew/Caskroom/highball/.metadata/INSTALL_R
   回声卡把"我们动过手"寄托在"列得动废纸篓"上，没有完全磁盘访问的机器上它永远不出现。
   两条的来龙去脉在 `apps-watch.md` §6，照片在 `docs/verification/p9-apps-watch/`（4 张，零合成点击）。
 
+## P6.1 落地：开发产物截断根的分批续扫（02c ②③）（2026-10-03）
+
+- **把"橙色点名"变成"能按一次的按钮"**：P5.1 真机上 `~/Desktop`、`~/Documents` 在 15 s/根预算下
+  仍然截断，而截断除了被点名一次就再没有下文。现在「继续扫描这 N 个根」只重跑被截断的根，
+  上一批**已经看完证据的行整行复用**，这一批的预算全花在没量完的行上。
+  夹具实测：首批 76.4 MB → 续扫后 162.8 MB（`docs/verification/p61-continue/`，4 张，零合成点击）。
+- **难点确实不在续扫而在合并**（调研 §4.3/§4.4 兑现）：`mergedReport` 不能把两批的行拼起来完事，
+  要重算嵌套折叠（新根可能把旧行变成"已计入上一行"）、重跑 `group`、
+  并保证一个根在 scanned / truncated / inaccessible / missing 四本账里**只出现一次**。
+- **试满两次就改口，不做常驻**（D6/D7）：同一个根最多 2 次，之后按钮置灰（藏起来等于什么都不说，
+  而"不是坏了，是不该再按"恰恰是要让读者看见的那件事），点名条换成"这是这一处的上限"+ 两条出路
+  （把项目放浅一层 / 单项目模式）。预算不递加、游标不落盘、不起 daemon。
+- **勾选只修剪不清空**：续扫不新增删除权限，也不该把用户上一批的勾选无端抹掉；
+  抹的是那些**失去勾选框**的行（被重标成嵌套、或改判受保护）。
+- **本轮从照片里抓到一个判据错误**：组头「第 N 批补全」原来按"这一组的根有没有被重跑"点亮，
+  于是整行复用的组和"重测完还是读不到"的组都会亮。改成按 `rowsCompletedByBatch`
+  （这一批看完证据的行 − 上一批就已看完的）点亮。细节与另外两处自相矛盾的文案在
+  `fidelity-cleaner.md` §8.2 / §8.4；一处 P5.1 就在、本轮没修的不自洽（根报"已扫完"而组里挂着
+  「读不到（预算用尽）」）记在 §8.6，留给 P6.2 判。
+
 ## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
@@ -662,7 +682,7 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | **已落地**：`AppFolderWatcher`（进程内 kqueue，监听口径 = `AppScanner` 列举口径）+ 稿 03e 三档，见上一节 | — | 不撞：没学它的常驻 LaunchAgent。比原计划多一个钩子 `MM_UNINSTALL_SELF_ECHO`——它是全仓**唯一会真的动文件**的钩子，被"夹具 home 必须是 /tmp"+"必须点名"两道锁钉住，跑完按 bundle 标识清掉（见 `hook-ledger.md` §0） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
-| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **调研已落档**：`docs/analysis/dev-artifact-continuation.md`（P6.1a）。定下"续扫的单位 = 搜索根、复用单位 = 已量完的行"，实测证明截断吃在**成案/测量**阶段而不是遍历阶段（两根浅层遍历合计 0.13 秒，单个 `node_modules` 子树 4 万条目、要两趟全遍历）。代价从 S–M 上调到 **M**：难点不在续扫本身，在合并要重算嵌套与分组（§4.3/§4.4） | M | 不撞：纯只读扫描调度。要做的是"这一批扫到哪了"的内存态账本，**不做后台常驻、不做游标落盘**（§6、§8）；预算不递加 |
+| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **已落地**（P6.1，2026-10-03）：`ProjectArtifactScanner` 加 `scan(roots:reuse:)` + `mergedReport` + `attemptCounts` + `rowsCompletedByBatch`，UI 加「继续扫描这 N 个根」与三态 chip，见 `fidelity-cleaner.md` §8 与 `docs/verification/p61-continue/`（三档零点击）。实测确认截断吃在**成案/测量**阶段，所以续扫比全量重扫快：夹具首批 36.4 MB → 续扫后 162.8 MB | M | 不撞：纯只读扫描调度。**不做后台常驻、不做游标落盘**（D6/D7：同一根最多 2 次，试满就改口 + 给两条出路）；预算不递加 |
 
 **推荐顺序 5 → 4**：1、2、3 已落地；5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了），
 代价 S–M 且纯只读；4 价值最低（本机 Mac mini 无风扇，正分支只有温度）。

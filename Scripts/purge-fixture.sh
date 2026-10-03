@@ -12,6 +12,12 @@
 #   MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev \
 #   MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture ./Scripts/p4-sweep.sh ...
 #
+# P6.1「续扫」三档靠三个预算钩子定格，全部零点击（详见 docs/analysis/hook-ledger.md）：
+#   MM_DEV_ROOT_BUDGET_SECONDS=0.02                  首批：让 Documents 量到一半就截断
+#   MM_DEV_CONTINUE_BUDGET_SECONDS=20 MM_DEV_AUTO_CONTINUE=1   ② 续扫之后
+#   MM_DEV_CONTINUE_BUDGET_SECONDS=0.02 MM_DEV_AUTO_CONTINUE=1 ③ 同一根第二次仍截断
+# 11 号那批 bulky 项目就是为这三档存在的：它们让"截断发生在半路"成为可能。
+#
 # 这棵树是**按分支画的**，不是按体积画的：每一处都对应界面上一个独立状态，
 # 少一处就有一支拍不到。改动这里请同步改 docs/analysis/fidelity-cleaner.md 的状态表。
 set -e
@@ -150,6 +156,17 @@ stamp "$OUTSIDE/node_modules" 40
 mkdir -p "$ROOT/Projects/sneaky"
 manifest Projects/sneaky/package.json
 ln -s "$OUTSIDE/node_modules" "$ROOT/Projects/sneaky/node_modules"
+
+# ── 11. bulky 根：P6.1「续扫」三档取证用 ──────────────────
+# 一个搜索根里放十几个项目、每个产物 120 个文件。为什么非要"胖"：截断只会发生在
+# **成案/测量**阶段（浅层发现实测 0.06 秒），所以要让 MM_DEV_ROOT_BUDGET_SECONDS
+# 能落在"量到一半"的窗口里——候选太少的话要么整根扫完、要么一个都没量到，
+# 「第一批量到的行在第二批被直接复用」那一档就拍不出来。
+for i in $(seq 1 12); do
+  mkdir -p "$ROOT/Documents/bulk-$i/src"
+  manifest Documents/bulk-$i/package.json
+  art Documents/bulk-$i/node_modules 40 40k 120
+done
 
 print -r -- "→ $ROOT"
 # 读不到的那个目录会让 du 报错，这里它是**故意**造的（未测得那支），所以吞掉再报总量

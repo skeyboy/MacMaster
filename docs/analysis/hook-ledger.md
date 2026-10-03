@@ -6,7 +6,7 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **45 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 46 个，
+- 全仓现存钩子 **48 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 49 个，
   其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
@@ -16,6 +16,9 @@
   （只拍列表与详情、不弹面板——面板会盖掉这一轮真正要拍的两块）。
   P5.3「应用装卸监听」新增 `MM_APPS_WATCH_FIXTURE_DIR`、`MM_APPS_WATCH_AUTO_SCAN`、`MM_UNINSTALL_SELF_ECHO`
   与取证用的 `MM_PROBE_WINDOW` 共 4 个。
+  P6.1「开发产物截断根续扫」新增 `MM_DEV_ROOT_BUDGET_SECONDS`、`MM_DEV_CONTINUE_BUDGET_SECONDS`、
+  `MM_DEV_AUTO_CONTINUE` 共 3 个：前两把预算调到极小好让首批**必然**截断，第三把续扫批自动跑掉——
+  有了这三个，①含截断 / ②续扫之后 / ③同一根再截断三档全部零点击（见下表）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -49,6 +52,9 @@
 | `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:112` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数 |
 | `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:428` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件** |
 | `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:236` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService` |
+| `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数，抄字面量会骗人 |
+| `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到 |
+| `MM_DEV_AUTO_CONTINUE` | `MMCleaner` | `DevArtifactView.swift:159,175` | 全量扫完之后自动再跑最多 N 批续扫 | ✅ | 否（跑的是同一套只读扫描） | **P6.1 新增**。只认 `1…3`，其余值忽略。每批之间复查 `canContinueTruncatedRoots`，试满 2 次的根自动排除，所以不会自己循环成常驻扫描。存在的理由：②「续扫之后」与③「已试过 2 次」两档都要按一次按钮才进得去，而**合成点击会逃逸到用户的其它应用**（老规矩），点击链本身不在取证范围 |
 | `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:63` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps` |
 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除 |
 | `MM_UNINSTALL_CONFIRM_MODE` | `MMUninstaller` | `MMUninstaller.swift:73` | 夹具确认模式 `appOnly` / `withResiduals` / `none` | ✅ | 否 | 仅在上行有效时读取；省略则为 `appOnly`。**P5.2 新增 `none`**：只选行不弹面板，面板会盖住列表的行内徽章与详情的来源三行 |
@@ -83,7 +89,7 @@
 ## 2. 各模块钩子小结
 
 - **壳（Sources/MacMaster）**：5 个，纯导航/打开/取证档（`MM_APPEARANCE` `MM_WINDOW_SIZE`），零副作用。
-- **MMCleaner**：13 个（P5.1 新增 5 个：`MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM`；含 P4.6 的 `MM_SNAPSHOT_FIXTURE`，早前列数漏计它）。含 2 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`、`MM_PURGE_FIXTURE_HOME`，越界即忽略）。
+- **MMCleaner**：16 个（P5.1 新增 5 个：`MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM`；P6.1 再新增 3 个预算/自动续扫钩子；含 P4.6 的 `MM_SNAPSHOT_FIXTURE`，早前列数漏计它）。含 2 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`、`MM_PURGE_FIXTURE_HOME`，越界即忽略）。
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
 - **MMDisk**：8 个（新增 `MM_DISK_HOLD`），`MM_DISK_SCAN`/`MM_DISK_SELECT` 本轮补 `/tmp` 守卫。
 - **MMGuardian**：5 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`），全 `com.example.*` 合成，不写盘。

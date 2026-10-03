@@ -1,5 +1,10 @@
 # 开发产物「截断根续扫」调研（P6.1a）
 
+> **已落地**（P6.1，2026-10-03）：D1–D7 全部按这一篇实现，实机取证与两处事后修正
+> （「第 N 批补全」的判据、"耗时/累计耗时"的口径）在 `fidelity-cleaner.md` §8。
+> 下面 §9「拍不到的」已被三个预算/自动续扫钩子解决（§7.3 当时提的口子），见 `hook-ledger.md` 的
+> `MM_DEV_ROOT_BUDGET_SECONDS` / `MM_DEV_CONTINUE_BUDGET_SECONDS` / `MM_DEV_AUTO_CONTINUE`。
+
 > 任务：路线候选 #5（`feature-roadmap.md:665`）。P5.1 真机把 `~/Desktop`、`~/Documents`
 > 两根留在了橙色点名状态（修预算后 **16.2 秒 / 缺 2 根**，见 `feature-roadmap.md` P5.1 §三件事 1），
 > 页面只做到"如实报截断"。用户想把剩下的扫完，目前唯一的办法是再按「重新扫描」——

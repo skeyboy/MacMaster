@@ -247,7 +247,7 @@
 </div>
 
 <!-- ═══════════════ ② P6.1 续扫：第二批扫完之后的同一屏 ═══════════════ -->
-<div class="atitle">② 续扫之后 —— 按「继续扫描这 2 个根」跑完第二批</div>
+<div class="atitle">② 续扫之后 —— 按「继续扫描这 1 个根」跑完第二批</div>
 <div class="artboard">
 <div class="win mm-screen">
   <div class="titlebar">
@@ -302,16 +302,16 @@
           <div class="row-h" style="gap:6px;align-items:flex-start">
             <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
             <span class="note">只读扫描，不跟随符号链接；链接指向的目录一律不进入、不列出。<br>
-              「继续扫描」只重跑被截断的那个根，不重新发现新的顶层目录——新项目要按「重新扫描」才会进来。</span>
+              「继续扫描」只重跑被截断的那些根，不重新发现新的顶层目录——新项目要按「重新扫描」才会进来。</span>
           </div>
           <div class="row-h" style="gap:6px;align-items:flex-start">
             <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-warn"></use></svg>
-            <span class="note" style="color:var(--c-warning)">1 个根扫到一半超时，已截断：~/Library/CloudStorage ——
-              截断范围内的项目本轮仍不报数，其余 7 个根已扫完。</span>
+            <span class="note" style="color:var(--c-warning)">有 1 个根扫到一半就超时，本轮不报数：~/Library/CloudStorage。截断范围内的项目
+              没被扫过，不等于它们干净；其余 7 个根已扫完。</span>
           </div>
           <div class="row-h" style="gap:6px;align-items:flex-start">
             <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-clock"></use></svg>
-            <span class="note">第 2 批用了 4.2 秒：第一批已经量到的行直接复用，这一批的预算全花在没测完的行上。</span>
+            <span class="note">第 2 批用了 4.2 秒：上一批已经量到的行直接复用，这一批的预算全花在没测完的行上。</span>
           </div>
         </div>
 
@@ -319,7 +319,7 @@
         <div class="sumbar">
           <div class="sum">
             <b>15 个项目 · 49 处产物 · 可回收 22.6 GB</b>
-            <span>续扫不替你勾选：第二批新扫出来的 12 行全部未选中，批量按钮也不会自动再跑一遍。</span>
+            <span>续扫不替你勾选：新一批扫出来的行全部未选中，只有失去勾选框的行会自动退出勾选。</span>
           </div>
           <span style="margin-left:auto;display:inline-flex;gap:var(--sp-2)">
             <span class="btn sm"><svg class="i"><use href="#i-clock"></use></svg>选中 7 天未触碰的</span>
@@ -390,7 +390,7 @@
         <div class="sum"><b>已选 3 处 · 11.1 GB</b>
           <span>第二批把其中一行改判为「受保护」，它自动退出勾选——已选的数字只会变小，不会变大。</span></div>
         <div class="sp" style="margin-left:auto"></div>
-        <span class="btn destructive lg">移 3 处产物入废纸篓</span>
+        <span class="btn destructive lg">移入废纸篓</span>
       </div>
     </main>
   </div>
@@ -424,8 +424,8 @@
     </div>
     <div class="row-h" style="gap:6px;align-items:flex-start">
       <svg class="i" style="color:var(--c-warning);margin-top:2px"><use href="#i-warn"></use></svg>
-      <span class="note" style="color:var(--c-warning)">~/Library/CloudStorage 已经扫过 2 次，15 秒内扫不完。
-        这里的产物本轮仍不报数——"扫不完"是这一处的结论，不是"里面很干净"。</span>
+      <span class="note" style="color:var(--c-warning)">有 1 个根各扫过 2 次，每次 15 秒的预算都没扫完：~/Library/CloudStorage。
+        这里的产物本轮不报数——"扫不完"是这一处的结论，不是"里面很干净"。</span>
     </div>
     <div class="row-h" style="gap:6px;align-items:flex-start">
       <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
