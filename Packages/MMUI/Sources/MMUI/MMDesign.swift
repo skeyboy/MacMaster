@@ -113,7 +113,9 @@ public enum MMMetric {
     public static let rowApp: CGFloat = 56
     public static let toolbar: CGFloat = 46
     public static let actionBar: CGFloat = 52
-    /// 实机 NavigationSplitView(min:200, ideal:220) 分隔线在 x=220（I10a），与令牌同步。
+    /// 稿 `--sidebar-w` = 220pt。**这个常量没有代码在读**：真正决定屏幕宽度的是
+    /// `MainWindow` 的 `navigationSplitViewColumnWidth(min:)`（首屏取 min，ideal 不参与），
+    /// 所以它只是给审计文档一个可对账的出处；改这里不会改到任何东西。
     public static let sidebar: CGFloat = 220
     public static let inspector: CGFloat = 268
     public static let iconSmall: CGFloat = 16
@@ -1037,22 +1039,33 @@ public struct MMGauge: View {
 
 /// 迷你柱状图。`values` 里 nil 表示那一次没采到，画成空槽而不是 0——
 /// 0 是"确实没流量"，空槽才是"不知道"，两者在设计稿里必须是两种形状。
+///
+/// 槽数固定、柱宽按容器等分（稿 `.spark i { flex:1 }`）：第 1 次采样和第 12 次采样占同一条横轴。
+/// 以前每根钉死 10pt 靠左排，首帧只有一根细柱孤零零贴在左边，读起来像图坏了，
+/// 而且柱子会随采样次数往右爬——同一张图前后拍出来宽度不一样，还原度也没法逐元素对照。
 public struct MMSparkline: View {
     let values: [Double?]
-    var slotWidth: CGFloat = 10
+    let slotCount: Int
 
-    public init(values: [Double?], slotWidth: CGFloat = 10) {
+    public init(values: [Double?], slotCount: Int = 12) {
         self.values = values
-        self.slotWidth = slotWidth
+        self.slotCount = max(slotCount, 1)
     }
 
     public var body: some View {
         let peak = values.compactMap { $0 }.max() ?? 0
+        let filled = Array(values.suffix(slotCount))
         HStack(alignment: .bottom, spacing: 3) {
-            ForEach(Array(values.enumerated()), id: \.offset) { _, value in
+            // 还没采到的槽留空（不是画一根 2pt 的矮柱）：空槽"这次读不到"
+            // 与"还没轮到这次"得能分辨，前者有痕、后者无痕。
+            ForEach(0..<(slotCount - filled.count), id: \.self) { _ in
+                Color.clear.frame(maxWidth: .infinity, maxHeight: MMMetric.sparkline)
+            }
+            ForEach(Array(filled.enumerated()), id: \.offset) { _, value in
                 RoundedRectangle(cornerRadius: 1)
                     .fill(barColor(value, peak: peak))
-                    .frame(width: slotWidth, height: barHeight(value, peak: peak))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: barHeight(value, peak: peak))
             }
         }
         .frame(height: MMMetric.sparkline, alignment: .bottom)

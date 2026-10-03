@@ -17,6 +17,10 @@
 > 逐元素对照 **约 60 项**，其中 **16 项存在需归属的差异**（**高 0 / 中 3 / 低 13**）：
 > **实现该改 4 条**（I1–I4）、**设计稿该改 9 条 + 全站 4 条口径**（S1–S11，其中 S1/S2/S3/S4 为全站 token 漂移）、
 > **两边都改 0 条**。**另有 1 张实现独有卡（系统活动）完全没被设计稿覆盖，且其状态无钩子可构造（见 §4/§5）。**
+>
+> **P6.2b 更新（2026-10-03）**：实现该改从 4 条变 6 条（新增 I5 整页分隔语言、I6 定高切字），其中 **I1/I3/I5/I6 已落地**、
+> I2 归协调层、I4 仍开；§4 里"无头拍不到"的 5 项已实拍（`docs/verification/p62b-fidelity/`），
+> 系统活动卡那项也因 `MM_GUARDIAN_ACTIVITY_FIXTURE` 落地而不再无解。**本轮改动与两次否证实验集中在 §6。**
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
@@ -24,7 +28,7 @@
 | --- | --- |
 | 设计稿 | `docs/design-system/screens/mmguardian/06-guardian.html`（3 个 artboard：A 正常态首屏·四档 montage / B Mac mini 实机首屏 / C TCC 降级双卡「读不到」「查到了没有」） |
 | 渲染 | `cd docs/design-system && ./render.sh screens/mmguardian/06-guardian.html 1160 4600` → `screens/mmguardian/06-guardian.png`（稿内已出，本审计未重渲） |
-| 实机 | **本环境无头、未运行 App、未截图**（硬约束禁止）。像素项一律 `⚠️待真机测量`，只从代码 + HTML + tokens 推导；全站像素锚点引用 `fidelity-monitor.md` §0 已由主代理量过的实机值（侧栏 220pt、标题栏 52pt、卡片底 underPage(40,40,40) 等） |
+| 实机 | **P3 审计时无头**（该节判定全部来自代码 + HTML + tokens 比对）；**P6.2b 起本模块有实拍**：`docs/verification/p62b-fidelity/`（raw @2x PNG）。原记"全站像素锚点引用 monitor §0（侧栏 220pt）"已被本轮重测推翻——改前实机是 200pt，见 §6.3 |
 | 可用钩子 | `MM_GUARDIAN_FIXTURE`(占用档) / `MM_TCC_FIXTURE`(TCC 档) / `MM_GUARDIAN_LOGIN_FIXTURE`(登录项档) / `MM_GUARDIAN_LOAD=hold`(首帧定格)。四个钩子均 `com.example.*` 合成、只读、不写盘（`grep processInfo.environment Packages/MMGuardian/` → 4 命中） |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘事件；未改 `Packages/MMGuardian/` 之外文件（tokens/screen/icons/render.sh/MMCore/MMUI 均只读）；未 `git` 任何操作；未 `swift build`；未碰 `/tmp` 之外路径 |
 | 测量诚实 | 没测过 ≠ 0、没看过 ≠ 干净、原因未知 ≠ 某个具体原因；像素项无真机数字，只标 `⚠️` 不编 |
@@ -42,7 +46,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 侧栏 nav-item：概览/系统清理(2.4 GB)/应用卸载(46)/磁盘分析/系统监控/隐私守护(active)/系统优化/设置 | `MMGuardian.swift` 借壳 `MainWindow` 导航（模块 `guardian`，`moduleIcon:"lock.shield"`） | ✅ | 项与顺序一致；"隐私守护"为 active | — | — |
 | 侧栏 footer = 分隔线 + 「设置」nav-item（稿 06 画法） | 实机 = 磁盘容量行（`Macintosh HD` + 红色容量条）+ 带边框「设置」按钮（`fidelity-monitor.md` §0 已量） | ❌ | 07 稿沿用 01–06 错误画法；本模块侧栏同样缺容量行+设置按钮 | **中** | 设计稿该改 S1（全站） |
-| 侧栏宽 216pt（`--sidebar-w`） | 实机分隔线 x=220（`fidelity-monitor.md` §0） | ❌ | 实现 +4pt | 低 | 实现该改 I1（全站 I10a） |
+| 侧栏宽 220pt（`--sidebar-w`，`tokens.css:32`） | `MainWindow.swift:18` `navigationSplitViewColumnWidth` | ✅（P6.2b 起） | **本轮重测**：改前分隔线在 x=401px@2x = **200pt**（比稿窄 20pt）；三个历史数字 200/216/220 量的其实是三种不同东西。现 `min:220`，实测 x=440px@2x = **220pt**。机制由两次否证实验确定，见 §6.3 | 低 | 实现该改 I1 → **已落地** |
 | 标题栏 38pt（`--titlebar-h`） | 实机黑线 y=52（`fidelity-monitor.md` §0） | ❌ | 实现 +14pt，每页可视高度少 14pt | 低 | 实现该改 I2（全站 I10b） |
 | 卡片底 = `--c-card-bg`（白） | `MMColor.cardBackground = Color(nsColor:.underPageBackgroundColor)`（`MMDesign.swift:19`） | ❌ | 稿内 `.card` token 与实现 underPage 档不同；本模块卡全走 underPage | 低 | 设计稿该改 S2（全站 S4） |
 | 页面底 = `--c-content-bg`（白） | 实机 `contentBackground`=textBackgroundColor 暗档（`MMDesign.swift:17`） | ❌ | 稿"白底+灰卡"对比度高于实机"灰底+更深灰卡" | 低 | 设计稿该改 S3（全站 S3） |
@@ -62,7 +66,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「当前占用」+「只读检测 · 不申请任何权限」小字（A 稿 section 头） | `MMGuardian.swift:75-81,99`（标题有；小字无） | ❌ | 实现卡头**没有**"只读检测 · 不申请任何权限"这句诚实披露（toolbar 副标题只含"手动测量，非实时监听"），"不申请任何权限"未呈现 | 低 | 实现该改 I3 |
+| 卡标题「当前占用」+「只读检测 · 不申请任何权限」小字（A 稿 section 头） | `MMGuardian.swift` `occupancyCard` → `sectionHeader(caption:)` | ✅（P6.2b 起） | 改前实现卡头**没有**这句诚实披露；P6.2b 把区块头搬到卡外时按稿补了小字（I3 关闭），实机见 `p62b-fidelity/03-guardian-rows.png` | 低 | 实现该改 I3 → **已落地** |
 | 档1 摄像头 live：徽章「正在被使用」(danger+warn 图标) + 备注「使用方无法确定 · 公开接口不返回进程」 | `DeviceUsageCopyTable` inUse（`DeviceUsage.swift:135-143`）+ `DeviceUsageRow:594` 红 tint + `exclamationmark.triangle.fill` | ✅ | 逐字一致；红色仅此档 | — | — |
 | 档2 麦克风(内置) idle：徽章「当前空闲」(safe) + 备注「1 个纯输入设备 · 读数 0」 | `DeviceUsage.swift:144-151`（idle 备注 nil） | ❌ | 设计 idle 档有"1 个纯输入设备 · 读数 0"备注，实现 idle `note:nil`，只保留 detail"输入设备存在，本次测量未读到任何进程驱动" | 低 | 设计稿该改 S6 |
 | 档3 麦克风(Studio Display) combo：徽章「无法确定」(readonly) + 备注「不等于"没有应用在用"」 | `DeviceUsage.swift:160-165` `indeterminate(.comboAmbiguity)` | ✅ | 逐字一致 | — | — |
@@ -114,7 +118,7 @@
 | 不可核对脚注「这一轮没对表…没查到不会被写成没加载」 | `LoginItemAnomalyCopy.indeterminateNote` + `auditFooter` `!determinate` 分支 | ✅ | 由 `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` 可构造 | — | — |
 | 读取失败横幅（顶部黄条，scanerror 档） | `readErrorBanner`(`MMGuardian.swift:31-69`) + `scanErrors` | ✅（代码分支） | 由 `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` 注入；**设计稿无专用 artboard 描绘该横幅** | 低 | 设计稿该改 S11 |
 | 写失败面板（toggle 系统域/改名文件被拒 → `MMFailurePanel`） | `MMGuardian.swift:42-48,502-510` | ✅（代码分支） | 交互结果态；**设计稿未绘** | 低 | 设计稿该改 S11（同条） |
-| 登录行 min-height 44pt（稿 `.login`） | `LoginItemRow` `frame(height: rowRegular=44)` | ✅ | 与 token 一致 | — | — |
+| 登录行 min-height 44pt（稿 `.login`） | `LoginItemRow` `frame(minHeight:)`（P6.2b 前是 `frame(height: 44/56)` **定高**） | ❌→✅ | 原判定"✅ 与 token 一致"是**错的**：稿写 min-height，实现写死 height，带异常徽章的行有第三行文字，44/56 钉死就把徽章那行齐根切掉。改后见 `p62b-fidelity/04-guardian-fixture-rows.png`（三行徽章完整） | 低 | 实现该改 I6 → **已落地** |
 
 ### 1.5 系统活动卡（实现独有，设计稿 06 无此 section）
 
@@ -122,14 +126,16 @@
 | --- | --- | --- | --- | --- | --- |
 | （设计稿 06 完全没有「系统活动」卡） | `MMGuardian.swift:297-339` `activityCard` + `ActivityScanner`（近期 log 事件 / LaunchAgent 改动 / `~/.ssh`·`~/.gnupg`·`~/Library/Keychains` 访问时间） | ❌ | 实现多了第 4 张卡；产品规划文档 §4.5 有"最近活动"区块，但设计稿落后未补，且实现按"诚实口径"重做（不编造进程名、无「阻止」按钮） | **中** | 设计稿该改 S12 |
 | 空态「近 5 分钟没有可读到的活动事件」 | `MMGuardian.swift:306-309` | ⚠️ | 实现独有，无设计稿可对照；且**无专属夹具钩子**，不能无头构造 | 中 | 提协调者 G1 |
-| 卡片几何（icon=eye、行高 44、contentBackground 药丸） | `MMGuardian.swift:297-339` | ⚠️ | 无设计稿基准，像素项待真机测量 | 低 | 记录 |
+| 卡片几何（icon=eye、行高 44、contentBackground 药丸） | `activityCard`：行改平铺 + `Divider()`，`minHeight: rowCompact`（P6.2b） | ⚠️ | 药丸底已去掉（全站只有这一页在用，与稿 06 的平铺行冲突）；但**这张稿 06 里根本没有**，所以像素项仍无基准可比 | 低 | 记录（区块归属见 S12） |
 
-## 2. 实现该改（4 条，按严重度排序）
+## 2. 实现该改（6 条，按严重度排序；P6.2b 关掉 3 条）
 
-1. **【低】I1 · 侧栏实现 220pt vs 令牌 216pt**（实机分隔线 x=220，全站 I10a）。本模块沿用壳工程侧栏，修复在 `tokens.css`/`screen.css`，归协调层。
+1. **【低】I1 · 侧栏宽度** —— **P6.2b 已落地**。本条原记"实机 220 vs 令牌 216"，两个数都不对：改前实机量到 **200pt**，令牌早已是 220。改法与两次否证实验见 §6.3。
 2. **【低】I2 · 标题栏实现 ≈52pt vs 令牌 38pt**（实机黑线 y=52，全站 I10b）。同上，归协调层。
-3. **【低】I3 · 当前占用卡头缺"只读检测 · 不申请任何权限"诚实小字**（`MMGuardian.swift:75-99`）：稿 A 在 section 头写了这句，实现只把"手动测量，非实时监听"放进 toolbar 副标题，丢掉了"不申请任何权限"这半句。建议占用卡头 row-h 补回 `Text("只读检测 · 不申请任何权限")` 小字（secondaryLabel），与 TCC 卡"SQLite 只读查询 · 不写库不提权"对齐口径。
-4. **【低】I4 · 占用行缺图标环**（`DeviceUsageRow:580-583`）：设计稿 `.urow .ring` 是 34pt 圆环、live 态红底，实现只放了一个 tinted 图标、没有环。建议补一个 `Circle().stroke(tint)` 或复用 `MMDesign` 的 ring 组件，让"正在被使用"的红环在视觉上成立。⚠️ 环尺寸/描边待真机测量。
+3. **【低】I3 · 当前占用卡头缺"只读检测 · 不申请任何权限"诚实小字** —— **P6.2b 已落地**：区块头搬到卡外时按稿补 `sectionHeader(caption:)`，TCC 卡同步给"SQLite 只读查询 · 不写库不提权"。
+4. **【低】I4 · 占用行缺图标环**（`DeviceUsageRow`）：设计稿 `.urow .ring` 是 34pt 圆环、live 态红底，实现只放了一个 tinted 图标、没有环。建议补一个 `Circle().stroke(tint)` 或复用 `MMDesign` 的 ring 组件，让"正在被使用"的红环在视觉上成立。⚠️ 环尺寸/描边待真机测量。
+5. **【中】I5 · 整页分隔语言与稿 06 不一致** —— **P6.2b 已落地**：稿是"卡外标题行 + 通栏卡 + 卡内平铺行带底分隔线"，改前是"带内边距的卡里塞标题 + 每行刷沉底药丸"。逐部位对照见 §6.1。
+6. **【低】I6 · 三处行高写成定高，把内容切掉** —— **P6.2b 已落地**：系统活动行 `height: 28`（两行文字被切下沿）、登录行 `height: 44/56`（异常徽章那第三行被切）。稿一律写 `min-height`。详见 §6.2。
 
 ## 3. 设计稿该改（9 条模块 + 4 条全站口径，按严重度排序）
 
@@ -148,7 +154,7 @@
 
 ## 4. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
 
-以下状态只在代码里读到分支，本环境**完全无实机截图**（硬约束禁止运行/截图）。原因统一是：无头、无运行实例。
+以下状态只在代码里读到分支，**本节写于 P3 无头审计**（当时环境不允许运行/截图）。P6.2b 已把其中 **1、2、3、4、6 五项实拍补齐**（`docs/verification/p62b-fidelity/`，见 §6.4），仍只有第 5 项（系统活动卡）没拍——钩子 `MM_GUARDIAN_ACTIVITY_FIXTURE` 后来已落地，本轮未用它出片。
 
 | # | 未验证项 | 为什么验不了 | 需要什么才能验 |
 | --- | --- | --- | --- |
@@ -181,9 +187,71 @@
 ## 5. 提请协调者
 
 1. **【重点·核对结论】"授权表读不到 ≠ 未授权"边界：设计与实现均守住，PASS。** 实现在 `TCCProbe`/`TCCViewer`/`tccCard` 把"读不到"(`.unreadable`，不画列表) 与"查到 0 行"(`.emptyRead`，明确"查到了没有") 分成两个独立 UI 态，且 `.partial` 只列读到的库；设计稿 06c 也用两张独立卡片表达。唯一瑕疵是 06 主屏 artboard 1 内"系统级库读不到"警示条旁又画了系统级行（S10，设计稿自相矛盾，实现不会这么画），请协调者让设计稿修掉该自相矛盾。
-2. **【中】系统活动卡无夹具钩子（G1）**：实现独有卡 `activityCard` 没有任何 `MM_*` 钩子覆盖，其空态/填充态无法无头截图核对。建议在 `GuardianFixtureHooks.swift` 按既有口径补 `MM_GUARDIAN_ACTIVITY_FIXTURE`（注入合成 `ActivityItem` 列表或 `empty`），并同步 `README §2` 矩阵与 `hook-ledger.md`。**本审计未擅自改 `GuardianFixtureHooks.swift`**，仅提此需求。
+2. **【已落实】系统活动卡夹具钩子（G1）**：`MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已在 `MMGuardian.swift:461` 落地（合成条目标"夹具值"），本审计提出的"该卡无钩子、无法无头核对"已不成立；本轮未用它出片，留给下一轮。
 3. **【低】活动卡读敏感目录口径（G2）**：`ActivityScanner.scanRecentEvents` 读 `~/.ssh`/`~/.gnupg`/`~/Library/Keychains` 最近访问时间并展示为"最近访问: X"——守护模块自身把敏感目录访问时间摆上界面，可能自我矛盾，且 `readError` 失败被静默跳过。请产品/协调者确认该卡范围（是否应只报"最近改动"而非"最近访问"，以及失败是否要明示）。
 4. **【低】`MM_TCC_FIXTURE=unreadable` 文案格式（G3）**：夹具 detail 是单句平铺"模拟两库均读不到…"，未用真实 `TCCViewer.build` 的"用户级库读不到：…；系统级库读不到：…"逐库拼接，与设计 artboard 3 两原因排版不完全一致。建议夹具 unreadable 改为注入"用户级 ENOENT + 系统级 EPERM/rc23"两段原文以贴近设计。
 5. **【低】四档 montage 非单屏态（G4）**：06 主屏 A 稿把占用四档并排画全，但每设备仅持一态，易被当成单屏。建议设计稿标注"每态独立示意，需用 `MM_GUARDIAN_FIXTURE` 分屏核对"。
 6. **【记录】全站骨架 token 漂移（S1–S4 / I1–I2）**：侧栏 footer、侧栏宽 220、标题栏 52、卡片底 underPage、页面底对比度、侧栏尾数占位——修复在 `tokens.css`/`screen.css`/壳工程，归协调层统一处理（同 `fidelity-monitor.md` §3），非本模块能改。
 7. **【已落实】README §2 矩阵**：`MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD` 已在 `hook-ledger.md` 补列（本审计沿用，未重复改）。
+
+## 6. P6.2b 收口：整页换成稿 06 的骨架 + 侧栏宽度重测（2026-10-03）
+
+取证脚本 `Scripts/p62b-capture.sh`，照片 `docs/verification/p62b-fidelity/`。全部零合成点击：状态一律由钩子在加载落地时推到位，只 kill 自己起的 pid。
+
+### 6.1 这一轮改的不是"少一条分隔线"
+
+P4 把这一条记成"守护页行分隔不明显"。逐字对照稿 06 的 CSS 之后，真实口径是**整页的分隔语言与稿不同**，改前实现是全站唯一用"药丸行"的一页：
+
+| 部位 | 稿 06（`06-guardian.html` + `screen.css`） | 改前实现 | 改后（P6.2b） |
+| --- | --- | --- | --- |
+| 区块标题 | `.section-h` 在**卡外**：图标 + 标题 + 口径小字 + 右侧动作 | 塞在带内边距的卡里 | `sectionHeader(...)` 在卡外，口径小字回到标题旁 |
+| 卡 | `.card.card-flush{padding:0}` | `MMCard()` 默认内边距 | `MMCard(padding: 0)` |
+| 行 | 平铺 + `border-bottom`，`:last-child` 无线 | 每行刷成沉底药丸（圆角 `fillActive`） | 平铺 + `if index > 0 { Divider() }`，末行无线 |
+| 脚注 | `.foot-note` 在卡内、`border-top` | 散在卡外 | 卡内 + `.overlay(alignment: .top){ Divider() }` |
+| 部分可读警示条 | 通栏、压在卡顶 | 卡内带圆角的一小块 | 通栏 + 底部分隔线 |
+
+判成"实现该改"而不是"稿该改"的依据：概览页与清理页的表格行早就是 `MMCard(padding:0) + Divider()` 这一种语言（`MainWindow.reclaimableCard`、`CleanerView.categoryRows`），**稿与另外两页站在同一边**，守护页是唯一的少数派。
+
+### 6.2 顺带修掉的三处切字（同一轮改动暴露出来的）
+
+| 位置 | 改前 | 后果 | 改后 |
+| --- | --- | --- | --- |
+| 系统活动行 | `frame(height: rowCompact=28)` | 行里是两行文字，标题下沿被齐根切掉 | `minHeight` |
+| 登录项行 | `frame(height: 44/56)` 定高 | 带异常徽章的行有第三行，徽章被切 | `minHeight`（`04-guardian-fixture-rows.png` 里三行完整） |
+| 占用行 | 已是 `minHeight` | — | 不动 |
+
+三条同属一类错误：**稿写 `min-height` 时实现写死 `height`，等于把稿里"内容可以长高"的合同删掉**。定高只在"这一行永远一行"时才安全，而这三处都会因数据变高。
+
+### 6.3 侧栏宽度：两次否证实验（这一条差点被写成假结论）
+
+P4 的原始记录是"侧栏 229↔245pt"。**这组数在任何一张照片里都复现不了**，所以本轮先量再改：同一个"侧栏宽"在仓里三份文档被写成 200 / 216 / 220，谁也没算错，只是各自量的不是同一个东西。为确定机制做了两次实验（照片都在证据目录里）：
+
+| # | 做法 | 结果 |
+| --- | --- | --- |
+| A | 往 SwiftUI 自己写的那条 `NSSplitView Subview Frames…` 里手改成 260pt 再启动（`probe-a-persisted-260.png`） | 分隔线仍在 x=401px@2x = **200pt**，退出时那条记录被改回 200 → **写了不等于被读** |
+| B | 代码里 `ideal` 从 220 改成 240 重新构建（`probe-b-ideal-240.png`） | 屏幕上仍是 **200pt** → 首屏宽度取 **min**，`ideal` 不参与 |
+| C | 改成 `min:220, ideal:220, max:280` 后重拍（`03`、`01` 两张独立照片） | 分隔线 x=440px@2x = **220pt**，两张同值 |
+
+- **结论**：稿的 220pt 对得上，但只能由 `min` 承载；代价是用户能拖到的最窄处从 200 变成 220。`--sidebar-w-min: 200px` 这个令牌在 CSS 里声明后**从未被引用**（全仓仅 `tokens.css:33` 一处命中），所以没有实际合同被破坏。
+- `MMMetric.sidebar = 220` **没有代码在读**，它只是给审计文档一个可对账的出处；已在常量注释写明，免得下一个人以为改它就改了布局。
+- 曾怀疑"上一轮 P4 用 900x600 拍最小窗口，把侧栏夹到 200 并持久化，污染了之后的基线"——**实验 A 把它否证了**（持久化压根不被读）。取证脚本里为这个猜测写过一段删偏好键的代码，已删；留着只会让下一个人以为像素基线由它兜住。
+- 测量口径：一律在 **raw @2x PNG**（2200×1520 px = 1100×760 pt）上量，`swift Scripts/pixel-probe.swift <png> scan y 760 380 480`。P4 那批 `.jpg` 是 `sips -Z 1400` 缩过的，坐标跟着缩，拿它报 px 就是假的。
+
+### 6.4 照片清单（`docs/verification/p62b-fidelity/`）
+
+| 文件 | 注入 | 看什么 |
+| --- | --- | --- |
+| `01-dashboard-first-frame.png` | `MM_OPEN_MODULE=dashboard`，等 5s（≈2 次采样） | sparkline 首帧横轴已满宽，柱子从右端往左长 |
+| `02-dashboard-history-full.png` | 同上，等 30s（12 格真实采样） | 满轴 + 「全部 ›」affordance |
+| `03-guardian-rows.png` | `MM_OPEN_MODULE=guardian` 真机态 | 卡外标题行、通栏卡、平铺行分隔线、卡内脚注、侧栏 220pt |
+| `04-guardian-fixture-rows.png` | + `MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows` | 通栏警示条、授权行分隔线、登录项三行徽章不被切 |
+| `05-guardian-first-frame.png` | + `MM_GUARDIAN_LOAD=hold` | 首帧骨架在通栏卡里的留白 |
+| `probe-a-persisted-260.png` / `probe-b-ideal-240.png` | §6.3 两次否证实验 | 两张的分隔线都在 x=401px = 200pt |
+
+### 6.5 这一轮**没有**核对的（不写"应该没问题"）
+
+1. **深色档**：六张全是 `MM_APPEARANCE=light`。分隔线与药丸底在暗档的对比度差异没量过——去掉药丸是否让暗档"行"变得更难分辨，未知。
+2. **侧栏拖到两端**：只量了新的起点 220，`max:280` 那一端与"用户拖窄到 220 以下"的边界没拍。
+3. **系统活动卡**：钩子已存在但本轮没出片，`empty`/`rows` 两档排版仍无照片依据（§5 G1）。
+4. **登录项 `indeterminate` / `scanerror` 两档**：只拍了 `rows` 与真机态，两条脚注在通栏卡里的分隔线表现未拍。
+5. **I4 图标环**：本轮未动，稿 06 的 34pt 圆环仍缺。

@@ -1,0 +1,2 @@
+sandbox_extension_issue_file_to_process failed for /tmp/mm-p62b-final/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）

@@ -15,7 +15,11 @@ struct MainWindow: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+                // 首屏宽度取的是 **min**，`ideal` 在这里是装饰值：把 ideal 单独改成 240 重构建，
+                // 分隔线仍停在 x=401px@2x = 200pt；往 `NSSplitView Subview Frames…` 写 260 再启动，
+                // 应用既不读它、还会在退出时把它改回 200。所以要屏幕上真是稿子的 220pt，
+                // 就只能让 min 去承载它——副作用是用户能拖到的最窄处从 200 变成 220。
+                .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 280)
         } detail: {
             DetailView()
         }
@@ -572,8 +576,15 @@ struct DashboardView: View {
         MMCard(padding: 0) {
             VStack(spacing: 0) {
                 cardHeader("可释放空间", trailing: AnyView(
-                    Button("全部") { MMNavigation.go(.cleaner) }
-                        .buttonStyle(.borderless).controlSize(.small)
+                    Button { MMNavigation.go(.cleaner) } label: {
+                        // 稿 01 的「全部」是 `全部 + chevron-right`：那半枚箭头是"点了会离开这一页"
+                        // 的唯一提示，光一个蓝色词读起来像个筛选开关。
+                        HStack(spacing: MMGap.xxs) {
+                            Text("全部")
+                            Image(systemName: "chevron.right").font(.caption2)
+                        }
+                    }
+                    .buttonStyle(.borderless).controlSize(.small)
                 ))
                 if reclaimRows.isEmpty {
                     VStack(alignment: .leading, spacing: MMGap.xs) {

@@ -79,11 +79,11 @@
 | `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1094` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked |
 | `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1111` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘 |
 | `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1085,1118` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法恢复"那一支（橙色三角、**无撤回按钮**），数字借自当前选中项，不移动任何文件 |
-| `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:374` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项 |
-| `MM_TCC_FIXTURE` | `MMGuardian` | `MMGuardian.swift:388` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
-| `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:402` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_LOAD` | `MMGuardian` | `MMGuardian.swift:414` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift`（本轮新增） | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1；合成条目标"夹具值" |
+| `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:410` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项。行号 P6.2b 起（整页骨架重排把钩子块往下推了 36 行） |
+| `MM_TCC_FIXTURE` | `MMGuardian` | `MMGuardian.swift:424` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
+| `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:438` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
+| `MM_GUARDIAN_LOAD` | `MMGuardian` | `MMGuardian.swift:450` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
+| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift:461` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2b 未用它出片** |
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift`（本轮新增） | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
@@ -141,6 +141,7 @@
 | `Scripts/provenance-fixture.sh` | 造一棵假 home + 一份假 brew 账本（`<root>/.homebrew/Caskroom`），五档来源一次凑齐：设备号同一（Highball）、只有名字对上（CodeEdit，staged 链接指向别处）、MAS 收据（WeChat）、两份账本抢同一个 bundle（Firefox：firefox 与 firefox-beta）、什么都没有（MysteryApp） | **P5.2 新增**。真机上一台机器通常只有一两档拍得到，而这一屏的文案合同是**按档给的**（弱档不给 brew 命令、歧义档要点名两个 token），必须逐档摆拍。账本跟着假 home 走：`provenancePrefixesFactory` 指到 `<home>/.homebrew`、`provenanceReceiptsRootFactory` 给 `nil`，否则照片里"这一档没命中"到底是没凭据还是没读系统收据就分不出来了 |
 
 | `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
+| `Scripts/p62b-capture.sh` | 还原度收口五档：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`） | **P6.2b 新增**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个

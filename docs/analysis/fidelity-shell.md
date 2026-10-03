@@ -3,7 +3,8 @@
 > **结论先行**：`01-dashboard` 与 `09-settings` 的**结构与文案口径**和实机高度一致——概览页四卡（存储/负载/可释放/最近操作）、设置四 tab + 确认弹窗的层级、文案、开关默认态都对得上，且比 monitor 页诚实（虚数值一律走占位/"尚未采样"，不编数字）。
 > 主要差异集中在**全站几何/侧栏**层（与 monitor 同源）：
 > - **S1 · 侧栏 footer 画错**：`01-dashboard.html` 仍画成"分隔线 + 设置 nav-item"，实机是 `Macintosh HD` + 百分比 + 红色容量条 + 带边框设置按钮（`MainWindow.swift` `volumeFooter`）。需补一个侧栏 footer 组件，八张稿一起换。
-> - **I10a/I10b · 侧栏 220 vs 令牌 216 / 标题栏 52 vs 令牌 38**：`NavigationSplitView(min:200, ideal:220, max:280)` 实测分隔线在 x=220（monitor 页已量过），令牌 `--sidebar-w`:216、`--titlebar-h`:38。改令牌会影响全部模块的像素基线，按 #53 约定**只出规格、待集成阶段落地**。
+> - **I10a · 侧栏宽度（P6.2b 重测后已落地）**：原记"`NavigationSplitView(min:200, ideal:220, max:280)` 实测分隔线在 x=220"——**这个数复现不了**。P6.2b 在 raw @2x PNG 上量到改前实机是 **200pt**（分隔线 x=401px），并用两次否证实验确定机制：往 SwiftUI 自己写的 `NSSplitView Subview Frames…` 里手写 260pt 不被读、把 `ideal` 改成 240 重构建仍出 200pt，**首屏宽度取的是 `min`**。现已改 `min:220`，实测 440px@2x = 220pt，与稿 `--sidebar-w: 220px` 对齐。全过程见 `fidelity-guardian.md` §6.3（同一处骨架，两页共用）。
+> - **I10b · 标题栏 52 vs 令牌 38**：仍未落地——改令牌会影响全部模块的像素基线，按 #53 约定**只出规格、待集成阶段落地**。
 > - **S3 · 内容底色**：概览用 `MMColor.contentBackground`，令牌 `--c-content-bg` 是白/`#282828`（controlBackground 档）；monitor 页实测页面底是 `windowBackgroundColor`（`#2B2B2C` 级）。两页"卡浮在页面上"的对比度是否一致需真机核对。
 > - **S4 · 缺 under-page 卡片 token**：monitor 私有 `card()` 用 `cardBackground`(underPage)，本页 `MMCard` 用 `controlBackground`——令牌层尚无统一 under-page 变体（monitor 路线已提，本页不重复）。
 >
@@ -21,7 +22,7 @@
 | 可用钩子 | 壳层 `MM_OPEN_MODULE` / `MM_SHOW_SETTINGS` / `MM_SETTINGS_TAB`（`README §2`） |
 | 硬约束 | 全程零合成事件；未改 `Sources/`、`Packages/`、`docs/design-system/*.css`；未跑 `swift build`；只 `kill` 自己启用的实例 |
 
-> **测量诚实声明**：本环境为无头沙箱，**无运行实例、无 Chrome 渲染 SwiftUI**，本稿所有"实机像素"项均标记为 **「待真机测量」**——这些是从代码与令牌推导的结构/语义判定，不是量出来的像素。需要逐像素核对的条目已在 §3 标 `⚠️待量`。
+> **测量诚实声明**：P3 审计这一版本环境无头，当时所有"实机像素"项一律标 **「待真机测量」**。**P6.2b 起了两帧实机截图**（`docs/verification/p62b-fidelity/01-dashboard-first-frame.png`、`02-dashboard-history-full.png`，raw @2x 2200×1520 px = 1100×760 pt，`MM_APPEARANCE=light`），据此关掉了侧栏、`全部 ›`、sparkline 三条；**其余像素项（堆叠条分段、仪表指针角度、内存构成条、可释放行高）仍无照片依据**，往下看 §4。
 
 ## 1. 01-dashboard 逐元素
 
@@ -69,7 +70,9 @@
 | **侧栏 footer（S1）** | `MainWindow.swift:137-162` `volumeFooter` | ❌ | 实机 = `Macintosh HD` + 百分比 + 红色容量条（低空间转红）+ 带边框「设置」按钮；**稿子画成"分隔线 + 设置 nav-item"**，沿用 01–06 错误画法 | 中 | 设计稿该改 S1（全站） |
 | 隐私守护红点 | `01-dashboard.html:40` | ❌ | 稿子给"隐私守护"画了红点；实机 `SidebarView` 无任何模块红点逻辑 → **稿子虚构**，应删 | 低 | 设计稿该改 S2 |
 | 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:272-290` `statusBar` | ❌ | 稿子多画"索引正常""Spotlight 已排除 2 个路径"——实机状态栏**无这两段**（代码未输出） | 低 | 设计稿该改 S2 |
-| 侧栏宽 216 / 标题栏 38（令牌） | `tokens.css:30,29` vs `NavigationSplitView(min:200, ideal:220)` / 实机 52pt | ❌ | I10a/I10b：实机侧栏 220、标题栏 52；令牌 216/38 → 全站 +4/+14pt | 低 | 待集成阶段落地 |
+| 侧栏宽 220（`--sidebar-w`）/ 标题栏 38（`--titlebar-h`） | `MainWindow.swift:18` / 实机 52pt | ✅ / ❌ | **P6.2b**：侧栏改前实测量 **200pt**（不是这里原记的 220），现 `min:220` 后实测 220pt，本条关闭；标题栏 52 vs 令牌 38 仍开，归集成阶段 | 低 | I10a **已落地** / I10b 待落地 |
+| 「可释放空间」卡右上「全部」（稿 `01-dashboard.html` 画的是 `全部 + chevron-right`） | `MainWindow.swift` `cardHeader("可释放空间", trailing:)` | ✅（P6.2b 起） | 改前只有一个蓝色"全部"，读起来像筛选开关；稿里那半枚 `chevron.right` 才是"点了会离开这一页"的唯一提示。现已补 `全部 ›`（`p62b-fidelity/02-dashboard-history-full.png`） | 低 | 实现该改 I11 → **已落地** |
+| 网络 / 磁盘 I/O 迷你图 `.spark i{flex:1}`（12 等分槽） | `MMDesign.swift` `MMSparkline`（`slotCount` 固定、`maxWidth:.infinity` 等分） | ✅（P6.2b 起） | 改前每根钉死 10pt 靠左排：首帧只有一根细柱孤零零贴在左边，读起来像图坏了，且柱子随采样次数往右爬、同一张图前后宽度不一样。现横轴满宽、柱从右端往左长（`01` 首帧 vs `02` 满轴两张） | 中 | 实现该改 I12 → **已落地** |
 
 ## 2. 09-settings 逐元素（09a–09e）
 
@@ -87,22 +90,22 @@
 
 ## 3. 差异归属汇总
 
-- **实现该改（本页 0 条）**：I4/I5 在本页不触发；无"把未知当已知"类缺陷（本页占位/降级文案正确）。
+- **实现该改（P6.2b 落地 2 条）**：I11「全部」缺 `chevron-right` affordance、I12 sparkline 首帧稀疏且槽宽钉死（均见 §1.5 表）。I4/I5 在本页不触发；无"把未知当已知"类缺陷（本页占位/降级文案正确）。
 - **设计稿该改（S 类）**：S1（侧栏 footer，全站）、S2（占位/虚构数字：2.4GB/46/3.5GB/3/20/94%/红点/索引正常/Spotlight 排除/台账降级态未画）。
 - **两边都改（0 条）**。
-- **待集成阶段落地（全站几何，只出规格不落地）**：I10a（侧栏 220 vs 216）、I10b（标题栏 52 vs 38）、S3（content 底色档）、S4（under-page 卡片 token，monitor 已提）。
+- **待集成阶段落地（全站几何，只出规格不落地）**：I10b（标题栏 52 vs 38）、S3（content 底色档）、S4（under-page 卡片 token，monitor 已提）。**I10a（侧栏）已由 P6.2b 落地。**
 - **待真机测量（⚠️）**：存储堆叠条 9 段、CPU/内存仪表指针角度与口径、内存构成条、可释放行高图标对齐、S3 两页对比度一致性。
 
 ## 4. 没能验证到的部分（诚实列出）
 
-1. 概览折叠线以下（内存构成条、可释放行、最近操作行）的真机像素——视口 1100×700 下需滚动，合成滚动禁用；可借 `MM_OPEN_MODULE=dashboard` + 真机 taller 窗口或后续模块夹具核对。
+1. 概览折叠线以下的**逐像素**核对：P6.2b 的两帧（1100×760pt 视口）已把内存构成条、可释放三行、最近操作四行**拍进画面**（无需滚动），但段宽/行高这类数还没逐个量——`02-dashboard-history-full.png` 是 raw PNG，可直接用 `Scripts/pixel-probe.swift` 续量。
 2. 设置各 tab 在 400pt 高度内的实际滚动截断点（09c 废纸篓段落在折线以下，实机未截到）。
-3. 浅色模式下的实际配色（稿子按浅色令牌重绘，实机仅深色交叉核对过一次）。
+3. 浅色 vs 深色的**交叉**核对：P6.2b 两帧都是 `MM_APPEARANCE=light`（与稿同源），暗档这一轮没重拍；侧栏 220pt、`全部 ›`、sparkline 满轴在暗档下的对比度未量。
 4. S3 跨页对比度（概览 contentBackground vs 实机 windowBackground）需两页同框真机截图。
 
 ## 5. 提请协调者（协调路 #53 落）
 
 1. **S1 侧栏 footer 组件**：在 `tokens.css`/`screen.css` 增 `.sidebar-footer`（容量行 + 红色容量条 + 带边框设置按钮），八张稿（01–07 + 本页）一起换，消除"分隔线+设置 nav-item"错误画法。
-2. **I10a/I10b/S3/S4 全站几何修正**：统一调令牌 `--sidebar-w`→220、`--titlebar-h`→52、补 `--c-content-bg` 与 under-page 变体；**改动会作废全部模块像素基线，待集成阶段统一落地**，本页不单独改。
+2. **I10b/S3/S4 全站几何修正**：调令牌 `--titlebar-h`→52、补 `--c-content-bg` 与 under-page 变体；**改动会作废全部模块像素基线，待集成阶段统一落地**，本页不单独改。**I10a（侧栏）P6.2b 已落地**，但落地位置是 `MainWindow.swift:18` 的 `min:`（首屏宽度只认 `min`，`ideal` 与 AppKit 那条持久化记录都不参与），令牌 `--sidebar-w: 220px` 本来就是对的、没动；顺带一条待办：`--sidebar-w-min: 200px` 全仓从未被引用，而应用现在也拖不到 200，要么删令牌要么把稿改成 220。
 3. **09c 降级态补画**：N=0 置灰、「在访达中显示」整行缺失两档，出规格给 mmuninstaller/清理路线补 artboard。
 4. **S2 占位数字清洗**：稿内 `2.4 GB`/`46`/`3.5 GB`/`3 / 20`/`94%`/`红点`/`索引正常`/`Spotlight 已排除` 标"示例值/虚构"或改为动态占位，避免被当成实测。

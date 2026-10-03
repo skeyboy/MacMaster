@@ -71,32 +71,34 @@ public struct GuardianView: View {
     // MARK: - 当前占用（P3.1）
 
     private var occupancyCard: some View {
-        VStack(alignment: .leading, spacing: MMGap.sm) {
-            HStack(spacing: MMGap.sm) {
-                Image(systemName: "camera.fill")
-                    .font(.system(size: MMMetric.iconSmall))
-                    // 卡头这个图标不能常驻红色：本屏的红色专属于"正在被使用"，
-                    // 一个恒红的摄像头图标会被读成"正在录"，而它只是个标题装饰。
-                    .foregroundStyle(MMColor.secondaryLabel)
-                Text("当前占用").font(.headline)
-                Spacer()
-                // 副标题只报"上次测量时刻"，不报"实时"——读数会过期，诚实标注采样时间。
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            sectionHeader(systemImage: "camera.fill",
+                          // 卡头图标不常驻红色：本屏的红只属于"正在被使用"，
+                          // 恒红的摄像头会被读成"正在录"，而它只是个标题装饰。
+                          iconTint: MMColor.secondaryLabel,
+                          title: "当前占用",
+                          caption: "只读检测 · 不申请任何权限") {
+                // 只报"上次测量时刻"，不报"实时"——读数会过期，诚实标注采样时间。
                 Text(vm.measuredAt.map { "测量于 " + MMFormat.dateTime($0) } ?? "测量中")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                     .monospacedDigit()
             }
-            // 诚实披露：这一屏只读、不申请任何权限，与 TCC 卡"SQLite 只读查询 · 不写库不提权"同一口径。
-            Text("只读检测 · 不申请任何权限")
-                .font(.caption)
-                .foregroundStyle(MMColor.secondaryLabel)
 
-            if vm.deviceUsage.isEmpty {
-                MMSkeletonRow(nameWidth: 80, valueWidth: 72)
-                MMSkeletonRow(nameWidth: 80, valueWidth: 72)
-            } else {
-                ForEach(DeviceUsageKind.allCases, id: \.self) { kind in
-                    DeviceUsageRow(kind: kind, state: vm.deviceUsage[kind] ?? .indeterminate(.readFailed))
+            MMCard(padding: 0) {
+                VStack(spacing: 0) {
+                    if vm.deviceUsage.isEmpty {
+                        VStack(spacing: MMGap.sm) {
+                            MMSkeletonRow(nameWidth: 80, valueWidth: 72)
+                            MMSkeletonRow(nameWidth: 80, valueWidth: 72)
+                        }
+                        .padding(MMGap.md)
+                    } else {
+                        ForEach(Array(DeviceUsageKind.allCases.enumerated()), id: \.offset) { index, kind in
+                            if index > 0 { Divider() }
+                            DeviceUsageRow(kind: kind, state: vm.deviceUsage[kind] ?? .indeterminate(.readFailed))
+                        }
+                    }
                 }
             }
 
@@ -110,76 +112,101 @@ public struct GuardianView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(MMGap.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
-        )
+    }
+
+    /// 稿 06 的三个区块都是同一个骨架：**标题行在卡外**（图标 + 标题 + 口径小字 + 右侧动作），
+    /// **卡是通栏的、`padding:0`**，卡内只有带底分隔线的行。
+    /// 之前实现把标题和脚注一起塞进带内边距的卡里、每行刷成沉底药丸，于是"这一组到哪里结束"
+    /// 只能靠猜——而概览页与清理页的表格行早就是 `Divider()` 那一种语言。
+    @ViewBuilder
+    private func sectionHeader<Trailing: View>(systemImage: String,
+                                               iconTint: Color,
+                                               title: String,
+                                               caption: String? = nil,
+                                               @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(spacing: MMGap.sm) {
+            Image(systemName: systemImage)
+                .font(.system(size: MMMetric.iconSmall))
+                .foregroundStyle(iconTint)
+            Text(title).font(.headline)
+            if let caption {
+                Text(caption)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+            }
+            Spacer(minLength: MMGap.sm)
+            trailing()
+        }
     }
 
     // MARK: - 敏感权限授权（P3.2，TCC 只读视图）
 
     private var tccCard: some View {
-        VStack(alignment: .leading, spacing: MMGap.sm) {
-            HStack(spacing: MMGap.sm) {
-                Image(systemName: "lock.shield")
-                    .font(.system(size: MMMetric.iconSmall))
-                    .foregroundStyle(MMColor.secondaryLabel)
-                Text("敏感权限授权").font(.headline)
-                Spacer()
-                Text("SQLite 只读查询 · 不写库不提权")
-                    .font(.caption)
-                    .foregroundStyle(MMColor.tertiaryLabel)
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            sectionHeader(systemImage: "lock.shield",
+                          iconTint: MMColor.secondaryLabel,
+                          title: "敏感权限授权",
+                          caption: "SQLite 只读查询 · 不写库不提权") {
+                EmptyView()
             }
 
-            switch vm.tccState {
-            case nil:
-                MMSkeletonRow(nameWidth: 120, valueWidth: 72)
-                MMSkeletonRow(nameWidth: 120, valueWidth: 72)
-            case .unreadable(let detail):
-                // 读不到 ≠ 没有授权：这一档不画列表，只给原因 + 引导。
-                MMEmptyState(
-                    systemImage: "lock.fill",
-                    title: TCCCopyTable.unreadableTitle,
-                    detail: detail + "\n\n" + TCCCopyTable.unreadableGuide
-                ) {
-                    Button("打开系统设置 · 完全磁盘访问") {
-                        MMReveal.openSystemSettings(pane: "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles")
+            MMCard(padding: 0) {
+                VStack(spacing: 0) {
+                    switch vm.tccState {
+                    case nil:
+                        VStack(spacing: MMGap.sm) {
+                            MMSkeletonRow(nameWidth: 120, valueWidth: 72)
+                            MMSkeletonRow(nameWidth: 120, valueWidth: 72)
+                        }
+                        .padding(MMGap.md)
+                    case .unreadable(let detail):
+                        // 读不到 ≠ 没有授权：这一档不画列表，只给原因 + 引导。
+                        MMEmptyState(
+                            systemImage: "lock.fill",
+                            title: TCCCopyTable.unreadableTitle,
+                            detail: detail + "\n\n" + TCCCopyTable.unreadableGuide
+                        ) {
+                            Button("打开系统设置 · 完全磁盘访问") {
+                                MMReveal.openSystemSettings(pane: "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles")
+                            }
+                            .controlSize(.small)
+                        }
+                        .frame(minHeight: 140)
+                        .padding(MMGap.md)
+                    case .emptyRead:
+                        MMEmptyState(
+                            systemImage: "checkmark.shield",
+                            title: "相关服务没有授权记录",
+                            detail: "两个 TCC 库都读取成功，查询返回 0 行——这次是「查到了没有」，不是「没查到」。"
+                        )
+                        .frame(minHeight: 120)
+                        .padding(MMGap.md)
+                    case .partial(let rows, let note):
+                        // 警示条是卡内的一行，不是浮在卡上的胶囊：稿 `.strip` 通栏带底分隔线，
+                        // 这样"清单不完整"和它下面那几行是同一件事，而不是两个控件。
+                        partialStrip(note)
+                        tccRowsList(rows)
+                    case .loaded(let rows):
+                        tccRowsList(rows)
                     }
-                    .controlSize(.small)
-                }
-                .frame(minHeight: 140)
-            case .emptyRead:
-                MMEmptyState(
-                    systemImage: "checkmark.shield",
-                    title: "相关服务没有授权记录",
-                    detail: "两个 TCC 库都读取成功，查询返回 0 行——这次是「查到了没有」，不是「没查到」。"
-                )
-                .frame(minHeight: 120)
-            case .partial(let rows, let note):
-                partialStrip(note)
-                tccRowsList(rows)
-            case .loaded(let rows):
-                tccRowsList(rows)
-            }
 
-            HStack(alignment: .top, spacing: MMGap.xs) {
-                Image(systemName: "info.circle")
-                    .font(.caption)
-                    .foregroundStyle(MMColor.tertiaryLabel)
-                Text(TCCCopyTable.valueLegend)
-                    .font(.caption)
-                    .foregroundStyle(MMColor.tertiaryLabel)
-                    .fixedSize(horizontal: false, vertical: true)
+                    // auth_value 的读法脚注留在卡内最后一格（稿 `.foot-note`，无边框）：
+                    // 它解释的是上面那几行的徽章，隔着一层卡就没人读。
+                    HStack(alignment: .top, spacing: MMGap.xs) {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                        Text(TCCCopyTable.valueLegend)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, MMGap.lg)
+                    .padding(.vertical, MMGap.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
-        .padding(MMGap.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
-        )
     }
 
     /// 部分可读警示条：点名没读到的库。列表只覆盖读到的那部分，必须说破，
@@ -194,14 +221,19 @@ public struct GuardianView: View {
                 .foregroundStyle(MMColor.secondaryLabel)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(MMGap.sm)
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.soft(MMColor.caution, 0.10), in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .background(MMColor.soft(MMColor.caution, 0.10))
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private func tccRowsList(_ rows: [TCCDisplayRow]) -> some View {
         // partial 档允许 0 行（那由 partialStrip 解释"清单不完整"），loaded 档不会为空。
-        ForEach(rows) { row in
+        // 行之间加分隔线、最后一行不加（稿 `.trow:last-child{border-bottom:0}`）：
+        // 卡下面紧跟的 auth_value 脚注自带边界，再多一条线就把它和列表切成两截。
+        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+            if index > 0 { Divider() }
             TCCAuthorizationRow(row: row)
         }
     }
@@ -209,16 +241,11 @@ public struct GuardianView: View {
     // MARK: - 登录项
 
     private var loginItemsCard: some View {
-        VStack(alignment: .leading, spacing: MMGap.sm) {
-            HStack(spacing: MMGap.sm) {
-                Image(systemName: "power")
-                    .font(.system(size: MMMetric.iconSmall))
-                    .foregroundStyle(MMColor.caution)
-                Text("登录项").font(.headline)
-                Spacer()
-                Text("\(vm.loginItems.count) 项")
-                    .font(.caption)
-                    .foregroundStyle(MMColor.secondaryLabel)
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            sectionHeader(systemImage: "power",
+                          iconTint: MMColor.caution,
+                          title: "登录项",
+                          caption: "\(vm.loginItems.count) 项") {
                 // 系统域没有可编程开关：给用户的动作是"被带去正确的设置面板"。
                 Button("打开系统设置 · 登录项") {
                     MMReveal.openSystemSettings(pane: "com.apple.LoginItems-Settings.extension")
@@ -226,29 +253,30 @@ public struct GuardianView: View {
                 .controlSize(.small)
             }
 
-            if vm.loginItems.isEmpty {
-                MMEmptyState(
-                    systemImage: "tray",
-                    title: "未检测到登录项",
-                    detail: "用户目录与系统目录的 LaunchAgents 均为空。"
-                )
-                .frame(minHeight: 120)
-            } else {
-                ForEach(vm.loginItems) { item in
-                    LoginItemRow(item: item, anomaly: vm.loginAudit.anomalies[item.path]) {
-                        Task { await vm.toggle(item) }
+            MMCard(padding: 0) {
+                VStack(spacing: 0) {
+                    if vm.loginItems.isEmpty {
+                        MMEmptyState(
+                            systemImage: "tray",
+                            title: "未检测到登录项",
+                            detail: "用户目录与系统目录的 LaunchAgents 均为空。"
+                        )
+                        .frame(minHeight: 120)
+                        .padding(MMGap.md)
+                    } else {
+                        ForEach(Array(vm.loginItems.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { Divider() }
+                            LoginItemRow(item: item, anomaly: vm.loginAudit.anomalies[item.path]) {
+                                Task { await vm.toggle(item) }
+                            }
+                        }
+                        // 脚注在卡内、列表下面，带一条顶分隔线（稿 `.foot-note{border-top}`）：
+                        // 它是对上面这一整列的核对结论，不该被卡边界挪到"另一块"里去。
+                        auditFooter
                     }
                 }
-
-                auditFooter
             }
         }
-        .padding(MMGap.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
-        )
     }
 
     /// 核对结果的脚注。不可核对时必须显式说"这一轮没对表"——
@@ -293,53 +321,57 @@ public struct GuardianView: View {
                 }
             }
         }
-        .padding(.top, MMGap.xs)
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .top) { Divider() }
     }
 
     // MARK: - 系统活动
 
     private var activityCard: some View {
-        VStack(alignment: .leading, spacing: MMGap.sm) {
-            HStack(spacing: MMGap.sm) {
-                Image(systemName: "eye")
-                    .font(.system(size: MMMetric.iconSmall))
-                    .foregroundStyle(MMColor.informational)
-                Text("系统活动").font(.headline)
-                Spacer()
+        VStack(alignment: .leading, spacing: MMGap.xs) {
+            sectionHeader(systemImage: "eye",
+                          iconTint: MMColor.informational,
+                          title: "系统活动") {
+                EmptyView()
             }
-            if vm.activities.isEmpty {
-                Text("近 5 分钟没有可读到的活动事件。")
-                    .font(.caption)
-                    .foregroundStyle(MMColor.secondaryLabel)
-            } else {
-                ForEach(vm.activities) { activity in
-                    HStack(spacing: MMGap.md) {
-                        Image(systemName: activity.icon)
-                            .foregroundStyle(tint(for: activity.tone))
-                            .frame(width: MMMetric.iconRow)
-                        VStack(alignment: .leading, spacing: MMGap.xxs) {
-                            Text(activity.title).font(.body.weight(.medium))
-                            Text(activity.detail)
-                                .font(.caption)
-                                .foregroundStyle(MMColor.secondaryLabel)
-                        }
-                        Spacer(minLength: MMGap.sm)
-                        Text(activity.time)
-                            .font(.caption.monospacedDigit())
+            MMCard(padding: 0) {
+                VStack(spacing: 0) {
+                    if vm.activities.isEmpty {
+                        Text("近 5 分钟没有可读到的活动事件。")
+                            .font(.caption)
                             .foregroundStyle(MMColor.secondaryLabel)
+                            .padding(MMGap.md)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ForEach(Array(vm.activities.enumerated()), id: \.element.id) { index, activity in
+                            if index > 0 { Divider() }
+                            HStack(spacing: MMGap.md) {
+                                Image(systemName: activity.icon)
+                                    .foregroundStyle(tint(for: activity.tone))
+                                    .frame(width: MMMetric.iconRow)
+                                VStack(alignment: .leading, spacing: MMGap.xxs) {
+                                    Text(activity.title).font(.body.weight(.medium))
+                                    Text(activity.detail)
+                                        .font(.caption)
+                                        .foregroundStyle(MMColor.secondaryLabel)
+                                }
+                                Spacer(minLength: MMGap.sm)
+                                Text(activity.time)
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(MMColor.secondaryLabel)
+                            }
+                            // 原来是 `.frame(height: rowCompact)`：28pt 装两行文字，
+                            // 标题的下沿被齐根切掉。行高只给下限，多出来的高度给内容。
+                            .frame(minHeight: MMMetric.rowCompact)
+                            .padding(.horizontal, MMGap.lg)
+                            .padding(.vertical, MMGap.sm)
+                        }
                     }
-                    .frame(height: MMMetric.rowCompact)
-                    .padding(.horizontal, MMGap.md)
-                    .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
                 }
             }
         }
-        .padding(MMGap.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MMColor.cardSurface, in: RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous).stroke(MMColor.separator)
-        )
     }
 
     private func tint(for tone: ActivityTone) -> Color {
@@ -581,10 +613,10 @@ struct LoginItemRow: View {
                 .controlSize(.small)
             }
         }
-        .frame(height: item.fileKind == .renamedDisabled || anomaly != nil
-               ? MMMetric.rowRegular + MMGap.sm : MMMetric.rowRegular)
-        .padding(.horizontal, MMGap.md)
-        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        // 行高只给下限：异常徽章会多出第三行，钉死 44/56 就把多出来的那行切掉。
+        .frame(minHeight: MMMetric.rowRegular)
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
     }
 
     /// 这三条都是"两处记录对不上"，不是"确认坏了"：用 caution，绝不借红色。
@@ -630,9 +662,8 @@ struct DeviceUsageRow: View {
             }
         }
         .frame(minHeight: MMMetric.rowRegular)
-        .padding(.horizontal, MMGap.md)
-        .padding(.vertical, MMGap.xs)
-        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
     }
 
     /// 颜色只走语义三档：红=正在被使用，绿=测到了空闲，灰=无法确定/没有设备。
@@ -685,9 +716,8 @@ struct TCCAuthorizationRow: View {
             .frame(width: 84, alignment: .trailing)
         }
         .frame(minHeight: MMMetric.rowRegular)
-        .padding(.horizontal, MMGap.md)
-        .padding(.vertical, MMGap.xs)
-        .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+        .padding(.horizontal, MMGap.lg)
+        .padding(.vertical, MMGap.sm)
     }
 }
 
