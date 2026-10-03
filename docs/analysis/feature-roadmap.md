@@ -682,10 +682,15 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | **已落地**：`AppFolderWatcher`（进程内 kqueue，监听口径 = `AppScanner` 列举口径）+ 稿 03e 三档，见上一节 | — | 不撞：没学它的常驻 LaunchAgent。比原计划多一个钩子 `MM_UNINSTALL_SELF_ECHO`——它是全仓**唯一会真的动文件**的钩子，被"夹具 home 必须是 /tmp"+"必须点名"两道锁钉住，跑完按 bundle 标识清掉（见 `hook-ledger.md` §0） |
 | 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
-| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **已落地**（P6.1，2026-10-03）：`ProjectArtifactScanner` 加 `scan(roots:reuse:)` + `mergedReport` + `attemptCounts` + `rowsCompletedByBatch`，UI 加「继续扫描这 N 个根」与三态 chip，见 `fidelity-cleaner.md` §8 与 `docs/verification/p61-continue/`（三档零点击）。实测确认截断吃在**成案/测量**阶段，所以续扫比全量重扫快：夹具首批 36.4 MB → 续扫后 162.8 MB | M | 不撞：纯只读扫描调度。**不做后台常驻、不做游标落盘**（D6/D7：同一根最多 2 次，试满就改口 + 给两条出路）；预算不递加 |
+| 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **已落地**（P6.1，2026-10-03）：`ProjectArtifactScanner` 加 `scan(roots:reuse:)` + `mergedReport` + `attemptCounts` + `rowsCompletedByBatch`，UI 加「继续扫描这 N 个根」与三态 chip，见 `fidelity-cleaner.md` §8 与 `docs/verification/p61-continue/`（四张，零点击）。实测确认截断吃在**成案/测量**阶段，所以续扫比全量重扫快：夹具首批 76.4 MB → 续扫后 162.8 MB | M | 不撞：纯只读扫描调度。**不做后台常驻、不做游标落盘**（D6/D7：同一根最多 2 次，试满就改口 + 给两条出路）；预算不递加 |
 
-**推荐顺序 5 → 4**：1、2、3 已落地；5 是 P5.1 自己留下的口子（橙色警告长期挂着不等于做完了），
-代价 S–M 且纯只读；4 价值最低（本机 Mac mini 无风扇，正分支只有温度）。
-另有两件内部欠账与它们并行：disktree 最后一项"跨重扫保留 marks"、
-以及 P4 记下的几处还原度瑕疵（守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、
-概览首帧 sparkline 稀疏）。
+**P6.1 之后重排**：1、2、3、5 均已落地，外部候选只剩 4（温度/风扇），而它价值最低
+（本机 Mac mini 无风扇，正分支只有温度，且要新引一条 IOReport 读取路径）。
+下一轮因此按**内部欠账**排：
+- **P6.2 · 还原度收口**：disktree 最后一项"跨重扫保留 marks"，加上 P4 记下的四处瑕疵
+  （守护页行分隔、"全部 >"affordance、侧栏 229↔245pt、概览首帧 sparkline 稀疏）。
+  都是看得见的小口子，攒在一起拍一轮就是一次收口。
+- **P6.3 · 吞吐**：把 `activityProbe` 与 `FileTreeWalker.stats` 两趟全遍历并成一趟
+  （P6.1a §2 实测：单个 `node_modules` 子树 4 万条目、要两趟）。它同时也是 `fidelity-cleaner.md` §8.6
+  "根报已扫完而组里挂着读不到"的修法窗口——一趟遍历才说得出"每个候选都出了结论"。
+- **P6.4 · 候选 4**：温度/风扇，等上面两项清完再判要不要做。
