@@ -120,6 +120,11 @@ public enum MMMetric {
     public static let inspector: CGFloat = 268
     public static let iconSmall: CGFloat = 16
     public static let iconRow: CGFloat = 28
+    /// 稿 06 `.urow .ring` 那枚状态圆环，比 `iconRow` 大一档。**取 36 不是稿上的 34**：
+    /// `screen.css` 没有 box-sizing reset，`width:34px` 是**内容盒**，加 2px 描边后渲染出来的
+    /// 外圈是 38px（实测稿子 PNG 环宽 76px@2x = 38pt）；而 SwiftUI 的 `Circle().stroke` 骑在
+    /// 路径中线上、向框外溢一半线宽，所以 38pt 外圈要由 36pt 的 frame 承载。
+    public static let iconRing: CGFloat = 36
     public static let iconApp: CGFloat = 32
     /// 设计稿 dial 的直径与迷你柱状图的行高。
     public static let gauge: CGFloat = 46

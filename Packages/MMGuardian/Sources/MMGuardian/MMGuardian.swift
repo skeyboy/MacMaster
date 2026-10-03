@@ -633,15 +633,19 @@ struct DeviceUsageRow: View {
         let copy = DeviceUsageCopyTable.copy(for: kind, state: state)
         HStack(alignment: .center, spacing: MMGap.md) {
             ZStack {
-                // 圆环背景：live 态红、其余态走语义 tint，让"正在被使用"的红环在视觉上成立。
+                // 稿 06 `.urow .ring`：2px 描边圆环，**只有 live 那一档上色**（红环 + 红底），
+                // 其余态一律中性描边。之前环跟着语义 tint 走，空闲态就成了一枚绿环——
+                // 而稿里绿色只属于右侧那枚 `badge safe`，环和图标不参与表态。
+                // 这一屏的红是专属信号（"此刻确有进程在驱动"），多一处上色就稀释一次。
                 Circle()
-                    .stroke(tint, lineWidth: 2)
-                    .frame(width: MMMetric.iconRow, height: MMMetric.iconRow)
+                    .fill(state == .inUse ? MMColor.soft(MMColor.destructive) : Color.clear)
+                Circle()
+                    .stroke(state == .inUse ? MMColor.destructive : MMColor.separator, lineWidth: 2)
                 Image(systemName: kind.systemImage)
                     .font(.system(size: MMMetric.iconSmall))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(state == .inUse ? MMColor.destructive : MMColor.secondaryLabel)
             }
-            .frame(width: MMMetric.iconRow)
+            .frame(width: MMMetric.iconRing, height: MMMetric.iconRing)
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(kind.displayName).font(.body.weight(.medium))
                 Text(copy.detail)
