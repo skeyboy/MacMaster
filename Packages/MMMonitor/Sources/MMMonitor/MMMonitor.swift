@@ -183,9 +183,7 @@ public struct MonitorView: View {
                 MMKeyRow("联动保留", MMFormat.bytes(memory.wiredBytes))
                 // 口径：compressor_page_count × 页大小 = 压缩器池的物理占用（与"已用"同口径）。
                 MMKeyRow("压缩", MMFormat.bytes(memory.compressedBytes))
-                MMKeyRow("Swap", memory.swapAvailable
-                    ? "\(MMFormat.bytes(memory.swapUsedBytes)) / \(MMFormat.bytes(memory.swapTotalBytes))"
-                    : "—")
+                MMKeyRow("Swap", MenuBarManager.swapText(memory))
             } else if menuBar.snapshot.hasSampled {
                 Text("内存读数不可用（host_statistics64 失败），显示 —。")
                     .font(.caption)

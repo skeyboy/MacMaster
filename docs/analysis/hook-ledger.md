@@ -30,6 +30,9 @@
   夹具档是整块顶替 `SensorsSnapshot`（连 `SMCClient` 都不碰），卡过滤是纯显示层；
   而真实读取路径本身只发 `readKeyInfo`/`readBytes`/`keyFromIndex` 三条命令，
   写命令与 `F{id}Md`、`Ftst` 在 `SMCCommand` 这个枚举里**没有对应取值**（见 `SMC.swift`）。
+  **P6.5「Swap 零值文案」没有新增钩子名**（所以上面那条 52 的计数不变），只给 `MM_MONITOR_FIXTURE`
+  加了 1 个档 `swapZero`，并**改了 `populated` 底座的 swap 数值**：底座原本是 0/0，
+  与新的 `swapZero` 档在照片上同一个样——两档合成一档，等于夹具自己把要区分的东西抹平了。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -97,7 +100,7 @@
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift`（本轮新增） | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
-| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档） | 注入确定快照（populated/memoryNil/swapOff/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡） |
+| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档，P6.5 加 `swapZero`） | 注入确定快照（populated/memoryNil/swapOff/**swapZero**/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡）。**`swapZero` 与 `swapOff` 只差 `swapAvailable` 一位**（前者"读到 0"、后者"读不到"），这一位就是 I9 那两句话的分界；`populated` 底座的 swap 从 0/0 改成真实的 800 MiB / 2 GiB，否则这两档拍出来是同一张 |
 | `MM_MONITOR_CARDS` | `MMMonitor` | `MMMonitor.swift` `MonitorCardFilter`（`MonitorFixtureHooks.swift`） | 卡显示过滤，逗号子集 `stats\|perCore\|disk\|memory\|process\|sensors` | ✅ | 否 | **P6.4 新增**。手法照 `MM_GUARDIAN_CARDS`：「温度与风扇」排在整页最后，760pt 窗口里永远在折叠线以下，靠钩子钉死位置而不是拉高窗口碰运气。非法值整批拒绝并写 stderr（半生效夹具 = 假通过）；纯显示层过滤，不改变数据流 |
 
 ## 2. 各模块钩子小结
@@ -157,6 +160,7 @@
 | `Scripts/p62b-capture.sh` | 还原度收口**十档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡 `rows`+`empty`/登录项"未对表"档/登录项读取失败档。**07–10 用 `MM_GUARDIAN_CARDS` 只渲染目标卡**（P6.2d），不再需要拉高窗口+压矮上方三卡 | **P6.2b 新增、P6.2c 扩到八档、P6.2d 扩到十档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07 的 `scanUnifiedLog` 超时教训**记在 `fidelity-guardian.md` §6.6.3：`/usr/bin/log show` 在沙盒环境下会挂起，`DispatchSemaphore` 8 秒超时保护不能省 |
 | `Scripts/smc-probe.swift` | 只读探一次本机 AppleSMC：键表规模、`T*` 类型分布、风扇四键实测值、稳态扫描耗时 | **P6.4 新增**。立项前把"本机有没有风扇"这种凭机型猜的判据换成量出来的数；它同时是 `SMCParamBlock` 结构体布局的回归工具（布局漂了，`IOConnectCallStructMethod` 只会回 `kIOReturnBadArgument`，没有这个脚本就得重新猜）。**只读**：不碰 `F{id}Md`、不发 `Ftst` |
 | `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid |
+| `Scripts/p65-swap-capture.sh` | 内存卡 Swap 一行四档 × 明暗两套：①实机非零对仗（不注夹具）②`swapZero`「0 字节（未使用）」③`swapOff`「—」④`populated` 底座 | **P6.5 新增**。渲染范围钉成 `MM_MONITOR_CARDS=memory`（单卡）。01 那张是"改文案没把非零路径改坏"的回归证据；02/03 证明"读到 0"和"读不到"仍是两句话（I9 的改动边界就在这位上）。**菜单栏里那句 `Swap: …` 没有照片**：它要点开 NSMenu，而合成点击是硬禁止项、`screencapture -l<windowid>` 又抓不到菜单窗口，所以那一档只有单测 |
 | `Scripts/i11-hysteresis-capture.sh` | 真实负载下逐帧抓监控页温度卡：起 8 个 `yes` 循环压 ~40 秒再撤掉，每 3 秒按 pid 抓一帧 | **I11 新增**。迟滞（进 90 / 出 85）是**随时间**的行为，而 `MM_MONITOR_FIXTURE` 每个进程只给一个定格快照——拍不到"红过之后落回 87 °C 还红着"。这台机器跨不过 90（26 帧最高 **89.0 °C**、零红），所以过渡态最终只有单测；脚本与负载段那一帧留在 `docs/verification/i11-hysteresis/`，免得下轮又去试一遍。**跑这类热实验时别同时干别的重活**：本轮同时在渲染设计稿，冷却曲线被画成 66→81.5→86.2，撤负载之后的帧全部作废 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。

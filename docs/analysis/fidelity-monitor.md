@@ -22,6 +22,17 @@
 > 不随新卡重算；新卡带来 **1 条实现该改（I11 · 红档无迟滞，低，**同日已改**）** 与 **1 条归协调层（S7 · 图标精灵形状，低，
 > 附一条"键名不可读但**判不改**"）**，逐条见 §2.13 / §3.7，取证矩阵在 §4.2。
 > §1.8 那张表的实现行号仍是旧坐标（新卡把文件整体下移 ≈90 行），用前先按符号名重找。
+>
+> **P6.5 复核（2026-10-04，把这份清单重新读了一遍代码）**：§2 那 11 条里有 **5 条其实早就落地了**——
+> I3（磁盘"待差分"caption）、I4（`card()` 改调 `MMCard`）、I5（去掉 `(wired)` 括注，触发条件消了）、
+> I6+I7（进程四态）全部在 **2026-09-30 的 `e84066a` / `c74f045`** 里做完了，只有 I4 的组件档位在前一个提交。
+> **这份审计文档自己就是那条"上一轮的搜索结果不是依据"的老坑**：它记的是写下那天的代码，
+> 落地那轮改了代码没回写清单，于是 4 天里挂着 5 条已完成项。逐条现状与现读行号见 §2.3–§2.7。
+> 本轮真做的只有一条：**I9（Swap 零值文案）已改**（§2.10，取证 §4.3）。
+> **这一页自己**还开着的只剩 **I8 一条**（网络速率在页面消失，低）——它卡的是画稿决定，不是代码决定（§2.9）；
+> 另有两处**半开**：I2 剩下的那一半（`host_statistics64` 真失败与 `vm_page_size` 异常仍同一句，§2.2）、
+> I10a/I10b（侧栏 220pt / 标题栏 52pt，全站骨架，归协调层，§2.11–2.12）。
+> 再新增一条设计稿侧：**S8**（07 稿的「联动保留(wired)」括注落后于实现，方向与 S1–S7 相反）。
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
@@ -88,32 +99,32 @@
 | 卡标题「磁盘 IO」+ `internaldrive` | `MMMonitor.swift:99` | ✅ | 一致 | — | — |
 | 「读取」「写入」两行，`monospaced: true` | `:102-103` | ✅ | 实机等宽数字成立 | — | — |
 | `.unavailable` → 两行「—」+ reason 原文整行 caption | `:104-110` | ✅ | D2 稿把 `DiskIOReader` 的四种 reason 原文照抄（`MetricReaders.swift`），含 `<machErrorString>` 占位 | — | — |
-| **首帧 `.ok` + 速率 nil** → 两行「—」且**没有**原因行 | `SystemMetricSampler.swift:94`（`interval` 为 nil 时不填 `diskRate`，`diskStatus` 仍 `.ok`） | ❌ | 与 `.unavailable` 在 3 米外**完全同形**（都是"读取 —／写入 —"），差别只在有没有那行灰字；用户无法区分"还没法差分"和"这台机器读不到磁盘统计" | **中** | 实现该改 I3 |
+| **首帧 `.ok` + 速率 nil** → 两行「—」且**没有**原因行 | `SystemMetricSampler.swift:94`（`interval` 为 nil 时不填 `diskRate`，`diskStatus` 仍 `.ok`）+ `MMMonitor.swift:160-164` | ✅ | ~~与 `.unavailable` 在 3 米外**完全同形**~~ **I3 已改**（`e84066a`，2026-09-30，复核 2026-10-04）：`.ok` 且任一速率为 nil 时补一行 caption「等待下一次采样计算速率」，三态在图元层可分 | — | ~~实现该改 I3~~ **已改**（见 §2.3） |
 
 ### 1.5 内存卡
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「内存」+ `memorychip` | `MMMonitor.swift:118` | ✅ | 一致 | — | — |
-| 五个标签逐字：「已用」「活动」「联动保留(wired)」「压缩」「Swap」 | `:120-127` | ✅ | 稿内未做任何润色（含中英混排的 `wired`） | — | — |
-| 「已用」= `bytes(used) / bytes(total)` | `:120`，口径 `MemoryMetrics.usedBytes = active+wired+compressed`（`MetricTypes.swift`） | ✅ | B 稿卡头把"不含 inactive"的口径写死 | — | — |
-| 「联动保留(wired)」在 80pt 标签列内**换行** | `MMDesign.swift:340` `.frame(width: 80)` | ❌ | 80pt 装不下 5 汉字+括号 → 实机同宽度下必然折行，22pt 行距被这一行撑破；且英文括号注法与全站"纯中文标签"惯例不一致 | **中** | 实现该改 I5（文案部分两可，见 §2） |
-| `memory == nil` → 「内存读数不可用（host_statistics64 失败），显示 —。」 | `MMMonitor.swift:129` | ❌ | 这句在**三种**不同成因下都会出现：①`.empty`（压根没采）②`host_statistics64` 真失败 ③`vm_page_size` 异常。把"还没采到"写成"系统调用失败"= 给出错误的因果结论 | **高** | ~~实现该改 I2~~ **已改** |
-| `swapAvailable == false` → Swap 行「—」 | `:125-127` | ✅（代码分支） | D 稿画了；本机 swapAvailable=true，**实机未触发** | — | 见 §4 |
-| `swapAvailable == true` 且读到 0 → 「0 字节 / 0 字节」 | `MMFormat.bytes`（<1000 字节特判） | ⚠️ | 中文语境里读起来像坏了；稿内以注脚说明，未画 | 低 | 实现该改 I9 |
+| 卡标题「内存」+ `memorychip` | `MMMonitor.swift:179` | ✅ | 一致 | — | — |
+| 五个标签逐字：「已用」「活动」「联动保留(wired)」「压缩」「Swap」 | `:181-186` | ⚠️ 稿侧过期 | **实现侧已在 `e84066a` 去掉 `(wired)` 括注**（全站纯中文惯例），这一行是 2026-09-30 那轮的快照。稿内 D/B 两稿的标签列仍写「联动保留(wired)」→ 归 §3 设计稿该改（S8） | 低 | 设计稿该改 S8 |
+| 「已用」= `bytes(used) / bytes(total)` | `:181`，口径 `MemoryMetrics.usedBytes = active+wired+compressed`（`MetricTypes.swift`） | ✅ | B 稿卡头把"不含 inactive"的口径写死 | — | — |
+| 「联动保留(wired)」在 80pt 标签列内**换行** | `MMDesign.swift:376` `.frame(width: 80)` | ✅（触发条件已消） | 括注去掉后本页最长标签 4 汉字，80pt 装得下（实机 `docs/verification/p65/0*` 五行行距 22pt 无折行）。**令牌没动**，5 汉字是上限、6 个就折行 → 见 §2.5 的关闭条件 | — | ~~实现该改 I5~~ **已改（`e84066a`）** |
+| `memory == nil` → 「内存读数不可用（host_statistics64 失败），显示 —。」 | `MMMonitor.swift:189-197` | ❌ | 这句在**三种**不同成因下都会出现：①`.empty`（压根没采）②`host_statistics64` 真失败 ③`vm_page_size` 异常。把"还没采到"写成"系统调用失败"= 给出错误的因果结论 | **高** | ~~实现该改 I2~~ **已改**（②③仍同句，见 §2.2） |
+| `swapAvailable == false` → Swap 行「—」 | `:186` → `MenuBarManager.swapText` | ✅（夹具已拍） | D 稿画了；本机 swapAvailable=true，实机拍不到 → `MM_MONITOR_FIXTURE=swapOff`，照片 `docs/verification/p65/03`（+ 暗档） | — | 见 §4 |
+| `swapAvailable == true` 且读到 0 → ~~「0 字节 / 0 字节」~~「0 字节（未使用）」 | `MenuBarManager.swift:186-203`（`MMFormat.bytes` 的 <1000 特判仍在，只是不再一行用两次） | ✅ | 中文语境里读起来像坏了 → **I9 已改（2026-10-04）**；零值档实机拍不到（本机 used≈800M），夹具 `swapZero` 摆拍，照片 `p65/02` | — | ~~实现该改 I9~~ **已改**（见 §2.10） |
 
 ### 1.6 进程 TOP 10 卡
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「进程 TOP 10」+ `list.bullet` | `MMMonitor.swift:139` | ✅ | 一致 | — | — |
-| 唯一动作 = 图标按钮 `arrow.clockwise`（无"结束进程"） | `:141-146` | ✅ | 只读页无写操作，稿内明确写出这一条 | — | — |
-| 行内文案「CPU 时间 mm:ss」+ 右对齐 80pt 的 `MMFormat.bytes` | `:161-167` | ✅ | 未沿用旧实现的误标「CPU x%」（`:159-160` 注释即为此保留） | — | — |
-| 名称回落 `pid:NNN` | `ProcessReader:275` `name.isEmpty ? "pid:\(pid)"` | ✅ | B 稿画了 `pid:4417` | — | — |
-| 行 28pt + `contentBackground` 药丸 + `MMRadius.control` + 横向 12pt | `:169-171` | ✅ | — | — | — |
-| `processes.isEmpty && !processLoadFailed` → **4 条 `MMSkeletonRow`** | `:148-149` | ✅（代码分支） | D5 稿按 1:1（15 方块 + 120 短条 + 56 短条，行高 44）画；实机在折叠线以下且无钩子，未截到 | — | 见 §4 |
-| `processLoadFailed` → `MMEmptyState(title:"进程列表读取失败", detail:nil)` | `:151` | ❌ | `MMEmptyState` 支持 `detail`/`action`（`MMDesign.swift:405-438`）却都传了 nil → 失败态**既没有原因也没有下一步**（重试按钮就在同一张卡右上角，但没在文案里指向它） | **中** | 实现该改 I6 **已改一半**（见 §2.6） |
-| `processLoadFailed = procs.isEmpty` | `:184` | ❌ | "枚举成功但一个进程都没有"与"`proc_listallpids` 失败"被压成同一个 UI 态；前者在本项目语义里应显示空列表，而不是"读取失败" | **中** | 实现该改 I7 |
+| 卡标题「进程 TOP 10」+ `list.bullet` | `MMMonitor.swift:293` | ✅ | 一致 | — | — |
+| 唯一动作 = 图标按钮 `arrow.clockwise`（无"结束进程"） | `:294-301` | ✅ | 只读页无写操作，稿内明确写出这一条 | — | — |
+| 行内文案「CPU 时间 mm:ss」+ 右对齐 80pt 的 `MMFormat.bytes` | `:319-325` | ✅ | 未沿用旧实现的误标「CPU x%」（`:317-318` 注释即为此保留） | — | — |
+| 名称回落 `pid:NNN` | `ProcessReader:428` `name.isEmpty ? "pid:\(pid)"` | ✅ | B 稿画了 `pid:4417` | — | — |
+| 行 28pt + `contentBackground` 药丸 + `MMRadius.control` + 横向 12pt | `:327-329` | ✅ | — | — | — |
+| `processes.isEmpty && !processLoadFailed` → **4 条 `MMSkeletonRow`** | `:302-303` | ✅（代码分支） | D5 稿按 1:1（15 方块 + 120 短条 + 56 短条，行高 44）画；实机在折叠线以下且无钩子，未截到 | — | 见 §4 |
+| `processLoadFailed` → `MMEmptyState(title:"进程列表读取失败", detail:nil)` | 原 `:151`，现 `:304-306` | ✅ | ~~失败态既没有原因也没有下一步~~ **I6 已改**：`detail:` 给「无法枚举系统进程。点卡片上方的刷新按钮重试。」；`action:` 仍不加（重试按钮就在同一张卡右上角 `:294-301`） | — | ~~实现该改 I6~~ **已改**（见 §2.6） |
+| `processLoadFailed = procs.isEmpty` | 原 `:184`，现 `ProcessReader.topProcesses():399-436` | ✅ | ~~"查到空"与"查失败"压成同一个 UI 态~~ **I7 已改**（`e84066a`）：返回 `ProcessLoadResult{state, processes}`，`proc_listallpids` 给 0 个 → `.failed`（`:402`），枚举有结果但详情全拿不到 → `.empty`（`:436`），UI 各走一句文案（`:304-309`） | — | ~~实现该改 I7~~ **已改**（见 §2.7） |
 
 ### 1.7 温度与风扇卡（P6.4 新增，E 稿 ↔ 实机 `docs/verification/p64/`）
 
@@ -137,12 +148,13 @@
 > **本表的实现行号是 2026-09-30 那轮审计的坐标**，P6.4 在文件里插入了「温度与风扇」一整段（≈90 行）后
 > 已整体下移（例如私有 `card()` 从 `:191-213` 移到 `:333` 起）。**照抄会点到别处**，
 > 用前先按符号名重找（`grep -n "private func card" MMMonitor.swift`）。§1.7 那张表的行号是 2026-10-04 现读的。
+> **P6.5 复核（2026-10-04）已把本表与 §1.5/§1.6 的行号换成现读值**：`card()` 现在在 `MMMonitor.swift:349-366`。
 
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 页面卡：`underPage` 底 + 12pt 内边距 + 8pt 圆角 + separator 描边 | `MMMonitor.swift:191-213`（私有 `card()`） | ✅ | 实机卡底 (40,40,40)、描边 1px，与稿内 `.mcard` 一致 | — | — |
-| 但 `card()` **没有复用 `MMCard`** | `MMDesign.swift:766-782`（`controlBackground` + `MMGap.lg` 16pt） | ❌ | 同一 App 里两套"卡片"：本页 underPage/12，其他页 controlBackground/16 → 令牌漂移，正是设计系统要防的事 | **中** | 实现该改 I4 |
+| 页面卡：`underPage` 底 + 12pt 内边距 + 8pt 圆角 + separator 描边 | `MMMonitor.swift:349-366`（私有 `card()`，内部是 `MMCard(padding: MMGap.md, style: .underPage)`） | ✅ | 实机卡底 (40,40,40)、描边 1px，与稿内 `.mcard` 一致 | — | — |
+| ~~但 `card()` **没有复用 `MMCard`**~~ | `MMDesign.swift:898-932`（`MMCardStyle.content` / `.underPage` 两档 + `padding:` 参数） | ✅ | ~~同一 App 里两套"卡片"~~ **I4 已改**（`c74f045` 补档位、`e84066a` 本页改调组件，均 2026-09-30）：底色这一维收口进组件，内边距这一维由本页**显式选** 12pt（密度按实测量到的 22pt/36pt 行距定的，见 §2.4） | — | ~~实现该改 I4~~ **已改** |
 | 块间距 16pt、滚动区内边距 16pt | `:35,42` | ✅ | 实机 98→114=16、卡间 165→180=16 | — | — |
 | **无底部动作条** | 实现里确实没有 `MMActionBar` | ✅ | 只读页不加动作条，稿内注明理由 | — | — |
 | 侧栏宽 216pt（`MMMetric.sidebar`） | 实机分隔线在 **x=220** | ❌ | 全站骨架 +4pt | 低 | 实现该改 I10a |
@@ -172,26 +184,58 @@
 3. **【中】I3 · 磁盘 IO「还没法差分」与「读不到」同形**（`SystemMetricSampler.swift:94` / `MMMonitor.swift:101-106`）
    首帧 `.ok` + nil 速率时两行「—」且无原因行。→ 建议：`.ok` 但 `diskRate == nil` 时补一行
    caption「需两次采样才能算出速率」，让三态（有数 / 待差分 / 不可用）在图元层可分。
+   **✅ 已落地（复核 2026-10-04：`e84066a`，2026-09-30）**——本条在审计文档里挂了 4 天没人划掉，
+   是因为落地那轮把它连同 I4–I7 一起写进了代码、没回写这份清单。现状：`MMMonitor.swift:160-164`
+   在 `.ok` 且任一速率为 nil 时补 caption「等待下一次采样计算速率」，三态在图元层已可分
+   （文案与这里的建议不同句，判据相同）。
 4. **【中】I4 · 私有 `card()` 复刻 `MMCard`**（`MMMonitor.swift:191-213` vs `MMDesign.swift:766-782`）
    底（underPage vs controlBackground）与内边距（12 vs 16）两套。→ 建议：`MMCard` 增加
    `background:` 参数或加一个 `MMCardStyle.underPage`，本页改为调用组件。
+   **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:898-910`（`c74f045`，2026-09-30），
+   本页 `card()` 只剩标题行 + 内容，容器是 `MMCard(padding: MMGap.md, style: .underPage)`
+   （`MMMonitor.swift:349-366`）。**内边距这一档没有统一到 16**：本页仍是 `MMGap.md`(12)，
+   这是选出来的而不是漏的——监控页六张卡的密度按 §0 实测的 22pt/36pt 行距定的，改到 16 会整体变长。
+   组件侧的"两套底色"已收口，剩下的只是这一页主动选了另一档内边距。
 5. **【中】I5 · `MMKeyRow` 80pt 标签列撑不住长标签**（`MMDesign.swift:340` + `MMMonitor.swift:122`）
    「联动保留(wired)」折行、破坏实机 22pt 行距。→ 建议：标签列改为按内容自适应（`Grid`/`alignmentGuide`）
    或把令牌提到 96pt；顺带决定「联动保留」是否保留英文括注（全站措辞惯例是纯中文，括注属例外）。
-6. **【中】I6 · 进程失败态没有下一步 —— ✅ 已改一半（2026-09-30）**
-   `MMEmptyState(..., detail: nil)`（原 `:151`，现 `MMMonitor.swift:164`），而组件本身支持 `detail`/`action`。
-   → 现在传 `detail: "枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。"`。
-   **没有**照建议写「proc_pidinfo 未返回任何进程」：那条路径根本没调 `proc_pidinfo`，
-   失败点也可能是 `proc_listallpids`，指错原因比不说更糟。`action:` 未加——重试按钮已经在同一张卡
-   右上角（`MMMonitor.swift:148-153`），再加一个是同一个动作画两个入口。
-7. **【中】I7 · 「查到空」被当成「查失败」**（`MMMonitor.swift:198` `processLoadFailed = procs.isEmpty`）
+   **✅ 触发条件已消（复核 2026-10-04：`e84066a` 去掉了 `(wired)` 括注）**：本页标签现在是
+   「已用/活动/联动保留/压缩/Swap」（`MMMonitor.swift:181-186`），最长 4 汉字，80pt 装得下。
+   **令牌本身没动**（`MMDesign.swift:376` 仍是 `.frame(width: 80)`），所以这条的**结构风险还在**：
+   5 汉字是实测上限（磁盘页的「所在文件夹」「可执行文件」正好顶格），6 个就折行。
+   归"关闭 + 附条件"：下一次有页面写进 6 汉字标签时按建议改自适应，而不是等它先折行。
+6. **【中】I6 · 进程失败态没有下一步 —— ✅ 已改（2026-09-30，复核 2026-10-04 收口）**
+   `MMEmptyState(..., detail: nil)`（原 `:151`，2026-09-30 那轮记的是 `:164`，现 `:304-306`），而组件本身支持 `detail`/`action`。
+   → 当时传 `detail: "枚举系统进程没有拿到任何结果。点卡片上方的刷新按钮重试。"`。
+   **这一句在 `e84066a` 里随 I7 一起改了措辞**（因为它当时说的是"查到空"，而失败态另有其人）：
+   现在 `.failed` 是「无法枚举系统进程。点卡片上方的刷新按钮重试。」（`:305-306`），
+   `.empty` 是「枚举已完成，但没有取得可读取的进程详情。可刷新重试。」（`:308-309`）。
+   **没有**点名 `proc_pidinfo`：那条路径根本没调它，失败点也可能是 `proc_listallpids`，
+   指错原因比不说更糟。`action:` 未加——重试按钮已经在同一张卡右上角（`:294-301`），再加一个是同一个动作画两个入口。
+7. **【中】I7 · 「查到空」被当成「查失败」**（原 `MMMonitor.swift:198` `processLoadFailed = procs.isEmpty`）
    → 建议：区分 `ProcessReader` 的返回（`count > 0` 失败 vs 结果为空），空结果走 `MMEmptyState(title:"没有可显示的进程")`。
-   仍未做，是 I6 剩下的那一半：要把 `topProcesses()` 从 `[MonitorProcess]` 改成结果枚举，
-   顺带才能把"哪一步失败"写进文案。
+   **✅ 已落地（复核 2026-10-04：`e84066a`，2026-09-30）**：`topProcesses()` 现在返回
+   `ProcessLoadResult{state, processes}`（`topProcesses():399-436`、结构体 `:444`），`proc_listallpids` 返回 0 个 →
+   `.failed`（`:402`），选出的进程详情全拿不到 → `.empty`（`:436`），UI 四态分支在 `:302-310`。
+   当初说"仍未做的那一半"就是这条，它做完了 I6 才成立——两条文案指向的是两个不同事实。
 8. **【中】S1 关联 · 侧栏 footer 与实机不符**（见 §3，实机是容量行 + 带边框设置按钮）——**这条两边都要改**：
    设计稿要重画，同时实现里侧栏 footer 的容量条/设置按钮在 01–06 六张稿里全部缺失，属全站缺口。
-9. **【低】I8 · 网络速率在页面消失**：快照有 `networkUp/DownBytesPerSecond`、菜单栏有显示、页面一处不用。
+9. **【低】I8 · 网络速率在页面消失**：快照有 `networkUp/DownBytesPerSecond`、菜单栏有显示（`MenuBarManager.swift:320-322`）、页面一处不用。**仍未做**，是这一页唯一还开着的图元/文案项（I2 的半条是"逐因逐句"的粒度问题，I10a/b 在骨架层）。
+   没顺手做的理由：顶部读数条是 `MMStatItem × 4`（一行四个，`MMDesign.swift:386`），加网络进出要变 6 个——
+   要么换行（页头高度 +一行，影响 §0 量的折叠线落点），要么把磁盘读写挤成一行两项。这是**画稿决定**，不是代码决定。
 10. **【低】I9 · Swap 读到 0 输出「0 字节 / 0 字节」**（`MMFormat.bytes` <1000 特判）→ 中文读起来像坏了。
+    **✅ 已改（2026-10-04，P6.5）**：文案抽成 `MenuBarManager.swapText(_:compact:)`（`MenuBarManager.swift:186-203`），
+    三档：**读不到 sysctl** → 「—」（原样）；**读到 0 且总量也是 0** → 「0 字节（未使用）」；
+    **其余** → 「已用 / 总量」照原样对仗。页面（`MMMonitor.swift:186`）与菜单栏下拉（`MenuBarManager.swift:305`，紧凑单位）都走它，
+    同一句话不再有两个人质。**只在两侧同为 0 时才省略对仗**——一侧有数就照报，不替用户下"未使用"的结论。
+    `MMFormat.bytes` 本身没动：那个 <1000 特判在清理工具里是对的（几百字节的真实体积不能塌成 "0 KB"），
+    错的是一行里用两次再拼斜杠，属调用方。
+    **实机拍不到零值**：本机 `sysctl vm.swapusage` 是 used≈800M / total=2048M（照片 `p65/01`），
+    所以新增夹具档 `swapZero`（`swapAvailable=true` + 两个 0）。顺带修掉一个夹具自身的坑：
+    `populated` 底座原来也是 0/0，于是 `populated` 与 `swapZero` 在照片上同一个样，两档合成一档——
+    底座改成真实形状 800 MiB / 2 GiB（`MonitorFixtureHooks.swift:171-179`）。
+    取证：`Scripts/p65-swap-capture.sh` → `docs/verification/p65/` 与 `p65-dark/` 各 4 张
+    （实机非零 / swapZero / swapOff / populated）。单测 6 条在 `FormatTests`，包内 **53 条全绿**。
 11. **【低】I10a · 侧栏实现 220pt vs 令牌 216pt**（实机分隔线 x=220）。
 12. **【低】I10b · 标题栏实现 ≈52pt vs 令牌 38pt**（实机黑线 y=52）→ 每页可视高度少 14pt，直接影响本页折叠线落点。
 13. **【低】I11 · 温度红档没有迟滞（P6.4 新卡带来，2026-10-04）**——**已改（同日）**：
@@ -211,7 +255,7 @@
     **每核 CPU 那一行是同一个形状**（`usage >= 0.85` 单点，`MMMonitor.swift:129`），
     本轮**没照搬**：负载下每核是 0/100% 两端走，没测到贴着 85% 摆动，改它等于凭空加状态。
 
-## 3. 设计稿该改（6 条）
+## 3. 设计稿该改（8 条）
 
 1. **【中】S1 · 侧栏 footer 全站画错**：01–07 七张稿都画成「分隔线 + 设置 nav-item」，
    实机是 **磁盘容量行（`Macintosh HD` + `2%` + 红色容量条）+ 带边框的「设置」按钮**
@@ -236,6 +280,13 @@
    顺带记一条**判不改**的：卡里的键名 `TCMz`/`Tp0W`/`Tp3P` 对普通用户完全不可读，
    看起来像 bug 输出——但**给它编一个"CPU/GPU 温度"归属比不编更糟**，苹果没公布键位对应哪块硬件。
    将来若要加解释，唯一诚实的来源是厂商键位表；在那之前，稿与实现都只说"这是 SMC 原始键名"。
+8. **【低】S8 · 内存卡标签的英文括注（P6.5 复核时新发现，2026-10-04）**：07 稿 B/D 两稿的第五行标签仍写
+   「联动保留(wired)」，而实现已在 `e84066a`（2026-09-30）去掉括注（全站纯中文惯例，见 §2.5）。
+   **这条是稿子落后于代码**，与 S1–S7 那类"代码落后于稿"方向相反，所以单列。
+   改法：B/D 两稿标签逐字换成「联动保留」，并把 I9 那三档 Swap 文案（「—」/「0 字节（未使用）」/「已用 / 总量」）
+   画进 D 稿——现在 D 稿只画了第一档，而 `docs/verification/p65/` 已经有后两档的照片可照抄。
+   **本轮没顺手改稿**：07 稿一次重渲染 ≈40 秒且要重量高度（§0 那条"猜高度的代价"），
+   而这一页攒了两处（S8 + S5b 的"菜单栏关闭"档）才值得重画一次，避免为一条措辞重排整稿。
 
 ## 4. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
 
@@ -281,7 +332,8 @@ A 稿 10 个百分比数值、磁盘 IO 两行标签与 monospace、卡片底/�
 | 7 | 内存 `nil` 分支（D3） | `MM_MONITOR_FIXTURE=memoryNil` | `hasSampled=true` 走"host_statistics64 失败"文案 |
 | 8 | `perCoreCPU.isEmpty` → 单「—」（D1） | `MM_MONITOR_FIXTURE=perCoreEmpty` | 空数组 → 单「—」 |
 | 9 | 每核 ≥85% 红档（D 稿第一格） | `MM_MONITOR_FIXTURE=perCoreRed` | 核 1 = 91.4%，条与数值同时 `destructive` |
-| 10 | `swapAvailable == false` 的 Swap 行 | `MM_MONITOR_FIXTURE=swapOff` | Swap 行「—」 |
+| 10 | `swapAvailable == false` 的 Swap 行 | `MM_MONITOR_FIXTURE=swapOff` | Swap 行「—」（照片 `docs/verification/p65/03`，明暗两套） |
+| 10b | **Swap 读到 0 那一档**（不在原 13 项里，是 §2.10 / I9 带出来的） | `MM_MONITOR_FIXTURE=swapZero` | Swap 行「0 字节（未使用）」（照片 `p65/02`）。**这一档与 `populated` 的区别只在 `swapAvailable` 一位**，而底座原本是 0/0 会让两档拍成同一张，所以 `populated` 同时改成真实的 800 MiB / 2 GiB（照片 `p65/04`） |
 | 11 | 「菜单栏监控」关闭态 | `MM_MONITOR_FIXTURE=menubarOff` | 不 enable，toggle 显示 off、页面冻结 |
 | 12 | 浅色模式实机配色 | （非钩子） | 浅色外观下重跑 `render.sh` + 真机截图流程，单测矩阵不覆盖 |
 | 13 | `MMFormat.bytes` 各 locale 输出 | （非钩子） | `MMFormat` 单测矩阵覆盖，不属设计稿验证范围 |
@@ -347,3 +399,24 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
 > 注意：上面的 `swift build`/`make-app.sh` 产物路径与隔离参数（`-o`/`-s` + `--scratch-path`）是
 > 按 README §5 红线写的**约定骨架**，具体入口以仓库 `Package.swift`/`make-app.sh` 实际参数为准；
 > 本环境无运行实例，未实际执行。
+
+### 4.3 P6.5 内存卡 Swap 三档取证（4 档 × 明暗两套，`Scripts/p65-swap-capture.sh`）
+
+照片在 `docs/verification/p65/`（浅色）与 `docs/verification/p65-dark/`（暗色），同名同号。
+渲染范围钉成 `MM_MONITOR_CARDS=memory`（单卡），手法与 §4.2 同一套。
+
+| # | 照片 | 启动钩子 | 这张要证明的判据 | 实机/夹具 |
+| --- | --- | --- | --- | --- |
+| 01 | `01-monitor-memory-real` | 只有 `MM_MONITOR_CARDS=memory` | **非零路径没被改坏**：Swap 行仍是「747.3 MB / 2.15 GB」的对仗，数字每一帧能回到 `sysctl vm.swapusage` | 实机 |
+| 02 | `02-monitor-memory-swapzero` | `+ MM_MONITOR_FIXTURE=swapZero` | I9 的新句子「0 字节（未使用）」——这是本轮真正要拍的那一帧 | 夹具 |
+| 03 | `03-monitor-memory-swapoff` | `+ MM_MONITOR_FIXTURE=swapOff` | 「读不到」仍是「—」，与 02 是两句话（这条区分是 I9 改动的边界，改坏了就是一句话） | 夹具 |
+| 04 | `04-monitor-memory-populated` | `+ MM_MONITOR_FIXTURE=populated` | 底座改成真实形状后与 02 确实分得开（「838.9 MB / 2.15 GB」vs「0 字节（未使用）」） | 夹具 |
+
+**这一档为什么必须靠夹具**：本机 swap 一直非零（2026-10-04 两次量到 used 747 MB / 800 MB 上下、
+total 恒为 2 GiB），零值不是"再等等就能拍到"的状态。与 §4.2 那条"跨不过 90"同性质——
+**拍不到的原因写清，比编一个假数据凑一张照片值钱**；区别在于这一档是**定格的数值**，
+夹具能精确构造（`swapAvailable=true` + 两个 0），所以它拍得到，只是不在真机上拍。
+
+**没有拍的一档**：菜单栏下拉里那句 `Swap: …`（`MenuBarManager.swift:305`）。它与页面共用同一个
+`swapText`，但打开菜单需要点击状态栏图标——合成点击是硬禁止项，`screencapture -l<windowid>` 也抓不到
+NSMenu（它不属于应用窗口）。所以这一档只有单测（`FormatTests.testSwapCompactUsesMenuBarUnits`）没有照片。

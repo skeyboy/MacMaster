@@ -183,6 +183,25 @@ public final class MenuBarManager: ObservableObject {
         return MMFormat.percent(ratio)
     }
 
+    /// Swap 一行（I9）。`sysctl(VM_SWAPUSAGE)` 读不到 → "—"；读到且已用与总量都是 0 →
+    /// 补一句"未使用"：「0 字节 / 0 字节」在中文里读起来像采样坏了，而它其实是"确实一点没用"。
+    /// 只有两侧同为 0 才省略这个对仗——一侧有数就照原样报「已用 / 总量」，不替用户解释。
+    nonisolated static func swapText(_ memory: MemoryMetrics, compact: Bool = false) -> String {
+        guard memory.swapAvailable else { return "—" }
+        let used: String, total: String
+        if compact {
+            used = MMFormat.compactBytes(memory.swapUsedBytes)
+            total = MMFormat.compactBytes(memory.swapTotalBytes)
+        } else {
+            used = MMFormat.bytes(memory.swapUsedBytes)
+            total = MMFormat.bytes(memory.swapTotalBytes)
+        }
+        if memory.swapUsedBytes == 0 && memory.swapTotalBytes == 0 {
+            return "\(used)（未使用）"
+        }
+        return "\(used) / \(total)"
+    }
+
     // MARK: - Threshold notifications
 
     private func requestNotificationAuthorizationIfNeeded() {
@@ -283,10 +302,7 @@ final class MenuDelegate: NSObject, NSMenuDelegate {
         if let memory = snapshot.memory {
             menu.addItem(Self.infoItem("内存: \(MMFormat.compactBytes(memory.usedBytes)) / \(MMFormat.compactBytes(memory.totalBytes)) (\(MenuBarManager.percentText(memory.usedRatio)))"))
             menu.addItem(Self.infoItem("压缩: \(MMFormat.compactBytes(memory.compressedBytes))"))
-            let swapText = memory.swapAvailable
-                ? "\(MMFormat.compactBytes(memory.swapUsedBytes)) / \(MMFormat.compactBytes(memory.swapTotalBytes))"
-                : "—"
-            menu.addItem(Self.infoItem("Swap: \(swapText)"))
+            menu.addItem(Self.infoItem("Swap: \(MenuBarManager.swapText(memory, compact: true))"))
         } else {
             menu.addItem(Self.infoItem("内存: —"))
         }

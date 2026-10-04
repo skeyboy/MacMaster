@@ -60,4 +60,62 @@ final class FormatTests: XCTestCase {
         // "—" 路径（nil）由 MetricSnapshot 表达，格式化层不参与猜数。
         XCTAssertEqual(MenuBarManager.percentText(nil), "—")
     }
+
+    // MARK: - Swap 一行（I9）
+
+    private func memory(swapUsed: UInt64, swapTotal: UInt64, available: Bool = true) -> MemoryMetrics {
+        MemoryMetrics(
+            totalBytes: 24 * 1024 * 1024 * 1024,
+            activeBytes: 15_600 * 1024 * 1024,
+            wiredBytes: 3_800 * 1024 * 1024,
+            compressedBytes: 1_400 * 1024 * 1024,
+            swapUsedBytes: swapUsed,
+            swapTotalBytes: swapTotal,
+            swapAvailable: available)
+    }
+
+    /// 读到 0 且总量也是 0：说成一句中文，不是「0 字节 / 0 字节」。
+    func testSwapZeroReadsAsASentenceNotTwiceZero() {
+        let text = MenuBarManager.swapText(memory(swapUsed: 0, swapTotal: 0))
+        XCTAssertEqual(text, "0 字节（未使用）")
+        XCTAssertFalse(text.contains("/"), "两侧都是 0 时报一个分量就是噪声")
+    }
+
+    /// 只有已用为 0 不代表总量为 0，那种情况照原样报对仗，不替用户下"未使用"的结论。
+    func testSwapWithNonZeroTotalKeepsUsedOverTotal() {
+        let text = MenuBarManager.swapText(memory(swapUsed: 0, swapTotal: 2_147_483_648))
+        XCTAssertTrue(text.contains("/"))
+        XCTAssertFalse(text.contains("未使用"))
+    }
+
+    func testSwapNonZeroIsPlainPair() {
+        let text = MenuBarManager.swapText(memory(swapUsed: 838_860_800, swapTotal: 2_147_483_648))
+        XCTAssertTrue(text.contains("/"))
+        XCTAssertFalse(text.contains("—"))
+    }
+
+    /// "读不到 sysctl" 与 "读到 0" 必须是两句话——前者是 "—"。
+    func testSwapUnavailableIsPlaceholder() {
+        XCTAssertEqual(MenuBarManager.swapText(memory(swapUsed: 0, swapTotal: 0, available: false)), "—")
+    }
+
+    /// 菜单栏那档用紧凑单位，同一句话的口径要跟着行内其他项走。
+    func testSwapCompactUsesMenuBarUnits() {
+        XCTAssertEqual(MenuBarManager.swapText(memory(swapUsed: 0, swapTotal: 0), compact: true), "0 B（未使用）")
+        XCTAssertTrue(MenuBarManager.swapText(memory(swapUsed: 1_048_576, swapTotal: 8_589_934_592), compact: true)
+                      .contains("1.0 MB / 8.0 GB"))
+    }
+
+    /// 夹具的 swapZero 与 swapOff 只差 swapAvailable 一位，两档必须给出两句话。
+    func testSwapZeroTierIsDistinctFromSwapOffTier() {
+        let zero = MonitorSnapshotFixture.parse("swapZero").snapshot?.memory
+        XCTAssertEqual(zero?.swapAvailable, true)
+        XCTAssertEqual(zero?.swapUsedBytes, 0)
+        XCTAssertEqual(zero?.swapTotalBytes, 0)
+        XCTAssertEqual(MenuBarManager.swapText(zero!), "0 字节（未使用）")
+
+        let off = MonitorSnapshotFixture.parse("swapOff").snapshot?.memory
+        XCTAssertEqual(off?.swapAvailable, false)
+        XCTAssertEqual(MenuBarManager.swapText(off!), "—")
+    }
 }

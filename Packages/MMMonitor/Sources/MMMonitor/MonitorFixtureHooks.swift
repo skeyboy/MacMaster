@@ -41,6 +41,7 @@ enum MonitorFixtureTier: String, Sendable {
     case populated       // B 稿底座：全套真实口径数值
     case memoryNil       // D3：memory=nil 但 hasSampled=true
     case swapOff         // Swap 行 "—"（swapAvailable=false）
+    case swapZero        // Swap 读到 0/0（I9 那一档；本机不会自然出现，sysctl 给的是 800M/2048M）
     case perCoreRed      // 每核 ≥85% 红档（核 1 = 91.4%）
     case perCoreEmpty    // D1：perCoreCPU 空数组 → 单「—」
     case diskUnavailable // D2：diskIOStatus=.unavailable(reason:)
@@ -116,6 +117,15 @@ struct MonitorSnapshotFixture {
                         wiredBytes: m.wiredBytes, compressedBytes: m.compressedBytes,
                         swapUsedBytes: 0, swapTotalBytes: 0, swapAvailable: false)
                 }
+            case .swapZero:
+                if let m = snapshot.memory {
+                    // 与 .swapOff 唯一的区别是 swapAvailable=true——"读到 0"和"读不到"
+                    // 必须是两档，否则这一档拍出来的就是同一句话。
+                    snapshot.memory = MemoryMetrics(
+                        totalBytes: m.totalBytes, activeBytes: m.activeBytes,
+                        wiredBytes: m.wiredBytes, compressedBytes: m.compressedBytes,
+                        swapUsedBytes: 0, swapTotalBytes: 0, swapAvailable: true)
+                }
             case .perCoreRed:
                 snapshot.perCoreCPU = [0.914] + Array(repeating: nil, count: 9)
             case .perCoreEmpty:
@@ -158,8 +168,13 @@ struct MonitorSnapshotFixture {
                 activeBytes: 15_600 * 1024 * 1024,
                 wiredBytes: 3_800 * 1024 * 1024,
                 compressedBytes: 1_400 * 1024 * 1024,
-                swapUsedBytes: 0,
-                swapTotalBytes: 0,
+                // 形状取自实机：`sysctl vm.swapusage` 2026-10-04 量到 total=2048M、used≈800M，
+                // 这里取整成 800 MiB / 2 GiB（夹具要的是"非零对仗"这个形状，不是某一帧的数）。
+                // 这一档原来写的是 0/0——那正好是 I9 那句「0 字节 / 0 字节」，
+                // 于是 populated（底座）和 swapZero（专门拍零值那一档）在照片上同一个样，
+                // 夹具的两个档合成一个。底座回到真实形状，零值留给 swapZero。
+                swapUsedBytes: 838_860_800,
+                swapTotalBytes: 2_147_483_648,
                 swapAvailable: true
             ),
             networkDownBytesPerSecond: 1.42e6,
