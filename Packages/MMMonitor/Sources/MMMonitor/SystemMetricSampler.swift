@@ -31,19 +31,24 @@ public struct SystemMetricSampler {
         public var diskIO: @Sendable () -> Result<DiskIOCounters, DiskIOFailure>
         public var memory: @Sendable () -> MemoryMetrics?
         public var network: @Sendable () -> NetworkBytes?
+        /// 温度/风扇：SMC 的瞬时量，不做差分，所以签名直接给整卡状态
+        /// （读不到时 reason 已经在里面，tick 不参与）。
+        public var sensors: @Sendable () -> SensorsSnapshot
 
         public init(
             perCoreCPU: @escaping @Sendable () -> [CoreTicks]?,
             totalCPU: @escaping @Sendable () -> CoreTicks?,
             diskIO: @escaping @Sendable () -> Result<DiskIOCounters, DiskIOFailure>,
             memory: @escaping @Sendable () -> MemoryMetrics?,
-            network: @escaping @Sendable () -> NetworkBytes?
+            network: @escaping @Sendable () -> NetworkBytes?,
+            sensors: @escaping @Sendable () -> SensorsSnapshot
         ) {
             self.perCoreCPU = perCoreCPU
             self.totalCPU = totalCPU
             self.diskIO = diskIO
             self.memory = memory
             self.network = network
+            self.sensors = sensors
         }
 
         public static let live = Readers(
@@ -51,7 +56,8 @@ public struct SystemMetricSampler {
             totalCPU: { HostCPUReader.totalTicks() },
             diskIO: { DiskIOReader.read() },
             memory: { MemoryReader.read() },
-            network: { NetworkReader.read() }
+            network: { NetworkReader.read() },
+            sensors: { SMCSensorReader.shared.read() }
         )
     }
 
@@ -72,7 +78,7 @@ public struct SystemMetricSampler {
         self.clock = clock
     }
 
-    /// 采一帧。首帧（无上一组计数器）各速率/CPU 全为 nil，内存是瞬时值所以有。
+    /// 采一帧。首帧（无上一组计数器）各速率/CPU 全为 nil，内存和 SMC 温度是瞬时值所以有。
     /// interval 用两次 clock 读数之差，而不是"配置里写死的 2 秒"——
     /// 主线程拥塞导致 tick 迟到时，差分仍然除以真实间隔。
     public mutating func tick(sampledAt: Date = Date()) -> MetricSnapshot {
@@ -121,6 +127,7 @@ public struct SystemMetricSampler {
             memory: readers.memory(),
             networkDownBytesPerSecond: netRate?.downBytesPerSecond,
             networkUpBytesPerSecond: netRate?.upBytesPerSecond,
+            sensors: readers.sensors(),
             sampledAt: sampledAt
         )
     }

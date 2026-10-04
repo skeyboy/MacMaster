@@ -6,8 +6,12 @@
 
 ## 0. 结论先行
 
-- 全仓现存钩子 **49 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u` 得 50 个，
-  其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46` 用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
+- 全仓现存钩子 **51 个独立变量名**（`grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u`
+  于 2026-10-04 重跑得 **52** 个，其中 `MM_TRASH_FIXTURE_PROBE` 只是 `TrashWatcherTests.swift:46`
+  用来探 `/tmp` 守卫的临时 key，不是运行时钩子，不计入）。
+  上一版记的"49 个（grep 得 50）"是 2026-09-30 的数，**P6.2d 的 `MM_GUARDIAN_CARDS` 与本轮的
+  `MM_MONITOR_CARDS` 都没回填过这条计数**——台账自己就是那条老教训（"旧文档里的数字是线索不是依据"）的对象，
+  所以这里给的是重跑结果，不是 49+2。
   集成阶段新增 `MM_OPTIMIZER_FIXTURE`、`MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_DISK_HOLD`；
   P4 浅色档新增 `MM_APPEARANCE`、`MM_WINDOW_SIZE`（都在壳层，见下表）；并对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 /tmp 守卫；
   磁盘永久删除路径新增 `MM_SHOW_PERMANENT`，并给 `MM_SHOW_TOAST` 加 `permanent` 取值（见下表）；
@@ -21,6 +25,11 @@
   有了这三个，①含截断 / ②续扫之后 / ③同一根再截断三档全部零点击（见下表）。
   P6.2a「磁盘标记跨重扫存续」新增 `MM_DISK_RESCAN` 1 个：首扫落地后自动再扫一次（值同样只认 /tmp），
   配合"标记钩子只重放一次"才拍得到 ②同根重扫（标记还在）与 ③换根重扫（挂不回去的丢弃并点名）。
+  P6.4「SMC 温度/风扇」新增 `MM_MONITOR_CARDS` 1 个（卡显示过滤，手法照 `MM_GUARDIAN_CARDS`），
+  并给 `MM_MONITOR_FIXTURE` 加 5 个传感器档。这两个钩子**一个字节都不写 SMC**：
+  夹具档是整块顶替 `SensorsSnapshot`（连 `SMCClient` 都不碰），卡过滤是纯显示层；
+  而真实读取路径本身只发 `readKeyInfo`/`readBytes`/`keyFromIndex` 三条命令，
+  写命令与 `F{id}Md`、`Ftst` 在 `SMCCommand` 这个枚举里**没有对应取值**（见 `SMC.swift`）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -88,7 +97,8 @@
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift`（本轮新增） | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
-| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | 注入确定快照（populated/memoryNil/swapOff/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样 |
+| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档） | 注入确定快照（populated/memoryNil/swapOff/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡） |
+| `MM_MONITOR_CARDS` | `MMMonitor` | `MMMonitor.swift` `MonitorCardFilter`（`MonitorFixtureHooks.swift`） | 卡显示过滤，逗号子集 `stats\|perCore\|disk\|memory\|process\|sensors` | ✅ | 否 | **P6.4 新增**。手法照 `MM_GUARDIAN_CARDS`：「温度与风扇」排在整页最后，760pt 窗口里永远在折叠线以下，靠钩子钉死位置而不是拉高窗口碰运气。非法值整批拒绝并写 stderr（半生效夹具 = 假通过）；纯显示层过滤，不改变数据流 |
 
 ## 2. 各模块钩子小结
 
@@ -98,7 +108,10 @@
 - **MMDisk**：9 个（新增 `MM_DISK_HOLD`；P6.2a 再新增 `MM_DISK_RESCAN`），`MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_DISK_RESCAN` 都带 `/tmp` 守卫。
 - **MMGuardian**：6 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_GUARDIAN_CARDS`），全 `com.example.*` 合成，不写盘。`MM_GUARDIAN_CARDS` 是纯显示层过滤。
 - **MMOptimizer**：2 个（新增 `MM_OPTIMIZER_FIXTURE`）。`DevToolCacheAudit.swift:166` 读的 `env` 是 **PATH 探测**（找可执行文件），**不是 `MM_` 夹具钩子**，与截图无关，不计入台账。
-- **MMMonitor**：`MM_OPEN_MODULE` + #50 新增 2 个（`MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`），全只读。
+- **MMMonitor**：`MM_OPEN_MODULE` + #50 新增 2 个（`MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`）
+  + **P6.4 新增 1 个（`MM_MONITOR_CARDS`）**，共 3 个本模块钩子，全只读。
+  本模块是 P6.4 起**唯一会读内核结构（IOKit AppleSMC 用户客户端）**的一个，
+  但那条路径与截图无关、且只发三条读命令——钩子层没有任何一条能写 SMC。
 
 ## 3. 破坏性流程边界（重要）
 
@@ -143,6 +156,8 @@
 
 | `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
 | `Scripts/p62b-capture.sh` | 还原度收口**十档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡 `rows`+`empty`/登录项"未对表"档/登录项读取失败档。**07–10 用 `MM_GUARDIAN_CARDS` 只渲染目标卡**（P6.2d），不再需要拉高窗口+压矮上方三卡 | **P6.2b 新增、P6.2c 扩到八档、P6.2d 扩到十档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07 的 `scanUnifiedLog` 超时教训**记在 `fidelity-guardian.md` §6.6.3：`/usr/bin/log show` 在沙盒环境下会挂起，`DispatchSemaphore` 8 秒超时保护不能省 |
+| `Scripts/smc-probe.swift` | 只读探一次本机 AppleSMC：键表规模、`T*` 类型分布、风扇四键实测值、稳态扫描耗时 | **P6.4 新增**。立项前把"本机有没有风扇"这种凭机型猜的判据换成量出来的数；它同时是 `SMCParamBlock` 结构体布局的回归工具（布局漂了，`IOConnectCallStructMethod` 只会回 `kIOReturnBadArgument`，没有这个脚本就得重新猜）。**只读**：不碰 `F{id}Md`、不发 `Ftst` |
+| `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个
@@ -169,3 +184,10 @@
   照片上"另有 2 个快照"看着挺像溢出态，其实少了一条。判据在 `SnapshotFixtureTests`。
 - **不要写脚本用 NSColor 查语义色的值**：脱离真实绘制上下文解析动态色，明暗两档会给出同一个（错的）值。
   这条坑记在 `pixel-probe.swift` 文件头。
+- **独立探针能读，不等于 `.app` 里能读**（P6.4）：`smc-probe.swift` 用 `swift` 解释器跑通了 AppleSMC，
+  换成打包后的 `MacMaster.app` 就是另一件事——签名、entitlements、沙盒都可能把 `IOServiceOpen` 挡回来。
+  所以取证脚本的第一档（01）**不注入任何夹具**，拍的就是"应用本体自己读出来的数"；
+  这一档如果失败，照片本身就是证据（原因行是 IOKit 原文），而不是改去注夹具把画面凑对。
+- **"不许写"要落到类型上，不要落到注释上**（P6.4）：`SMCCommand` 只有 `readBytes=5` /
+  `keyFromIndex=8` / `readKeyInfo=9` 三个取值，写命令与解锁风扇的 `F{id}Md`/`Ftst`
+  在这个枚举里**没有对应的 case**。光在文件头写"本实现只读"，下一个人加一条命令就破功了。

@@ -50,6 +50,14 @@
 .prow .m{font-size:var(--fs-caption);font-variant-numeric:tabular-nums;
          color:var(--c-label-secondary);white-space:nowrap}
 .prow .b{width:80px;flex:0 0 80px;text-align:right}
+/* 温度行（sensorsContent 的 .loaded 分支）：28pt 高；键名列 56pt 用 <b>.callout.monospaced()</b>
+   （真等宽字体，SMC 键名是 4 字符定宽），数值是 .callout.monospacedDigit() 撑满剩余宽度右对齐——
+   所以<b>不能复用 .crow .num 那个 60pt 定宽列</b>，那是每核 CPU 的口径 */
+.trow{display:flex;align-items:center;gap:var(--sp-3);height:var(--row-h-compact);line-height:15px}
+.trow .k{width:56px;flex:0 0 56px;font-family:var(--font-mono);font-size:var(--fs-callout);
+        color:var(--c-label-secondary)}
+.trow .v{flex:1;min-width:0;text-align:right;font-size:var(--fs-callout);font-variant-numeric:tabular-nums}
+.trow.hi .v{color:var(--c-danger)}
 /* 骨架行（MMSkeletonRow）：44pt 高，15 方块 + 120 短条 + …… + 56 短条 */
 .srow{display:flex;align-items:center;gap:var(--sp-2);height:var(--row-h-regular);padding:0 var(--sp-3)}
 .srow .a{width:15px;height:15px;border-radius:var(--r-xs);background:var(--c-fill-active);flex:0 0 15px}
@@ -76,6 +84,8 @@
 结构照抄 <code>MonitorView</code>：MMPageHeader（46pt）→ ScrollView（16pt 边距、16pt 块间距）内
 <b>读数条 → 每核 CPU → 磁盘 IO → 内存 → 进程 TOP 10</b> 五块，<b>没有底部动作条</b>——本页只读、
 不改动磁盘，MMActionBar 在这里是多余的。窗口固定 1100×700。
+<b>本稿画的是 2026-09-30 的形态，之后多了一张卡：</b>2026-10-04 起卡片栈末尾还有第六块
+<b>「温度与风扇」（SMC 只读）</b>，排在进程卡之后、A 稿这个视口里看不见，形态与全部取证在 <b>E 稿</b>。
 <b>折叠位置如实交代：</b>实机首屏里磁盘 IO 卡<b>完整可见</b>（卡底实测收在 y≈684），
 "内存"和"进程"两卡<b>整卡都在折叠线以下</b>——实机连内存卡卡头都看不到。
 本稿标题栏按设计令牌 38pt 画（实机 52），视口比实机多露约 14pt，内存卡只露出 <b>≈13px 的卡顶描边</b>；
@@ -506,6 +516,147 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
             </section>
             <div class="note">4 条固定骨架，一个数字都不给；它和 D4 是两种状态（还在等 / 等砸了），
               两者都不许画成空列表——空列表在只读监控页里读起来等于"这台机没有进程"。</div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</div>
+
+<!-- ==================== E. 温度与风扇（SMC 只读，2026-10-04 新增第五张卡） ==================== -->
+<div class="artboard">
+<div class="cap"><b>E 温度与风扇（<b style="color:var(--c-danger)">E1 是真机读数、E2–E5 是夹具态</b>，
+五档全部有实机照片：见 <code>docs/verification/p64/</code> 与暗档 <code>p64-dark/</code>）。</b>
+这张卡 2026-10-04 才存在，A/B/C/D 四稿画它是"实现独有、稿没画"的状态，本稿补上。
+<b>它排在整页最后（进程卡之后）</b>，760pt 窗口里永远在折叠线以下，所以取证走新钩子
+<code>MM_MONITOR_CARDS=sensors</code>（只渲染要拍的那张卡，手法照 <code>MM_GUARDIAN_CARDS</code>），
+不靠把窗口画高碰运气；相邻与卡间距另有 <code>MM_MONITOR_CARDS=process,sensors</code> 一张（照片 07）。
+<b>数据来源是本机 AppleSMC 的用户客户端，只读：</b>整个实现只发三条命令
+（<code>readKeyInfo</code> 9 / <code>readBytes</code> 5 / <code>keyFromIndex</code> 8），
+写命令与 <code>F{id}Md</code>、<code>Ftst</code> 这类解锁风扇控制的路径<b>在结构上就没接进来</b>——
+写 SMC 能把风扇永久锁死，注释里反对一次不够，得让它发不出去。
+<b>本机实测事实（<code>Scripts/smc-probe.swift</code>，2026-10-04）：</b>键表 <code>#KEY</code>=1369，
+其中 <code>T*</code> 180 个；<b>174 个</b>是 <code>flt </code>（小端 IEEE float，能解），
+<b>6 个是 <code>ioft</code>（8 字节、语义没公开、恒为 0）——刻意不支持</b>，
+把"读不懂"塌成 0 °C 就是虚报。风扇 <code>FNum</code>=1、<code>F0Ac</code>=1000、<code>F0Mn</code>=1000、
+<code>F0Mx</code>=4900、<code>F0Tg</code>=1000。<b>这条把路线图里"本机 Mac mini 无风扇、价值最低"那句判错了</b>：
+本机有 1 台风扇且四个值全可读。整表 174 键扫一遍 ≈22–25 ms（两次往返与缓存类型无实测差别，故不设缓存），
+键名枚举 1369 次往返 ≈150 ms、只有首帧付；采样跑在已有的 detached 后台任务上，不压主线程。
+<b>174 个键怎么摆：</b>按键值降序、同值按键名升序（<b>确定性排序，不是随机前 8</b>），只露最高的 8 行，
+其余用一行 caption 交代总数；<b>键名一律用 SMC 原文，不编 CPU/GPU 归属</b>——苹果没公布键位对应哪块硬件，
+标成"CPU 温度"是猜。E1 那张里 <code>TCMz / Tp0f / Tp3X</code> 同为 88.3 °C 而顺序如此，
+正是同值按键名升序那条规则的照片证据。
+<b>转红阈值 90 °C 是我们自定的</b>，SMC 不告诉你"这个键算不算热"，取的是距 Apple Silicon 节流点的经验余量，
+<b>不是苹果官方阈值</b>；空闲时本机最高 54.5 °C，所以红档只能靠夹具（E5）。
+<b>风扇一句与"风扇 0 台"是两句话：</b><code>fanCount == nil</code>（<code>FNum</code> 没读到）画 E4 那两行，
+<code>fanCount == 0</code> 画 E3 那句；<b>未知不许画成 0 台</b>。
+顺带一个观察（不是结论）：两次采样（空闲 54.5 °C 与截图负载下 89.4 °C）<code>F0Ac</code> 都是 1000 = <code>F0Mn</code>，
+连 <code>F0Tg</code> 也是 1000——这台机器的 SMC 目标转速就贴在最低档。我们只报读到的数，不解释政策。
+<b>对应实机视图：</b><code>MonitorView.sensorsCard</code>（MMMonitor.swift）；
+纯函数与解码在 <code>Sensors.swift</code> / <code>SMC.swift</code> / <code>SensorSampler.swift</code>。</div>
+<div class="win mm-screen" style="height:auto;width:780px">
+  <div class="body-row" style="min-height:0">
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>系统监控</h1><p>卡片级示意 · 本页头是画布容器，副标题非实机文案</p></div>
+        <div class="sp"></div>
+        <span class="t-body" style="white-space:nowrap">菜单栏监控</span><span class="sw on"></span>
+      </div>
+      <div class="scroll" style="padding-bottom:var(--sp-4)">
+        <div class="stack">
+
+          <div class="dgrp">
+            <div class="note">E1 · 正常态（<b>真机读数</b>，照片 <code>p64/01-monitor-sensors-real.png</code>，2026-10-04 12:40，未注入任何夹具）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
+              <div class="trow"><span class="k">TCMz</span><span class="v">88.3 °C</span></div>
+              <div class="trow"><span class="k">Tp0f</span><span class="v">88.3 °C</span></div>
+              <div class="trow"><span class="k">Tp3X</span><span class="v">88.3 °C</span></div>
+              <div class="trow"><span class="k">Tp0Z</span><span class="v">85.9 °C</span></div>
+              <div class="trow"><span class="k">Tp3P</span><span class="v">85.9 °C</span></div>
+              <div class="trow"><span class="k">Tp0c</span><span class="v">84.4 °C</span></div>
+              <div class="trow"><span class="k">Tp0W</span><span class="v">84.2 °C</span></div>
+              <div class="trow"><span class="k">Tp0E</span><span class="v">81.2 °C</span></div>
+              <span class="reason">按键值降序显示最高的 8 个，本机共 174 个可信温度点。</span>
+              <div class="mrow"><dt>风扇 1</dt><dd class="mono">1000 RPM（区间 1000–4900）</dd></div>
+            </section>
+            <div class="note">这一张同时是"进程内也能读 SMC"的唯一证据——独立探针能读不代表 <code>.app</code> 里能读
+              （沙盒/签名是另一回事；本 App 未沙盒，entitlements 只有 <code>get-task-allow</code>）。
+              8 行都没到 90 °C，所以 E1 全黑字：<b>红档见 E5，本档不假装有红</b>。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">E2 · 整卡不可用（<code>SensorsStatus.unavailable(reason:)</code>，照片 <code>p64/03</code>，reason 由夹具给出）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
+              <span class="t-callout" style="color:var(--c-label-secondary)">—</span>
+              <span class="reason">IOServiceOpen(AppleSMC) 失败：kIOReturnDenied</span>
+            </section>
+            <div class="note">值位 "—" + 一行原因原文，<b>不静默、不塌成空列表</b>（与 D2 同一口径）。
+              原因共六句，全部来自代码里真实存在的分支：连接层三句
+              「IOServiceMatching("AppleSMC") 返回空，本机没有 AppleSMC 服务」／
+              「枚举 AppleSMC 服务失败：&lt;machErrorString&gt;」／「AppleSMC 服务列表为空，无法建立用户客户端」／
+              「IOServiceOpen(AppleSMC) 失败：&lt;machErrorString&gt;」（本卡展示的就是这句的夹具文案）；
+              装配层三句「SMC 键表读不出（#KEY 或按序号取键名失败），拿不到温度键清单」／
+              「SMC 键表里没有温度键（本机 SMC 未暴露 T* 读数）」／
+              「温度键一个都没解出可信读数（清单里 N 个 T* 键，全部超出类型或量程）」；
+              以及 <code>MetricSnapshot.empty</code> 的「尚未完成首次采样」——<b>首帧前那句不 blame SMC</b>，
+              形态与本卡相同（值位 "—" + 那一句），所以不单独画一张。<b>本机一个都构造不出来</b>
+              （SMC 打得开、键表读得出、174 个键解得动），E2 走 <code>MM_MONITOR_FIXTURE=sensors-unavailable:…</code>。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">E3 · 读到风扇数为 0（<code>fanCount == 0</code>，照片 <code>p64/04</code>，夹具 <code>sensorsNoFan</code>）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
+              <div class="trow"><span class="k">TZZa</span><span class="v">78.0 °C</span></div>
+              <div class="trow"><span class="k">TZZb</span><span class="v">71.5 °C</span></div>
+              <div class="trow"><span class="k">TZZc</span><span class="v">66.2 °C</span></div>
+              <span class="reason">按键值降序显示最高的 8 个，本机共 10 个可信温度点。</span>
+              <div class="mrow"><dt>风扇</dt><dd>无（SMC 报告本机 0 台风扇）</dd></div>
+            </section>
+            <div class="note"><b>TZZa…TZZj 是合成键，不是实机数据</b>（本机 SMC 的 1369 个键里没有 ZZ 组合，
+              所以夹具不会与真读数混在一起；这套命名对齐进程夹具的 <code>com.example.*</code> 约定）。
+              本卡只截三行示意，照片里是完整 8 行。
+              "0 台"是<b>读出来的</b>：<code>FNum</code> 解出 0，所以这句话有主语、也有出处。
+              另外 <code>FNum</code> 超出 0…16 时按"读不出"处理（画 E4 不画 E3）——这不是多余的谨慎：
+              本机的 <code>F0Mx</code> 是 4900，而解码器一旦把类型读错就能给出 1.4e18 这种数，
+              <code>Int(1.4e18)</code> 会当场 trap 掉采样线程。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">E4 · 风扇数量未知（<code>fanCount == nil</code>，照片 <code>p64/05</code>，夹具 <code>sensorsFanUnknown</code>）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
+              <div class="trow"><span class="k">TZZa</span><span class="v">78.0 °C</span></div>
+              <div class="trow"><span class="k">TZZb</span><span class="v">71.5 °C</span></div>
+              <div class="trow"><span class="k">TZZc</span><span class="v">66.2 °C</span></div>
+              <span class="reason">按键值降序显示最高的 8 个，本机共 10 个可信温度点。</span>
+              <div class="mrow"><dt>风扇</dt><dd>—</dd></div>
+              <span class="reason">FNum 键没读到，风扇数量未知（未知不等于 0 台）。</span>
+            </section>
+            <div class="note">与 E3 的差别只有两行，但必须写成两句话：E3 说"没有"，E4 说"不知道有几个"。
+              温度行在两档里都照常显示——<b>风扇读不出不牵连温度</b>，两件事各有各的出处。
+              单台风扇的三档取值：<code>F{i}Ac</code> 读不到 → 值位 "—"；<code>Mn/Mx</code> 缺任一 → 只写
+              "<b>2100 RPM</b>"（不给假区间）；两个都在 → "<b>1000 RPM（区间 1000–4900）</b>"（E1 的形态）。</div>
+          </div>
+
+          <div class="dgrp">
+            <div class="note">E5 · 热档（≥90 °C 数值转 destructive，照片 <code>p64/06</code>，夹具 <code>sensorsHot</code>；暗档同判据见 <code>p64-dark/06</code>）</div>
+            <section class="mcard">
+              <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
+              <div class="trow hi"><span class="k">TZZa</span><span class="v">94.0 °C</span></div>
+              <div class="trow"><span class="k">TZZb</span><span class="v">71.5 °C</span></div>
+              <div class="trow"><span class="k">TZZc</span><span class="v">66.2 °C</span></div>
+              <span class="reason">按键值降序显示最高的 8 个，本机共 10 个可信温度点。</span>
+              <div class="mrow"><dt>风扇 1</dt><dd class="mono">2100 RPM（区间 1000–4900）</dd></div>
+            </section>
+            <div class="note">只有数值转红，<b>键名列保持次级色</b>——红的是"这个读数热"，不是"这一行出错了"。
+              与 D1b 的每核红档同一套语言（那里条与数值一起转红，本卡没有条，所以只有数值）。
+              本机空闲最高 54.5 °C，正常态永远画不到这一档，所以它是<b>夹具专属取证</b>：
+              阈值本身在 UI 上没有任何标注说"这是苹果的数"，因为不是。</div>
           </div>
 
         </div>

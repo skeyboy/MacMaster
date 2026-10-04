@@ -46,6 +46,11 @@ enum MonitorFixtureTier: String, Sendable {
     case diskUnavailable // D2：diskIOStatus=.unavailable(reason:)
     case processes       // 注入固定进程列表
     case menubarOff      // 菜单栏监控关闭态（不 enable、toggle off）
+    case sensors         // 温度与风扇 loaded 夹具档（夹具键名 TZZ*，一眼是假的；E1 用的是真读数，不注夹具）
+    case sensorsUnavailable // E2：整卡 unavailable(reason:)，含自定义 reason 后缀
+    case sensorsNoFan       // E3：读到风扇数为 0（无风扇机型那一档）
+    case sensorsFanUnknown  // E4：FNum 读不出（fanCount=nil，"不知道" ≠ "0 个"）
+    case sensorsHot         // E5：最高键 ≥90 °C 转红（实机空闲量不到这一档）
 }
 
 struct MonitorSnapshotFixture {
@@ -66,6 +71,7 @@ struct MonitorSnapshotFixture {
         var accepted: [MonitorFixtureTier] = []
         var rejected: [String] = []
         var diskReason: String?
+        var sensorReason: String?
 
         for token in tokens {
             if token.hasPrefix("disk-unavailable:") {
@@ -73,6 +79,11 @@ struct MonitorSnapshotFixture {
                 guard parts.count == 2, !parts[1].isEmpty else { rejected.append(token); continue }
                 diskReason = parts[1]
                 accepted.append(.diskUnavailable)
+            } else if token.hasPrefix("sensors-unavailable:") {
+                let parts = token.split(separator: ":", maxSplits: 1).map(String.init)
+                guard parts.count == 2, !parts[1].isEmpty else { rejected.append(token); continue }
+                sensorReason = parts[1]
+                accepted.append(.sensorsUnavailable)
             } else if token == "diskUnavailable" {
                 accepted.append(.diskUnavailable)
             } else if token.hasPrefix("processes") {
@@ -115,6 +126,17 @@ struct MonitorSnapshotFixture {
                 break
             case .menubarOff:
                 menubarOff = true
+            case .sensors:
+                snapshot.sensors = Self.baseSensors()
+            case .sensorsUnavailable:
+                snapshot.sensors = .unavailable(
+                    reason: sensorReason ?? "AppleSMC 用户客户端打不开（夹具档）")
+            case .sensorsNoFan:
+                snapshot.sensors = Self.baseSensors(fanCount: 0)
+            case .sensorsFanUnknown:
+                snapshot.sensors = Self.baseSensors(fanCount: nil)
+            case .sensorsHot:
+                snapshot.sensors = Self.baseSensors(hottest: 94.0)
             }
         }
 
@@ -142,8 +164,38 @@ struct MonitorSnapshotFixture {
             ),
             networkDownBytesPerSecond: 1.42e6,
             networkUpBytesPerSecond: 0.31e6,
+            sensors: baseSensors(),
             sampledAt: Date(timeIntervalSince1970: 1_700_000_000) // 固定时刻，hasSampled=true
         )
+    }
+
+    /// E 稿底座：10 个温度点 + 1 台风扇。键名一律用 `TZZ*`——真实 SMC 键没有这个前缀，
+    /// 截图里一眼就能看出是夹具，不会被当成"本机量到的温度"（照 com.example.* 进程的规矩）。
+    /// 数值形状照实机（Scripts/smc-probe.swift 2026-10-04：本机 174 个可读 `flt ` 键、
+    /// 最高 54.5 °C、FNum=1、F0Ac=1000/F0Mn=1000/F0Mx=4900），但刻意做成降序 + 跨 8 行溢出。
+    static func baseSensors(fanCount: Int? = 1, hottest: Double = 78.0) -> SensorsSnapshot {
+        let temps: [SensorTemperature] = [
+            SensorTemperature(key: "TZZa", celsius: hottest),
+            SensorTemperature(key: "TZZb", celsius: 71.5),
+            SensorTemperature(key: "TZZc", celsius: 66.2),
+            SensorTemperature(key: "TZZd", celsius: 61.9),
+            SensorTemperature(key: "TZZe", celsius: 57.4),
+            SensorTemperature(key: "TZZf", celsius: 54.5),
+            SensorTemperature(key: "TZZg", celsius: 49.1),
+            SensorTemperature(key: "TZZh", celsius: 44.0),
+            SensorTemperature(key: "TZZi", celsius: 38.6),
+            SensorTemperature(key: "TZZj", celsius: 32.3),
+        ]
+        let fans: [SensorFan]
+        switch fanCount {
+        case .some(let count):
+            fans = (0..<count).map {
+                SensorFan(index: $0, currentRPM: $0 == 0 ? 2_100 : 1_850, minRPM: 1_000, maxRPM: 4_900)
+            }
+        case nil:
+            fans = []   // FNum 读不出 → 连有几台风扇都不知道，不去编 F0Ac
+        }
+        return .loaded(temperatures: temps, fanCount: fanCount, fans: fans)
     }
 
     /// 合成进程：com.example.* 命名一眼可与真实数据区分；pid 用小整数占位。
@@ -159,5 +211,42 @@ struct MonitorSnapshotFixture {
                 cpuSeconds: Double(120 - i * 10),
                 memoryBytes: UInt64((500 - i * 40) * 1024 * 1024))
         }
+    }
+}
+
+// MARK: - 卡片过滤（MM_MONITOR_CARDS）
+
+/// 监控页的六块卡，顺序即代码里的堆叠顺序。
+enum MonitorCard: String, Sendable {
+    case stats, perCore, disk, memory, process, sensors
+}
+
+/// 只保留列出的卡——把折叠线以下的卡顶到首屏来拍，而不是把窗口画高
+/// （照 MM_GUARDIAN_CARDS 的做法）。纯显示层过滤：数据流、采样、夹具一概不动，
+/// 所以"过滤后"的截图仍然能核对卡片本身的还原度。
+enum MonitorCardFilter {
+    struct Result: Equatable, Sendable {
+        /// nil = 不设过滤（生产路径）。
+        let visible: Set<MonitorCard>?
+        let rejected: [String]
+    }
+
+    static func parse(_ raw: String?) -> Result {
+        guard let raw, !raw.isEmpty else { return Result(visible: nil, rejected: []) }
+        let tokens = raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        var accepted: Set<MonitorCard> = []
+        var rejected: [String] = []
+        for token in tokens {
+            if let card = MonitorCard(rawValue: token.lowercased()) {
+                accepted.insert(card)
+            } else {
+                rejected.append(token)
+            }
+        }
+        // 含非法值就整批作废：只过滤掉一半的截图会被当成"卡都齐了"的假通过。
+        guard rejected.isEmpty, !accepted.isEmpty else {
+            return Result(visible: nil, rejected: rejected)
+        }
+        return Result(visible: accepted, rejected: [])
     }
 }

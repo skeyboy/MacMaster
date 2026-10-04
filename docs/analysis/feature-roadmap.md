@@ -789,12 +789,13 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 | 1 | 项目构建产物**跨目录聚合**（按项目分组 + 久未触碰判定） | `Mole/lib/clean/project.sh`（`MIN_AGE_DAYS=7`、monorepo 指示器）、`purge_shared.sh:18`（20+ 产物名单） | **已落地**：`ProjectArtifactScanner` + cleaner 第四子页「开发产物」（稿 02c），见上一节 | — | 红线全部避开；`MM_PURGE_FIXTURE_HOME` 已按只认 /tmp 落地 |
 | 2 | 安装来源识别（Homebrew cask）+ owner 命令 | `Pearcleaner/Logic/Brew/HomebrewManager.swift`（它会 spawn brew；我们改成只读 `Caskroom` 元数据与 bundle 内 `Opt/homebrew` 标记，命令只展示） | **已落地**：`AppProvenance.swift` 只读账本 + 03d 五档文案合同，见上一节 | — | 不撞。比原计划多两个钩子：`MM_UNINSTALL_SELECT`（逐档点名选中行）与 `MM_UNINSTALL_CONFIRM_MODE=none`（面板会盖掉要拍的列表与详情）；夹具账本跟着假 home 走，见 `Scripts/provenance-fixture.sh` |
 | 3 | `/Applications` 装卸事件监听（补 P1.5 盲区） | `Pearcleaner/PearcleanerSentinel/FileWatcher.swift`（FSEventStream） | **已落地**：`AppFolderWatcher`（进程内 kqueue，监听口径 = `AppScanner` 列举口径）+ 稿 03e 三档，见上一节 | — | 不撞：没学它的常驻 LaunchAgent。比原计划多一个钩子 `MM_UNINSTALL_SELF_ECHO`——它是全仓**唯一会真的动文件**的钩子，被"夹具 home 必须是 /tmp"+"必须点名"两道锁钉住，跑完按 bundle 标识清掉（见 `hook-ledger.md` §0） |
-| 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池，无温度风扇 | M | 不撞，但本机 Mac mini 无风扇，正分支只有温度，价值最低 |
+| 4 | 温度/风扇读数 | `stats/Modules/Sensors/readers.swift`（IOReport + 进程内 SMC，无需提权） | **已落地**（P6.4，2026-10-04）：`SMCClient` + `SensorCodec` + `SMCSensorAssembler` + 监控页第六张卡「温度与风扇」，见下一节 | M | 不撞。**原判据"本机 Mac mini 无风扇，价值最低"是错的**，实测有 1 台风扇且四个值全可读（`Scripts/smc-probe.swift`）；没走它的 IOReport 路径，改走 AppleSMC 用户客户端**只发三条读命令** |
 | 5 | 「开发产物」的**截断根续扫**：把没扫完的根分批扫完，而不是永远橙色点名 | 自家 P5.1 真机结果：`~/Desktop`、`~/Documents` 两根在 15 s/根预算下仍然截断 | **已落地**（P6.1，2026-10-03）：`ProjectArtifactScanner` 加 `scan(roots:reuse:)` + `mergedReport` + `attemptCounts` + `rowsCompletedByBatch`，UI 加「继续扫描这 N 个根」与三态 chip，见 `fidelity-cleaner.md` §8 与 `docs/verification/p61-continue/`（四张，零点击）。实测确认截断吃在**成案/测量**阶段，所以续扫比全量重扫快：夹具首批 76.4 MB → 续扫后 162.8 MB | M | 不撞：纯只读扫描调度。**不做后台常驻、不做游标落盘**（D6/D7：同一根最多 2 次，试满就改口 + 给两条出路）；预算不递加 |
 
-**P6.1 之后重排**：1、2、3、5 均已落地，外部候选只剩 4（温度/风扇），而它价值最低
-（本机 Mac mini 无风扇，正分支只有温度，且要新引一条 IOReport 读取路径）。
-下一轮因此按**内部欠账**排：
+**P6.1 之后重排**：1、2、3、5 均已落地，外部候选只剩 4（温度/风扇），而当时判它价值最低——
+理由是"本机 Mac mini 无风扇，正分支只有温度，且要新引一条 IOReport 读取路径"。
+**这条理由后来被实测否证**（见下一节：本机有 1 台风扇、四个风扇键全可读），候选 4 因此照做。
+那一轮按**内部欠账**排的是：
 - **P6.2 · 还原度收口**：**已全部落地**——P6.2a 磁盘标记跨重扫存续、P6.2b 四处瑕疵收口、
   P6.2c 图标环 + 暗档、P6.2d 守护页夹具出片收口 + `scanUnifiedLog` 超时修复（均 2026-10-03/04，见上各节）。
   四处里"守护页行分隔"与"侧栏 229↔245pt"两条的**原始度量不成立**（前者是整页骨架问题，后者在任何照片里都复现不了），
@@ -806,4 +807,67 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 - **P6.3 · 吞吐**：**调研已落地**（`dev-artifact-walk-merge.md`，2026-10-03）；
   **P6.3b 实现已落地**（2026-10-04）：`FileTreeWalker.walkForArtifact` 合并遍历 + `SubtreeWalk` 结构体 +
   取消硬化 + 9 条新测试（共 115 条全绿）。§8.6 的"根报已扫完而组里挂着读不到"矛盾在合并口子上修掉。
-- **P6.4 · 候选 4**：温度/风扇，等上面两项清完再判要不要做。
+- **P6.4 · 候选 4**：温度/风扇，**已落地**（2026-10-04，见下一节）。
+
+## P6.4 落地：SMC 温度/风扇只读接入（2026-10-04）
+
+监控页第六张卡「温度与风扇」。这一节的重点不是"多了一张卡"，而是**一条写错的判据被实测推翻**，
+以及推翻它只花了一个下午写探针的代价。
+
+- **先纠正硬件事实**：候选表里"本机 Mac mini 无风扇、正分支只有温度、价值最低"这句是**凭机型猜的**，
+  从没量过。`Scripts/smc-probe.swift`（只读探针，已入库）在本机 Mac mini M4 实测：
+  键表 `#KEY`=**1369**，`T*` 键 **180** 个，其中 **174 个**是 `flt `（可解）、
+  **6 个是 `ioft`**（8 字节、语义没公开、恒为 0）；风扇 **`FNum`=1**（`ui8`），
+  `F0Ac`=1000.0、`F0Mn`=1000.0、`F0Mx`=4900.0、`F0Tg`=1000.0、`F0Md`=0。
+  **本机有风扇，而且四个值全读得到。**空闲态最高 54.5 °C（`TCMz`/`Tp0W`/`Tp3P`）。
+  这条判据如果留着，下一轮就会以"价值最低"为由把它划掉——**"我们没测过"和"测过、没有"是两件事**，
+  前者得写成前者。
+- **读取路径选 AppleSMC 用户客户端，没走 `stats` 的 IOReport**：`IOServiceMatching("AppleSMC")` →
+  `IOIteratorNext` → `IOServiceOpen(dev, mach_task_self_, 0, &conn)`，每条命令都过
+  `IOConnectCallStructMethod(conn, 2, …)`。两个原因：① IOReport 那条要再引一套流/符号名映射，
+  而 SMC 键表本身就是事实源；② 我们已经在磁盘 IO 上写过同构的 IOKit 只读路径（`DiskIOReader`），
+  注册表枚举逐个取那个已知坑可以直接复用。**不需要提权、不需要额外 entitlement**
+  （本 App 未沙盒，entitlements 只有 `com.apple.security.get-task-allow`）。
+- **只读是结构性的，不是注释里说说**：`SMCCommand` 只有三个取值——
+  `readKeyInfo`=9 / `readBytes`=5 / `keyFromIndex`=8，全实现只发这三条 `data8`。
+  写命令、`F{id}Md`（风扇模式）、`Ftst`（stats 用来解锁风扇的）这类路径**根本没有接进来**：
+  写 SMC 有可能把风扇永久锁死，那种后果不能靠"我们没写那行"来保证。
+- **端序与量程守卫**（`SensorCodec`）：`flt ` 是**小端** IEEE float。调试时按大端拼过一次，
+  真机给出 ~1.4e18 °C——这就是为什么解码必须过"可信区间"这一道，而不是读到就信：
+  温度 `-20...125`（含端点）、风扇 `0...30000`、`FNum` **`0...16`**。
+  最后那条不只是洁癖：`Int(1.4e18)` 会**当场 trap 掉采样线程**，量程守卫在这里挡的是一次崩溃。
+  `ioft` 那 6 个键**刻意不支持**——把"读不懂"塌成 0 °C 就是虚报，宁可少 6 个读数。
+  单测里钉了端序桩（`flt [0x00,0x00,0xD9,0x42]` → 108.5），全部测试向量用
+  `python3 struct.pack('<f', …)` 独立算过一遍（`4900.0` 第一次手拼成 `0x45998000` = 4900.75，被自己的向量表抓到）。
+- **成本实测**：174 个键整表扫一遍 **≈22–25 ms**；"先问类型再取数据"两次往返与缓存类型
+  **无实测差别**，所以不设缓存（少一个状态）。键名枚举要 1369 次往返 ≈150 ms，
+  **只有首帧付**（结果缓存在 `SMCClient`）。采样跑在已有的 detached 后台任务上，不压主线程。
+- **174 个键怎么摆**：按键值降序、**同值按键名升序**（确定性，不是"随便取 8 个"），
+  只露最高的 8 行 + 一行 caption 交代总数（"本机共 174 个可信温度点"）。
+  **键名一律用 SMC 原文，不编 CPU/GPU 归属**——苹果没公布键位对应哪块硬件，标成"CPU 温度"是猜。
+  转红阈值 **90 °C 是自定的**（距 Apple Silicon 节流点的经验余量），代码注释与稿子都写明不是官方阈值。
+- **诚实口径全部沿用既有那套**：`nil` 显示 "—" 不是 0；`fanCount == nil`（`FNum` 没读到）与
+  `fanCount == 0`（读出来是 0）是**两句不同的话**；`.loaded` 要求**至少一个可信读数**，
+  所以 UI 没有"状态正常但列表为空"这种分裂分支；`MetricSnapshot.empty` → `SensorsSnapshot.notSampled`，
+  首帧前那句是"尚未完成首次采样"，**不把责任推给 SMC**。降级原因共 7 句，逐句有出处
+  （连接层 4 + 装配层 3），原文都进了稿子 E2 的卡外标注。
+- **取证靠新钩子**：这张卡排在整页最后，760pt 窗口里永远在折叠线以下，所以照
+  `MM_GUARDIAN_CARDS` 加了 `MM_MONITOR_CARDS`（逗号子集，非法值整批拒绝 + stderr 留痕）；
+  四个本机构造不出来的分支（打不开 SMC / 0 台风扇 / `FNum` 读不出 / ≥90 °C）各给一档夹具
+  （`sensors` / `sensorsUnavailable` / `sensorsNoFan` / `sensorsFanUnknown` / `sensorsHot`），
+  夹具温度键用 `TZZa…TZZj`（本机 1369 个键里没有 ZZ 组合，不会与真读数混淆，命名对齐进程夹具的 `com.example.*`）。
+  **8 档 × 明暗两套**在 `docs/verification/p64/` 与 `p64-dark/`，零合成点击。
+  其中 01 是这一节最硬的一张：**不注任何夹具的实机读数**（`TCMz 88.3 °C` + `风扇 1 1000 RPM（区间 1000–4900）`）——
+  独立探针能读不代表 `.app` 里能读，沙盒/签名是另一回事，这一张才是"进程内也能读 SMC"的证据。
+  照片顺带钉住了排序规则：`TCMz / Tp0f / Tp3X` 同为 88.3 °C 而顺序如此，就是"同值按键名升序"。
+- **一个观察，不是结论**：两次采样（空闲 54.5 °C 与截图负载下 89.4 °C）`F0Ac` 都是 1000 = `F0Mn`，
+  连 `F0Tg` 也是 1000——这台机器的 SMC 目标转速就贴在最低档。我们只报读到的数，不替苹果的散热政策解释。
+- **测试**：`Packages/MMMonitor` **39 条全绿**（新增 `SensorTests.swift`：解码向量、装配器四分支、
+  确定性排序、`fanCount` 0 与 nil、荒谬 `FNum`、风扇取值、夹具五档、`MM_MONITOR_CARDS` 解析）；
+  `MetricSnapshot` 多了必填的 `sensors:` 参数，三处测试构造点跟着改。
+  **改动的踩坑记录**：`grep "Readers\("` 在 Tests 里报"No matches found"，而实际有三处构造点
+  ——又一次印证"上一轮的搜索结果不是依据"。
+- **顺手核掉一句 stale 文档**：候选表第 4 行的"MMMonitor 有 CPU/RAM/磁盘 IO/GPU/电池"里
+  **GPU 与电池两张卡不存在**（全仓 grep 只有新写的注释提到 GPU 归属），该句已从表里去掉。
+- **本卡没有留"仍未拍"**：五个分支各有照片，明暗两套都有。下一轮的候选回到内部欠账
+  （侧栏 `max:280` 那一端、I2 标题栏 52pt、S 系列全站骨架），外部候选已清空。

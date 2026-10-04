@@ -105,7 +105,8 @@ final class MetricDiffTests: XCTestCase {
                 totalCPU: { CoreTicks(user: 0, system: 0, idle: 100, nice: 0) },
                 diskIO: { diskTicks },
                 memory: { mem },
-                network: { NetworkBytes(received: 0, sent: 0) }
+                network: { NetworkBytes(received: 0, sent: 0) },
+                sensors: { .loaded(temperatures: [SensorTemperature(key: "TZZa", celsius: 50)], fanCount: 0, fans: []) }
             ),
             clock: MetricClock { fakeTime }
         )
@@ -115,6 +116,7 @@ final class MetricDiffTests: XCTestCase {
         XCTAssertEqual(first.perCoreCPU, [nil])
         XCTAssertNil(first.diskReadBytesPerSecond)
         XCTAssertEqual(first.memory?.compressedBytes, 250, "内存是瞬时值，首帧就有")
+        XCTAssertEqual(first.sensors.status, .loaded, "温度/风扇也是瞬时值，首帧就有")
     }
 
     func testSamplerComputesRatesOnSecondTick() {
@@ -129,7 +131,8 @@ final class MetricDiffTests: XCTestCase {
                 totalCPU: { core },
                 diskIO: { .success(disk) },
                 memory: { nil },
-                network: { net }
+                network: { net },
+                sensors: { .notSampled }
             ),
             clock: MetricClock { fakeTime }
         )
@@ -157,7 +160,8 @@ final class MetricDiffTests: XCTestCase {
                 totalCPU: { nil },
                 diskIO: { .failure(DiskIOFailure("未发现任何 IOBlockStorageDriver 设备")) },
                 memory: { nil },
-                network: { nil }
+                network: { nil },
+                sensors: { .notSampled }
             ),
             clock: MetricClock { fakeTime }
         )

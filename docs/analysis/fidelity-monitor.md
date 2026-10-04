@@ -17,16 +17,21 @@
 > 逐元素对照 **47 项**，其中 **16 项存在需归属的差异**（**高 2 / 中 6 / 低 8**，另有 1 项仅记录不判改）：
 > **实现该改 11 条**（I1–I10b）、**设计稿该改 5 条**（S2–S6）、**两边都改 1 条**（S1 侧栏 footer，全站）。
 > **另有 13 项状态因为缺钩子而完全没能真机验证**（见 §4，逐条写明缺什么）。
+>
+> **P6.4 追加（2026-10-04，「温度与风扇」新卡）**：上面这些计数是 **2026-09-30 那轮审计的快照**，
+> 不随新卡重算；新卡带来 **1 条实现该改（I11 · 红档无迟滞，低）** 与 **1 条归协调层（S7 · 图标精灵形状，低，
+> 附一条"键名不可读但**判不改**"）**，逐条见 §2.13 / §3.7，取证矩阵在 §4.2。
+> §1.8 那张表的实现行号仍是旧坐标（新卡把文件整体下移 ≈90 行），用前先按符号名重找。
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
 | 事项 | 值 |
 | --- | --- |
-| 设计稿 | `docs/design-system/screens/mmmonitor/07-monitor.html`（4 个 artboard：A 正常态首屏 / B 折叠线以下 / C 采样中首帧 / D 降级态合集） |
-| 渲染 | `cd docs/design-system && ./render.sh screens/mmmonitor/07-monitor.html 1160 4600` → `screens/mmmonitor/07-monitor.png`（2320×9200，2x）。**上一版按 4210 渲染**；D 稿新增 D3a 一格后按 4600 重出，避免最后一格被裁 |
-| 实机 | `build/MacMaster.app`（**未重新构建**），`MM_OPEN_MODULE=monitor` 启动，按 **pid** 匹配 windowid，`screencapture -o -x -l<id>` → `/tmp/mmshot/70-monitor-real.png`（1100×700 @1x，深色模式，Mac mini M4 / 10 核 / 24 GB，2026-09-30 03:16） |
-| 像素取证 | CoreGraphics 逐行/逐列取色（`/tmp/vscan.swift`、`/tmp/hscan.swift`、`/tmp/cropimg2.swift`），所有"实机"数字都来自这条路径 |
-| 可用钩子 | **只有 `MM_OPEN_MODULE=monitor`**（`Sources/MacMaster/MainWindow.swift`）。`grep ProcessInfo.processInfo.environment Packages/MMMonitor/` → **0 命中**，即本模块**没有任何内容/状态钩子**，滚动、骨架、失败分支都无法在实机上构造 |
+| 设计稿 | `docs/design-system/screens/mmmonitor/07-monitor.html`（**5 个 artboard**：A 正常态首屏 / B 折叠线以下 / C 采样中首帧 / D 降级态合集 / **E 温度与风扇（P6.4 新增）**） |
+| 渲染 | `cd docs/design-system && ./render.sh screens/mmmonitor/07-monitor.html 1160 6515` → `screens/mmmonitor/07-monitor.png`（2320×13030，2x）。**高度是量出来的不是猜的**：先按 7000 渲染，再用 PIL 逐行找最后一条非背景行（y=12974），加 28px 页底留白得 6515——上一版按 4600（D 稿加 D3a 时同理），E 稿加了 ≈1890px。**猜高度的代价是稿尾挂一段纯灰底**，看起来像"内容就这么长" |
+| 实机 | 首轮：`build/MacMaster.app`（**未重新构建**），`MM_OPEN_MODULE=monitor` 启动，按 **pid** 匹配 windowid，`screencapture -o -x -l<id>` → `/tmp/mmshot/70-monitor-real.png`（1100×700 @1x，深色模式，Mac mini M4 / 10 核 / 24 GB，2026-09-30 03:16）。**P6.4 轮**：`Scripts/p64-capture.sh` → `docs/verification/p64/`（浅色 8 张）与 `docs/verification/p64-dark/`（暗色 8 张），窗口 1100pt 宽 @2x，含**不注任何夹具的实机真读数**那张 |
+| 像素取证 | CoreGraphics 逐行/逐列取色（`/tmp/vscan.swift`、`/tmp/hscan.swift`、`/tmp/cropimg2.swift`），所有"实机"数字都来自这条路径。**P6.4 轮改用 PIL 直接扫 `docs/verification/p64/01-monitor-sensors-real.png`**（脚本已入库的那张，不是 /tmp 里的临时件）：温度行 8 个行中心 y=469/540/613/685/757/829/901/973 → **行距 71.5px@2x ≈ 35.75pt = 36pt**，与稿内 `.trow`（28 行高 + 8 卡内间距）对上了 |
+| 可用钩子 | **`MM_OPEN_MODULE=monitor` + `MM_MONITOR_HOLD` + `MM_MONITOR_FIXTURE` + `MM_MONITOR_CARDS`**（后两个见 §4.1；`MM_MONITOR_CARDS` 是 P6.4 为「温度与风扇」补的卡过滤）。审计首轮那句"本模块没有任何内容钩子（grep 0 命中）"已过期，保留在原文里不删 |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘事件；未改 `Sources/`、`Packages/`；未跑 `swift build` / `make-app.sh`；未 `pkill`，只 `kill` 自己启用的实例 |
 
 实机测得的锚点（本表所有"一致"判定的基准）：
@@ -110,7 +115,29 @@
 | `processLoadFailed` → `MMEmptyState(title:"进程列表读取失败", detail:nil)` | `:151` | ❌ | `MMEmptyState` 支持 `detail`/`action`（`MMDesign.swift:405-438`）却都传了 nil → 失败态**既没有原因也没有下一步**（重试按钮就在同一张卡右上角，但没在文案里指向它） | **中** | 实现该改 I6 **已改一半**（见 §2.6） |
 | `processLoadFailed = procs.isEmpty` | `:184` | ❌ | "枚举成功但一个进程都没有"与"`proc_listallpids` 失败"被压成同一个 UI 态；前者在本项目语义里应显示空列表，而不是"读取失败" | **中** | 实现该改 I7 |
 
-### 1.7 卡片容器与全站骨架层
+### 1.7 温度与风扇卡（P6.4 新增，E 稿 ↔ 实机 `docs/verification/p64/`）
+
+| 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
+| --- | --- | --- | --- | --- | --- |
+| 卡标题「温度与风扇」+ `thermometer.medium`（16pt 次级色） | `MMMonitor.swift:197` | ✅ | 实机照片 01 逐字一致；图标形状见 S7 附注 | — | — |
+| 温度行：键名列 56pt `.callout.monospaced()` 次级色 + 数值 `.callout.monospacedDigit()` 撑满右对齐 | `:214-227` | ✅ | **行距实测 36pt**（8 个行中心 y=469…973 @2x，间距 71.5±0.5px = 28 行高 + 8 卡内间距），与稿内 `.trow` 一致。稿内刻意**不复用** `.crow .num` 那个 60pt 定宽列——那是每核 CPU 的口径，本卡数值是"撑满后右对齐" | — | — |
+| 只显示最高 8 行 + 一行 caption 交代总数 | `:191`、`:228-233` | ✅ | 实机脚注原文「按键值降序显示最高的 8 个，本机共 **174** 个可信温度点。」——174 与 `Scripts/smc-probe.swift` 独立测得的 `flt ` 键数**逐字相同**，这条是"页面报的数能回到探针"的双向核对 | — | — |
+| 降序 + 同值按键名升序 | `Sensors.swift` `SensorTemperature: Comparable` | ✅ | 照片 01 里 `TCMz / Tp0f / Tp3X` 同为 88.3 °C 而顺序如此（`C` < `p` < `3`… 按字节序），确定性排序在实机上成立 | — | — |
+| 键名用 SMC 原文、不编 CPU/GPU 归属 | `:216` 注释 | ✅ | 实机显示 `TCMz`/`Tp0W`/`Tp3P` 这种原始 4 字符，没有任何一处被翻译成"CPU 温度" | — | — |
+| ≥90 °C 数值转 destructive、键名列不转 | `:194`、`:223` | ⚠️ 仅夹具 | 本机空闲最高 54.5 °C、截图负载下 89.4 °C，**正常态一次都没红过**；红档取证走 `MM_MONITOR_FIXTURE=sensorsHot`（照片 06 + 暗档 06） | 低 | 见 I11 |
+| `.unavailable` → 值位「—」+ reason 原文 caption | `:205-212` | ✅（夹具） | 照片 03：「IOServiceOpen(AppleSMC) 失败：kIOReturnDenied」整行照排。**这句 reason 是夹具给的**，本机 SMC 打得开，真失败态无法自然构造；七句 reason 逐句有出处（连接层 4 + 装配层 3 + 首帧 1），全列在 E 稿卡外标注 | — | — |
+| `fanCount == 0` → 「无（SMC 报告本机 0 台风扇）」 | `:241-242` | ✅（夹具） | 照片 04；本机 `FNum`=1，这一档只能注入 | — | — |
+| `fanCount == nil` → 「风扇 —」+「FNum 键没读到，风扇数量未知（未知不等于 0 台）。」 | `:248-255` | ✅（夹具） | 照片 05。与上一档**是两句不同的话**，这条正是本项目"测量诚实"红线在新卡上的落点 | — | — |
+| 风扇行 `MMKeyRow(…, monospaced: true)`，值「1000 RPM（区间 1000–4900）」 | `:245`、`fanText:258-264` | ✅ | 实机照片 01 逐字一致，含全角括号与 en-dash；`Mn/Mx` 缺任一时代码只写「2100 RPM」（不给假区间），这一支**没有照片**——本机四键齐全，夹具也没做这一档，只由单测钉住（`SensorTests` 的风扇取值用例） | 低 | 记录 |
+| 卡片排在整页最后（进程卡之后） | `:56` | ✅ | 760pt 窗口里永远在折叠线以下，取证靠 `MM_MONITOR_CARDS=sensors`；相邻与卡间距另拍一张 `=process,sensors`（照片 07） | — | — |
+| 首帧前（`MetricSnapshot.empty`）→「尚未完成首次采样」 | `Sensors.swift:150` `notSampled` | ✅（代码分支） | 与 `.unavailable` 同形、不同文案；**抢拍不到**（`.onAppear` 立刻 `enable()`），与 D3a 同一处置 | — | 见 §4 #4 |
+
+### 1.8 卡片容器与全站骨架层
+
+> **本表的实现行号是 2026-09-30 那轮审计的坐标**，P6.4 在文件里插入了「温度与风扇」一整段（≈90 行）后
+> 已整体下移（例如私有 `card()` 从 `:191-213` 移到 `:333` 起）。**照抄会点到别处**，
+> 用前先按符号名重找（`grep -n "private func card" MMMonitor.swift`）。§1.7 那张表的行号是 2026-10-04 现读的。
+
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
@@ -167,6 +194,11 @@
 10. **【低】I9 · Swap 读到 0 输出「0 字节 / 0 字节」**（`MMFormat.bytes` <1000 特判）→ 中文读起来像坏了。
 11. **【低】I10a · 侧栏实现 220pt vs 令牌 216pt**（实机分隔线 x=220）。
 12. **【低】I10b · 标题栏实现 ≈52pt vs 令牌 38pt**（实机黑线 y=52）→ 每页可视高度少 14pt，直接影响本页折叠线落点。
+13. **【低】I11 · 温度红档没有迟滞（P6.4 新卡带来，2026-10-04）**：`temp.celsius >= 90` 是单点判定，
+    而本机在截图负载下实测最高 **89.4 °C**（`p64-dark/01`），离阈值 0.6 °C。采样每 2 秒一帧，
+    数值在 89.x↔90.x 之间摆动时这一行的颜色会**闪**。判低不判中：闪的是颜色，数字本身每一帧都是真读数。
+    → 建议：进出双阈值（进 90 / 出 85），或者干脆不转色、改成行尾一个"偏高"徽章。
+    **不要**改成"把阈值提到 95 就看不见问题了"——那是把判据挪到测量够不着的地方。
 
 ## 3. 设计稿该改（6 条）
 
@@ -187,6 +219,12 @@
 6. **【低】S6 · 稿内 A 稿折叠线比实机晚 14pt**：稿的标题栏按令牌 38pt 画、实机 52pt，
    所以稿内"磁盘 IO 卡完整 + 内存卡露头一行"在实机上会少露约 14pt。稿注已写明，
    修 I10b 后自动对齐。
+7. **【低】S7 · `thermometer.medium` 的精灵形状与 SF Symbol 有出入（P6.4 新卡带来）**：E 稿用
+   `icons.js` 里既有的 `#i-temp`（注释就标着对应 `thermometer.medium`），16×16 自绘的球泡比系统符号粗。
+   这是**全站图标精灵层的共性**（01–09 每张稿都有几条这种出入），不在本页单修，归协调层。
+   顺带记一条**判不改**的：卡里的键名 `TCMz`/`Tp0W`/`Tp3P` 对普通用户完全不可读，
+   看起来像 bug 输出——但**给它编一个"CPU/GPU 温度"归属比不编更糟**，苹果没公布键位对应哪块硬件。
+   将来若要加解释，唯一诚实的来源是厂商键位表；在那之前，稿与实现都只说"这是 SMC 原始键名"。
 
 ## 4. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
 
@@ -241,7 +279,32 @@ A 稿 10 个百分比数值、磁盘 IO 两行标签与 monospace、卡片底/�
 > 现已可被上述钩子逐档构造真机态——复核时 B/D 两稿应**改用钩子注入后的实机截图**重出，
 > 不再依赖"卡片完整尺寸"的稿内推演（原 S5 指出的"不是真实视口"问题随之消解）。
 
-**验证命令骨架**（集成阶段统一跑，全程零合成事件、`--pid` 抓窗）：
+### 4.2 P6.4 新卡取证矩阵（8 档 × 明暗两套，`Scripts/p64-capture.sh`）
+
+照片在 `docs/verification/p64/`（浅色）与 `docs/verification/p64-dark/`（暗色），同名同号。
+**只有 01 与 08 是实机态**，其余六档都是夹具态——这个区分在稿子 E 段与照片旁边都写了，不留在心里。
+
+| # | 照片 | 启动钩子 | 这张要证明的判据 | 实机/夹具 |
+| --- | --- | --- | --- | --- |
+| 01 | `01-monitor-sensors-real` | `MM_MONITOR_CARDS=stats,sensors` | **`.app` 进程内能读 SMC**（真读数：`TCMz 88.3 °C` + `风扇 1 1000 RPM（区间 1000–4900）` + 脚注 174）；顺带钉住同值按键名升序 | 实机 |
+| 02 | `02-monitor-sensors-loaded` | `=sensors` + `MM_MONITOR_FIXTURE=sensors` | loaded 形态可复现（8 行 + 脚注 + 风扇行），键名 `TZZ*` 一眼是夹具 | 夹具 |
+| 03 | `03-monitor-sensors-unavailable` | `=sensors` + `sensors-unavailable:…` | 不静默、不塌成空列表：值位「—」+ reason 原文整行 | 夹具 |
+| 04 | `04-monitor-sensors-nofan` | `=sensors` + `sensorsNoFan` | 「无（SMC 报告本机 0 台风扇）」——**读出来的 0** | 夹具 |
+| 05 | `05-monitor-sensors-fanunknown` | `=sensors` + `sensorsFanUnknown` | 「风扇 —」+「未知不等于 0 台」——与 04 是两句话 | 夹具 |
+| 06 | `06-monitor-sensors-hot` | `=sensors` + `sensorsHot` | ≥90 °C 只有数值转红，键名列不转（暗档 06 同判据） | 夹具 |
+| 07 | `07-monitor-sensors-after-process` | `=process,sensors` + `processes,sensors` | 新卡排在进程卡之后的**卡间距与页底留白**（单独渲染看不出这条） | 夹具 |
+| 08 | `08-monitor-cards-illegal-token` | `MM_MONITOR_CARDS=sensors,typo` | 非法值整批作废：判据在 stderr（`grep 含非法取值` = 1 命中，明暗各一次），照片只是佐证（六卡回到真实顺序） | 实机 |
+
+**这套钩子解决的是"最后一张卡永远拍不到"**：`MM_MONITOR_CARDS` 把渲染范围钉成子集，位置由钩子决定，
+不靠拉高窗口碰运气（屏高 1080pt，`MM_WINDOW_SIZE=1400x…` 会被 AppKit 夹到 ≈1050，
+这条坑 P6.2c 已经踩过一次）。代价写在稿子里：`=sensors` 单卡那张**不证明卡片顺序**，
+顺序与间距是 07 那张的事。
+
+**没有拍的一档**：风扇 `F0Ac` 有值而 `F0Mn`/`F0Mx` 缺任一 → 只写「2100 RPM」不给区间。
+本机四键齐全、夹具也没做这一档，所以它只有单测（`SensorTests`）没有照片——记在这里免得下轮以为漏了。
+
+**验证命令骨架**（§4.1 那 13 项用；§4.2 的八档已经固化成 `Scripts/p64-capture.sh`，不必再手敲。
+全程零合成事件、`--pid` 抓窗）：
 
 ```bash
 # 重建（隔离，不碰现有 build）

@@ -220,6 +220,8 @@ public struct MetricSnapshot: Equatable, Sendable {
     public var memory: MemoryMetrics?
     public var networkDownBytesPerSecond: Double?
     public var networkUpBytesPerSecond: Double?
+    /// 温度/风扇（SMC 瞬时量，和 memory 一样首帧就有，不做差分）。
+    public var sensors: SensorsSnapshot
     public var sampledAt: Date
 
     /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
@@ -235,6 +237,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         memory: nil,
         networkDownBytesPerSecond: nil,
         networkUpBytesPerSecond: nil,
+        sensors: .notSampled,
         sampledAt: .distantPast
     )
 
@@ -247,6 +250,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         memory: MemoryMetrics?,
         networkDownBytesPerSecond: Double?,
         networkUpBytesPerSecond: Double?,
+        sensors: SensorsSnapshot,
         sampledAt: Date
     ) {
         self.totalCPU = totalCPU
@@ -257,6 +261,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         self.memory = memory
         self.networkDownBytesPerSecond = networkDownBytesPerSecond
         self.networkUpBytesPerSecond = networkUpBytesPerSecond
+        self.sensors = sensors
         self.sampledAt = sampledAt
     }
 }

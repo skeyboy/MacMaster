@@ -36,6 +36,7 @@ private extension MetricSnapshot {
                        diskReadBytesPerSecond: diskReadBytesPerSecond,
                        diskWriteBytesPerSecond: diskWriteBytesPerSecond,
                        memory: memory, networkDownBytesPerSecond: networkDownBytesPerSecond,
-                       networkUpBytesPerSecond: networkUpBytesPerSecond, sampledAt: sampledAt)
+                       networkUpBytesPerSecond: networkUpBytesPerSecond,
+                       sensors: sensors, sampledAt: sampledAt)
     }
 }

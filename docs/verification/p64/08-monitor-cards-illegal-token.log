@@ -1,0 +1,2 @@
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_MONITOR_CARDS 含非法取值（typo），整个钩子已忽略

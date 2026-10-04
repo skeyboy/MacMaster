@@ -20,8 +20,15 @@ public struct MonitorView: View {
     @StateObject private var menuBar = MenuBarManager.shared
     @State private var processes: [MonitorProcess] = []
     @State private var processState: ProcessLoadState = .loading
+    /// MM_MONITOR_CARDS 注入的显示过滤（nil = 全显示，生产路径）。
+    @State private var visibleCards: Set<MonitorCard>?
 
     public init() {}
+
+    private func shows(_ card: MonitorCard) -> Bool {
+        guard let visibleCards else { return true }
+        return visibleCards.contains(card)
+    }
 
     /// 首次采样前 sampledAt 还是 `.distantPast` 哨兵，直接格式化会渲染成
     /// "上次采样 0001-01-01 08:05"——那是把"还没测过"说成一个真实时刻。
@@ -41,11 +48,12 @@ public struct MonitorView: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: MMGap.lg) {
-                    statsRow
-                    perCoreCard
-                    diskCard
-                    memoryCard
-                    processCard
+                    if shows(.stats) { statsRow }
+                    if shows(.perCore) { perCoreCard }
+                    if shows(.disk) { diskCard }
+                    if shows(.memory) { memoryCard }
+                    if shows(.process) { processCard }
+                    if shows(.sensors) { sensorsCard }
                 }
                 .padding(MMGap.lg)
             }
@@ -59,6 +67,13 @@ public struct MonitorView: View {
                     "MM_MONITOR_FIXTURE 含非法取值（\(fixture.rejected.joined(separator: ", "))），整个钩子已忽略\n"
                         .data(using: .utf8)!)
             }
+            let cards = MonitorCardFilter.parse(env["MM_MONITOR_CARDS"])
+            if !cards.rejected.isEmpty {
+                FileHandle.standardError.write(
+                    "MM_MONITOR_CARDS 含非法取值（\(cards.rejected.joined(separator: ", "))），整个钩子已忽略\n"
+                        .data(using: .utf8)!)
+            }
+            visibleCards = cards.visible
             if hold {
                 // 冻结在 .empty 首帧：不 enable（不采样）、不 loadProcesses，
                 // 页面停在"测量中 + 骨架 + 内存尚未采样"的折叠线以上态，可被截图。
@@ -167,6 +182,93 @@ public struct MonitorView: View {
                     .foregroundStyle(MMColor.secondaryLabel)
             }
         }
+    }
+
+    // MARK: - 温度与风扇
+
+    /// 本机 SMC 有 174 个可读温度键，整列铺开既读不完也撑爆卡片高度，
+    /// 所以只按降序露最高的几个，其余用一行交代总数。
+    private static let visibleTemperatureCount = 8
+    /// 转红阈值是我们自定的：SMC 不告诉你"这个键算不算热"，90 °C 取的是距离
+    /// Apple Silicon 节流点的经验余量，不是苹果给的官方阈值。
+    private static let hotCelsius: Double = 90
+
+    private var sensorsCard: some View {
+        card(title: "温度与风扇", systemImage: "thermometer.medium") {
+            sensorsContent(menuBar.snapshot.sensors)
+        }
+    }
+
+    @ViewBuilder
+    private func sensorsContent(_ sensors: SensorsSnapshot) -> some View {
+        switch sensors.status {
+        case .unavailable(let reason):
+            Text("—")
+                .font(.callout)
+                .foregroundStyle(MMColor.secondaryLabel)
+            Text(reason)
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .loaded:
+            ForEach(sensors.temperatures.prefix(Self.visibleTemperatureCount)) { temp in
+                HStack(spacing: MMGap.md) {
+                    // SMC 原始键名，4 字符等宽；不给归属（苹果没公布键位对应哪个硬件）。
+                    Text(temp.key)
+                        .font(.callout.monospaced())
+                        .foregroundStyle(MMColor.secondaryLabel)
+                        .frame(width: 56, alignment: .leading)
+                    Text(Self.temperatureText(temp.celsius))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(temp.celsius >= Self.hotCelsius ? MMColor.destructive : MMColor.label)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+                .frame(height: MMMetric.rowCompact)
+            }
+            if sensors.temperatures.count > Self.visibleTemperatureCount {
+                Text("按键值降序显示最高的 \(Self.visibleTemperatureCount) 个，本机共 \(MMFormat.count(sensors.temperatures.count)) 个可信温度点。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            fansContent(sensors)
+        }
+    }
+
+    @ViewBuilder
+    private func fansContent(_ sensors: SensorsSnapshot) -> some View {
+        if let fanCount = sensors.fanCount {
+            if fanCount == 0 {
+                MMKeyRow("风扇", "无（SMC 报告本机 0 台风扇）")
+            } else {
+                ForEach(sensors.fans) { fan in
+                    MMKeyRow("风扇 \(fan.index + 1)", fanText(fan), monospaced: true)
+                }
+            }
+        } else {
+            // "不知道有几台"和"没有"是两句话——FNum 读不出时不画 0 台风扇。
+            MMKeyRow("风扇", "—")
+            Text("FNum 键没读到，风扇数量未知（未知不等于 0 台）。")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func fanText(_ fan: SensorFan) -> String {
+        guard let current = fan.currentRPM else { return "—" }
+        guard let minRPM = fan.minRPM, let maxRPM = fan.maxRPM else {
+            return Self.rpmText(current) + " RPM"
+        }
+        return "\(Self.rpmText(current)) RPM（区间 \(Self.rpmText(minRPM))–\(Self.rpmText(maxRPM))）"
+    }
+
+    private static func temperatureText(_ celsius: Double) -> String {
+        String(format: "%.1f °C", celsius)
+    }
+
+    private static func rpmText(_ rpm: Double) -> String {
+        String(format: "%.0f", rpm)
     }
 
     // MARK: - 进程
