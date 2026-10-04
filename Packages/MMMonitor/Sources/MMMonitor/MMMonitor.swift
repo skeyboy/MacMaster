@@ -22,6 +22,8 @@ public struct MonitorView: View {
     @State private var processState: ProcessLoadState = .loading
     /// MM_MONITOR_CARDS 注入的显示过滤（nil = 全显示，生产路径）。
     @State private var visibleCards: Set<MonitorCard>?
+    /// 上一帧判为"偏高"的温度键，喂给 HotBand 做进出双阈值（I11 防闪）。
+    @State private var hotSensors = HotBandTrack()
 
     public init() {}
 
@@ -89,7 +91,19 @@ public struct MonitorView: View {
                 if !menuBar.isEnabled { menuBar.enable() }
                 loadProcesses()
             }
+            // 夹具与冻结首帧都是在 onAppear 里同步落到 snapshot 上的，
+            // onChange 不保证抓到这一次同周期变化，所以这里补一次播种。
+            syncHotSensors(menuBar.snapshot.sensors.temperatures)
         }
+        .onChange(of: menuBar.snapshot.sensors.temperatures) { _, temperatures in
+            syncHotSensors(temperatures)
+        }
+    }
+
+    /// 每帧把温度读数整体过一遍迟滞判定，热集合随之更新（见 HotBand.swift）。
+    private func syncHotSensors(_ temperatures: [SensorTemperature]) {
+        hotSensors.update(temperatures.map { ($0.key, $0.celsius as Double?) },
+                          band: Self.hotBand)
     }
 
     // MARK: - 顶部读数
@@ -191,7 +205,10 @@ public struct MonitorView: View {
     private static let visibleTemperatureCount = 8
     /// 转红阈值是我们自定的：SMC 不告诉你"这个键算不算热"，90 °C 取的是距离
     /// Apple Silicon 节流点的经验余量，不是苹果给的官方阈值。
-    private static let hotCelsius: Double = 90
+    /// 进 90 / 出 85（I11）：本机截图负载下实测最高 89.4 °C，离单点阈值只差 0.6 °C，
+    /// 而采样每 2 秒一帧——单点判定时这一行的颜色会在 89.x↔90.x 之间闪。
+    /// 改的是"什么时候复原"，不是"什么时候算热"：90 这个坎没挪。
+    private static let hotBand = HotBand(enter: 90, exit: 85)
 
     private var sensorsCard: some View {
         card(title: "温度与风扇", systemImage: "thermometer.medium") {
@@ -220,7 +237,8 @@ public struct MonitorView: View {
                         .frame(width: 56, alignment: .leading)
                     Text(Self.temperatureText(temp.celsius))
                         .font(.callout.monospacedDigit())
-                        .foregroundStyle(temp.celsius >= Self.hotCelsius ? MMColor.destructive : MMColor.label)
+                        // 数字是这一帧的，颜色要经过迟滞集合（从上一帧的状态起算）。
+                        .foregroundStyle(hotSensors.isHot(temp.key) ? MMColor.destructive : MMColor.label)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .frame(height: MMMetric.rowCompact)

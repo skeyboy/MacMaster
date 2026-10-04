@@ -550,6 +550,9 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
 正是同值按键名升序那条规则的照片证据。
 <b>转红阈值 90 °C 是我们自定的</b>，SMC 不告诉你"这个键算不算热"，取的是距 Apple Silicon 节流点的经验余量，
 <b>不是苹果官方阈值</b>；空闲时本机最高 54.5 °C，所以红档只能靠夹具（E5）。
+<b>进 90 / 出 85 两个阈值，不是一个</b>：本机截图负载下实测最高 89.4 °C，离单点阈值只差 0.6 °C，
+而采样每 2 秒一帧——单点判定时同一行的颜色会在 89.x↔90.x 之间闪。改动只在"什么时候复原"，
+<b>90 这个坎没挪</b>（把阈值抬到 95 只是把判据搬到测量够不着的地方，不算修）。
 <b>风扇一句与"风扇 0 台"是两句话：</b><code>fanCount == nil</code>（<code>FNum</code> 没读到）画 E4 那两行，
 <code>fanCount == 0</code> 画 E3 那句；<b>未知不许画成 0 台</b>。
 顺带一个观察（不是结论）：两次采样（空闲 54.5 °C 与截图负载下 89.4 °C）<code>F0Ac</code> 都是 1000 = <code>F0Mn</code>，
@@ -644,7 +647,8 @@ reason 由 <code>DiskIOReader</code> 现拼（IOKit 错误码经 <code>machError
           </div>
 
           <div class="dgrp">
-            <div class="note">E5 · 热档（≥90 °C 数值转 destructive，照片 <code>p64/06</code>，夹具 <code>sensorsHot</code>；暗档同判据见 <code>p64-dark/06</code>）</div>
+            <div class="note">E5 · 热档（从冷到热 ≥90 °C 转 destructive；已红着的要跌到 <b>85 以下</b>才复原，
+              见上文迟滞那条。照片 <code>p64/06</code>，夹具 <code>sensorsHot</code>；暗档同判据见 <code>p64-dark/06</code>）</div>
             <section class="mcard">
               <div class="hd"><svg class="i"><use href="#i-temp"></use></svg><b>温度与风扇</b></div>
               <div class="trow hi"><span class="k">TZZa</span><span class="v">94.0 °C</span></div>

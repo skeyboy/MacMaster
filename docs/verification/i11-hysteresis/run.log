@@ -1,0 +1,31 @@
+应用 pid=51331
+windowid=2329
+负载 pid=51339…（8 个）
+frame 1 已抓
+frame 2 已抓
+frame 3 已抓
+frame 4 已抓
+frame 5 已抓
+frame 6 已抓
+frame 7 已抓
+frame 8 已抓
+frame 9 已抓
+frame 10 已抓
+负载已停，继续拍冷却段
+frame 11 已抓
+frame 12 已抓
+frame 13 已抓
+frame 14 已抓
+frame 15 已抓
+frame 16 已抓
+frame 17 已抓
+frame 18 已抓
+frame 19 已抓
+frame 20 已抓
+frame 21 已抓
+frame 22 已抓
+frame 23 已抓
+frame 24 已抓
+frame 25 已抓
+frame 26 已抓
+→ /tmp/mm-i11-hyst（26 帧）。下一步：Scripts/i11-strip.swift 把温度行拼成对比条再读。

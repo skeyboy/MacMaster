@@ -153,11 +153,11 @@
 | `Scripts/trash-space-measure.swift` | 写 200 MiB → `trashItem` → 从废纸篓删掉，三步各读一次卷可用 | "移入废纸篓就回收了 X"是本模块差点写进 UI 的假话；只有实测能把它证伪。读的是应用自己用的那两个 `URLResourceKey`，所以差值就是页面上会显示的口径 |
 | `Scripts/purge-fixture.sh` | 造 `/tmp/macmaster-purge-fixture`（108 MB，14 个项目 / 22 处产物）：覆盖 CACHEDIR.TAG、`node_modules`、`build`+`package.json`、近期在用、读不进、云同步、受保护作者内容、无体积各行 | **P5.1 新增**。`MM_PURGE_FIXTURE_HOME` 只认 /tmp，所以真机上拍不到的分支必须在这里凑齐；脚本末尾的「产物目录清点」会把 23 个目录逐个列年龄，跑一遍就能核对页面报的数对不对（含两个**不该出现**的诱饵：游离的 `node_modules` 和 `Projects/sneaky` 里指向外部的软链） |
 | `Scripts/provenance-fixture.sh` | 造一棵假 home + 一份假 brew 账本（`<root>/.homebrew/Caskroom`），五档来源一次凑齐：设备号同一（Highball）、只有名字对上（CodeEdit，staged 链接指向别处）、MAS 收据（WeChat）、两份账本抢同一个 bundle（Firefox：firefox 与 firefox-beta）、什么都没有（MysteryApp） | **P5.2 新增**。真机上一台机器通常只有一两档拍得到，而这一屏的文案合同是**按档给的**（弱档不给 brew 命令、歧义档要点名两个 token），必须逐档摆拍。账本跟着假 home 走：`provenancePrefixesFactory` 指到 `<home>/.homebrew`、`provenanceReceiptsRootFactory` 给 `nil`，否则照片里"这一档没命中"到底是没凭据还是没读系统收据就分不出来了 |
-
 | `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
 | `Scripts/p62b-capture.sh` | 还原度收口**十档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡 `rows`+`empty`/登录项"未对表"档/登录项读取失败档。**07–10 用 `MM_GUARDIAN_CARDS` 只渲染目标卡**（P6.2d），不再需要拉高窗口+压矮上方三卡 | **P6.2b 新增、P6.2c 扩到八档、P6.2d 扩到十档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07 的 `scanUnifiedLog` 超时教训**记在 `fidelity-guardian.md` §6.6.3：`/usr/bin/log show` 在沙盒环境下会挂起，`DispatchSemaphore` 8 秒超时保护不能省 |
 | `Scripts/smc-probe.swift` | 只读探一次本机 AppleSMC：键表规模、`T*` 类型分布、风扇四键实测值、稳态扫描耗时 | **P6.4 新增**。立项前把"本机有没有风扇"这种凭机型猜的判据换成量出来的数；它同时是 `SMCParamBlock` 结构体布局的回归工具（布局漂了，`IOConnectCallStructMethod` 只会回 `kIOReturnBadArgument`，没有这个脚本就得重新猜）。**只读**：不碰 `F{id}Md`、不发 `Ftst` |
 | `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid |
+| `Scripts/i11-hysteresis-capture.sh` | 真实负载下逐帧抓监控页温度卡：起 8 个 `yes` 循环压 ~40 秒再撤掉，每 3 秒按 pid 抓一帧 | **I11 新增**。迟滞（进 90 / 出 85）是**随时间**的行为，而 `MM_MONITOR_FIXTURE` 每个进程只给一个定格快照——拍不到"红过之后落回 87 °C 还红着"。这台机器跨不过 90（26 帧最高 **89.0 °C**、零红），所以过渡态最终只有单测；脚本与负载段那一帧留在 `docs/verification/i11-hysteresis/`，免得下轮又去试一遍。**跑这类热实验时别同时干别的重活**：本轮同时在渲染设计稿，冷却曲线被画成 66→81.5→86.2，撤负载之后的帧全部作废 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个
@@ -182,6 +182,11 @@
 - **夹具文本也要有测试**：Swift 多行字面量的收尾**不带换行**，
   `"..." + join(...)` 拼出来的夹具会把第一条快照粘在表头行上被解析器吃掉——
   照片上"另有 2 个快照"看着挺像溢出态，其实少了一条。判据在 `SnapshotFixtureTests`。
+- **拍不到的时序状态就写清边界，别为出一张照片去造"随时间变化的夹具"**（I11）：迟滞、动画、
+  跨帧判定这类行为，`MM_*_FIXTURE` 一次只给一个定格快照，天生拍不到过渡。两条路里选前者——
+  ① 单测钉住判定 + 文档写明"这一档没有照片"（`fidelity-monitor.md` §4.2 末尾）；
+  ② 加一条时变夹具，代价是往生产代码里塞一条只有测试走的路。本轮走 ①，并顺手把
+  "本机压满 CPU 也只到 89.0 °C"这条实测边界留在 `Scripts/i11-hysteresis-capture.sh` 旁边。
 - **不要写脚本用 NSColor 查语义色的值**：脱离真实绘制上下文解析动态色，明暗两档会给出同一个（错的）值。
   这条坑记在 `pixel-probe.swift` 文件头。
 - **独立探针能读，不等于 `.app` 里能读**（P6.4）：`smc-probe.swift` 用 `swift` 解释器跑通了 AppleSMC，
