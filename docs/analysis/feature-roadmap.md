@@ -753,7 +753,30 @@ P6.2b 留下的"没测清单"一轮收掉三条，顺带把 I4 那条我**自己
   八张深色在 `docs/verification/p62c-dark/`；对照与作废记录在 `fidelity-guardian.md` §6.6。
   **仍未拍**：登录项 `scanerror`、活动卡 `empty` 档、侧栏拖到 `max:280` 那一端。
 
-## 下一轮候选（2026-10-01 调研，参考仓库在 `docs/github-references/`）
+## P6.2d 落地：守护页夹具出片收口 + scanUnifiedLog 超时修复（2026-10-04）
+
+P6.2c 留下的三处"仍未拍"（`scanerror`、活动卡 `empty`、§6.6.5）一轮收掉，顺带修掉一个真 bug。
+
+- **`scanUnifiedLog()` 挂起 bug**：07/10 两张照片长期拍出空态，原以为是 25 秒等待不够，
+  实际根因是 `/usr/bin/log show` 子进程在沙盒环境下挂起（`sandbox_extension_issue_file_to_process`），
+  `proc.waitUntilExit()` 永远不返回，`loadActivity()` 的夹具分支阻塞在 `_ = await Task.detached
+  { ActivityScanner.scan() }.value` 上。**修复**：`scanUnifiedLog()` 改用 `DispatchSemaphore`
+  包 8 秒超时，超时后 `proc.terminate()` 并返回 nil。实测正常 `log show` ~1 秒完成；
+  修复后 `rows` 档正确渲染 3 条夹具行，07/10 md5 不再相同。**教训**：子进程可能永远不结束，
+  超时保护不能省——这条不只适用于 `log show`，凡是在沙盒里 spawn 子进程的地方都适用。
+- **`MM_GUARDIAN_CARDS` 卡过滤钩子**：活动卡排在第 4 位，760pt 窗口里永远在折叠线以下。
+  P6.2c 的解法是拉高窗口到 1100×1000 + 压矮上方三卡（`MM_TCC_FIXTURE=rows` 等），代价是
+  照片上被压矮的那两卡不算本机状态。P6.2d 新增 `MM_GUARDIAN_CARDS=occupancy|tcc|login|activity`
+  （逗号子集，非法值整批拒绝），07/10 用 `=activity` 只渲染活动卡、08/09 用 `=login` 只渲染登录项，
+  不再需要压矮任何东西。纯显示层过滤，不改变数据流。
+- **十档 × 明暗两套**：`p62b-fidelity/` 与 `p62c-dark/` 各 10 张（新增 09 `scanerror` + 10 `empty`），
+  全部零合成点击。`fidelity-guardian.md` §6.6.5 里三处"仍未拍"划掉两条，只剩侧栏拖到 `max:280`
+  那一端。
+- **P6.3b 合并遍历**：`FileTreeWalker.walkForArtifact` 把 stats + activityProbe 合成一趟遍历
+  （`SubtreeWalk` 结构体携带 size/fileCount + sawRecentFile/unreadableDirectories + stopReason），
+  深度上限 `sizeDepthLimit = maxDepth + 3 = 23`。取消硬化：`readAllEntries` 在 `Task.isCancelled`
+  时返回部分列表并设 `stopReason=.cancelled`。`ProjectArtifactScannerTests` 9 条新测试，共 115 条全绿。
+  §8.6 那个"根报已扫完而组里挂着读不到"的矛盾在合并口子上修掉（`stopReason` 变显式字段）。
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
 逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:52,93` 两处，
@@ -773,16 +796,14 @@ SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号�
 （本机 Mac mini 无风扇，正分支只有温度，且要新引一条 IOReport 读取路径）。
 下一轮因此按**内部欠账**排：
 - **P6.2 · 还原度收口**：**已全部落地**——P6.2a 磁盘标记跨重扫存续、P6.2b 四处瑕疵收口、
-  P6.2c 图标环 + 暗档（均 2026-10-03，见上三节）。
+  P6.2c 图标环 + 暗档、P6.2d 守护页夹具出片收口 + `scanUnifiedLog` 超时修复（均 2026-10-03/04，见上各节）。
   四处里"守护页行分隔"与"侧栏 229↔245pt"两条的**原始度量不成立**（前者是整页骨架问题，后者在任何照片里都复现不了），
   教训就一条：**旧文档里的数字是线索不是依据，动手前先重测**——P6.2c 又给这条补了一个变体：
-  稿面上写的 `34px` 也不是依据，依据是稿子的渲染结果（38pt）。
-  **还开的还原度欠账**只剩三小条：登录项 `scanerror` 档、活动卡 `empty` 档、侧栏拖到 `max:280` 那一端
+  稿面上写的 `34px` 也不是依据，依据是稿子的渲染结果（38pt）。P6.2d 又补了一条：**子进程可能永远不结束**，
+  `scanUnifiedLog` 的 `DispatchSemaphore` 超时保护不能省。
+  **还开的还原度欠账**只剩一条：侧栏拖到 `max:280` 那一端
   （`fidelity-guardian.md` §6.6.5），加上归协调层的 I2 与 S 系列。
-- **P6.3 · 吞吐**：**调研已落地**（`dev-artifact-walk-merge.md`，2026-10-03）：两趟之间没有数据依赖，
-  分家是因为**两份不同的遍历合同**（stats 是全站共用口径），所以合并的正确形状是
-  给 `FileTreeWalker` 新增一个私有合并口、两套记账并行累加，而不是给 `stats` 加 mtime；
-  §8.6 那个"根报已扫完而组里挂着读不到"的矛盾正好修在这道口子上（`stopReason` 变显式字段）。
-  **落地分五步**，第 2 步的"双跑对拍"是硬闸——两套集合规则（点条目、符号链接）任一理解偏了，
-  表现就是同一目录在开发产物页与磁盘页数字互相矛盾。
+- **P6.3 · 吞吐**：**调研已落地**（`dev-artifact-walk-merge.md`，2026-10-03）；
+  **P6.3b 实现已落地**（2026-10-04）：`FileTreeWalker.walkForArtifact` 合并遍历 + `SubtreeWalk` 结构体 +
+  取消硬化 + 9 条新测试（共 115 条全绿）。§8.6 的"根报已扫完而组里挂着读不到"矛盾在合并口子上修掉。
 - **P6.4 · 候选 4**：温度/风扇，等上面两项清完再判要不要做。

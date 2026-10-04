@@ -33,7 +33,7 @@
 | 设计稿 | `docs/design-system/screens/mmguardian/06-guardian.html`（3 个 artboard：A 正常态首屏·四档 montage / B Mac mini 实机首屏 / C TCC 降级双卡「读不到」「查到了没有」） |
 | 渲染 | `cd docs/design-system && ./render.sh screens/mmguardian/06-guardian.html 1160 4600` → `screens/mmguardian/06-guardian.png`（稿内已出，本审计未重渲） |
 | 实机 | **P3 审计时无头**（该节判定全部来自代码 + HTML + tokens 比对）；**P6.2b 起本模块有实拍**：`docs/verification/p62b-fidelity/`（raw @2x PNG）。原记"全站像素锚点引用 monitor §0（侧栏 220pt）"已被本轮重测推翻——改前实机是 200pt，见 §6.3 |
-| 可用钩子 | `MM_GUARDIAN_FIXTURE`(占用档) / `MM_TCC_FIXTURE`(TCC 档) / `MM_GUARDIAN_LOGIN_FIXTURE`(登录项档) / `MM_GUARDIAN_LOAD=hold`(首帧定格)。四个钩子均 `com.example.*` 合成、只读、不写盘（`grep processInfo.environment Packages/MMGuardian/` → 4 命中） |
+| 可用钩子 | `MM_GUARDIAN_FIXTURE`(占用档) / `MM_TCC_FIXTURE`(TCC 档) / `MM_GUARDIAN_LOGIN_FIXTURE`(登录项档) / `MM_GUARDIAN_LOAD=hold`(首帧定格) / `MM_GUARDIAN_CARDS`(卡过滤，逗号子集 `occupancy|tcc|login|activity`)。前四个均 `com.example.*` 合成、只读、不写盘；`MM_GUARDIAN_CARDS` 是显示层过滤，不改变数据流（`grep processInfo.environment Packages/MMGuardian/` → 5 命中） |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘事件；未改 `Packages/MMGuardian/` 之外文件（tokens/screen/icons/render.sh/MMCore/MMUI 均只读）；未 `git` 任何操作；未 `swift build`；未碰 `/tmp` 之外路径 |
 | 测量诚实 | 没测过 ≠ 0、没看过 ≠ 干净、原因未知 ≠ 某个具体原因；像素项无真机数字，只标 `⚠️` 不编 |
 
@@ -129,7 +129,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | （设计稿 06 完全没有「系统活动」卡） | `MMGuardian.swift:297-339` `activityCard` + `ActivityScanner`（近期 log 事件 / LaunchAgent 改动 / `~/.ssh`·`~/.gnupg`·`~/Library/Keychains` 访问时间） | ❌ | 实现多了第 4 张卡；产品规划文档 §4.5 有"最近活动"区块，但设计稿落后未补，且实现按"诚实口径"重做（不编造进程名、无「阻止」按钮） | **中** | 设计稿该改 S12 |
-| 空态「近 5 分钟没有可读到的活动事件」 | `MMGuardian.swift:306-309` | ⚠️ | 实现独有，无设计稿可对照；且**无专属夹具钩子**，不能无头构造 | 中 | 提协调者 G1 |
+| 空态「近 5 分钟没有可读到的活动事件」 | `MMGuardian.swift:306-309` | ⚠️ | 实现独有，无设计稿可对照；**夹具钩子 `MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已落地**（`MMGuardian.swift:461`），`empty` 档实机见 `p62b-fidelity/10-guardian-activity-empty.png`（§6.6.3 补记） | 中 | 提协调者 G1（钩子已落实，缺设计稿基准） |
 | 卡片几何（icon=eye、行高 44、contentBackground 药丸） | `activityCard`：行改平铺 + `Divider()`，`minHeight: rowCompact`（P6.2b） | ⚠️ | 药丸底已去掉（全站只有这一页在用，与稿 06 的平铺行冲突）；但**这张稿 06 里根本没有**，所以像素项仍无基准可比 | 低 | 记录（区块归属见 S12） |
 
 ## 2. 实现该改（6 条，按严重度排序；P6.2b 关掉 3 条、P6.2c 关掉 I4）
@@ -158,7 +158,7 @@
 
 ## 4. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
 
-以下状态只在代码里读到分支，**本节写于 P3 无头审计**（当时环境不允许运行/截图）。P6.2b 已把其中 **1、2、3、4、6 五项实拍补齐**（`docs/verification/p62b-fidelity/`，见 §6.4），仍只有第 5 项（系统活动卡）没拍——钩子 `MM_GUARDIAN_ACTIVITY_FIXTURE` 后来已落地，本轮未用它出片。
+以下状态只在代码里读到分支，**本节写于 P3 无头审计**（当时环境不允许运行/截图）。P6.2b 已把其中 **1、2、3、4、6 五项实拍补齐**（`docs/verification/p62b-fidelity/`，见 §6.4），第 5 项（系统活动卡）也因 `MM_GUARDIAN_ACTIVITY_FIXTURE` 落地 + `scanUnifiedLog` 超时修复而实拍补齐（§6.6.3）。**§4 全部六项均已验证。**
 
 | # | 未验证项 | 为什么验不了 | 需要什么才能验 |
 | --- | --- | --- | --- |
@@ -186,12 +186,13 @@
 | 登录项·不可核对脚注 | `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` | 同上 |
 | 登录项·读取失败横幅 | `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` | 同上 |
 | 首帧骨架（测量中） | `MM_GUARDIAN_LOAD=hold` | 同上 |
-| **系统活动卡·空态/填充态** | **无钩子** | **见 §5 G1** |
+| 系统活动卡·填充态 | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=rows` | 同上（§6.6.3） |
+| 系统活动卡·空态 | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=empty` | 同上（§6.6.3） |
 
 ## 5. 提请协调者
 
 1. **【重点·核对结论】"授权表读不到 ≠ 未授权"边界：设计与实现均守住，PASS。** 实现在 `TCCProbe`/`TCCViewer`/`tccCard` 把"读不到"(`.unreadable`，不画列表) 与"查到 0 行"(`.emptyRead`，明确"查到了没有") 分成两个独立 UI 态，且 `.partial` 只列读到的库；设计稿 06c 也用两张独立卡片表达。唯一瑕疵是 06 主屏 artboard 1 内"系统级库读不到"警示条旁又画了系统级行（S10，设计稿自相矛盾，实现不会这么画），请协调者让设计稿修掉该自相矛盾。
-2. **【已落实·已出片】系统活动卡夹具钩子（G1）**：`MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已在 `MMGuardian.swift:461` 落地（合成条目标"夹具值"），本审计提出的"该卡无钩子、无法无头核对"已不成立；`rows` 档明暗两档各一张，见 §6.6.3（要压矮上面两张卡才进得了画面，`empty` 档仍未单独出片）。
+2. **【已落实·已出片（含 empty 档）】系统活动卡夹具钩子（G1）**：`MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已在 `MMGuardian.swift:461` 落地（合成条目标"夹具值"），本审计提出的"该卡无钩子、无法无头核对"已不成立；`rows` 档明暗两档各一张 + `empty` 档一张，见 §6.6.3。**P6.2d 新增 `MM_GUARDIAN_CARDS` 卡过滤钩子**，解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档现在用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡，不再需要压矮上方三卡。
 3. **【低】活动卡读敏感目录口径（G2）**：`ActivityScanner.scanRecentEvents` 读 `~/.ssh`/`~/.gnupg`/`~/Library/Keychains` 最近访问时间并展示为"最近访问: X"——守护模块自身把敏感目录访问时间摆上界面，可能自我矛盾，且 `readError` 失败被静默跳过。请产品/协调者确认该卡范围（是否应只报"最近改动"而非"最近访问"，以及失败是否要明示）。
 4. **【低】`MM_TCC_FIXTURE=unreadable` 文案格式（G3）**：夹具 detail 是单句平铺"模拟两库均读不到…"，未用真实 `TCCViewer.build` 的"用户级库读不到：…；系统级库读不到：…"逐库拼接，与设计 artboard 3 两原因排版不完全一致。建议夹具 unreadable 改为注入"用户级 ENOENT + 系统级 EPERM/rc23"两段原文以贴近设计。
 5. **【低】四档 montage 非单屏态（G4）**：06 主屏 A 稿把占用四档并排画全，但每设备仅持一态，易被当成单屏。建议设计稿标注"每态独立示意，需用 `MM_GUARDIAN_FIXTURE` 分屏核对"。
@@ -257,21 +258,23 @@ P6.2c 起同一目录再加三档，并把上面五张换成环校正后构建�
 | 文件 | 注入 | 看什么 |
 | --- | --- | --- |
 | `06-guardian-ring-fixture.png` | `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle` | **图标环红/中性规则唯一的取证路径**：本机没有摄像头和麦克风，不注入则两行永远 `absent` |
-| `07-guardian-activity-rows.png` | `MM_WINDOW_SIZE=1100x1000` + `MM_TCC_FIXTURE=rows` + `MM_GUARDIAN_LOGIN_FIXTURE=empty` + `MM_GUARDIAN_ACTIVITY_FIXTURE=rows`，等 25s | 第 4 张卡（实现独有）；**同屏 TCC/登录项两卡是压矮用的夹具态，不作依据**（§6.6.3） |
-| `08-guardian-login-indeterminate.png` | `MM_WINDOW_SIZE=1100x1000` + `MM_TCC_FIXTURE=rows` + `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` | "本轮未核对"徽章 + 脚注压在卡内分隔线下 |
+| `07-guardian-activity-rows.png` | `MM_GUARDIAN_CARDS=activity` + `MM_GUARDIAN_ACTIVITY_FIXTURE=rows` | 第 4 张卡（实现独有）；**P6.2d 改用 `MM_GUARDIAN_CARDS` 只渲染活动卡**，不再需要压矮上方三卡（§6.6.3） |
+| `08-guardian-login-indeterminate.png` | `MM_GUARDIAN_CARDS=login` + `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` | "本轮未核对"徽章 + 脚注压在卡内分隔线下 |
+| `09-guardian-login-scanerror.png` | `MM_GUARDIAN_CARDS=login` + `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` | 读取失败横幅（顶部黄条）+ 脚注 |
+| `10-guardian-activity-empty.png` | `MM_GUARDIAN_CARDS=activity` + `MM_GUARDIAN_ACTIVITY_FIXTURE=empty` | 活动卡空态：「近 5 分钟没有可读到的活动事件」 |
 
 **明暗两套**：`docs/verification/p62b-fidelity/` 是浅色，`docs/verification/p62c-dark/` 是同一八档的深色，
 逐张同注入、只差 `MM_APPEARANCE`。§6.6.2 的分隔线对比度就是在同名的一对上量的。
 
 ### 6.5 这一轮**没有**核对的（不写"应该没问题"）
 
-> 下面 1/3/4/5 四条由紧随其后的 P6.2c 关掉，结论在 §6.6；只有第 2 条（侧栏拖到两端）还开着。
+> 下面 1/5 两条由紧随其后的 P6.2c 关掉；2/3/4 由 P6.2d 关掉。结论在 §6.6。
 
 1. ~~**深色档**~~：P6.2b 六张全是 `MM_APPEARANCE=light`，去药丸后暗档的行对比度没量过 → §6.6.2 量了。
 2. **侧栏拖到两端**：只量了新的起点 220，`max:280` 那一端与"用户拖窄到 220 以下"的边界没拍。
 3. ~~**系统活动卡**~~：钩子已存在但本轮没出片 → §6.6.3 出了 `rows` 档（明暗各一）。
 4. ~~**登录项 `indeterminate`**~~：本轮只拍了 `rows` → §6.6.3 补了 `indeterminate`；
-   **`scanerror` 一档仍未拍**（它只多一条脚注，要再压一次版面）。
+   ~~**`scanerror` 一档仍未拍**~~ → P6.2d 补了 `09-guardian-login-scanerror.png`（§6.6.5）。
 5. ~~**I4 图标环**~~：本轮未动 → P6.2c 关掉，见 §6.6.1。
 
 ### 6.6 P6.2c 补记：图标环按稿校正 + 守护页暗档（2026-10-03）
@@ -317,13 +320,17 @@ P6.2b 去掉行药丸底，唯一没核的就是暗档——量同一行像素�
 
 - **07/08 拍的不是它们命名的东西**：系统活动卡排在第 4 位，它上面那张"读不到"TCC 空态卡
   就有 ~600pt 高，再叠真机 17 条登录项——760pt 窗口里第 4 张卡**永远在折叠线以下**。
-  修法：窗口拉高到 `MM_WINDOW_SIZE=1100x1000`（屏 1920×1080pt，再高会被裁），
-  并把上面两张卡换成矮夹具态（`MM_TCC_FIXTURE=rows`、07 另加 `MM_GUARDIAN_LOGIN_FIXTURE=empty`）。
-  **代价写在脚本里**：这两张照上的 TCC 行与"登录项为空"都不是本机状态，它们只负责把要拍的卡顶进画面。
-- **夹具落地比真扫描慢**：07 第一次拍到的是活动卡**空态**——`loadActivity()` 的夹具分支
-  先真跑一次 `ActivityScanner.scan()`（含 `log show` 子进程，秒级）再顶替展示数据，
-  8 秒等待截在了覆盖之前。这一档的等待改成 25 秒，原因写在 `Scripts/p62b-capture.sh` 的 07 注释里。
-  这不是保守值而是这条分支的最低要求：**凡是"先真跑再顶替"的夹具，等待必须覆盖真扫描**。
+  修法（P6.2d）：新增 `MM_GUARDIAN_CARDS` 卡过滤钩子（`GuardianCardFilter` 解析逗号子集，
+  非法值整批拒绝并写 stderr），07/10 两档现在用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡，
+  不再需要拉高窗口 + 压矮上方三卡。**代价**：照片上只有一张卡，看不到它在整页里的位置。
+- **`ActivityScanner.scan()` 在沙盒环境下会挂起**：07 第一次拍到的是活动卡**空态**而非 `rows`
+  夹具——根因不是等待不够，而是 `scanUnifiedLog()` 调用的 `/usr/bin/log show` 子进程在沙盒
+  环境下挂起（`sandbox_extension_issue_file_to_process`），`proc.waitUntilExit()` 永远不返回，
+  于是 `_ = await Task.detached { ActivityScanner.scan() }.value` 阻塞到超时。
+  **P6.2d 修复**：`scanUnifiedLog()` 改用 `DispatchSemaphore` 包 8 秒超时，超时后 `proc.terminate()`
+  并返回 nil（降级为空列表）。实测正常 `log show` 约 1 秒完成，8 秒足够；修复后 `rows` 档
+  正确渲染 3 条夹具行。**凡是"先真跑再顶替"的夹具，等待必须覆盖真扫描**——这条通用规则
+  记进 `hook-ledger.md`，但本例的真正教训是：**子进程可能永远不结束，超时保护不能省**。
 
 #### 6.6.4 一张被作废的照片，和为它做的一次系统核查
 
@@ -346,7 +353,7 @@ P6.2b 去掉行药丸底，唯一没核的就是暗档——量同一行像素�
 #### 6.6.5 这一轮仍然没核的
 
 1. **侧栏拖到 `max:280` 那一端**、以及用户拖窄到 220 以下的边界（§6.5 第 2 条）。
-2. **登录项 `scanerror` 档**（只多一条脚注，未再压一次版面）。
-3. **活动卡 `empty` 档**：07 拍的是 `rows`，空态那一行在通栏卡里的留白没单独出片。
+2. ~~**登录项 `scanerror` 档**~~ → P6.2d 补了 `09-guardian-login-scanerror.png`（`MM_GUARDIAN_CARDS=login` + `MM_GUARDIAN_LOGIN_FIXTURE=scanerror`）。
+3. ~~**活动卡 `empty` 档**~~ → P6.2d 补了 `10-guardian-activity-empty.png`（`MM_GUARDIAN_CARDS=activity` + `MM_GUARDIAN_ACTIVITY_FIXTURE=empty`）。
 4. **稿 06 的 S 系列**（S1–S4 全站 token 漂移、S10 警示条旁多画系统级行）仍归协调层，本轮没动设计稿。
 

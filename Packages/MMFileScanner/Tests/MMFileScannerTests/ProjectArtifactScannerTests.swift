@@ -847,6 +847,293 @@ final class ProjectArtifactScannerTests: XCTestCase {
         XCTAssertTrue(full.groups.contains { $0.projectRoot == code + "/proj" },
                       "「重新扫描」才是发现新顶层项目的入口")
     }
+
+    // MARK: - P6.3b 合并遍历：纯派生表（调研 §4.3，六行映射逐行钉死；无 IO）
+
+    private func walkDone(size: UInt64 = 0, count: Int = 0, recent: Bool = false,
+                          unreadable: [String] = [],
+                          stop: FileTreeWalker.SubtreeWalk.Stop? = nil,
+                          depthTruncated: Bool = false) -> FileTreeWalker.SubtreeWalk {
+        var w = FileTreeWalker.SubtreeWalk()
+        w.size = size
+        w.fileCount = count
+        w.sawRecentFile = recent
+        w.unreadableDirectories = unreadable
+        w.stopReason = stop
+        w.sizeDepthTruncated = depthTruncated
+        return w
+    }
+
+    /// 行 1：候选完整跑完、无近期文件 → noRecentFile + 体积有值 + 根不截断。
+    func testWalkDerivationCompletedWalkWithoutRecent() throws {
+        let w = walkDone(size: 123, count: 5)
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: w, path: "/p"), .noRecentFile)
+        let measured = try XCTUnwrap(ProjectArtifactScanner.measuredSize(from: w, isNested: false))
+        XCTAssertEqual(measured.size, 123)
+        XCTAssertEqual(measured.fileCount, 5)
+        XCTAssertFalse(ProjectArtifactScanner.budgetIncomplete(from: w))
+    }
+
+    /// 行 2/3：中途超时（活动侧与体积侧从此是**同一个字段**，不再有两套竞速）
+    /// → incomplete（文案与旧 activityProbe 逐字相同）+ 体积 nil + 根进 truncated。
+    func testWalkDerivationDeadlineAndCancellationShareOneConclusion() {
+        for stop in [FileTreeWalker.SubtreeWalk.Stop.deadline, .cancelled] {
+            let w = walkDone(size: 999, count: 3, recent: true, stop: stop)
+            XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: w, path: "/p"),
+                           .incomplete("活动探测超时/被取消：/p"), "stop=\(stop)")
+            XCTAssertNil(ProjectArtifactScanner.measuredSize(from: w, isNested: false),
+                         "预算内没量完的部分和不许冒充完整数字（纪律 3），stop=\(stop)")
+            XCTAssertTrue(ProjectArtifactScanner.budgetIncomplete(from: w), "根必须进 truncated：\(stop)")
+        }
+    }
+
+    /// 行 4：目录读不进（TCC/权限）→ incomplete("读不动…")，但**不是**预算问题：
+    /// 体积按现口径照给（§4.2(b) 的收紧待拍板，本轮不并），根不进 truncated。
+    func testWalkDerivationUnreadableIsAConclusionNotATruncation() throws {
+        let w = walkDone(size: 4096, count: 2, unreadable: ["/p/locked", "/p/x"])
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: w, path: "/p"),
+                       .incomplete("读不动：/p/locked"))
+        let measured = try XCTUnwrap(ProjectArtifactScanner.measuredSize(from: w, isNested: false))
+        XCTAssertEqual(measured.size, 4096)
+        XCTAssertFalse(ProjectArtifactScanner.budgetIncomplete(from: w),
+                       "权限性读不进是已出的 fail-closed 结论，不许把根拖进截断账（§8.6 对齐）")
+    }
+
+    /// 行 5：深于 23 层 → 数值与今天的 stats 逐位一致，只是截断从静默变显式。
+    func testWalkDerivationDepthTruncationKeepsNumbers() throws {
+        let w = walkDone(size: 7, count: 1, depthTruncated: true)
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: w, path: "/p"), .noRecentFile)
+        let measured = try XCTUnwrap(ProjectArtifactScanner.measuredSize(from: w, isNested: false))
+        XCTAssertEqual(measured.size, 7)
+        XCTAssertTrue(w.sizeDepthTruncated)
+    }
+
+    /// 行 6：嵌套候选（needSize=false，带早退）→ 活动结论照常出，体积恒 nil；
+    /// 若早退前就撞线，与行 2 同——进截断。
+    func testWalkDerivationNestedRowNeverReportsSize() {
+        let early = walkDone(recent: true)
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: early, path: "/p"),
+                       .recentFileFound)
+        XCTAssertNil(ProjectArtifactScanner.measuredSize(from: early, isNested: true))
+        XCTAssertFalse(ProjectArtifactScanner.budgetIncomplete(from: early))
+
+        let stopped = walkDone(recent: true, stop: .deadline)
+        XCTAssertTrue(ProjectArtifactScanner.budgetIncomplete(from: stopped))
+    }
+
+    /// fail-closed 优先级：deadline > 读不进 > 近期文件。
+    /// "没扫到"不许混成"没有"——三态里最保守的那个压过所有乐观结论。
+    func testWalkDerivationFailClosedPrecedence() {
+        let unreadableBeatsRecent = walkDone(size: 10, count: 1, recent: true, unreadable: ["/p/l"])
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: unreadableBeatsRecent, path: "/p"),
+                       .incomplete("读不动：/p/l"))
+        let deadlineBeatsEverything = walkDone(size: 10, recent: true, unreadable: ["/p/l"], stop: .deadline)
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: deadlineBeatsEverything, path: "/p"),
+                       .incomplete("活动探测超时/被取消：/p"))
+    }
+
+    // MARK: - P6.3b 双跑对拍（调研 §7 第 2 步：合并结果与两趟旧遍历**逐字段相等**是硬闸）
+
+    /// 在 /tmp 造一棵同时踩中四套集合规则差异源的子树（本仓约定：动文件的夹具只放 /tmp，
+    /// 测试自清理）：①点目录/点条目 ②符号链接（文件链 + 指向候选外新鲜目录的目录链 + 点链）
+    /// ③深于 23 层的链（第 23 层文件必须还计入、第 24/26 层必须静默不计——与 stats 同死线）
+    /// ④chmod 000 子目录（读不进：stats 静默计 0、probe fail closed，两路来源必须合流）。
+    ///
+    /// `allRecent=false`：整棵 40 天前 → 活动侧结论是"读不动（挂在唯一读不进的目录上）"；
+    /// `allRecent=true`：全部刚动过且锁目录恢复可读 → 活动侧结论是 recentFileFound。
+    /// 两种都要：体积 == stats、活动派生 == 旧 activityProbe（连 reason 里的目录路径都相等）。
+    private func runMergedWalkParity(allRecent: Bool) async throws {
+        let sandbox = URL(fileURLWithPath: "/tmp/walk-parity-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: sandbox, withIntermediateDirectories: true)
+        let fm = FileManager.default
+        let candidate = try makeDir(sandbox, "node_modules")
+        let locked = candidate.appendingPathComponent("locked", isDirectory: true)
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: locked.path)
+            try? fm.removeItem(at: sandbox)
+        }
+        let age = allRecent ? 0 : 40
+
+        // ① 点条目与点目录：体积侧整条排除（含子树），活动侧照查照下潜。
+        try writeFile(candidate, "a.txt", size: 2048, daysAgo: age)
+        try writeFile(candidate, ".hidden.txt", size: 512, daysAgo: age)
+        let sub = try makeDir(candidate, "sub")
+        try writeFile(sub, "b.bin", size: 1024, daysAgo: age)
+        let dotDir = try makeDir(candidate, ".dotdir")
+        try writeFile(dotDir, "c.txt", size: 256, daysAgo: age)
+
+        // ② 符号链接：体积侧按链接自身 st_size 计入（readEntries 的既成事实），
+        //    活动侧完全不可见、更不下潜。link-dir 指向候选**外**一棵新鲜目录——
+        //    任何一路要是跟了链接，本对拍立刻崩，所以它同时是"不跟随"的断言。
+        let elsewhere = try makeDir(sandbox, "elsewhere")
+        try writeFile(elsewhere, "fresh.txt", size: 4096, daysAgo: 0)
+        try fm.createSymbolicLink(at: candidate.appendingPathComponent("link-file"),
+                                  withDestinationURL: candidate.appendingPathComponent("a.txt"))
+        try fm.createSymbolicLink(at: candidate.appendingPathComponent("link-dir"),
+                                  withDestinationURL: elsewhere)
+        try fm.createSymbolicLink(at: candidate.appendingPathComponent(".link-dot"),
+                                  withDestinationURL: sub)
+
+        // ③ 深度：候选直接子项为第 0 层；chain/dK 在第 K 层，stats 主遍历计到 20 层、
+        //    fallbackStats 补到 23 层，24 层起静默 0——合并口必须在同一条线上少加同样的数。
+        let chain = try makeDir(candidate, "chain")
+        try writeFile(chain, "level1.txt", size: 16, daysAgo: age)
+        var dirs: [URL] = []
+        var cursor = chain
+        for k in 1...25 {
+            cursor = try makeDir(cursor, "d\(k)")
+            dirs.append(cursor)
+        }
+        try writeFile(dirs[21], "level23.txt", size: 32, daysAgo: age)   // 第 23 层：计入
+        try writeFile(dirs[22], "level24.txt", size: 64, daysAgo: age)   // 第 24 层：不计
+        try writeFile(dirs[24], "level26.txt", size: 128, daysAgo: age)  // 第 26 层：不计
+        // 链深处的点目录：stats 从不进去（无体积也无所谓截断），活动侧照走。
+        let deepDot = try makeDir(dirs[5], ".deepdot")
+        try writeFile(deepDot, "old.txt", size: 8, daysAgo: age)
+
+        // ④ 宽扇出给耗时样本一点肉（3200 个条目），也让并行/串行合并路径都被压到。
+        for f in 0..<50 {
+            let fan = try makeDir(candidate, "fan\(f)")
+            for i in 0..<20 {
+                try writeFile(fan, "pkg-\(i).js", size: 32, daysAgo: age)
+            }
+        }
+
+        // ⑤ chmod 000 子目录。以 root 跑测试时 000 拦不住读——那两路旧遍历同样看得见内容，
+        //    对拍照跑，只是"读不进"分支自然退化为空集，不豁免断言。
+        try fm.createDirectory(at: locked, withIntermediateDirectories: true)
+        try writeFile(locked, "secret.txt", size: 8192, daysAgo: age)
+        try fm.setAttributes([.posixPermissions: allRecent ? 0o755 : 0o000],
+                             ofItemAtPath: locked.path)
+        let lockedIsUnreadable = allRecent ? false : !FileTreeWalker.canEnumerate(path: locked.path)
+
+        let rules = ProjectArtifactRules(
+            artifactNames: ["node_modules"], projectIndicators: ["package.json"],
+            monorepoIndicators: [], searchRoots: [], rootBudgetSeconds: 60)
+        let scanner = ProjectArtifactScanner(home: sandbox.path, rules: rules, now: now)
+        // 宽裕预算：对拍要证的是集合规则等价，不是预算行为（预算各有专职用例）。
+        let deadline = Date().addingTimeInterval(600)
+        let threshold = now.addingTimeInterval(-7 * 86_400)
+
+        // —— 两趟旧参考实现的耗时（stats 全趟 + activityProbe 全趟）。
+        let twoPassStart = Date()
+        let stats = await FileTreeWalker.stats(path: candidate.path)
+        let legacy = await scanner.activityProbe(in: candidate.path, deadline: deadline)
+        let twoPassSeconds = Date().timeIntervalSince(twoPassStart)
+
+        // —— 合并口一趟（非嵌套档：needSize=true，全程走完不早退）。
+        let oneStart = Date()
+        let walk = await FileTreeWalker.walkForArtifact(path: candidate.path, deadline: deadline,
+                                                        recentThreshold: threshold, needSize: true)
+        let onePassSeconds = Date().timeIntervalSince(oneStart)
+
+        // 调研 §8 欠的应用内实测样本：打印，**不**断言阈值（换台机器就翻车的数不配当闸）。
+        print(String(format: "[walk-merge 对拍 allRecent=%@] 两趟(stats+probe)=%.4fs 一趟(walk)=%.4fs "
+                     + "size=%llu files=%d",
+                     allRecent ? "true" : "false", twoPassSeconds, onePassSeconds,
+                     stats.size, stats.fileCount))
+
+        // 硬闸①：体积/文件数与 FileTreeWalker.stats 逐字段相等（差一个字节都算不等价）。
+        XCTAssertEqual(walk.size, stats.size,
+                       "合并口与 stats 体积不等价——同目录两页数字打架，纪律 2 事故口径")
+        XCTAssertEqual(walk.fileCount, stats.fileCount,
+                       "合并口与 stats 文件数不等价")
+        XCTAssertGreaterThan(walk.size, 0)
+        XCTAssertNil(walk.stopReason, "宽裕预算下合并口不许自己判超时")
+        XCTAssertFalse(ProjectArtifactScanner.budgetIncomplete(from: walk))
+        XCTAssertTrue(walk.sizeDepthTruncated, "夹具里有第 24 层起的文件，静默截断必须显式化")
+        if lockedIsUnreadable {
+            XCTAssertEqual(walk.unreadableDirectories, [locked.path], "读不进通道只认这一棵锁目录")
+        } else {
+            XCTAssertTrue(walk.unreadableDirectories.isEmpty)
+        }
+
+        // 硬闸②：活动侧派生结论与旧 activityProbe 相等（含 reason 里的目录路径）。
+        let derived = ProjectArtifactScanner.activityProbeResult(from: walk, path: candidate.path)
+        XCTAssertEqual(derived, legacy, "合并口的活动结论与旧 activityProbe 不等价")
+        XCTAssertEqual(walk.sawRecentFile, allRecent,
+                       "sawRecentFile 必须恰为『存在近期文件』——链诱饵/点条目都不能把它翻掉")
+
+        // 嵌套档（needSize=false，早退保留）：同一棵树上结论仍与旧 probe 逐字相等。
+        let nestedWalk = await FileTreeWalker.walkForArtifact(path: candidate.path, deadline: deadline,
+                                                              recentThreshold: threshold, needSize: false)
+        XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: nestedWalk, path: candidate.path),
+                       legacy, "needSize=false 必须复刻旧 activityProbe，含早退顺序")
+        XCTAssertNil(ProjectArtifactScanner.measuredSize(from: nestedWalk, isNested: true),
+                     "嵌套候选体积恒 nil（体积已在祖先处整体计入）")
+    }
+
+    func testMergedWalkParityOnAgedTree() async throws {
+        try await runMergedWalkParity(allRecent: false)
+    }
+
+    func testMergedWalkParityOnRecentlyTouchedTree() async throws {
+        try await runMergedWalkParity(allRecent: true)
+    }
+
+    // MARK: - P6.3b §8.6 不变式（接线后的根账本）
+
+    /// 不变式：根进了 scannedRoots ⇒ 该根所有非嵌套行要么结论完整（isCompleteObservation），
+    /// 要么结论是"读不到（非预算）"。超时落在最后一个候选**中间**也必须把根记进截断，
+    /// 「已扫完的根 + 预算用尽的读不到行」这组矛盾不许再同屏。
+    /// 截止线落在候选中间没法掐毫秒确定，所以这是性质断言：小预算 + 足量夹具，
+    /// 无论预算咬在哪一步，违规组合出现即失败。
+    func testScannedRootNeverCarriesBudgetUnfinishedRows() async throws {
+        let sandbox = URL(fileURLWithPath: "/tmp/walk-budget-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: sandbox, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: sandbox) }
+        let home = ProjectArtifactScanner.physicalPath(of: sandbox.path)
+        let proj = home + "/Code/proj"
+        let nm = proj + "/node_modules"
+        // 3200 条目 + 40 天龄：0.05 s 的根预算大概率咬在成案中途——正是旧的出事位置。
+        for d in 0..<80 {
+            for f in 0..<40 {
+                try writeFile(URL(fileURLWithPath: "\(nm)/pkg\(d)"), "f\(f).js", size: 64, daysAgo: 40)
+            }
+        }
+        try writeFile(URL(fileURLWithPath: nm), "index.js", size: 64, daysAgo: 40)
+        try writeFile(URL(fileURLWithPath: proj), "package.json", size: 10, daysAgo: 40)
+        try setOld(URL(fileURLWithPath: nm), days: 40)
+
+        let rules = ProjectArtifactRules(
+            artifactNames: ["node_modules"], projectIndicators: ["package.json"],
+            monorepoIndicators: [], searchRoots: [home + "/Code"],
+            rootBudgetSeconds: 0.05)
+        let report = await ProjectArtifactScanner(home: home, rules: rules, now: now).scan()
+
+        let scanned = Set(report.scannedRoots)
+        for item in report.groups.flatMap(\.artifacts) where !item.isNestedInAnotherArtifact {
+            guard scanned.contains(item.sourceRoot) else { continue }
+            if ProjectArtifactScanner.isCompleteObservation(item) { continue }
+            guard case .unknown(let reason) = item.activity else {
+                XCTFail("根 \(item.sourceRoot) 已扫完，行 \(item.path) 却没出完整结论，"
+                        + "活动度还不是 unknown（\(item.activity)）——预算性未完成必须进截断账")
+                continue
+            }
+            XCTAssertFalse(reason.contains("超时") || reason.contains("取消"),
+                           "§8.6 复现：根报「已扫完」，行挂着「读不到（预算用尽）」：\(reason)")
+        }
+
+        // 阳性对照（防上面那条性质断言空转）：同一夹具在宽裕预算下必须扫得完——
+        // 根进 scannedRoots，且每一行都是完整结论。合并遍历要是把不该 fail-closed
+        // 的场景折成了读不到，这里会先红。
+        let generous = ProjectArtifactRules(
+            artifactNames: ["node_modules"], projectIndicators: ["package.json"],
+            monorepoIndicators: [], searchRoots: [home + "/Code"],
+            rootBudgetSeconds: 120)
+        let done = await ProjectArtifactScanner(home: home, rules: generous, now: now).scan()
+        let root = home + "/Code"
+        XCTAssertTrue(done.scannedRoots.contains(root),
+                      "宽裕预算下 \(root) 应进 scannedRoots；truncated=\(done.truncatedRoots)")
+        let rows = done.groups.flatMap(\.artifacts).filter {
+            $0.sourceRoot == root && !$0.isNestedInAnotherArtifact
+        }
+        XCTAssertFalse(rows.isEmpty, "夹具必须真的产出候选行")
+        for row in rows {
+            XCTAssertTrue(ProjectArtifactScanner.isCompleteObservation(row),
+                          "宽裕预算下每行都该看完证据：\(row.path) activity=\(row.activity) size=\(String(describing: row.size))")
+        }
+    }
 }
 
 private extension ProjectArtifact {

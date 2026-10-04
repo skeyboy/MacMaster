@@ -151,6 +151,231 @@ enum FileTreeWalker {
         return result
     }
 
+    // MARK: - 合并遍历（P6.3b：activityProbe + stats 两趟并一趟）
+    //
+    // 形状、集合规则与理由全部照 docs/analysis/dev-artifact-walk-merge.md §3：
+    // **stats / readEntries / DirectoryMetrics 的签名与语义这里一字未动**——它们另有
+    // UserFolderScanner / SystemAnalyzer / InstallerScanner / MMUninstaller（经
+    // DirectoryMetrics）四个消费方，同一目录在清理页与磁盘页的数字不许互相矛盾
+    // （文件头纪律 2）。合并口是 internal，只被本模块的 ProjectArtifactScanner 消费。
+
+    /// 合并入口的返回形状（调研 §3.3）。
+    struct SubtreeWalk: Sendable {
+        /// 遍历没走完的原因。nil = 完整跑完（嵌套档允许在撞到近期文件后合法早退）。
+        enum Stop: String, Sendable {
+            case deadline
+            case cancelled
+        }
+        /// 与 readEntries **完全同集合**的体积和：点条目（连同其子树）不计、
+        /// 符号链接按链接自身 st_size 计入、20+3 层之外静默不计——
+        /// 数值必须与 stats(path:) 逐位相等（调研 §6.8：对拍不等价就是事故口径）。
+        var size: UInt64 = 0
+        var fileCount: Int = 0
+        /// 与 listAllEntries **完全同集合**的活动判断：含点条目、跳过符号链接、无深度上限。
+        var sawRecentFile: Bool = false
+        /// fail-closed 通道：枚举失败且目录仍存在（既不是"空目录"，也不是"目录消失"）。
+        /// 封顶 16 条——消费方只需要"有没有 + 第一条是谁"（调研 §4.2）。
+        var unreadableDirectories: [String] = []
+        var stopReason: Stop?
+        /// 深于 23 层的静默截断的显式化：数值与今天的 stats 一致，此旗标只说明"越过了"。
+        var sizeDepthTruncated: Bool = false
+
+        static let unreadableDirectoriesCap = 16
+
+        /// 群上的合并（调研 §3.1"把活动累加做成群上的幺半组"）。
+        /// 停止原因优先级：cancelled > deadline > nil；读不进按收集顺序拼接并封顶。
+        mutating func merge(_ other: SubtreeWalk) {
+            size += other.size
+            fileCount += other.fileCount
+            sawRecentFile = sawRecentFile || other.sawRecentFile
+            sizeDepthTruncated = sizeDepthTruncated || other.sizeDepthTruncated
+            for dir in other.unreadableDirectories where unreadableDirectories.count < Self.unreadableDirectoriesCap {
+                unreadableDirectories.append(dir)
+            }
+            switch (stopReason, other.stopReason) {
+            case (_, .some(.cancelled)): stopReason = .cancelled
+            case (.none, .some(.deadline)): stopReason = .deadline
+            default: break
+            }
+        }
+    }
+
+    /// 体积记账的最深条目层（候选根直接子项为第 0 层）：stats 主遍历计 0...20
+    /// （:94 的 `depth >= maxDepth` 在**计入本层条目之后**才判），fallbackStats
+    /// （remainingDepth 3）补到第 23 层，第 24 层起静默计 0。合并口沿用同一界限。
+    private static let sizeDepthLimit = maxDepth + 3
+
+    /// 合并入口（调研 §3.3）：一趟并两套记账。
+    /// - `needSize == true`：非嵌套候选。体积 + 活动同一趟全程走完，**不早退**
+    ///   （省掉的是整趟 stats；早退红利小于这个数，净赚，见 §3.2）。
+    /// - `needSize == false`：嵌套候选。只要活动结论，保留旧 activityProbe 的
+    ///   串行栈 + 早退——"近期在用的大嵌套目录"不许从近免费改成全量（§6.5 红线）。
+    /// deadline 检查在遍历内部，每进一个目录查一次（沿用旧 activityProbe :623 的粒度）；
+    /// `ProjectArtifactScanner.bounded` 的竞速包装对这条路径退役。
+    static func walkForArtifact(path: String, deadline: Date, recentThreshold: Date,
+                                needSize: Bool) async -> SubtreeWalk {
+        if needSize {
+            return await walkCountedDirectory(path, depth: 0, ancestorsCounted: true,
+                                              deadline: deadline, recentThreshold: recentThreshold)
+        }
+        return walkActivityOnly(path: path, deadline: deadline, recentThreshold: recentThreshold)
+    }
+
+    /// 与旧 activityProbe 同形状同顺序的早退遍历：串行显式栈 DFS（LIFO），
+    /// 含点条目、跳过符号链接、无深度上限；deadline/取消、第一个"读不进目录"、
+    /// 第一个近期文件都**立即停**——顺序即结论（首个读不进目录写进理由字符串，
+    /// 与旧实现的弹出顺序一致，前提是同一次 contentsOfDirectory 给出同序枚举）。
+    private static func walkActivityOnly(path: String, deadline: Date,
+                                         recentThreshold: Date) -> SubtreeWalk {
+        var result = SubtreeWalk()
+        var stack = [path]
+        while let dir = stack.popLast() {
+            if Task.isCancelled { result.stopReason = .cancelled; return result }
+            if Date() >= deadline { result.stopReason = .deadline; return result }
+            guard let entries = readAllEntries(path: dir) else {
+                // 枚举失败：目录还在才算读不进并停在这（旧 probe 的 incomplete 即停），
+                // 目录中途消失则静默跳过（旧遍历 directoryExists=false 时继续走）。
+                if directoryStillExists(dir) {
+                    result.unreadableDirectories.append(dir)
+                    return result
+                }
+                continue
+            }
+            // 取消可能正好落在上面那次枚举中间：`readAllEntries` 会返回**半截清单**，
+            // 这时候把栈走空当成"完整跑完"就会给出假的 `.noRecentFile`。
+            if Task.isCancelled { result.stopReason = .cancelled; return result }
+            for entry in entries {
+                if entry.isSymlink { continue }   // 活动侧（listAllEntries）对符号链接完全不可见
+                if entry.isDirectory {
+                    stack.append(entry.path)
+                } else if entry.modificationDate >= recentThreshold {
+                    result.sawRecentFile = true
+                    return result
+                }
+            }
+        }
+        return result
+    }
+
+    /// 非嵌套候选的全量趟：体积侧 + 活动侧同一趟各记各的账，不早退。
+    /// 任务组骨架照 stats（depth < 3 并行、workerLimit 窗口滚动），把两趟的
+    /// syscall（readdir + 每条目一次 lstat）收敛成一份。
+    private static func walkCountedDirectory(_ path: String, depth: Int, ancestorsCounted: Bool,
+                                             deadline: Date, recentThreshold: Date) async -> SubtreeWalk {
+        var result = SubtreeWalk()
+        if Task.isCancelled { result.stopReason = .cancelled; return result }
+        if Date() >= deadline { result.stopReason = .deadline; return result }
+        guard let entries = readAllEntries(path: path) else {
+            if directoryStillExists(path) { result.unreadableDirectories = [path] }
+            // 旧 stats 对读不进的子目录就是静默计 0 且不进（readEntries 的 try?）——
+            // 体积侧行为不改，unreadableDirectories 只是新增的 fail-closed 事实通道。
+            return result
+        }
+        // 取消可能正好落在上面那次枚举中间，那是一份**半截清单**：部分和冒充完整数字
+        // 是本仓库明令的事故口径，所以这里必须把 stopReason 钉成 cancelled 再返回。
+        if Task.isCancelled { result.stopReason = .cancelled; return result }
+        // 两套记账的开关（调研 §3.1）：体积侧 = 祖先链全非点 ∧ 层数 ≤ 20+3；
+        // 活动侧与点/深度无关，只认"非符号链接"。chain 条件与深度条件必须分开传：
+        // 链条件决定 sizeDepthTruncated 是否还有意义，点目录子树本来就哪儿都不去。
+        let counts = ancestorsCounted && depth <= sizeDepthLimit
+        if ancestorsCounted && depth > sizeDepthLimit && !entries.isEmpty {
+            result.sizeDepthTruncated = true   // 显式化"这层起 stats 也会静默少加"
+        }
+        var childDirectories: [(path: String, chainCounted: Bool)] = []
+        for entry in entries {
+            let isDot = entry.name.hasPrefix(".")
+            if !entry.isDirectory && counts && !isDot {
+                // 非目录一律计入——符号链接按链接自身 st_size，同 readEntries :58-66
+                // 的既成事实；listAllEntries 那边则整体跳过符号链接，两边各取所需。
+                result.size += entry.size
+                result.fileCount += 1
+            }
+            if entry.isSymlink { continue }    // 活动侧不可见，也不下潜
+            if entry.isDirectory {
+                childDirectories.append((entry.path, ancestorsCounted && !isDot))
+            } else if entry.modificationDate >= recentThreshold {
+                result.sawRecentFile = true   // 不早退：体积必须量完（§3.2）
+            }
+        }
+        guard !childDirectories.isEmpty else { return result }
+
+        let childDepth = depth + 1
+        if depth < maxParallelDepth && childDirectories.count > 1 {
+            await withTaskGroup(of: SubtreeWalk.self) { group in
+                var next = 0
+                while next < min(workerLimit, childDirectories.count) {
+                    let dir = childDirectories[next]
+                    next += 1
+                    group.addTask {
+                        await walkCountedDirectory(dir.path, depth: childDepth, ancestorsCounted: dir.chainCounted,
+                                                   deadline: deadline, recentThreshold: recentThreshold)
+                    }
+                }
+                while let sub = await group.next() {
+                    result.merge(sub)
+                    if next < childDirectories.count {
+                        let dir = childDirectories[next]
+                        next += 1
+                        group.addTask {
+                            await walkCountedDirectory(dir.path, depth: childDepth, ancestorsCounted: dir.chainCounted,
+                                                       deadline: deadline, recentThreshold: recentThreshold)
+                        }
+                    }
+                }
+            }
+        } else {
+            for dir in childDirectories {
+                let sub = await walkCountedDirectory(dir.path, depth: childDepth, ancestorsCounted: dir.chainCounted,
+                                                     deadline: deadline, recentThreshold: recentThreshold)
+                result.merge(sub)
+            }
+        }
+        return result
+    }
+
+    /// 合并遍历的条目：与 readEntries / listAllEntries 同一份单次 lstat 口径，
+    /// 但保留点条目、保留符号链接（isSymlink 标记让两套记账各取所需），
+    /// 且能区分"枚举失败"（nil，读不进）与"空目录"（[]）。lstat 失败的条目
+    /// 静默丢弃——两趟旧遍历都是这个行为（readEntries :58、listAllEntries :1041）。
+    private struct WalkEntry {
+        let name: String
+        let path: String
+        let isDirectory: Bool
+        let isSymlink: Bool
+        let size: UInt64      // 目录恒 0；符号链接取 lstat 的链接自身 st_size
+        let modificationDate: Date
+    }
+
+    private static func readAllEntries(path: String) -> [WalkEntry]? {
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: path) else { return nil }
+        var entries: [WalkEntry] = []
+        entries.reserveCapacity(names.count)
+        for name in names {
+            if Task.isCancelled { break }   // 取消后整体作废（stopReason 兜住），部分枚举无害
+            let fullPath = path + "/" + name
+            var info = stat()
+            guard Darwin.lstat(fullPath, &info) == 0 else { continue }
+            let type = info.st_mode & S_IFMT
+            entries.append(WalkEntry(
+                name: name,
+                path: fullPath,
+                isDirectory: type == S_IFDIR,
+                isSymlink: type == S_IFLNK,
+                size: type == S_IFDIR ? 0 : UInt64(info.st_size),
+                modificationDate: Self.date(fromTimespec: info.st_mtimespec)
+            ))
+        }
+        return entries
+    }
+
+    /// "目录还在但一条都列不出"才算读不进（旧 activityProbe :627 的
+    /// directoryExists + !canEnumerate 判定，语义原样保留）：目录中途消失不是
+    /// 读不进，旧遍历遇到时静默跳过。
+    private static func directoryStillExists(_ path: String) -> Bool {
+        var isDir: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
+    }
+
     /// 收集目录中 >= minSize 的文件（浅层任务组并行、可取消、深度受限）。
     static func largeFiles(
         path: String,

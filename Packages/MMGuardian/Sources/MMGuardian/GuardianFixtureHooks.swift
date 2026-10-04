@@ -174,3 +174,52 @@ enum GuardianLoadHook {
         return Result(holdInitialFrame: false, rejected: raw)
     }
 }
+
+// MARK: - 卡片取景（MM_GUARDIAN_CARDS）
+
+/// 页面上四张卡的稳定标识，顺序即页面顺序。
+enum GuardianCard: String, Equatable, Sendable, CaseIterable {
+    case occupancy
+    case tcc
+    case login
+    case activity
+}
+
+/// 只影响**渲染哪几张卡**，不影响任何一张卡里读什么、怎么排。
+///
+/// 加它的理由是一条实测出来的取景死角：第 4 张卡（系统活动）在 760pt 窗口里永远在折叠线下，
+/// 而窗口拉高这条路走不通——屏高 1080pt、`MM_WINDOW_SIZE` 请求 1400 会被 AppKit 夹到 ~1050，
+/// 夹取后的真实尺寸由 `LaunchBehavior` 回读凭据（不是我们请求的那个值）。
+/// 压矮上面几张卡也只是缓解：`MM_GUARDIAN_LOGIN_FIXTURE=rows` 那 7 行本身就有 ~500pt，
+/// 换成 `empty` 又比 3 行还高——第 4 张卡到底进不进画面，取决于三张卡的随机高度，
+/// 这种"这次拍到了"的证据下一次就未必拍到。所以这一档把不相关的卡直接摘掉。
+///
+/// 代价写在照片旁边：被摘卡的截图证明的是**单张卡自身的排版**，不证明卡片顺序、
+/// 卡间距与整页留白——那几条判据仍由 03/04/05/06 负责。
+enum GuardianCardFilter {
+    struct Result: Equatable, Sendable {
+        /// nil = 钩子未设置，四张卡全在；非 nil = 只渲染列出的卡（保持页面原有顺序）。
+        let keep: [GuardianCard]?
+        /// 被拒绝的原始值；非空时调用方必须写 stderr 并忽略整个钩子。
+        let rejected: String?
+    }
+
+    /// `occupancy,tcc,login,activity` 的逗号子集，顺序无关、可去空白、大小写不敏感。
+    /// 任一项非法就整体作废：半生效会让"这一屏只有一张卡"被读成"这一屏本该只有一张卡"。
+    static func parse(_ raw: String?) -> Result {
+        guard let raw, !raw.isEmpty else { return Result(keep: nil, rejected: nil) }
+        let tokens = raw.split(separator: ",").map {
+            $0.trimmingCharacters(in: .whitespaces).lowercased()
+        }
+        guard tokens.isEmpty == false else { return Result(keep: nil, rejected: raw) }
+        var picked: Set<GuardianCard> = []
+        for token in tokens {
+            guard let card = GuardianCard(rawValue: token) else {
+                return Result(keep: nil, rejected: raw)
+            }
+            picked.insert(card)
+        }
+        let ordered = GuardianCard.allCases.filter { picked.contains($0) }
+        return Result(keep: ordered, rejected: nil)
+    }
+}

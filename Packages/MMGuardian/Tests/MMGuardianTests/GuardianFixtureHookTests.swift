@@ -168,4 +168,42 @@ final class GuardianFixtureHookTests: XCTestCase {
         XCTAssertFalse(r.holdInitialFrame)
         XCTAssertEqual(r.rejected, "delay5")
     }
+
+    // MARK: - MM_GUARDIAN_CARDS
+
+    func testCardFilterKeepsPageOrderRegardlessOfInputOrder() {
+        XCTAssertEqual(GuardianCardFilter.parse("activity,login").keep, [.login, .activity])
+        XCTAssertEqual(GuardianCardFilter.parse(" ACTIVITY , tcc ").keep, [.tcc, .activity])
+    }
+
+    func testCardFilterUnsetRendersEveryCard() {
+        XCTAssertNil(GuardianCardFilter.parse(nil).keep)
+        XCTAssertNil(GuardianCardFilter.parse("").keep)
+        XCTAssertNil(GuardianCardFilter.parse(nil).rejected)
+    }
+
+    /// 半生效的取景比不取景更坏：一张"只剩两张卡"的截图会被读成"这页本来只有两张卡"。
+    func testCardFilterRejectsWholesaleOnAnyBadToken() {
+        for raw in ["activity,bogus", "cards", "activty"] {
+            let r = GuardianCardFilter.parse(raw)
+            XCTAssertNil(r.keep, raw)
+            XCTAssertEqual(r.rejected, raw)
+        }
+    }
+
+    func testCardFilterDeduplicatesAndRejectsEmptySelection() {
+        XCTAssertEqual(GuardianCardFilter.parse("login,login").keep, [.login])
+        XCTAssertEqual(GuardianCardFilter.parse(",").rejected, ",")
+        XCTAssertNil(GuardianCardFilter.parse(",").keep)
+    }
+
+    func testActivityFixtureParsesBothStagesAndRejectsOthers() {
+        XCTAssertEqual(GuardianActivityFixture.parse("rows").stage, .rows)
+        XCTAssertEqual(GuardianActivityFixture.parse("EMPTY").stage, .empty)
+        XCTAssertNil(GuardianActivityFixture.parse(nil).stage)
+        XCTAssertNil(GuardianActivityFixture.parse(nil).rejected)
+        let bad = GuardianActivityFixture.parse("3")
+        XCTAssertNil(bad.stage)
+        XCTAssertEqual(bad.rejected, "3")
+    }
 }

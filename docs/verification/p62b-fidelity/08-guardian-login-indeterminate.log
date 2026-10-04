@@ -1,3 +1,2 @@
 sandbox_extension_issue_file_to_process failed for /tmp/mm-p62c-app/MacMaster.app: 1 (Operation not permitted)
-MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
-MM_WINDOW_SIZE=1100x1000 请求 1100x1000pt，窗口实际 1100x1000pt
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）

@@ -412,8 +412,19 @@ public actor ProjectArtifactScanner {
                 if !truncated.contains(info.root) { truncated.append(info.root) }
                 continue
             }
-            artifacts.append(await process(path: path, searchRoot: info.root,
-                                           deadline: info.deadline, isNested: nested.contains(path)))
+            let processed = await process(path: path, searchRoot: info.root,
+                                          deadline: info.deadline, isNested: nested.contains(path))
+            artifacts.append(processed.artifact)
+            // §8.6 的修法（调研 §4.2）：上面那条 deadline 前置检查只看"处理前已超时"，
+            // 超时恰好落在最后一个候选的 process() 中间时，旧写法会让根进 scannedRoots、
+            // 组里却挂着「读不到（预算用尽）」。合并遍历把"这一行有没有因预算没出结论"
+            // 变成显式字段，就地补记进截断账本——"根扫完 = 每个候选都出了结论"。
+            // 权限性读不进（unreadableDirectories 非空但 stopReason==nil）是已出的
+            // fail-closed 结论，不走这条路，根不必因此截断。
+            if processed.budgetIncomplete {
+                complete = false
+                if !truncated.contains(info.root) { truncated.append(info.root) }
+            }
         }
 
         // 走完 = 被遍历过、且既没截断也没读不动。三个列表之间不允许同一根既
@@ -526,13 +537,11 @@ public actor ProjectArtifactScanner {
 
     // MARK: - 单候选成案
 
-    private struct Measured: Sendable {
-        let size: UInt64
-        let count: Int
-    }
-
+    /// 成案一个候选。返回的 `budgetIncomplete` 是 §8.6 修法的数据源：
+    /// 该候选的合并遍历因预算（deadline/取消）没出结论——只有这种事把根记进截断；
+    /// 权限性"读不到（非预算）"是已出的结论，不截断（调研 §4.2）。
     private func process(path: String, searchRoot root: String, deadline: Date,
-                         isNested: Bool) async -> ProjectArtifact {
+                         isNested: Bool) async -> (artifact: ProjectArtifact, budgetIncomplete: Bool) {
         let name = (path as NSString).lastPathComponent
         let parent = (path as NSString).deletingLastPathComponent
         let siblings = Set(Self.listAllEntries(path: parent).map(\.name))
@@ -574,13 +583,27 @@ public actor ProjectArtifactScanner {
         }
 
         let rootModified = FileTreeWalker.modificationDate(ofPath: path)
+        // 两趟并一趟（调研 §3.3）：旧写法对同一候选跑 activityProbe 全趟 + stats 全趟，
+        // 换成 FileTreeWalker.walkForArtifact 的一趟并两套记账。
+        // 非嵌套 needSize=true（体积+活动同趟走完、不早退）；嵌套 needSize=false
+        // （只要活动，保留旧 probe 的早退——§3.2：近期在用的大嵌套目录不许从近免费变全量）。
+        // deadline 检查进了 walk 内部（每目录一次，沿用旧 probe 的粒度），
+        // Self.bounded 的竞速对这条路径退役：不再出现"stats 白跑一段被丢弃"。
+        let walk: FileTreeWalker.SubtreeWalk? = readable
+            ? await FileTreeWalker.walkForArtifact(
+                path: path,
+                deadline: deadline,
+                recentThreshold: now.addingTimeInterval(-Double(rules.minAgeDays) * 86_400),
+                needSize: !isNested)
+            : nil
+
         let probe: ActivityProbe
         if !readable {
             probe = .incomplete("产物目录读不进去：\(path)")
         } else if rootModified == nil {
             probe = .incomplete("产物目录时间读不到：\(path)")
         } else {
-            probe = await activityProbe(in: path, deadline: deadline)
+            probe = Self.activityProbeResult(from: walk!, path: path)
         }
         let activity = Self.activity(rootModified: rootModified, probe: probe,
                                      now: now, minAgeDays: rules.minAgeDays)
@@ -588,35 +611,29 @@ public actor ProjectArtifactScanner {
         var size: UInt64? = nil
         var fileCount = 0
         // 嵌套产物不单独量：体积已经在祖先候选那里整体计入，再量一遍就是重复计数。
-        if !isNested, readable {
-            let remaining = deadline.timeIntervalSince(Date())
-            let measured: Measured?
-            if remaining > 0 {
-                measured = await Self.bounded(remaining) {
-                    let stats = await FileTreeWalker.stats(path: path)
-                    return Measured(size: stats.size, count: stats.fileCount)
-                }
-            } else {
-                measured = nil
-            }
-            if let stats = measured {
-                size = stats.size
-                fileCount = stats.count
-            }
+        // 预算内没量完（stopReason 非空）→ nil 显示"—"，绝不拿部分和冒充完整数字；
+        // 子树内部读不进仍按 stats 现口径静默计 0（§4.2(b) 的收紧待拍板，本轮不做）。
+        if let walk, let measured = Self.measuredSize(from: walk, isNested: isNested) {
+            size = measured.size
+            fileCount = measured.fileCount
         }
 
-        return ProjectArtifact(
+        return (ProjectArtifact(
             path: path, name: name, projectRoot: projectRoot, relativeToProject: relative,
             monorepoIndicator: resolved.monorepo, size: size, fileCount: fileCount,
             lastTouched: rootModified, verdict: verdict, activity: activity,
             isNestedInAnotherArtifact: isNested, sourceRoot: root
-        )
+        ), budgetIncomplete: walk.map { Self.budgetIncomplete(from: $0) } ?? false)
     }
 
     /// 有界活动遍历：时限 + 可取消，碰到一个阈值内改动过的文件就早退。
     /// 只有**完整跑完**才许 `.noRecentFile`；超时/读不动一律 `.incomplete`，
     /// 由 `activity` 映射成 unknown——unknown 不是"很久没碰"，UI 别读错。
-    private func activityProbe(in path: String, deadline: Date) async -> ActivityProbe {
+    ///
+    /// 保留说明（P6.3b）：成案路径已改走 `FileTreeWalker.walkForArtifact`（两趟并一趟），
+    /// 本函数不再被 `process()` 调用，留作合并口**双跑对拍**的参考实现
+    /// （调研 §7 第 2 步：合并结果必须与它逐字段相等，不等价就是纪律 2 的事故口径）。
+    func activityProbe(in path: String, deadline: Date) async -> ActivityProbe {
         let threshold = now.addingTimeInterval(-Double(rules.minAgeDays) * 86_400)
         var stack = [path]
         while let dir = stack.popLast() {
@@ -637,6 +654,38 @@ public actor ProjectArtifactScanner {
             }
         }
         return .noRecentFile
+    }
+
+    /// 合并遍历 → 活动探测三态（调研 §4.3 映射表；步骤 1 的纯派生函数）。
+    /// 优先级即 fail-closed 顺序：预算没走完 → 读不进 → 近期文件 → 完整无近期。
+    /// 理由字符串与旧 `activityProbe` **逐字相同**——它们经 `activity` 进 UI 的
+    /// unknown 文案，不许漂。
+    nonisolated static func activityProbeResult(from walk: FileTreeWalker.SubtreeWalk,
+                                                path: String) -> ActivityProbe {
+        if walk.stopReason != nil {
+            return .incomplete("活动探测超时/被取消：\(path)")
+        }
+        if let dir = walk.unreadableDirectories.first {
+            return .incomplete("读不动：\(dir)")
+        }
+        return walk.sawRecentFile ? .recentFileFound : .noRecentFile
+    }
+
+    /// 合并遍历 → 体积结论。嵌套恒 nil（体积在祖先处整体计入）；
+    /// stopReason 非空 = 预算内没量完 → nil 显示"—"，绝不拿部分和冒充完整数字。
+    /// `unreadableDirectories` 非空但 stopReason==nil 时**照旧给数字**（读不进的
+    /// 子目录静默计 0，与 stats/其它页一致）——§4.2(b) 的 size=nil 收紧是待拍板项，本轮不做。
+    nonisolated static func measuredSize(from walk: FileTreeWalker.SubtreeWalk,
+                                         isNested: Bool) -> (size: UInt64, fileCount: Int)? {
+        guard !isNested, walk.stopReason == nil else { return nil }
+        return (walk.size, walk.fileCount)
+    }
+
+    /// 该候选是否因预算（deadline/取消）没出结论——根账本据此进 truncated（§8.6 修法）。
+    /// 权限性读不进（unreadableDirectories 非空但 stopReason==nil）**不算**：
+    /// 那是已出的 fail-closed 结论"读不到（非预算）"，重试只烧预算。
+    nonisolated static func budgetIncomplete(from walk: FileTreeWalker.SubtreeWalk) -> Bool {
+        walk.stopReason != nil
     }
 
     /// CACHEDIR.TAG 首行读取。必须是**普通文件**（lstat，符号链接不算，照 Mole
@@ -1095,21 +1144,5 @@ public actor ProjectArtifactScanner {
     private nonisolated static func directoryExists(_ path: String) -> Bool {
         var isDir: ObjCBool = false
         return FileManager.default.fileExists(atPath: path, isDirectory: &isDir) && isDir.boolValue
-    }
-
-    /// 时限竞速：超时就取消操作并返回 nil。nil = "没测到"，由调用方渲染成"—"，
-    /// 不是 0——被截断的求和冒充完整数字是本仓库明令的事故口径。
-    static func bounded<T: Sendable>(_ seconds: TimeInterval,
-                                     _ operation: @escaping @Sendable () async -> T) async -> T? {
-        await withTaskGroup(of: Optional<T>.self) { group in
-            group.addTask { await operation() }
-            group.addTask {
-                try? await Task.sleep(nanoseconds: max(1, UInt64(seconds * 1_000_000_000)))
-                return nil
-            }
-            let first = await group.next() ?? nil
-            group.cancelAll()
-            return first
-        }
     }
 }

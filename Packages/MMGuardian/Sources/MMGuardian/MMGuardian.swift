@@ -31,10 +31,12 @@ public struct GuardianView: View {
                     if !vm.scanErrors.isEmpty {
                         readErrorBanner
                     }
-                    occupancyCard
-                    tccCard
-                    loginItemsCard
-                    activityCard
+                    // 取景钩子只决定"渲染哪几张卡"，四张卡各自的内容与读法一律不动。
+                    // 用途与代价见 `GuardianCardFilter`（第 4 张卡在 760pt 窗口里必然在折叠线下）。
+                    if shows(.occupancy) { occupancyCard }
+                    if shows(.tcc) { tccCard }
+                    if shows(.login) { loginItemsCard }
+                    if shows(.activity) { activityCard }
                 }
                 .padding(MMGap.lg)
             }
@@ -48,6 +50,11 @@ public struct GuardianView: View {
             }
         }
         .task { await vm.loadAll() }
+    }
+
+    private func shows(_ card: GuardianCard) -> Bool {
+        guard let keep = GuardianViewModel.cardFilter else { return true }
+        return keep.contains(card)
     }
 
     private var readErrorBanner: some View {
@@ -467,6 +474,18 @@ final class GuardianViewModel: ObservableObject {
         return result.stage
     }()
 
+    /// 卡片取景（`MM_GUARDIAN_CARDS`）：`occupancy|tcc|login|activity` 的逗号子集，
+    /// 只影响渲染哪几张卡；未设置时四张全在，含非法项整体作废并写 stderr。
+    static let cardFilter: [GuardianCard]? = {
+        let result = GuardianCardFilter.parse(ProcessInfo.processInfo.environment["MM_GUARDIAN_CARDS"])
+        if let rejected = result.rejected {
+            FileHandle.standardError.write(
+                "MM_GUARDIAN_CARDS 含非法取值（\(rejected)），只接受 occupancy|tcc|login|activity 的逗号子集，整个钩子已忽略\n".data(using: .utf8)!)
+            return nil
+        }
+        return result.keep
+    }()
+
     func loadAll() async {
         // 首帧定格钩子：MM_GUARDIAN_LOAD=hold 时整轮加载直接返回，
         // 页面停在「测量中 + 骨架」的首帧，让平时抢拍不到的加载态可被截图核对。
@@ -789,7 +808,19 @@ enum ActivityScanner {
             // 但不再让 try? 把"启动不了 log"和"没有事件"混成一样。
             return nil
         }
-        proc.waitUntilExit()
+
+        // 子进程超时保护：沙盒环境下 /usr/bin/log 可能挂起（sandbox_extension_issue），
+        // waitUntilExit() 会永远阻塞。8 秒足够正常 log show 完成（实测 ~1s），
+        // 超时后杀掉子进程、丢弃输出，降级为空列表。
+        let finished = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .utility).async {
+            proc.waitUntilExit()
+            finished.signal()
+        }
+        if finished.wait(timeout: .now() + 8) == .timedOut {
+            proc.terminate()
+            return nil
+        }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {

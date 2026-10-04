@@ -83,7 +83,8 @@
 | `MM_TCC_FIXTURE` | `MMGuardian` | `MMGuardian.swift:424` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
 | `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:438` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
 | `MM_GUARDIAN_LOAD` | `MMGuardian` | `MMGuardian.swift:450` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift:461` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2b 未用它出片** |
+| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift:461` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3） |
+| `MM_GUARDIAN_CARDS` | `MMGuardian` | `MMGuardian.swift` `GuardianCardFilter`（`GuardianFixtureHooks.swift`） | 卡显示过滤，逗号子集 `occupancy\|tcc\|login\|activity` | ✅ | 否 | **P6.2d 新增**。纯显示层过滤，不改变数据流；非法值整批拒绝并写 stderr。解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档用 `=activity` 只渲染活动卡，不再需要拉高窗口+压矮上方三卡 |
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift`（本轮新增） | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
@@ -95,7 +96,7 @@
 - **MMCleaner**：16 个（P5.1 新增 5 个：`MM_PURGE_FIXTURE_HOME` + `MM_DEV_EXPAND/SELECT/SCROLL/CONFIRM`；P6.1 再新增 3 个预算/自动续扫钩子；含 P4.6 的 `MM_SNAPSHOT_FIXTURE`，早前列数漏计它）。含 2 个 `/tmp` 路径夹具（`MM_INSTALLER_FIXTURE_DIR`、`MM_PURGE_FIXTURE_HOME`，越界即忽略）。
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
 - **MMDisk**：9 个（新增 `MM_DISK_HOLD`；P6.2a 再新增 `MM_DISK_RESCAN`），`MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_DISK_RESCAN` 都带 `/tmp` 守卫。
-- **MMGuardian**：5 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`），全 `com.example.*` 合成，不写盘。
+- **MMGuardian**：6 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_GUARDIAN_CARDS`），全 `com.example.*` 合成，不写盘。`MM_GUARDIAN_CARDS` 是纯显示层过滤。
 - **MMOptimizer**：2 个（新增 `MM_OPTIMIZER_FIXTURE`）。`DevToolCacheAudit.swift:166` 读的 `env` 是 **PATH 探测**（找可执行文件），**不是 `MM_` 夹具钩子**，与截图无关，不计入台账。
 - **MMMonitor**：`MM_OPEN_MODULE` + #50 新增 2 个（`MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`），全只读。
 
@@ -141,7 +142,7 @@
 | `Scripts/provenance-fixture.sh` | 造一棵假 home + 一份假 brew 账本（`<root>/.homebrew/Caskroom`），五档来源一次凑齐：设备号同一（Highball）、只有名字对上（CodeEdit，staged 链接指向别处）、MAS 收据（WeChat）、两份账本抢同一个 bundle（Firefox：firefox 与 firefox-beta）、什么都没有（MysteryApp） | **P5.2 新增**。真机上一台机器通常只有一两档拍得到，而这一屏的文案合同是**按档给的**（弱档不给 brew 命令、歧义档要点名两个 token），必须逐档摆拍。账本跟着假 home 走：`provenancePrefixesFactory` 指到 `<home>/.homebrew`、`provenanceReceiptsRootFactory` 给 `nil`，否则照片里"这一档没命中"到底是没凭据还是没读系统收据就分不出来了 |
 
 | `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
-| `Scripts/p62b-capture.sh` | 还原度收口**八档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡/登录项"未对表"档。**第 4 个入参是窗口尺寸**（默认不设 = 760pt），07/08 两档在自己那行里传 `MM_WINDOW_SIZE=1100x1000` | **P6.2b 新增、P6.2c 扩到八档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07/08 两条硬约束记在这儿**：① 系统活动卡排在第 4 位，760pt 窗口里它上面那张 TCC 空态卡（~600pt）+ 真机 17 条登录项就把它顶到折叠线以下，所以这两档必须压矮上方两卡（`MM_TCC_FIXTURE=rows` 等）**且照片上被压矮的那两卡不算本机状态**；② 07 的等待是 **25 秒不是 8 秒**——`loadActivity()` 的夹具分支先真跑一次 `ActivityScanner.scan()`（含 `log show` 子进程）再顶替展示数据，8 秒拍到的还是覆盖前的空态。凡是"先真跑再顶替"的夹具，等待都要覆盖真扫描 |
+| `Scripts/p62b-capture.sh` | 还原度收口**十档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡 `rows`+`empty`/登录项"未对表"档/登录项读取失败档。**07–10 用 `MM_GUARDIAN_CARDS` 只渲染目标卡**（P6.2d），不再需要拉高窗口+压矮上方三卡 | **P6.2b 新增、P6.2c 扩到八档、P6.2d 扩到十档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07 的 `scanUnifiedLog` 超时教训**记在 `fidelity-guardian.md` §6.6.3：`/usr/bin/log show` 在沙盒环境下会挂起，`DispatchSemaphore` 8 秒超时保护不能省 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个
