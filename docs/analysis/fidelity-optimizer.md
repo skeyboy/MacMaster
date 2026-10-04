@@ -208,6 +208,13 @@
 > 这六行现在的正确状态是「**能力就绪、尚未取证**」——下一次跑一个 `p6x-optimizer-capture.sh` 就能一次结掉六行。
 > 仍缺能力的是 **#2**（扫描中态要 HOLD 语义，`MM_MONITOR_HOLD` 那套还没有 optimizer 版本）和
 > **#8/#9/#10**（跨 tab 运行态、纯像素项、阶段枚举在 `DuplicateScanner`）。**不要把整表当"验不了"重读一遍。**
+>
+> **P6.6 已跑（2026-10-04，本轮）**：`Scripts/p66-optimizer-capture.sh` → `docs/verification/p66-optimizer/`
+> 12 张图 + 12 份日志。**#1/#3/#4/#5/#6/#7 六行全部结掉**，且 **#2 不需要 HOLD 钩子也拍到了**
+> （真实 SHA-256 扫描本身就慢，3 秒即定格在骨架态），所以"仍缺能力"那句现在只剩 #8/#9/#10。
+> ⚠️ 这一轮真正的产出不是那六张图，而是**跑图跑出来的一个缺陷**：夹具在四个 tab 里有三个从未生效过，
+> 详见 §6 #5 的"跑一遍才知道"那段。
+
 
 | # | 未验证项 | 为什么验不了 | 需要什么才能验 |
 | --- | --- | --- | --- |
@@ -222,12 +229,34 @@
 | 9 | 分段页签居中几何、各卡 44pt 行高、徽章像素 | 纯像素项，本环境无截图 | 真机截图 + 像素取证（参照 fidelity-monitor §0） |
 | 10 | `MMScanProgress` 阶段原文与"已处理 N 项"逐字 | 阶段枚举在 `DuplicateScanner`（不在本模块四文件） | 读 `DuplicateScanner.stage` rawValue 或真机截图 |
 
-**已验证的部分**（与上表相对，避免把整页写成"没验过"）：四 tab 的状态机分支、文案常量、空态两档条件、keepRequired 硬约束、`MMFormat.bytes(nil)="测量中"`、`MMFailurePanel` 的 PROTECTED shield/caution 分档与"N 项失败"徽章（代码已核）、删除全经 `FileTrashService` 闸门、devtools 零 spawn 零写盘（代码已核）。
+**取证结果（P6.6，2026-10-04，`docs/verification/p66-optimizer/`）**
+
+| # | 结论 | 照片 | 图上读到什么 |
+| --- | --- | --- | --- |
+| 1 | ✅ 已验 | `02-optimizer-duplicates-groups` | 「4 组 · 12 个文件内容完全相同 · 每组保留一份后可释放 21 MB」+ 每行「谨慎」徽章 + 底栏「已选 0 项」 |
+| 2 | ✅ 已验，**且不需要 HOLD 钩子** | `01-optimizer-duplicates-scanning` | 无夹具启动 3 秒即定格：「正在按内容比对，未完成前不会给出结果。」+「停止」+ 6 条骨架。真实扫描本身就够慢 |
+| 3 | ✅ 已验 | `07-optimizer-browser-rows` | 三行 `/tmp/mm-optimizer-fixture/{Safari,Chrome,Unknown}`，末位 size=nil 那行显示「测量中」，抬头「3 个缓存目录 · 合计 224 MB (1 个目录没读到，未计入)」 |
+| 4 | ✅ 已验（两档都拍到） | `07` / `08-optimizer-browser-empty` | 有列表态与「没有发现可清理的浏览器缓存」空态，两张不同图 |
+| 5 | ✅ 已验 | `04-optimizer-duplicates-protected` | 底部通栏「1 项失败 / `/Users/example/Documents（夹具值）` / 位于系统目录之下，本应用不删系统域内容。/ PROTECTED / 忽略」；`MM_WINDOW_SIZE=1320x1000` 下不用滚动 |
+| 6 | ✅ 已验 | `09-optimizer-status-all-readonly` | 三行全部「—」+「只读」，各带自己的降级理由（`vm_statistics64 没读数`／`容量键未返回，不显示 0`／`清空废纸篓会同时丢掉撤回入口`） |
+| 7 | ✅ 已验（两档） | `10-…-not-installed` / `11-…-unreadable` | 「Go 模块缓存（夹具值） 未安装 / PATH 里没找到 go…」与「npm 缓存（夹具值） 读不到 / 读不动这个位置，所以大小和状态都不知道」，两档 size 都是「—」 |
+| 8 | ❌ 仍未验 | — | 跨 tab 运行态，本轮每张图只开一个 tab，页头副标题只在 optimizer 首屏出现过 |
+| 9 | ⏳ 部分 | — | 本轮只量了磁盘页的像素项（见 `fidelity-disk.md` §2 I9/I11）；optimizer 的分段页签居中与各卡 44pt 行高仍未量 |
+| 10 | ❌ 仍未验 | — | 阶段枚举在 `DuplicateScanner`，`01` 那张只拍到"未完成前不给结果"这一句 |
+
+外加两张不是"状态"的图：`03-optimizer-duplicates-caveat`（新档位 `caveat:unreadable:N` / `caveat:dataless:N`，横幅原文「部分文件没能参与判定 / 2 个文件读取失败，未参与判定；1 个仅有云端占位的文件已跳过。」）、
+`12-optimizer-fixture-invalid-voided`（守卫档：喂 `devtools:notinstal` 少一个 l，日志里是
+「MM_OPTIMIZER_FIXTURE 含非法取值（devtools:notinstal），整个钩子已忽略」，照片退回真实态而不是半套夹具）。
+
+**已验证的部分**（与上表相对，避免把整页写成"没验过"）：四 tab 的状态机分支、文案常量、空态两档条件、keepRequired 硬约束、`MMFormat.bytes(nil)="测量中"`、`MMFailurePanel` 的 PROTECTED shield/caution 分档与"N 项失败"徽章（代码已核）、删除全经 `FileTrashService` 闸门、devtools 零 spawn 零写盘（代码已核）。**P6.6 之后这一句要升级**：上表 ✅ 的七行不再只是"代码里读到分支"，而是有实机照片的；仍未验的只有 #8/#10 与 #9 的一半。
 
 ## 6. 提请协调者
 
 > **复核 2026-10-04**：四条里 **#1、#2、#4 已经结清**（分别是钩子已落地、疑点经代码核对不存在、矩阵已同步），
 > 只剩 **#3 的稿侧三小改** 和 **新升出来的一条 #5（取证照跑）**。原文照留，结论追加在每条后面。
+> **P6.6 之后**：#5 已结（并且顺带修了一个"夹具从未生效"的缺陷，见该条），#3 里的 08e 核对已结，
+> #4 因为新增档位**又开了一次**（矩阵刚同步完就漂了）。这一节现在真正剩下的只有稿侧两小改（S1 侧栏占位数字、S2 图标）
+> 和 #2 遗留的那个形态题（通栏条 vs 带边框卡，归协调层）。
 
 1. **补 `MM_OPTIMIZER_FIXTURE` 统一夹具入口**（呼应 `hook-ledger.md §4.2`）。当前 optimizer 只有 `MM_OPEN_TAB`，四 tab 内的空/失败/超大列表/PROTECTED 拒绝态均无注入路径。建议档位（纯数值/状态注入，不读 `/tmp`、不写盘、不 spawn，参照 `MM_MONITOR_FIXTURE`）：
    - `duplicates:<组数>`：注入确定重复分组（覆盖 08b）；
@@ -239,6 +268,10 @@
    `duplicates:<N>` 的 N 承担）。合成组走真实 `DuplicateGroup` 构造器、路径是 `/tmp` 下 `com.example` 命名，
    一眼可辨是夹具（`:106-110`）。**§5 #2 是唯一没被它覆盖的**，代码注释里自己也留了话
    （`:20`「扫描中态 #2 需要 HOLD 语义，另行处理」）。
+   **P6.6 追加（2026-10-04）**：档位又多了一组 `caveat:unreadable:N` / `caveat:dataless:N`（§5 表下第 03 档照片要的就是它），
+   并加了一条不变量——**`caveat` 必须与 `duplicates:<N>` 同给**，否则整个钩子作废：
+   给一张"没有结果"的列表配一句"有些文件没参与判定"，照片本身自相矛盾。
+   那句"扫描中态 #2 需要 HOLD"的注释**已按实测改掉**（P6.6 第 01 档证明不需要），别照旧注释补 HOLD 档。
 2. **I1 容器橙底待真机裁定**：请协调者在真机截图后确认 `MMFailurePanel` 在 optimizer 两处是否缺橙底；若缺，决定改 `MMFailurePanel`（共享组件，影响全站）还是在 optimizer 调用外加容器——此改动越共享层，按红线 3 由协调者落地。
    **✅ 已裁定，不需要截图**：橙底一直在组件里（`MMDesign.swift:777`，自 `e5634d3` 创建该组件起），见 §3 I1。
    **这一条剩下的部分换个名字继续开着**：面板形态是通栏条还是带边框卡（与 `fidelity-cleaner.md` §2 I5 同一件事），
@@ -246,12 +279,37 @@
 3. **S1/S2/S3 设计稿侧修正**：侧栏占位数字（随全站侧栏 footer 组件重画）、浏览器删除按钮图标（box→trash）、08e 推演档在补 fixture 后核对——均属设计稿侧，不在本模块实现范围。
    **仍开着（复核 2026-10-04）**。其中"08e 推演档核对"的前置条件已具备（`devtools:notInstalled|unreadable` 两档就是为它加的），
    可与 §5 #3/#4/#6/#7 并成同一次截图跑。侧栏占位数字属 `0c61fbf`（十张稿统一侧栏 footer 组件）那一轮，optimizer 稿是否已换需要稿侧目视确认一次。
+   **P6.6：08e 那一半已结**（`10`/`11` 两张真机图，两档文案与稿子推演一致：`未安装` 档说"PATH 里没找到 go，位置是按默认规则算出来的"，
+   `读不到` 档说"读不动这个位置，所以大小和状态都不知道"，两档 size 都是「—」而不是 0）。
+   S1（侧栏占位数字）与 S2（图标）仍在稿侧，本轮没碰设计稿。
 4. **`README §2` 矩阵**：optimizer 行目前钩子列 `MM_OPEN_TAB` 一项，待 #1 落地后同步补 `MM_OPTIMIZER_FIXTURE`（参照 hook-ledger 对 monitor 的同类补正）。
    **✅ 已同步**：`docs/design-system/README.md:43` 的 mmoptimizer 行列了 `MM_OPEN_TAB` 与
    `MM_OPTIMIZER_FIXTURE`（含九个档位名），与实现的 `OptimizerFixture.parse` 一致。
+   **P6.6 又漂了一次**：新增 `caveat:unreadable:N` / `caveat:dataless:N` 两个档位（外加"`caveat` 必须与
+   `duplicates:<N>` 同给"这条约束），矩阵里的"九个"已按实现改成十个——**这条本身就是"矩阵会随档位漂移"的第二次实例**，
+   第一次是 hook-ledger §4.2 记的 monitor。
 5. **（P6.5b 新增）optimizer 夹具一次取证都没跑**：`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中，
    `docs/verification/` 下也没有 optimizer 夹具目录（只有 `p4-light-dark/light-optimizer.jpg`、
    `dark-optimizer.jpg` 与 `p4-min-window/*-optimizer.jpg` 三张非夹具图）。
    → 建议下一轮补 `Scripts/p6x-optimizer-capture.sh`（照 `p65-swap-capture.sh` 的形状：
    pid→windowid→`screencapture -o -x -l`，按 `MM_OPEN_TAB` 分四档，一次跑完 §5 #1/#3/#4/#5/#6/#7），
    **不要**为"扫描中态"临时造合成点击——红线禁的正是那个。
+   **✅ 已跑完（P6.6，2026-10-04）**：`Scripts/p66-optimizer-capture.sh` 十二档 → `docs/verification/p66-optimizer/`。
+   这一条的真正价值不在那十二张图，而在**跑图跑出来的缺陷**：
+   - **第一次跑出来的照片是假的**。`browser:rows` 与 `browser:empty` 两张**逐字节相同**（md5 `aa6c478a…`），
+     `devtools:notInstalled` 与 `devtools:unreadable` 也相同（`13a3ac85…`），`status:allReadOnly` 拍到的是
+     真实读数（16.41 GB / 25.77 GB + 「安全」徽章）。也就是说 `MM_OPTIMIZER_FIXTURE` 自 `969e548` 落地以来，
+     **四个 tab 里有三个从未生效过**，而它一直在"已具备能力"那一栏里被引用。
+   - **成因**：`applyFixtureIfNeeded()` 先 `await` 每个模型的真实扫描再上夹具，而重复文件那档要做全文件
+     SHA-256，慢的时候把后面所有档的注入全挡住了；另外三个 tab 的视图级 `.task`
+     （`MMOptimizer.swift:239` 浏览器、`:261` 系统状态、`DevToolCacheView.swift:84` 开发工具，行号为 2026-10-04 现读）本来就在并行起真实扫描。
+   - **修法（两步，缺一不可）**：① 四档夹具**先同步落完**，再只对"没给夹具"的那档起真实扫描；
+     ② 四个模型各加 `private var fixturePinned`，在扫描入口**和 `await` 之后**都检查，
+     在途的真实结果整批丢弃。只做①不够——`.task` 仍会与夹具抢，最后落地的真实数据会把夹具覆盖掉，
+     照片看着像夹具、其实是真实数据，正是"半生效夹具 = 假通过"那道铁律的另一种犯法。
+   - **回归锁**：`OptimizerFixtureHookTests.swift`（11 条 parse/形状，补上"optimizer 是唯一没有 parse 单测的夹具"这个
+     约定缺口）+ `OptimizerFixturePinTests`（3 条，直接测"夹具先落、真实扫描后到"这个顺序）。
+     `swift test --package-path Packages/MMOptimizer` → 54 tests / 0 failures。
+   - **重跑后**：12 张图 `md5 -q *.png | sort | uniq -d` → **0 个重复**。
+   → 协调层可复核的一点：`fixturePinned` 这套"夹具优先、真实结果丢弃"的写法，
+     monitor / guardian 两个夹具钩子有没有同样的竞态（它们的视图级 `.task` 形状类似）。本轮没查那两个包。

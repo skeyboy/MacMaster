@@ -83,26 +83,23 @@ public struct OptimizerView: View {
                 "MM_OPTIMIZER_FIXTURE 含非法取值（\(result.rejected.joined(separator: ", "))），整个钩子已忽略\n".data(using: .utf8)!)
         }
         guard result.rejected.isEmpty else { return }
+
+        // 顺序很要紧：**四个 tab 的夹具先同步落完，再启动没给夹具那一档的真实扫描**。
+        // 反过来写（逐个 if/else 边落边扫）时，真实重复检测一跑就是几十秒，排在它后面的
+        // 浏览器/系统状态/开发工具夹具**根本来不及注入**——P6.6 第一次跑这套脚本时，
+        // `browser:rows` 与 `browser:empty` 两张照片 md5 完全相同、`status:allReadOnly` 拍出来是
+        // 真实读数，就是这个原因。照片看着像"夹具生效了"，其实整条钩子白写。
         if let tier = result.duplicates {
             duplicates.applyFixture(tier)
-        } else {
-            await duplicates.scanIfNeeded()
+            // 横幅两个计数只在有分组时才有意义（parse 已挡住单独给 caveat 的写法）。
+            if let caveat = result.caveat {
+                duplicates.unreadableCount = caveat.unreadable
+                duplicates.datalessCount = caveat.dataless
+            }
         }
-        if let tier = result.browser {
-            browser.applyFixture(tier)
-        } else {
-            await browser.scanIfNeeded()
-        }
-        if let tier = result.status {
-            diagnostics.applyFixture(tier)
-        } else {
-            await diagnostics.refresh()
-        }
-        if let tier = result.devtools {
-            devTools.applyFixture(tier)
-        } else {
-            await devTools.refreshIfNeeded()
-        }
+        if let tier = result.browser { browser.applyFixture(tier) }
+        if let tier = result.status { diagnostics.applyFixture(tier) }
+        if let tier = result.devtools { devTools.applyFixture(tier) }
         if result.protected {
             // PROTECTED 拒绝态：注入一条 DeletionGuard 拒绝回执，覆盖 08d 底部的
             // shield/caution 分档排版。不触发任何真实删除。
@@ -112,6 +109,11 @@ public struct OptimizerView: View {
                              code: "PROTECTED")
             ]
         }
+
+        if result.duplicates == nil { await duplicates.scanIfNeeded() }
+        if result.browser == nil { await browser.scanIfNeeded() }
+        if result.status == nil { await diagnostics.refresh() }
+        if result.devtools == nil { await devTools.refreshIfNeeded() }
     }
 
     // MARK: 重复文件
@@ -287,6 +289,9 @@ final class DuplicateScanModel: ObservableObject {
     @Published var wasStopped = false
     @Published var toast: UndoToast?
     @Published var trashFailures: [TrashFailure] = []
+    /// 夹具一旦注入就钉住本模型：真实扫描（含已经在飞的那一趟）不许再把结果盖回来。
+    /// 没有这个标志时照片会拍成"看着像夹具、其实是真实数据"——P6.6 实机撞到的就是这种假证据。
+    private var fixturePinned = false
 
     struct UndoToast: Equatable {
         let message: String
@@ -337,6 +342,7 @@ final class DuplicateScanModel: ObservableObject {
 
     /// 夹具注入：只顶替展示数据（groups/hasScanned），不碰磁盘。
     func applyFixture(_ tier: OptimizerFixture.DuplicatesTier) {
+        fixturePinned = true
         switch tier {
         case .groups(let count):
             groups = OptimizerFixture.duplicateGroups(count: count)
@@ -360,7 +366,7 @@ final class DuplicateScanModel: ObservableObject {
     }
 
     func scan() async {
-        guard !isScanning else { return }
+        guard !isScanning, !fixturePinned else { return }
         isScanning = true
         wasStopped = false
         cancelFlag.reset()
@@ -389,6 +395,14 @@ final class DuplicateScanModel: ObservableObject {
             ) { update in
                 Task { @MainActor [weak self] in self?.progress = update }
             }
+        }
+
+        // 真实扫描落在夹具注入之前（视图自己的 `.task` 与夹具注入没有先后保证）：
+        // 整批丢弃，不许把真实分组盖到夹具行上——那会拍出一张"看着像夹具"的真实照片。
+        if fixturePinned {
+            progress = nil
+            isScanning = false
+            return
         }
 
         lastReport = report
@@ -621,6 +635,8 @@ final class BrowserCacheModel: ObservableObject {
     @Published var isScanning = false
     @Published var hasScanned = false
     @Published var failures: [TrashFailure] = []
+    /// 夹具注入后钉住：见 `DuplicateScanModel.fixturePinned` 那条说明。
+    private var fixturePinned = false
 
     var headline: String {
         if isScanning { return "正在统计缓存体积…" }
@@ -634,9 +650,10 @@ final class BrowserCacheModel: ObservableObject {
     }
 
     func scan() async {
-        guard !isScanning else { return }
+        guard !isScanning, !fixturePinned else { return }
         isScanning = true
         let found = await Task.detached(priority: .utility) { BrowserCacheProbe.collect() }.value
+        if fixturePinned { isScanning = false; return }   // 同上：夹具优先，真实结果整批丢弃
         items = found
         hasScanned = true
         isScanning = false
@@ -650,6 +667,7 @@ final class BrowserCacheModel: ObservableObject {
 
     /// 夹具注入：rows 注入确定列表（含一个 size=nil 走「测量中」），empty 走空态。
     func applyFixture(_ tier: OptimizerFixture.BrowserTier) {
+        fixturePinned = true
         switch tier {
         case .rows:
             items = OptimizerFixture.browserRows()
@@ -737,15 +755,20 @@ struct SystemCheck: Identifiable {
 final class SystemDiagnosticsModel: ObservableObject {
     @Published var checks: [SystemCheck] = []
     @Published var updatedAt: String?
+    /// 夹具注入后钉住：见 `DuplicateScanModel.fixturePinned` 那条说明。
+    private var fixturePinned = false
 
     func refresh() async {
+        guard !fixturePinned else { return }
         let measured = await Task.detached(priority: .utility) { SystemDiagnostics.measure() }.value
+        if fixturePinned { return }   // 同上：夹具优先，真实读数整批丢弃
         checks = measured
         updatedAt = "上次检测 " + MMFormat.dateTime(Date())
     }
 
     /// 夹具注入：三行全只读（allReadOnly），模拟 host_statistics64/卷读取/废纸篓同时失败。
     func applyFixture(_ tier: OptimizerFixture.StatusTier) {
+        fixturePinned = true
         switch tier {
         case .allReadOnly:
             checks = [

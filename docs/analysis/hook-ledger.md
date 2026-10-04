@@ -33,6 +33,13 @@
   **P6.5「Swap 零值文案」没有新增钩子名**（所以上面那条 52 的计数不变），只给 `MM_MONITOR_FIXTURE`
   加了 1 个档 `swapZero`，并**改了 `populated` 底座的 swap 数值**：底座原本是 0/0，
   与新的 `swapZero` 档在照片上同一个样——两档合成一档，等于夹具自己把要区分的东西抹平了。
+  **P6.6 同样没有新增钩子名**（2026-10-04 重跑 grep 仍为 **52**），只给 `MM_OPTIMIZER_FIXTURE`
+  加了 2 个档（`caveat:unreadable:N` / `caveat:dataless:N`）。这一轮真正的产出不在钩子层，
+  而是把"钩子存在"与"钩子生效"这两件事分开查了一次：`MM_OPTIMIZER_FIXTURE` 自落地起
+  **四个 tab 里有三个从未生效过**，却被文档和矩阵当作已具备的能力引用了四天。
+  判据是照片自己的 md5——同一钩子的两个不同档位逐字节相同，只能是夹具被真实数据覆盖了。
+  **所以台账里"✅ 只读"只回答"会不会写盘"，不回答"拍出来的算不算数"**；后者要靠
+  `md5 -q *.png | sort | uniq -d`（见 §5 `p66-optimizer-capture.sh`）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -98,7 +105,7 @@
 | `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift:461` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3） |
 | `MM_GUARDIAN_CARDS` | `MMGuardian` | `MMGuardian.swift` `GuardianCardFilter`（`GuardianFixtureHooks.swift`） | 卡显示过滤，逗号子集 `occupancy\|tcc\|login\|activity` | ✅ | 否 | **P6.2d 新增**。纯显示层过滤，不改变数据流；非法值整批拒绝并写 stderr。解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档用 `=activity` 只渲染活动卡，不再需要拉高窗口+压矮上方三卡 |
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
-| `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift`（本轮新增） | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn |
+| `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift` | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、**caveat:unreadable:N / caveat:dataless:N（P6.6 新增，必须与 `duplicates:N` 同给，单独给则整条作废）**、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn。**P6.6 起有 `fixturePinned`**：给了夹具的 tab 会被钉住，随后落地的真实扫描结果整批丢弃。在此之前钩子是**半生效**的——三个 tab 的夹具被并发真实扫描覆盖，拍出来的照片挂着夹具文件名却是真实数据（见 §4 #2） |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
 | `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档，P6.5 加 `swapZero`） | 注入确定快照（populated/memoryNil/swapOff/**swapZero**/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡）。**`swapZero` 与 `swapOff` 只差 `swapAvailable` 一位**（前者"读到 0"、后者"读不到"），这一位就是 I9 那两句话的分界；`populated` 底座的 swap 从 0/0 改成真实的 800 MiB / 2 GiB，否则这两档拍出来是同一张 |
 | `MM_MONITOR_CARDS` | `MMMonitor` | `MMMonitor.swift` `MonitorCardFilter`（`MonitorFixtureHooks.swift`） | 卡显示过滤，逗号子集 `stats\|perCore\|disk\|memory\|process\|sensors` | ✅ | 否 | **P6.4 新增**。手法照 `MM_GUARDIAN_CARDS`：「温度与风扇」排在整页最后，760pt 窗口里永远在折叠线以下，靠钩子钉死位置而不是拉高窗口碰运气。非法值整批拒绝并写 stderr（半生效夹具 = 假通过）；纯显示层过滤，不改变数据流 |
@@ -110,7 +117,9 @@
 - **MMUninstaller**：5 个，含 3 个 `/tmp` 路径夹具，全部越界即忽略。
 - **MMDisk**：9 个（新增 `MM_DISK_HOLD`；P6.2a 再新增 `MM_DISK_RESCAN`），`MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_DISK_RESCAN` 都带 `/tmp` 守卫。
 - **MMGuardian**：6 个（新增 `MM_GUARDIAN_ACTIVITY_FIXTURE`、`MM_GUARDIAN_CARDS`），全 `com.example.*` 合成，不写盘。`MM_GUARDIAN_CARDS` 是纯显示层过滤。
-- **MMOptimizer**：2 个（新增 `MM_OPTIMIZER_FIXTURE`）。`DevToolCacheAudit.swift:166` 读的 `env` 是 **PATH 探测**（找可执行文件），**不是 `MM_` 夹具钩子**，与截图无关，不计入台账。
+- **MMOptimizer**：2 个（`MM_OPEN_TAB` + `MM_OPTIMIZER_FIXTURE`，后者 P6.6 起十档）。`DevToolCacheAudit.swift:166` 读的 `env` 是 **PATH 探测**（找可执行文件），**不是 `MM_` 夹具钩子**，与截图无关，不计入台账。
+  **P6.6 起这个模块多一条约定**：给了夹具的 tab 由 `fixturePinned` 钉住，随后落地的真实扫描整批丢弃。
+  这是缺陷补出来的约定，不是设计选择——其余模块的夹具**有没有同样的竞态本轮没查**，见 §4 #2 提请。
 - **MMMonitor**：`MM_OPEN_MODULE` + #50 新增 2 个（`MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`）
   + **P6.4 新增 1 个（`MM_MONITOR_CARDS`）**，共 3 个本模块钩子，全只读。
   本模块是 P6.4 起**唯一会读内核结构（IOKit AppleSMC 用户客户端）**的一个，
@@ -142,14 +151,27 @@
 ## 4. 提请协调者
 
 1. **README §2 矩阵已过期**：补列 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（见本文件文末「已落地修正」）；同步把 `mmmonitor` 行从"无内容钩子"更新为已含 `MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`。本轮已直接改 `docs/design-system/README.md`。
-2. **`MM_OPTIMIZER` 缺少面向无头核对的统一夹具入口**：~~目前只有 `MM_OPEN_TAB`~~ **已落地**：集成阶段新增 `MM_OPTIMIZER_FIXTURE`（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected），见 `OptimizerFixtureHooks.swift`。
-   **但这条现在换个卡法**：钩子在、**一张照片都没拍过**——`grep -r MM_OPTIMIZER_FIXTURE Scripts/` 0 命中，
-   `docs/verification/` 下 24 个目录里没有优化器那一档（2026-10-04 现查）。所以下一步不是写钩子，
-   是写 `Scripts/p6x-optimizer-capture.sh`（提案见 `fidelity-optimizer.md` §6 #5，手法照 `p65-swap-capture.sh`）。
-   另外这一条本身就是**台账自己过期**的样本：钩子落在 `969e548`，而它正是首次提交
-   `fidelity-optimizer.md` 那次提交 `e96c95b` 的**祖先**——文档里"只有 `MM_OPEN_TAB` 一个钩子"
-   在写下那天就已经是假的；钩子文件头部注释还引用"§5 #1–7"，也就是审计者自己的建议，
-   建议被实现完了、建议没被划掉。
+2. **`MM_OPTIMIZER` 缺少面向无头核对的统一夹具入口**：~~目前只有 `MM_OPEN_TAB`~~ ~~钩子在但一张照片都没拍过~~ **已闭环（P6.6，2026-10-04）**：`Scripts/p66-optimizer-capture.sh` 十二档跑完，产物在 `docs/verification/p66-optimizer/`。
+   这条的**真正收获不是补了照片，而是跑照片这件事本身查出一个 bug**：夹具自 `969e548` 落地以来
+   **四个 tab 里有三个从未生效**（本轮 `git log -S MM_OPTIMIZER_FIXTURE` 现查，哈希与祖先关系核对无误——
+   它是首次提交 `fidelity-optimizer.md` 那次 `e96c95b` 的祖先）。判据是照片自己给的：
+   `browser:rows` 与 `browser:empty` 逐字节相同（md5 `aa6c478a…`）、`devtools:notInstalled` 与
+   `devtools:unreadable` 相同（`13a3ac85…`）、`status:allReadOnly` 拍到的是这台机器的真实读数。
+   **成因**：`applyFixtureIfNeeded()` 先 `await` 真实扫描再上夹具，重复文件那档的全文件 SHA-256 把后面所有档
+   挡住了；而另三个 tab 的视图级 `.task`（`MMOptimizer.swift:239`/`:261`、`DevToolCacheView.swift:84`，2026-10-04 现读）
+   本来就在并行起真实扫描。
+   **修法两步，缺一不可**：① 四档夹具**先同步全部落完**，只对"没给夹具"的那档起真实扫描；
+   ② 四个模型各加 `private var fixturePinned`，扫描入口与 `await` 之后**都查一次**，
+   在途的真实结果整批丢弃。只做①不够——`.task` 仍会与夹具抢，最后落地的真实数据把夹具覆盖掉，
+   照片挂着夹具文件名却是真实数据，正是"半生效夹具 = 假通过"那道铁律的另一种犯法。
+   回归锁 `OptimizerFixtureHookTests`（11 条，补上"optimizer 是唯一没有 parse 单测的夹具"这个约定缺口）
+   + `OptimizerFixturePinTests`（3 条，直接测"夹具先落、真实扫描后到"这个顺序）；
+   模块 54 tests / 0 failures；重跑后 12 张图 `uniq -d` → **0 个重复**。
+   **⚠️ 提请协调者**：monitor / guardian 两个夹具钩子有没有同一类 `.task` 竞态？本轮只核了优化器，没查那两个包。
+   形状上最像的是**视图级 `.task` 一次性注入**那一类（guardian 的几张卡、disk 的扫描收尾），优先查它们；
+   monitor 的快照由采样循环反复喂，性质不同，但"夹具与真实采样共用同一个赋值口"该不该也算竞态，需要个说法。
+   另外这一条本身就是**台账自己过期**的样本：文档里"只有 `MM_OPEN_TAB` 一个钩子"在写下那天就已经是假的；
+   钩子文件头部注释还引用"§5 #1–7"，也就是审计者自己的建议，建议被实现完了、建议没被划掉。
 3. **`MM_DISK_SCAN` 越界值处理**：~~当前 `MMDisk.swift:135` 未校验 /tmp~~ **已落地**：集成阶段对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 `/tmp`/`/private/tmp` 前缀守卫，越界写 stderr 并忽略。
 
 ## 5. 取证工具链（P4 浅色档）
@@ -169,6 +191,8 @@
 | `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid |
 | `Scripts/p65-swap-capture.sh` | 内存卡 Swap 一行四档 × 明暗两套：①实机非零对仗（不注夹具）②`swapZero`「0 字节（未使用）」③`swapOff`「—」④`populated` 底座 | **P6.5 新增**。渲染范围钉成 `MM_MONITOR_CARDS=memory`（单卡）。01 那张是"改文案没把非零路径改坏"的回归证据；02/03 证明"读到 0"和"读不到"仍是两句话（I9 的改动边界就在这位上）。**菜单栏里那句 `Swap: …` 没有照片**：它要点开 NSMenu，而合成点击是硬禁止项、`screencapture -l<windowid>` 又抓不到菜单窗口，所以那一档只有单测 |
 | `Scripts/i11-hysteresis-capture.sh` | 真实负载下逐帧抓监控页温度卡：起 8 个 `yes` 循环压 ~40 秒再撤掉，每 3 秒按 pid 抓一帧 | **I11 新增**。迟滞（进 90 / 出 85）是**随时间**的行为，而 `MM_MONITOR_FIXTURE` 每个进程只给一个定格快照——拍不到"红过之后落回 87 °C 还红着"。这台机器跨不过 90（26 帧最高 **89.0 °C**、零红），所以过渡态最终只有单测；脚本与负载段那一帧留在 `docs/verification/i11-hysteresis/`，免得下轮又去试一遍。**跑这类热实验时别同时干别的重活**：本轮同时在渲染设计稿，冷却曲线被画成 66→81.5→86.2，撤负载之后的帧全部作废 |
+| `Scripts/p66-optimizer-capture.sh` | `MM_OPTIMIZER_FIXTURE` 十二档 × 明暗两套：重复文件（扫描中/有组/带告警/PROTECTED/从未扫描/扫完为空）+ 浏览器（rows/empty）+ 系统状态（allReadOnly）+ 开发工具（未装/读不进）+ 非法值整批拒绝 | **P6.6 新增**。它是"钩子写了不等于钩子生效"的唯一反证工具：第一次跑出来 `browser:rows` 与 `browser:empty` **逐字节相同**，据此查出一个从未生效的夹具（见 §4 #2）。所以脚本末尾**必须**跑 `md5 -q *.png \| sort \| uniq -d`，重复就是夹具没生效，不是"这两档长得一样"。第 01 档（扫描中）**没有 HOLD 钩子**：真实 SHA-256 本来就慢，起进程 3 秒后截图就停在骨架 |
+| `Scripts/p66-layout-measure.sh` | 四档定态截图，专供量磁盘页面包屑条高 / treemap header 高 / cleaner 分组右注长度 | **P6.6 新增**。它拍的是**待测量的载体**而不是结论，所以每档都自带 `MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_CLEANER_FILTER` 的取值说明。两个坑记在脚本头里：① `MM_DISK_SELECT` 只认绝对 /tmp 路径，写相对段名会被越界 guard 整条忽略（拍出一张根图却以为是下钻图）；② 04 档用 `MM_CLEANER_FILTER=浏览器` 把表**收短**，让最长的分组右注自己升进首屏——禁合成点击，也禁滚动 |
 - 三个面（`cardSurface`/`recessedSurface`/`underPageSurface`）的实测值与判定见
   `docs/analysis/fidelity-light-dark.md` §2。
 - **同一批钩子的取值顺序会互相牵制**（本轮踩到）：`MM_DISK_SELECT` 是按逗号顺序逐个

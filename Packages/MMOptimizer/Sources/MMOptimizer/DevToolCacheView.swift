@@ -15,23 +15,28 @@ final class DevToolCacheModel: ObservableObject {
     @Published var updatedAt: String?
     /// 拷贝过的命令，用来给按钮一点即时反馈（不弹全局提示）。
     @Published var copiedID: String?
+    /// 夹具注入后钉住：见 `DuplicateScanModel.fixturePinned`（MMOptimizer.swift）那条说明。
+    private var fixturePinned = false
 
     func refresh() async {
+        guard !fixturePinned else { return }
         let measured = await Task.detached(priority: .utility) {
             DevToolCacheAuditor.liveEntries { SystemSampler.directoryBytes($0) }
         }.value
+        if fixturePinned { return }   // 同上：夹具优先，真实盘点整批丢弃
         entries = measured
         updatedAt = "上次盘点 " + MMFormat.dateTime(Date())
     }
 
     /// 进场即盘点（生产路径）。devtools 卡没有删除入口，只读展示。
     func refreshIfNeeded() async {
-        guard entries.isEmpty else { return }
+        guard entries.isEmpty, !fixturePinned else { return }
         await refresh()
     }
 
     /// 夹具注入：未安装/读不到两档（08e 推演档），只顶替展示数据、不写盘不 spawn。
     func applyFixture(_ tier: OptimizerFixture.DevToolsTier) {
+        fixturePinned = true
         entries = OptimizerFixture.devtoolsRows(tier: tier)
         updatedAt = "上次盘点 " + MMFormat.dateTime(Date())
     }

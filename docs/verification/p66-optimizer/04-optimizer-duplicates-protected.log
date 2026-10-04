@@ -1,0 +1,2 @@
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1320x1000 请求 1320x1000pt，窗口实际 1320x1000pt
