@@ -103,7 +103,18 @@ public final class TrashWatcher: ObservableObject {
     /// 监听哪个目录：截图夹具钩子优先，否则真实废纸篓。
     /// `nonisolated` 是因为它要当 `init` 的默认值用 —— 默认参数不在隔离域里求值。
     nonisolated public static func watchTarget() -> String {
-        fixtureEnvironmentValue(key: "MM_TRASH_FIXTURE_DIR") ?? (NSHomeDirectory() + "/.Trash")
+        guard let fixture = fixtureEnvironmentValue(key: "MM_TRASH_FIXTURE_DIR") else {
+            // 退到真实废纸篓是**换了监听对象**，不是"钩子没作用"这么轻：这一退，
+            // 照片里出现的会是用户自己的删除记录。给错了路径已经由上面点名，
+            // 但空值与"给了却不该用"同样要说出后果。
+            if ProcessInfo.processInfo.environment["MM_TRASH_FIXTURE_DIR"] != nil {
+                FileHandle.standardError.write(
+                    "MM_TRASH_FIXTURE_DIR 未被采用，TrashWatcher 改为监听真实废纸篓（\(NSHomeDirectory() + "/.Trash")）\n"
+                        .data(using: .utf8)!)
+            }
+            return NSHomeDirectory() + "/.Trash"
+        }
+        return fixture
     }
 
     /// 无头验证时残留扫描的 home。和监听目录是两个钩子：夹具废纸篓里放的是 bundle，

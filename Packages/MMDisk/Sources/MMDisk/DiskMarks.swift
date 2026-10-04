@@ -34,20 +34,21 @@ enum DiskMarks {
     }
 
     /// 单层重新枚举（「重新扫描」按钮、下钻未缓存的目录）。
-    /// `scope` 是这次真正重新枚举过的那个目录：它底下的标记要么换成新节点，
-    /// 要么确认不在了就丢弃；scope 之外的原样留着——
-    /// 没在这一层扫到 ≠ 不存在，"它没了"只有整根重扫说得起。
+    /// `scope` 是这次真正重新枚举过的那个目录：**只有它的直接孩子这一层判得了生死**——
+    /// 下钻只取一层（`childrenOfDirectory`），拿到的孩子不带孙子，所以再往下的标记是
+    /// "这次没被观察到"，不是"已经不在了"。把它报成丢弃，就是当着用户的面说一句假话。
+    /// scope 之外的原样留着：没在这一层扫到 ≠ 不存在，"它没了"只有整根重扫说得起。
     static func refresh(_ previous: [String: DiskTreeNode],
                         with items: [DiskTreeNode], under scope: String) -> Outcome {
         var marks: [String: DiskTreeNode] = [:]
         var dropped: [String] = []
         for (path, old) in previous {
             // items 是 scope 的孩子，scope 自己不在里面：别把"孩子里没找到"读成"它没了"。
-            guard path != scope, isUnder(path, scope) else {
+            if path == scope || !isDirectChild(path, of: scope) {
                 marks[path] = old
                 continue
             }
-            if let fresh = find(path: path, in: items) {
+            if let fresh = items.first(where: { $0.path == path }) {
                 marks[path] = fresh
             } else {
                 dropped.append(path)
@@ -56,11 +57,13 @@ enum DiskMarks {
         return Outcome(marks: marks, dropped: dropped.sorted())
     }
 
-    /// 按路径组件判断，不是纯前缀："/tmp/build" 不算 "/tmp/bu" 底下。
-    static func isUnder(_ path: String, _ scope: String) -> Bool {
-        guard !scope.isEmpty else { return false }
-        if path == scope { return true }
-        return path.hasPrefix(scope.hasSuffix("/") ? scope : scope + "/")
+    /// 恰好低一层：单层枚举只判得了它。按路径组件比，不是纯前缀——
+    /// "/tmp/bu/x" 不算 "/tmp/build" 底下的孩子，同前缀的兄弟目录也不该被丢。
+    static func isDirectChild(_ path: String, of scope: String) -> Bool {
+        let p = path.split(separator: "/")
+        let s = scope.split(separator: "/")
+        guard p.count == s.count + 1 else { return false }
+        return Array(p.dropLast()) == Array(s)
     }
 
     private static func find(path: String, in nodes: [DiskTreeNode]) -> DiskTreeNode? {

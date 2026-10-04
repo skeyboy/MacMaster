@@ -484,11 +484,23 @@ public struct UninstallerView: View {
 
     private func runOrphanScan() async {
         let fixtureHome = Self.orphanFixtureHome
+        // `scanOrphans` 在"应用清单还在枚举"或"清单为空"时**静默 return**（`UninstallerModel.swift:490`）。
+        // 旧写法在这之后无条件写一行"已用夹具目录… 自动勾选并打开确认面板"，于是扫描根本没跑时
+        // 日志也是绿的——取证脚本自己造了一条假凭据（P6.7 夹具审计查出）。这里先把同一个前置条件
+        // 判一遍：不满足就点名退出、不打开面板。只在给了夹具 home 时判，真机那趟自动扫描行为不变。
+        if fixtureHome != nil, model.isScanningApps || model.apps.isEmpty {
+            FileHandle.standardError.write(
+                "孤儿夹具扫描**没有执行**：应用清单还在枚举或为空（isScanningApps=\(model.isScanningApps), apps=\(model.apps.count)），未勾选、确认面板未打开\n"
+                    .data(using: .utf8)!)
+            return
+        }
         await model.scanOrphans(home: fixtureHome)
         guard let fixtureHome else { return }
         model.selectedOrphanIDs = Set(model.orphans.map(\.id))
         showOrphanConfirm = true
-        FileHandle.standardError.write("已用夹具目录 \(fixtureHome) 自动勾选并打开确认面板\n".data(using: .utf8)!)
+        // 把条数写进日志：这行从此是一个**可核对的断言**（照片里应当正好有这么多行），
+        // 而不是一句"我跑了"的自报。0 条也照写，空面板与没扫描是两件事。
+        FileHandle.standardError.write("已用夹具目录 \(fixtureHome) 自动勾选并打开确认面板（\(model.orphans.count) 条）\n".data(using: .utf8)!)
     }
 
     private var orphanPane: some View {

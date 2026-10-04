@@ -571,8 +571,10 @@ SEL="/tmp/macmaster-disk-fixture/Downloads,/tmp/macmaster-disk-fixture/Movies,/t
 2. **「重新扫描」按钮那条 `refresh` 路径需要真点击**（禁止合成点击），照片里没有。
    覆盖它的还是单测：`testRefreshDropsOnlyWithinTheEnumeratedLevelAndKeepsSiblings`
    ——一条 scope 内消失的丢弃、一条 scope 内还在的换新、一条兄弟目录上的原样留着。
-3. **`isUnder` 按路径组件而不是纯前缀**（`/tmp/build` 不算 `/tmp/bu` 底下）：
-   界面上看不出区别，`testIsUnderComparesWholePathComponents` 钉住。
+   ~~以及一条"深一层的标记"~~ 当时**没有**这一条，而 P6.7 恰恰是补上它之后查出一个真 bug（见 §10）。
+3. **纯前缀与按组件比较在界面上看不出区别**：原来由 `testIsUnderComparesWholePathComponents` 钉。
+   P6.7 之后 `isUnder` 没有生产调用点、已删，同一条判据挪到 `isDirectChild` 上
+   （`testIsDirectChildComparesWholePathComponents`，含"`/u/dev/ab/x` 不算 `/u/dev/a` 的孩子"）。
 
 ### 9.4 顺带改的一处钩子行为
 
@@ -581,3 +583,69 @@ SEL="/tmp/macmaster-disk-fixture/Downloads,/tmp/macmaster-disk-fixture/Movies,/t
 它代表的是"用户动手标记过一次"这个动作，而不是一个常驻状态。
 既有单档取证（`p4-sweep.sh … disk` 那一类）都只扫一次，行为不变。
 
+
+## 10. P6.7 追加（2026-10-04）：`refresh` 的"只在单层判生死"当年没兑现
+
+`DiskMarks.refresh` 自己的注释写着**「scope 之外的原样留着——没在这一层扫到 ≠ 不存在」**，
+§9.1 也把这句话当作两条口径的分工依据。P6.7 的夹具审计照着它查代码，发现它只兑现了一半：
+
+```swift
+guard path != scope, isUnder(path, scope) else { marks[path] = old; continue }
+if let fresh = find(path: path, in: items) { … } else { dropped.append(path) }
+```
+
+`isUnder` 是**任意深度**的包含判断，而 `find` 递归找的是 `items` 那几棵子树——
+问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1411`，
+取孩子在 `:1420`，**只取一层**），拿到的孩子**不带孙子**。于是挂在 `scope` 下两层的标记既找不到也无处递归，
+被丢进 `dropped`，UI 上据此画出「重扫后 N 个标记已经不在了 · 已移除」（`MMDisk.swift:363`）。
+
+**这不是取证缺陷，是用户可达的假话**，路径很日常：
+在 `Documents` 里标记一个文件 → 回到上一层 → 按「重新扫描」。
+那 16.8 MB 没消失，它只是这次没被观察到。
+
+### 10.1 先红后绿
+
+补在 `testRefreshDropsOnlyWithinTheEnumeratedLevelAndKeepsSiblings` 之后：
+
+```
+testRefreshKeepsMarksDeeperThanTheEnumeratedLevel
+  error: ("[\"/u/dev/a/b/c\"]") is not equal to ("[]")
+  error: ("nil") is not equal to ("Optional(700)")
+```
+
+修法把"这一层观察到了什么"写成一条判据而不是靠递归碰运气：
+`refresh` 现在只对 `isDirectChild(path, of: scope)` 成立的那批换体积 / 判生死，
+其余（scope 本身、更深的一层、scope 外的兄弟）一律原样留着。
+`isUnder` 随失去生产调用点而删除，同一条"按组件比较、同前缀不算"的判据挪到
+`isDirectChild` 上（`testIsDirectChildComparesWholePathComponents`）。
+`Packages/MMDisk` 全量 **62 tests / 0 failures / 1 skipped**（2026-10-04 现跑）。
+
+### 10.2 一条刻意保留的口径不对称
+
+更深那层的标记**留着旧体积**，与文件头"体积一律换成新扫描那一份"相反。这是两害相权：
+
+| 做法 | 底部「已标记 N 项 · X」 | 面包屑上那句 |
+| --- | --- | --- |
+| 丢弃并点名 | 少了一项（用户以为清单缩了） | **"已经不在了"——假话** |
+| 原样留着（现在） | 掺一个"上次量的"字节 | 不说 |
+
+选后者的理由和 §9.1 是同一条：**"它没了"只有整根重扫（`reattach`）说得起**，
+单层枚举说这句话就是撒谎；而旧体积至少还是"上一次真量到的数"，
+它错在时效，不错在事实。`reattach` 那条路（整根重扫、换根）保持原样——新树是全的，
+找得到就该点名找不到。
+
+### 10.3 这一轮在取证侧改的（同一批审计带出来的）
+
+- `MM_DISK_SELECT` / `MM_SHOW_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT` **每个生效分支各留一行日志**，
+  带可核对的数：选中项的 `MMFormat.bytes`、面板里的 `marked.count`、吐司借来的那一项体积。
+  动因是 P6.6 那条教训的反面——**只写失败日志的钩子，成功时在日志里和"压根没跑"同样安静**。
+  2026-10-04 手工起实例跑过一轮，四行为：
+  `已选中 /tmp/macmaster-disk-fixture/Documents/report-2026.pdf（16.8 MB）`、
+  `已打开确认面板（2 个标记）`、`MM_SHOW_PERMANENT=acked …（勾选项 已打）`、
+  `MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · 16.8 MB）`。
+- `p4-sweep.sh` 那行"钩子凭据"原来只 `grep` 四类钩子名（`MM_APPEARANCE|MM_WINDOW_SIZE|MM_DISK|MM_SHOW`），
+  现在收全部 `MM_` 开头的行加夹具哨兵词——旧写法下磁盘页以外的钩子即便真生效，这行也是空的。
+- **§10 这条缺陷仍然没有照片**：兑现它需要"回到上一层再按重新扫描"，那是真点击，
+  禁止合成点击，而磁盘页没有"导航到某个祖先目录"的钩子。为一张照片加一条新钩子
+  （`MM_DISK_NAVIGATE`）本轮没做——`MM_DISK_RESCAN` 走的是整根 `reattach`，覆盖不到 `refresh`。
+  所以判据停在 §10.1 那两条断言上，写在这里免得下轮以为照片里有。

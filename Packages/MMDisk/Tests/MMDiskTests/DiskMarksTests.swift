@@ -100,12 +100,29 @@ final class DiskMarksTests: XCTestCase {
         XCTAssertEqual(out.marks["/u/dev/a"]?.size, 1_000)
     }
 
-    func testIsUnderComparesWholePathComponents() {
-        XCTAssertTrue(DiskMarks.isUnder("/u/dev/a/b", "/u/dev/a"))
-        XCTAssertTrue(DiskMarks.isUnder("/u/dev/a", "/u/dev/a"))
-        XCTAssertFalse(DiskMarks.isUnder("/u/dev/ab", "/u/dev/a"), "同前缀的兄弟目录不算在 scope 底下")
-        XCTAssertFalse(DiskMarks.isUnder("/u/dev", "/u/dev/a"))
-        XCTAssertFalse(DiskMarks.isUnder("/u/dev/a", ""))
+    func testRefreshKeepsMarksDeeperThanTheEnumeratedLevel() {
+        // 下钻走的是**单层**枚举（`MMDisk.doNavigate` → `DiskScanner.childrenOfDirectory`），
+        // 所以 items 里那个 `b` 带着空孩子。它底下两层的标记是"这次没被观察到"，
+        // 不是"已经不在了"——把它们丢进 dropped 就是当着用户的面说一句假话。
+        let old = previous([marked("/u/dev/a/b", size: 800), marked("/u/dev/a/b/c", size: 700)])
+        let items = [node("/u/dev/a/b", size: 900)]
+
+        let out = DiskMarks.refresh(old, with: items, under: "/u/dev/a")
+
+        XCTAssertEqual(out.dropped, [])
+        // 被真正枚举到的那一层：换成新体积。
+        XCTAssertEqual(out.marks["/u/dev/a/b"]?.size, 900)
+        // 更深的那条：没重新量过，原样留着（旧体积是诚实的"上次量的"，不是掺进来的假数）。
+        XCTAssertEqual(out.marks["/u/dev/a/b/c"]?.size, 700)
+    }
+
+    func testIsDirectChildComparesWholePathComponents() {
+        XCTAssertTrue(DiskMarks.isDirectChild("/u/dev/a/b", of: "/u/dev/a"))
+        XCTAssertTrue(DiskMarks.isDirectChild("/u/dev/a/b", of: "/u/dev/a/"), "scope 末尾斜杠不影响")
+        XCTAssertFalse(DiskMarks.isDirectChild("/u/dev/a/b/c", of: "/u/dev/a"), "深两层不是单层枚举观察到的")
+        XCTAssertFalse(DiskMarks.isDirectChild("/u/dev/ab/x", of: "/u/dev/a"), "同前缀的兄弟目录不算在底下")
+        XCTAssertFalse(DiskMarks.isDirectChild("/u/dev/a", of: "/u/dev/a"), "scope 不是自己的孩子")
+        XCTAssertFalse(DiskMarks.isDirectChild("/u/dev/a", of: ""), "空的 scope 不认任何路径")
     }
 
     func testReattachOnAnEmptyMarkSetIsCheapAndSilent() {

@@ -334,13 +334,21 @@ A 稿 10 个百分比数值、磁盘 IO 两行标签与 monospace、卡片底/�
 | 9 | 每核 ≥85% 红档（D 稿第一格） | `MM_MONITOR_FIXTURE=perCoreRed` | 核 1 = 91.4%，条与数值同时 `destructive` |
 | 10 | `swapAvailable == false` 的 Swap 行 | `MM_MONITOR_FIXTURE=swapOff` | Swap 行「—」（照片 `docs/verification/p65/03`，明暗两套） |
 | 10b | **Swap 读到 0 那一档**（不在原 13 项里，是 §2.10 / I9 带出来的） | `MM_MONITOR_FIXTURE=swapZero` | Swap 行「0 字节（未使用）」（照片 `p65/02`）。**这一档与 `populated` 的区别只在 `swapAvailable` 一位**，而底座原本是 0/0 会让两档拍成同一张，所以 `populated` 同时改成真实的 800 MiB / 2 GiB（照片 `p65/04`） |
-| 11 | 「菜单栏监控」关闭态 | `MM_MONITOR_FIXTURE=menubarOff` | 不 enable，toggle 显示 off、页面冻结 |
+| 11 | 「菜单栏监控」关闭态 | `MM_MONITOR_FIXTURE=populated,menubarOff` | **P6.7 修正**：这一档自 #50 起**只被解析、从未被消费**（`grep -rn menubarOff` 只命中解析文件自己），所以本行原先写的"已覆盖"是空的。现在它真的走 `menuBar.disable()`——开关读的是 `isEnabled == (statusItem != nil)`，而壳层启动即 `enable()`，所以"不 enable"根本拍不出关态，**只有真把状态项摘掉才行**。照片 `docs/verification/p67-menubar-off/01↔02`：两张只差右上角那颗开关，其余数字逐位相同 |
 | 12 | 浅色模式实机配色 | （非钩子） | 浅色外观下重跑 `render.sh` + 真机截图流程，单测矩阵不覆盖 |
 | 13 | `MMFormat.bytes` 各 locale 输出 | （非钩子） | `MMFormat` 单测矩阵覆盖，不属设计稿验证范围 |
 
 > **B/D 稿换夹具口径实测值**：`07-monitor.html` 的 B（内存卡+进程卡）与 D（降级态合集）artboard
 > 现已可被上述钩子逐档构造真机态——复核时 B/D 两稿应**改用钩子注入后的实机截图**重出，
 > 不再依赖"卡片完整尺寸"的稿内推演（原 S5 指出的"不是真实视口"问题随之消解）。
+
+> **P6.7 哨兵值交叉验证（2026-10-04）**：上面这 13 行原先只被"两张照片 md5 不同"这种判据背书过，
+> 而那个判据不充分（两张不同 ≠ 其中一张是夹具）。改用**真实路径生产不出来的值**逐档查一遍：
+> `populated` 那张画面上是「上次采样 **2023-11-15 06:13**」，同一天不注夹具的实机帧读的是
+> **2026-10-04**；温度键名 `TZZa…TZZh` 对上实机的 `TCMz/Tp0c/…`（174 个点）。两处都对上，
+> 才敢说这一整批档位是真夹具。顺带一句机制上的澄清：注了夹具就**不会起后台采样循环**
+> （`MMMonitor.swift:89` 那行"不 enable"就是为此），所以 §4 #2 猜的"夹具与真实采样抢同一个赋值口"
+> 在本模块不成立——这条已写进 `docs/analysis/hook-ledger.md` §4 #4。
 
 ### 4.2 P6.4 新卡取证矩阵（8 档 × 明暗两套，`Scripts/p64-capture.sh`）
 

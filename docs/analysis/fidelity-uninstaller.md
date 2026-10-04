@@ -334,3 +334,38 @@
 - **子目录条目**（`/Applications/Utilities/Foo.app`）按设计**不该**进任何提示，
   所以它没有"正面照片"，只有 `AppWatchRule` 的那组单测守着监听口径 = 列举口径。
 
+
+## 10. P6.7 追加（2026-10-04）：取证脚本自己造了一条假凭据
+
+这一轮不拍新档，改的是**已有那条日志的可信度**。`MM_ORPHAN_FIXTURE_HOME` 那趟自动扫描
+（`runOrphanScan`，`MMUninstaller.swift:485`）过去在 `await model.scanOrphans(home:)` 之后
+**无条件**写一行「已用夹具目录 … 自动勾选并打开确认面板」。而 `scanOrphans` 在
+"应用清单还在枚举"或"清单为空"时是**静默 return** 的（`UninstallerModel.swift:490`）。
+两件事叠起来的结果：扫描根本没跑，日志照样是绿的——取证脚本替夹具作伪证。
+
+改法两步（同一处，`Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift`）：
+
+1. **把同一个前置条件在外面先判一遍**，不满足就点名
+   「孤儿夹具扫描**没有执行**：应用清单还在枚举或为空（isScanningApps=…, apps=…），未勾选、确认面板未打开」并 return。
+   只在给了夹具 home 时判——真机那趟自动扫描（用户自己切到「卸载后遗症」）行为不变。
+2. **成功那行带上条数**：`（N 条）`。这行从此是可核对的断言（照片里应当正好有这么多行），
+   不是一句"我跑了"。0 条照写——**空面板与没扫描是两件事**，旧写法把它们混成同一句。
+
+2026-10-04 各跑一轮实机验证：夹具 home 指 `Scripts/uninstall-fixture.sh` 造的那棵 →
+`（1 条）`；指一棵空 home → `（0 条）`。两种都落到"打开了面板"，只有条数不同，
+正是这条日志要区分的东西。
+
+**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:202`）。
+上一轮审计把它列为"`MM_APPS_WATCH_AUTO_SCAN` 会抹掉 `MM_UNINSTALL_SELECT` 的选中"，
+现读之后判定它**不是缺陷**：清单重新反映了磁盘，选中项可能已经不存在，留在旧 id 上是悬空引用；
+而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`:842`），
+拍的是后遗症页不是应用详情，两者不在同一屏。`runOrphanScan` 跑在
+`await model.reloadListing()` **之后**（`:838`→`:839`），`reloadListing` 落回时
+`isScanningApps=false`、`apps` 已填（`:219-220`），所以新加的那道前置判断不会在这条路上误报。
+
+## 11. P6.7 追加：`MM_TRASH_FIXTURE_DIR` 被拒绝时现在会说清后果
+
+`TrashWatcher.watchTarget()` 过去是一行 `?? (NSHomeDirectory() + "/.Trash")`。
+钩子值不在 /tmp 之下时 `fixtureEnvironmentValue` 会点名并返回 nil——**但没说退回之后监听的是谁的废纸篓**，
+而那是用户自己的删除记录：一张本该只含夹具的照片会悄悄变成真数据，且照片上看不出来源换了。
+现在这条退路自己说一遍（含实际目录），空值同样触发。

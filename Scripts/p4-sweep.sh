@@ -54,8 +54,11 @@ for m in $targets; do
   screencapture -o -x -l"$wid" "$OUT/$m.png"
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
-  # 取证标记落在文件名之外还要能追溯：这一行是钩子是否真生效的凭据
-  marks=$(grep -E "MM_APPEARANCE|MM_WINDOW_SIZE|MM_DISK|MM_SHOW" "$log" | head -4 | tr '\n' '；')
+  # 取证标记落在文件名之外还要能追溯：这一行是钩子是否真生效的凭据。
+  # 别枚举钩子名——上一版只列了 MM_APPEARANCE/MM_WINDOW_SIZE/MM_DISK/MM_SHOW 四类，
+  # 于是 monitor/guardian/optimizer/dev/watch 那十几个钩子即便真生效了，这行也是空的，
+  # 读起来跟"钩子没落"一模一样。凡是 MM_ 开头的名字加上夹具哨兵词，一并收进来。
+  marks=$(grep -E "MM_[A-Z]|夹具|示例|TZZ|com\.example" "$log" | head -6 | tr '\n' '；')
   print -r -- "✅ $m windowid=$wid ${marks}"
 done
 

@@ -46,7 +46,7 @@ enum MonitorFixtureTier: String, Sendable {
     case perCoreEmpty    // D1：perCoreCPU 空数组 → 单「—」
     case diskUnavailable // D2：diskIOStatus=.unavailable(reason:)
     case processes       // 注入固定进程列表
-    case menubarOff      // 菜单栏监控关闭态（不 enable、toggle off）
+    case menubarOff      // 菜单栏监控关闭态：真把状态项摘掉（`disable()`），开关才显示 off——"不 enable" 不够，启动时壳层已经 enable 过了
     case sensors         // 温度与风扇 loaded 夹具档（夹具键名 TZZ*，一眼是假的；E1 用的是真读数，不注夹具）
     case sensorsUnavailable // E2：整卡 unavailable(reason:)，含自定义 reason 后缀
     case sensorsNoFan       // E3：读到风扇数为 0（无风扇机型那一档）

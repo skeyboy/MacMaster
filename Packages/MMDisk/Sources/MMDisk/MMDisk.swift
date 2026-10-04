@@ -1111,6 +1111,19 @@ public struct DiskAnalyzerView: View {
             openDirectory(at: parent)
         }
         selected = node(atPath: first)
+        // 钩子写了不等于选中了。`openDirectory` 遇到没缓存的一层会起 `Task { doNavigate }`，
+        // 这一行跑在枚举回来之前，`node(atPath:)` 只能是 nil，详情面板就空着——
+        // 而没有这行日志时，"钩子没生效"和"这一层还没到"在照片上长得一模一样。
+        if selected == nil {
+            FileHandle.standardError.write(
+                "MM_DISK_SELECT 未能选中 \(first)：这一层不在已展开的树里（导航还在进行或路径不在扫描范围内），详情面板为空\n"
+                    .data(using: .utf8)!)
+        } else if let node = selected {
+            // 成功也要留一行：取证脚本那行"钩子凭据"读的是日志，
+            // 只写失败的话，一次完全生效的选择在日志里和"钩子压根没跑"同样安静。
+            FileHandle.standardError.write(
+                "MM_DISK_SELECT 已选中 \(first)（\(MMFormat.bytes(node.size))）\n".data(using: .utf8)!)
+        }
         // 回执条摆在标记之前：它只需要"选中一项"，不需要确认面板，
         // 放在下面那道 guard 里就永远拍不到（面板会盖住它）。
         if env["MM_SHOW_TOAST"] == "permanent", let node = selected, node.size > 0 {
@@ -1120,6 +1133,9 @@ public struct DiskAnalyzerView: View {
             permanentCount = 1
             permanentSize = node.size
             permanentSeconds = 10
+            FileHandle.standardError.write(
+                "MM_SHOW_TOAST=permanent 已画出「已永久删除」回执条（1 项 · \(MMFormat.bytes(node.size))），没有删除任何东西\n"
+                    .data(using: .utf8)!)
             return
         }
         guard env["MM_SHOW_CONFIRM"] != nil else { return }
@@ -1133,9 +1149,16 @@ public struct DiskAnalyzerView: View {
                     id: root.path, name: (root.path as NSString).lastPathComponent,
                     path: root.path, size: root.scannedSize, isDirectory: true, children: []
                 )
+            } else {
+                // 找不到就点名。悄悄跳过会让"确认面板里 N 行"变成"面板里有几行算几行"，
+                // 而这块面板正是要被当成删除清单来核对的。
+                FileHandle.standardError.write(
+                    "MM_DISK_SELECT 里的 \(path) 不在树里，没有标记进确认面板\n".data(using: .utf8)!)
             }
         }
         showMarkConfirm = true
+        // 把条数写进日志：这行从此是可核对的断言（面板里应当正好有这么多行），不是一句"我开了面板"。
+        FileHandle.standardError.write("MM_SHOW_CONFIRM 已打开确认面板（\(marked.count) 个标记）\n".data(using: .utf8)!)
         // 截图用：MM_SHOW_PERMANENT 把镜头直接对准永久删除面板。它只换面板，
         // 一个字节都不动——删除仍然要用户在那块面板里勾确认再按按钮。
         // 值写 acked 时顺手把勾选打上，好拍到"确认后按钮才亮"的那一态。
@@ -1143,6 +1166,10 @@ public struct DiskAnalyzerView: View {
             permanentAcknowledged = ack == "acked"
             showMarkConfirm = false
             showPermanentConfirm = true
+            let ackState = permanentAcknowledged ? "已打" : "未打"
+            FileHandle.standardError.write(
+                "MM_SHOW_PERMANENT=\(ack) 已把镜头换到永久删除面板（勾选项 \(ackState)），没有改动任何文件\n"
+                    .data(using: .utf8)!)
         }
         // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
         // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
@@ -1150,6 +1177,9 @@ public struct DiskAnalyzerView: View {
             trashedCount = 1
             trashedSize = node.size
             undoSeconds = 15
+            FileHandle.standardError.write(
+                "MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · \(MMFormat.bytes(node.size))），没有移动任何东西\n"
+                    .data(using: .utf8)!)
         }
     }
 

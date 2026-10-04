@@ -91,6 +91,12 @@ public struct MonitorView: View {
                 if !menuBar.isEnabled { menuBar.enable() }
                 loadProcesses()
             }
+            // `menubarOff` 档：把「菜单栏监控」开关定格在关。这一档自 #50 起就一直解析着却没人消费，
+            // 所以文档里那行"关闭态已覆盖"是空的。开关读的是 `isEnabled == (statusItem != nil)`，
+            // 而 `MacMasterApp` 启动即 enable，所以唯一办法是真把状态项摘掉；
+            // 合成点击是禁止项，这条路径就是它存在的理由。放在 if/else 之后：
+            // 单独给 `=menubarOff`（不注快照）也成立，拍的是真实数据 + 关态开关。
+            if fixture.menubarOff { menuBar.disable() }
             // 夹具与冻结首帧都是在 onAppear 里同步落到 snapshot 上的，
             // onChange 不保证抓到这一次同周期变化，所以这里补一次播种。
             syncHotSensors(menuBar.snapshot.sensors.temperatures)
