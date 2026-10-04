@@ -90,6 +90,16 @@
 
 ## 3. 差异归属汇总
 
+> **复核 2026-10-04（P6.5b）**：本轮把六份 fidelity 文档的"实现该改"逐条重对代码，**本页是唯一一条
+> "已落地"写上去、而对代码核得一字不差的**——I11/I12 两处的坐标、形态、判据全部仍在原位：
+> I11 = `MainWindow.swift:580-584`（`Text("全部")` + `Image(systemName:"chevron.right").font(.caption2)`，
+> 注释 `:580-581` 还留着"那半枚箭头是'点了会离开这一页'"的原始理由）；
+> I12 = `MMSparkline`（`MMDesign.swift:1051-1089`，`slotCount` 默认 12、`:1055`；未满的槽用 `Color.clear`
+> 撑位而不是画 2pt 矮柱，`:1064-1068`，判据"没轮到 ≠ 读不到"写在注释里），调用点 `MainWindow.swift:534`，
+> 数据侧 `DashboardModel.swift:92-118` 把"读不到"压成 `nil` 槽、量不到时整列空出来（`:114-118`）。
+> **本页没有需要更正的落地记录。** 唯一要补的是下面第 5 行那句"待真机测量"里新添的一项边界（见 §5 第 2 条补记：
+> 侧栏 `max:280` 那端没有取证手段，与"没拍"不是一回事）。
+
 - **实现该改（P6.2b 落地 2 条）**：I11「全部」缺 `chevron-right` affordance、I12 sparkline 首帧稀疏且槽宽钉死（均见 §1.5 表）。I4/I5 在本页不触发；无"把未知当已知"类缺陷（本页占位/降级文案正确）。
 - **设计稿该改（S 类）**：S1（侧栏 footer，全站）、S2（占位/虚构数字：2.4GB/46/3.5GB/3/20/94%/红点/索引正常/Spotlight 排除/台账降级态未画）。
 - **两边都改（0 条）**。
@@ -106,6 +116,17 @@
 ## 5. 提请协调者（协调路 #53 落）
 
 1. **S1 侧栏 footer 组件**：在 `tokens.css`/`screen.css` 增 `.sidebar-footer`（容量行 + 红色容量条 + 带边框设置按钮），八张稿（01–07 + 本页）一起换，消除"分隔线+设置 nav-item"错误画法。
-2. **I10b/S3/S4 全站几何修正**：调令牌 `--titlebar-h`→52、补 `--c-content-bg` 与 under-page 变体；**改动会作废全部模块像素基线，待集成阶段统一落地**，本页不单独改。**I10a（侧栏）P6.2b 已落地**，但落地位置是 `MainWindow.swift:18` 的 `min:`（首屏宽度只认 `min`，`ideal` 与 AppKit 那条持久化记录都不参与），令牌 `--sidebar-w: 220px` 本来就是对的、没动；顺带一条待办：`--sidebar-w-min: 200px` 全仓从未被引用，而应用现在也拖不到 200，要么删令牌要么把稿改成 220。
+2. **I10b/S3/S4 全站几何修正**：调令牌 `--titlebar-h`→52、补 `--c-content-bg` 与 under-page 变体；**改动会作废全部模块像素基线，待集成阶段统一落地**，本页不单独改。**I10a（侧栏）P6.2b 已落地**，但落地位置是 `MainWindow.swift:22` 的 `min:`（首屏宽度只认 `min`，`ideal` 与 AppKit 那条持久化记录都不参与），令牌 `--sidebar-w: 220px` 本来就是对的、没动；顺带一条待办：`--sidebar-w-min: 200px` 全仓从未被引用（仅 `tokens.css:33` 声明处一处命中），而应用现在也拖不到 200，要么删令牌要么把稿改成 220。
+   **P6.5b 补一条取证边界（协调者需要知道"**量不到**"和"**没量**"的分别）**：
+   `min: 220, ideal: 220, max: 280` 这一行的**窄端在代码层就结掉了**——`min` 同时是 AppKit 给分隔线的下界，
+   拖不过 220，所以"用户拖窄到 220 以下会怎样"是个不可能状态，不需要照片（详见 `fidelity-guardian.md` §6.6.5 第 1 条）。
+   **宽端 `max:280` 则根本没有采集通路**：壳层六个启动钩子
+   （`MM_OPEN_MODULE` `MainWindow.swift:49`、`MM_SHOW_SETTINGS` `:46`、`MM_SETTINGS_TAB` `SettingsView.swift:12`、
+   `MM_WINDOW_SIZE` `LaunchBehavior.swift:116`、`MM_APPEARANCE` `:81`、`MM_PROBE_WINDOW` `WindowProbe.swift:12`）
+   没有一个能移动分隔线；`MM_WINDOW_SIZE` 走 `window.setContentSize`（`LaunchBehavior.swift:126`），
+   加宽的部分归 detail 面板、侧栏仍停在 `min`；写 `NSSplitView Subview Frames…` 已被
+   `fidelity-guardian.md` §6.3 实验 B 否证；剩下的唯一办法是**拖分隔线=合成操作，红线禁止**。
+   → 要量 280 就得先立项一个设列宽的启动钩子（如 `MM_SIDEBAR_WIDTH`），那属新增钩子、要走 hook-ledger 流程；
+   **本轮不加**。这条现在记为**取证边界**，别再当"欠一张照片"重复登记。
 3. **09c 降级态补画**：N=0 置灰、「在访达中显示」整行缺失两档，出规格给 mmuninstaller/清理路线补 artboard。
 4. **S2 占位数字清洗**：稿内 `2.4 GB`/`46`/`3.5 GB`/`3 / 20`/`94%`/`红点`/`索引正常`/`Spotlight 已排除` 标"示例值/虚构"或改为动态占位，避免被当成实测。

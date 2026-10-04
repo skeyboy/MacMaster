@@ -4,9 +4,13 @@
 > devtools 开发工具缓存）与实现在**结构、文案、状态机**三层高度一致——页头副标题来源、
 > 分段页签 maxWidth 340、四 tab 的空/扫描中/结果/失败态、`keepRequired` 硬约束、devtools
 > "只报不执行"与 PROTECTED 分档都照设计落地。逐元素对照 **45 项**，需归属的差异很少：
-> **实现该改 0 硬项**（1 项 ⚠️中 待真机测量：失败回执容器橙底）、**设计稿该改 3 低**
-> （侧栏占位数字、浏览器删除按钮图标、08e 推演档标注）。受"只有 `MM_OPEN_TAB` 一个钩子"限制，
-> 四 tab 内的空/失败/超大列表/PROTECTED 拒绝态暂无注入路径，逐条列在 §5。
+> **实现该改 0 硬项**（那 1 项 ⚠️中 待真机测量的"失败回执容器橙底"已于 **P6.5b 复核结清：缺陷从未存在**，
+> 见 §3）、**设计稿该改 3 低**
+> （侧栏占位数字、浏览器删除按钮图标、08e 推演档标注）。写这份审计时受"只有 `MM_OPEN_TAB` 一个钩子"限制，
+> 四 tab 内的空/失败/超大列表/PROTECTED 拒绝态暂无注入路径，逐条列在 §5——
+> **注入路径后来补上了**（`MM_OPTIMIZER_FIXTURE`，`969e548`，2026-09-30），但 §5 那七档
+> **一张照片都还没拍**：`grep -r MM_OPTIMIZER_FIXTURE Scripts/` 无命中，`docs/verification/` 下没有 optimizer 夹具目录。
+> 也就是说这一页现在是"有钩子、无取证"，缺的是跑一遍夹具脚本，不再是缺能力。
 >
 > **安全口径复核（核心交付）三条结论**：
 > ① 候选列表（Documents/Downloads/Desktop 内重复文件、~/Library/Caches 下浏览器缓存）
@@ -27,13 +31,18 @@
 | 实现 | `Packages/MMOptimizer/Sources/MMOptimizer/`：`MMOptimizer.swift`、`DevToolCacheView.swift`、`DashboardMetrics.swift`、`DevToolCacheAudit.swift` |
 | 渲染 | 本环境**无头、未运行 App、未截图**，不编像素数字；几何/像素项一律标 `⚠️待真机测量`，只从代码＋HTML+tokens 推导 |
 | 复用基准 | 共享组件 `MMFailurePanel`/`MMBadge`/`MMFormat` 取自 `Packages/MMUI/Sources/MMUI/MMDesign.swift`；闸门取自 `Packages/MMCore/Sources/MMCore/DeletionGuard.swift`、`FileTrashService.swift` |
-| 可用钩子 | **只有 `MM_OPEN_TAB=duplicates|browser|status|devtools`**（`MMOptimizer.swift:42`）。`grep processInfo.environment Packages/MMOptimizer/` → 仅此一处；四 tab 内的空/失败/超大列表态无注入路径（见 `docs/analysis/hook-ledger.md` §4 已提"建议补 MM_OPTIMIZER_FIXTURE"） |
+| 可用钩子 | 审计当时**只有 `MM_OPEN_TAB=duplicates\|browser\|status\|devtools`**（`MMOptimizer.swift:42`），故四 tab 内的空/失败/超大列表态无注入路径（§5 全部由此而来）。**复核 2026-10-04：这句在本文件提交那天就已经过期了**——`MM_OPTIMIZER_FIXTURE` 由 `969e548`（2026-09-30）落地，而它正是本文件 §6 #1 建议的那件事；两份文件都提交在 2026-09-30，`969e548` 还是 `e96c95b`（本文件入库那一笔）的**祖先提交**。所以不是"别人后来改了代码"，是**自己建议改完没回写建议**（`OptimizerFixtureHooks.swift:4-5` 的表头甚至引用了"§5 #1–7"，说明写钩子时这份审计已经在了）。入口：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`，解析点 `MMOptimizer.swift:80`；档位 `duplicates:<N>`（N>0 组数）/`duplicates:empty`/`duplicates:scannedEmpty`/`browser:rows`/`browser:empty`/`status:allReadOnly`/`devtools:notInstalled`/`devtools:unreadable`/`protected`，逗号可叠加，铁律与 monitor/guardian 同口径（只顶替展示数据、不写盘不 spawn 不读 /tmp、含非法值整钩作废）。README §2 矩阵同步已到位（`docs/design-system/README.md:43`）。**但没有任何脚本用过它**（`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中），§5 的七档仍是"能力有、照片无" |
 | 硬约束 | 全程未发合成事件、未运行 App、未截图、未改 `Packages/`/`tokens.css`/`screen.css`/`icons.js`；未做任何 git 操作；未碰 `/tmp` 之外路径。本稿只新增本文件 |
 
 代码侧已实证的口径（来自共享文件，非本模块自造）：
 
 - `MMFormat.bytes(_:UInt64?)`（`MMDesign.swift:113-117`）：`nil → "测量中"`，`<1000 → "N 字节"`，否则 `byte.string`。→ 浏览器 nil 体积渲染"测量中"与 08c 一致，非"0 字节"。
 - `MMFailurePanel`（`MMDesign.swift:614-674`）：恒定渲染 `MMBadge("N 项失败", tint:.caution)`（:633，无论 `summary` 是否 nil）；逐条按 `code=="PROTECTED"` 走 `exclamationmark.shield`+`MMColor.caution`（:645-647），否则 `xmark.circle.fill`+`destructive`；显示 `path + message + code`（:649-663）；`>4` 条折叠"另有 N 项失败"（:666-670）。
+  **复核 2026-10-04 的两处更正**：① 上面这一串行号取自今天的文件已不成立（组件现 `:666`，body `:710-779`）；
+  ② **更要紧的是这条 bullet 本身漏判了一件事**——它把 body 截在 `:674`，于是没读到 `:676` 之后的
+  `.background(MMColor.soft(MMColor.caution, 0.10))`（今天 `:777`），直接导致 §3 I1 那个"橙底缺失"疑点被立案。
+  **方法教训（写进本节，供后续审计照办）：判"组件没有某个修饰符"必须读到 body 的收尾大括号，
+  按估计范围截行会把"有"读成"无"。** 同一天里 `MMFormat.bytes` 那条是按整段读的，结论就站住了。
 - `FileTrashService.moveToTrash`（`FileTrashService.swift:35-69`）：循环开头即 `DeletionGuard.rejection(for:)`（:43），PROTECTED → `TrashFailure(code:"PROTECTED")`（:44），逐条上报、不静默跳过；执行用 `trashItem`（可撤回、入台账）。
 - `DeletionGuard`（`DeletionGuard.swift:25-57`）：系统域子树 / 凭证与活数据子树 / 六个用户目录"**目录本身挡、内容放**"。
 
@@ -77,7 +86,7 @@
 | 操作栏随勾选：「已选 N 项 · X」+ 提示句 | `:380-398` `MMActionBar` | ✅ | 未勾="未勾选的文件不会被改动。"，已勾="被勾选的文件会先移入废纸篓，可撤回。"(:385) | — | — |
 | 「移到废纸篓」置灰(disabled) 当未勾选 | `:397` `.disabled(selection.isEmpty)` | ✅ | — | — | — |
 | 撤回 toast 8s 自动消失、不传 secondsRemaining（无倒计时数字） | `:399-414` `MMUndoToast` + `Task.sleep(8)` | ✅ | 与稿"没有倒计时数字"一致 | — | — |
-| 失败回执 `MMFailurePanel`（PROTECTED 分档） | `:118-122` `MMFailurePanel(summary:nil, trashFailures)` | ✅（结构） | 见 §2② 与 §3 I1（容器橙底 ⚠️） | 中(待核) | 见 §3 I1 |
+| 失败回执 `MMFailurePanel`（PROTECTED 分档） | `:118-122` `MMFailurePanel(summary:nil, trashFailures)` | ✅（结构） | 见 §2②；容器橙底 **✅已核：组件自带**（`MMDesign.swift:777`） | ~~中(待核)~~ 无 | §3 I1 已关闭 |
 
 ### 1.3 浏览器缓存 tab（browser）
 
@@ -93,7 +102,7 @@
 | 不碰历史记录/密码/Cookie（空态 detail 原文） | `:178` detail 文案 | ✅ | — | — | — |
 | 空列表两档："正在统计缓存体积…"(未扫) / "没有发现可清理的浏览器缓存"(扫过空) | `:174-179` 条件 | ✅ | — | — | — |
 | 删除走 `FileTrashService.moveToTrash`（可撤回/入台账） | `:582-586` `clean` → `moveToTrash` | ✅ | 经闸门，见 §2③ | — | — |
-| 失败回执 `MMFailurePanel(browser.failures)` | `:192-194` | ✅ | 同 §2② | 中(待核) | 见 §3 I1 |
+| 失败回执 `MMFailurePanel(browser.failures)` | `:192-194` | ✅ | 同 §2②；橙底同上一条，组件自带 | ~~中(待核)~~ 无 | §3 I1 已关闭 |
 
 ### 1.4 系统状态 tab（status）
 
@@ -164,11 +173,23 @@
 
 ---
 
-## 3. 实现该改（0 硬项 + 1 待核中）
+## 3. 实现该改（0 硬项 + 1 待核 → **待核已于 P6.5b 结清：缺陷从未存在**）
 
-1. **【中·⚠️待真机测量】I1 · 失败回执容器橙底缺失风险**
+1. ~~**【中·⚠️待真机测量】I1 · 失败回执容器橙底缺失风险**~~ **✅ 已关闭（复核 2026-10-04）——实现没有这个缺陷，本条从未成立**
    `MMFailurePanel`（`MMDesign.swift:625-674`）的 `body` 只做 `padding`、未显式设置 `warning-soft` 背景；设计 08d / `05-states.html` 的失败回执均为橙 10% 底。MMCleaner 的 `MM_FAILURE_FIXTURE=protected` 实机图（deletion-guard.md §6）显示"琥珀色盾牌"面板，其橙底可能来自 `05-states` 的容器而非组件自身。
    → 待真机核对：若 optimizer 直接放置 `MMFailurePanel` 缺橙底，则改 `MMFailurePanel` 补 `.background(MMColor.warningSoft)` 或在 `MMOptimizer` 两处调用外加橙底容器。**归实现该改 / 两边都改待核**，不擅自改共享组件（违反红线 3）。
+   **核对结果（不用截图也能定，因为它是个读漏）**：`MMFailurePanel` 的 body 一直自带橙底——
+   `.background(MMColor.soft(MMColor.caution, 0.10))` 在 **`MMDesign.swift:777`**（今天的坐标；组件结构体 `:666`，body `:710-779`，
+   下一个结构体 `MMItemRow` 从 `:801` 起）。`git log -S'soft(MMColor.caution, 0.10)' -- MMDesign.swift` 的最早一条是
+   **`e5634d3`（2026-09-29，`feat(cleaner): 清理页改为风险分组表…`）——即创建这个组件的那一个提交**，
+   所以它不是"后来补上的"，是**生下来就有**。本条之所以立案，是因为对照时把 body 的行范围截在 `:674`
+   （组件当时的真实末尾在 :678 之后），`.background`  modifier 正好落在截断处外面。**教训写进 §0 的方法栏**：
+   判"组件缺某个修饰符"必须读到 body 的收尾大括号，不能按估计范围截。
+   **顺带结掉 §5 #5 里挂着的那半句**：PROTECTED 分档的实机排版仍未拍照（需要跑 `MM_OPTIMIZER_FIXTURE=protected`），
+   但"橙底会不会缺"这个疑问已经不需要真机裁定了。
+   **一处仍然成立、但要换个归属**：这个面板是**通栏条**形态（`.frame(maxWidth:.infinity, alignment:.leading)` +
+   `.overlay(alignment:.top){Divider()}`，`:776-778`），而 `05-states` 画的是**带边框圆角卡**。
+   这与 `fidelity-cleaner.md` §2 I5 是同一件事（共享组件形态），归协调层，不属 optimizer。
 
 > 其余对照项均为一致或设计稿侧问题，无"实现写错"硬项。
 
@@ -181,6 +202,12 @@
 ## 5. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
 
 以下状态**只在代码里读到分支**，本环境无头、未运行 App、未截图，且模块**只有 `MM_OPEN_TAB` 一个入口钩子**（无内容/状态注入），故全部未能真机构造：
+
+> **复核 2026-10-04 对本表的读法提示**：括号里那句"只有 `MM_OPEN_TAB`"是**写下当天的事实**，今天已不成立
+> （`MM_OPTIMIZER_FIXTURE` @`969e548`）。所以 #1、#3、#4、#5、#6、#7 的"需要什么才能验"那一列**已经具备**，
+> 这六行现在的正确状态是「**能力就绪、尚未取证**」——下一次跑一个 `p6x-optimizer-capture.sh` 就能一次结掉六行。
+> 仍缺能力的是 **#2**（扫描中态要 HOLD 语义，`MM_MONITOR_HOLD` 那套还没有 optimizer 版本）和
+> **#8/#9/#10**（跨 tab 运行态、纯像素项、阶段枚举在 `DuplicateScanner`）。**不要把整表当"验不了"重读一遍。**
 
 | # | 未验证项 | 为什么验不了 | 需要什么才能验 |
 | --- | --- | --- | --- |
@@ -199,11 +226,32 @@
 
 ## 6. 提请协调者
 
+> **复核 2026-10-04**：四条里 **#1、#2、#4 已经结清**（分别是钩子已落地、疑点经代码核对不存在、矩阵已同步），
+> 只剩 **#3 的稿侧三小改** 和 **新升出来的一条 #5（取证照跑）**。原文照留，结论追加在每条后面。
+
 1. **补 `MM_OPTIMIZER_FIXTURE` 统一夹具入口**（呼应 `hook-ledger.md §4.2`）。当前 optimizer 只有 `MM_OPEN_TAB`，四 tab 内的空/失败/超大列表/PROTECTED 拒绝态均无注入路径。建议档位（纯数值/状态注入，不读 `/tmp`、不写盘、不 spawn，参照 `MM_MONITOR_FIXTURE`）：
    - `duplicates:<组数>`：注入确定重复分组（覆盖 08b）；
    - `duplicates:empty` / `duplicates:scannedEmpty`：两档空列表；
    - `browser:<fixture>`、`status:allReadOnly`、`devtools:<未安装|读不到>`、`protected`：覆盖 §5 #1–7。
    **本审计不擅自加钩子**（红线 3：共享层/钩子改动归协调者）。
+   **✅ 已落地（`969e548`，2026-09-30）**：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`
+   就是这个建议的成品，档位与建议**逐条对得上**（`browser:` 落成 `rows`/`empty` 两档；建议里的"超大列表"由
+   `duplicates:<N>` 的 N 承担）。合成组走真实 `DuplicateGroup` 构造器、路径是 `/tmp` 下 `com.example` 命名，
+   一眼可辨是夹具（`:106-110`）。**§5 #2 是唯一没被它覆盖的**，代码注释里自己也留了话
+   （`:20`「扫描中态 #2 需要 HOLD 语义，另行处理」）。
 2. **I1 容器橙底待真机裁定**：请协调者在真机截图后确认 `MMFailurePanel` 在 optimizer 两处是否缺橙底；若缺，决定改 `MMFailurePanel`（共享组件，影响全站）还是在 optimizer 调用外加容器——此改动越共享层，按红线 3 由协调者落地。
+   **✅ 已裁定，不需要截图**：橙底一直在组件里（`MMDesign.swift:777`，自 `e5634d3` 创建该组件起），见 §3 I1。
+   **这一条剩下的部分换个名字继续开着**：面板形态是通栏条还是带边框卡（与 `fidelity-cleaner.md` §2 I5 同一件事），
+   那是形态题，不是缺不缺底色。
 3. **S1/S2/S3 设计稿侧修正**：侧栏占位数字（随全站侧栏 footer 组件重画）、浏览器删除按钮图标（box→trash）、08e 推演档在补 fixture 后核对——均属设计稿侧，不在本模块实现范围。
+   **仍开着（复核 2026-10-04）**。其中"08e 推演档核对"的前置条件已具备（`devtools:notInstalled|unreadable` 两档就是为它加的），
+   可与 §5 #3/#4/#6/#7 并成同一次截图跑。侧栏占位数字属 `0c61fbf`（十张稿统一侧栏 footer 组件）那一轮，optimizer 稿是否已换需要稿侧目视确认一次。
 4. **`README §2` 矩阵**：optimizer 行目前钩子列 `MM_OPEN_TAB` 一项，待 #1 落地后同步补 `MM_OPTIMIZER_FIXTURE`（参照 hook-ledger 对 monitor 的同类补正）。
+   **✅ 已同步**：`docs/design-system/README.md:43` 的 mmoptimizer 行列了 `MM_OPEN_TAB` 与
+   `MM_OPTIMIZER_FIXTURE`（含九个档位名），与实现的 `OptimizerFixture.parse` 一致。
+5. **（P6.5b 新增）optimizer 夹具一次取证都没跑**：`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中，
+   `docs/verification/` 下也没有 optimizer 夹具目录（只有 `p4-light-dark/light-optimizer.jpg`、
+   `dark-optimizer.jpg` 与 `p4-min-window/*-optimizer.jpg` 三张非夹具图）。
+   → 建议下一轮补 `Scripts/p6x-optimizer-capture.sh`（照 `p65-swap-capture.sh` 的形状：
+   pid→windowid→`screencapture -o -x -l`，按 `MM_OPEN_TAB` 分四档，一次跑完 §5 #1/#3/#4/#5/#6/#7），
+   **不要**为"扫描中态"临时造合成点击——红线禁的正是那个。

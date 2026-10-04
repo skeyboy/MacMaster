@@ -174,6 +174,12 @@
 
 ## 2. 实现该改（10 条，按严重度排序）
 
+> **P6.5b 复核（2026-10-04，逐条现读代码 + `git log -S`）**：这份清单同样中了"落地那轮没回写"的招——
+> **I1 / I2 / I3 三条已经做完了**（`6d086c6` / `c74f045` / `e84066a`，全部 2026-09-30），
+> **I5 / I6 / I10 各做了一半**，I4 / I7 / I8 / I9 四条确实一天没动。
+> 下面每条末尾的「**复核 2026-10-04**」是现读结论，行号是今天的坐标（原文里的行号是审计当天的）。
+> 与 `fidelity-monitor.md` 同一轮发现，手法同一轮做：**清单里的"开放"是写下那天的状态，不是今天的状态**。
+
 1. **【高】I1 · 失败条目从分类表/系统分析表里被静默移除 —— 主表面把失败当成已清理**
    `CleanerModel.clean()`（`MMCleaner.swift:224`）用 `let cleaned = Set(paths)`（**尝试过的全部路径**）
    去 `subItems.removeAll`，`SystemAnalysisView.swift:330` 同款。被 `DeletionGuard` 拒绝（PROTECTED）
@@ -182,6 +188,9 @@
    → 建议：改成只摘**真的搬走**的那批，口径与同模块已经做对的 `UserFolderCleanView.swift:532`
    （`Set(result.operation.files.map(\.originalPath))`）一致；失败条目留在原行（失败详情仍由
    `MMFailurePanel` 逐条报）。这是"把失败当正常"，正踩本模块自己的红线，判 **高**。
+   **复核 2026-10-04：✅ 已落地（`6d086c6`，2026-09-30）**——`MMCleaner.swift:216` 与
+   `SystemAnalysisView.swift:331` 两处都已是 `Set(result.operation.files.map(\.originalPath))`。
+   这条是 §2 里唯一的"高"，挂着没人划掉最容易误导下一轮，所以先核它：提交信息点名了这条。
 2. **【中】I2 · 只读行的复选框列被整列删掉**（`MMCleaner.swift:530` `isSelectable: category.risk.allowsDeletion`
    + `MMItemRow` 的 `if isSelectable`）
    稿内（`02-cleaner.html:103,107` 与 `05-states.html:100-103`）画的是**虚线禁用框** `.chk.off-allowed`：
@@ -189,11 +198,17 @@
    同表两段列不齐。
    → 建议：`MMItemRow` 在 `isSelectable==false` 时**保留占位**（画禁用框或至少留 15pt 空槽）——
    这会碰到共享组件 `MMUI`，见 §5 提请协调者。
+   **复核 2026-10-04：✅ 已落地（`c74f045`，2026-09-30，"只读行占位"就写在提交信息里）**——
+   `MMDesign.swift:839-846` 现在给 `isSelectable == false` 一支画禁用 + `opacity(0.35)` 的空框，
+   注释直接标着"I2"。共享组件那条路径走通了，§5 的对应提请可以撤。
 3. **【中】I3 · 行内要素顺序：大小永远最右**（`MMItemRow` `MMDesign.swift:714-735`）
    稿内两处行（分类行 `02-cleaner.html:67-70`、安装包行 `02b:77-79`）顺序都是
    **名称 → 大小 → 风险徽章 → 操作**；实现是 **名称 → 徽章 → 操作 → 大小**。
    → 建议：二选一——要么 `MMItemRow` 支持"数值列提前"的排布，要么把稿改成与共享行一致。
    因涉及共享组件，倾向**设计稿对齐组件**（见 §3）。
+   **复核 2026-10-04：✅ 已落地（`e84066a`，2026-09-30）**——`MMDesign.swift:857-861` 的顺序现在是
+   数值（`Text(value)`，`minWidth: 72` 右对齐）→ `MMBadge(risk:)` → `accessory`，即建议里的"数值列提前"那一支。
+   实现与稿子在这一格上同序了。
 4. **【中】I4 · 空态把"取消/未产出一类"说成"没有可清理的内容"**（`MMCleaner.swift:413-419`）
    分支条件 `model.categories.isEmpty` 只在**取消于第一类完成前**命中，detail 会拼出
    「**已检查 0 个类别**」；而真正"扫完都干净"的态**不**进这里（会显示全零表格）。
@@ -201,22 +216,60 @@
    → 建议：拆成两档——"扫描被取消/未完成"（标题写"扫描未完成，结果不完整"，给"重新扫描"）
    与"扫完确认无可清理"（给出检查范围与项数，照 `05-states` 空态的口径）；并把
    「已检查 0 个类别」改成不误导的措辞。
+   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:444-450`，`git blame` 全部落在 `e5634d3`（2026-09-29，
+   **审计之前**），也就是说这一条一天都没人碰）。仍是**一个** `model.categories.isEmpty` 分支、
+   标题仍断言「没有可清理的内容」；detail 里那句「扫描中途取消时结果不完整，请重新扫描」是原文就有的对冲，
+   不是分档。**这条是 §2 现在剩下的一条"把不知道写成结论"**（与监控页 I1/I2 同性质），
+   判高判中的差别只在于它出现的频率低。
 5. **【中】I5 · `MMFailurePanel` 比 `05-states` 局部失败规格少两截**（`MMDesign.swift:614-678`）
    缺 **「计划 N · 成功 N · 失败 N · 跳过 N」统计行**，缺 **页脚「重试失败项 / 复制诊断信息」**；
    面板形态也由"带边框圆角卡"变成"琥珀底通栏条"。这是共享组件，见 §5。
+   **复核 2026-10-04：⚠️ 组件侧做完了、调用侧一处没用 = 页面上仍然看不到**（`c74f045` 给组件加了
+   `Stats` 结构体 + 带 `stats:`/`onRetry:`/`onCopyDiagnostics:` 的新 init（`MMDesign.swift:676-708`）、
+   统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 10 个调用点无一使用新 init**
+   （`grep -n 'MMFailurePanel(' Packages/*/Sources` 现读：本模块四处 `MMCleaner.swift:369`、
+   `SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、`DevArtifactView.swift:393`，
+   另六处 `MMOptimizer.swift:160`/`:234`、`MMUninstaller.swift:197`/`:203`、`MMGuardian.swift:45`、
+   `MMDisk.swift:112`）——十处走的全是旧的那一个。所以这条从"组件缺功能"变成了
+   **"组件有功能没人接"**，统计行与页脚现在是死代码路径。剩下的活是四个调用点各自决定
+   `planned/succeeded/skipped` 从哪来（`TrashResult` 里有 `files` 与 `failures`，`planned` 需要调用方自己记），
+   属协调层 + 本模块各一半。
 6. **【低】I6 · 表头缺「操作」列名**（`MMCleaner.swift:473` `Text("").frame(width: 52)`）——
    稿内 `.hdr` 有「操作」。顺带：实现 `风险 44 / 操作 52` vs 稿 `风险 92 / 操作 60`，**`⚠️待真机测量`**。
    **I6b**：用户文件夹页/系统分析页的确认用系统 `.alert`，没有缓存页 sheet 里的
    「清理后 15 秒内可一键撤回」开关（`MMCleaner.swift:707`）。
+   **复核 2026-10-04：⚠️ 主项已落地、两个顺带项没动**——表头 `MMCleaner.swift:504` 现在是
+   `Text("操作").frame(width: 52)`（`e84066a`）；列宽仍是 44/52（稿 92/60，**这条的 `⚠️待真机测量` 至今没人量**）；
+   I6b 的撤回开关仍只在缓存页 sheet（`:739`），另两页还是系统 `.alert`。
 7. **【低】I7 · 只读分类仍带展开 chevron**（`MMCleaner.swift:533-537`，只要 `subItems` 非空）——
    稿内只读行只给 info 图标。
+   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:564`，条件仍是 `!category.subItems.isEmpty`，
+   没有 `allowsDeletion` 这一道闸）。
 8. **【低】I8 · 页头标题与页签名不同源**：页签「缓存清理」而页头「系统清理」
    （`CleanerContainerView.swift:9-11` vs `MMCleaner.swift:305`）。记录，非必要改。
+   **复核 2026-10-04：❌ 未做，且按原文判断**不该**做**——这一条审计自己写的就是"记录，非必要改"，
+   页签说的是"这一格放什么"、页头说的是"这一页是什么"，两问本来可以不同答案。留在清单里只为下次别当成漏改。
+   （现坐标：页签 `CleanerContainerView.swift:9` `case cache = "缓存清理"`，页头 `MMCleaner.swift:336`
+   `MMPageHeader("系统清理", …)`，模块名同一个字符串还在 `MMCleaner.swift:8` 的 `moduleName`。）
 9. **【低】I9 · 分组右注硬封顶 280pt**（`MMCleaner.swift:515`）——最长那句可能被 `.lineLimit(1)` 截尾，
    是否真截**`⚠️待真机测量`**。
+   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:546`，`.frame(maxWidth: 280, alignment: .trailing)`
+   + `:543` 的 `.lineLimit(1)` 原样）。**`⚠️待真机测量` 这条挂了 4 天没人量**——它不需要钩子，
+   分组注文案最长那句摆出来按 pid 抓一张窗就完事，下一轮顺手做掉。
 10. **【低】I10 · 拒绝回执摘要会拼出「已回收 测量中」**（`MMCleaner.swift:339`）——
     `lastResult==nil` 而 `failures` 非空时（夹具路径目前就是这样）。真实删除后 `lastResult` 有值，
     故只在预演里出现；建议摘要不要依赖另一个来源的 Optional，或对 nil 用"未搬动任何项"这类措辞。
+    **复核 2026-10-04：⚠️ 四处里改好了两处**——`SystemAnalysisView.swift:38` 与
+    `UserFolderCleanView.swift:73` 已是 `summary: lastResult.map { … }`（nil 就整段不出，
+    正是建议的"不要依赖另一个来源的 Optional"）；仍漏的是 `MMCleaner.swift:370` 与
+    `DevArtifactView.swift:394`，两处逐字都是 `"已回收 \(MMFormat.bytes(model.lastResult?.totalSize))"`，
+    而 `MMFormat.bytes(nil)` = "测量中"（`MMDesign.swift:150`）。**同一条修了两遍、还剩两遍**，
+    是"改了一处就当改完"的典型形状——剩下两处照抄已修好的那两行即可。
+    **别把这一条的数量记成六处**（复核时容易数错）：`grep 已回收` 在本模块确实命中 6 行，
+    但另外两处是**撤回条**（`MMUndoToast`）不是失败回执——`MMCleaner.swift:696` 与
+    `DevArtifactView.swift:417`，它们的外层显示条件本身就是 `model.lastResult != nil`
+    （`MMCleaner.swift:407`、`DevArtifactView.swift:415`），nil 时整条不出，**构不成缺陷**。
+    所以 I10 的待修集是**四个回执点里的两个**，不是六个里的四个。
 
 ## 3. 设计稿该改（14 条；1–13 来自 P3 审计，14 是 P6.1 追加）
 
@@ -456,6 +509,24 @@ roadmap 候选 #5 落地。四张实机照片在 `docs/verification/p61-continue
 真要修得改收尾口径（**根扫完 = 每个候选都出了结论**），代价是把已经量完的根也拖过截止线，
 反而多截断几个根。这与 `dev-artifact-continuation.md` §3.5 记的是同一片地（那节讲的是
 **总预算饿死排在最后的根**，这节讲的是**根内最后一个候选没量完**），记在这里，留给 P6.2 一起判。
+
+> **复核 2026-10-04：✅ 已落地（`b4c722c`，P6.3b 合并遍历那一轮）**，不是留给 P6.2、是 P6.3b 顺手结掉的。
+> 修法比原案想的最省：合并后 `FileTreeWalker.SubtreeWalk.stopReason` 成了显式字段，
+> 于是"这一行有没有因预算没出结论"不必再靠 reason 字符串猜——`ProjectArtifactScanner.swift:424-425`
+> 在成案循环里就地 `if processed.budgetIncomplete { complete = false }`，判据函数在 `:684-689`
+> （注释直接点名"§8.6 修法"）。原案担心的"把已量完的根也拖过截止线"没有发生，因为它**只补记截断账本**、
+> 不改变候选的处理顺序。
+> **一条关键切分**（`:422-423`、`:685-686`）：权限性读不进（`unreadableDirectories` 非空但 `stopReason == nil`）
+> **算已出结论**，根不因此截断——否则每个 TCC 目录都会把根拖成"待续扫"，而重试只会烧预算。
+> 这条切分与 §4.2 的"`fail-closed` 的「读不到/protected」是结论不是欠账"同向。
+> **判据**：`ProjectArtifactScannerTests.swift:1081` `testScannedRootNeverCarriesBudgetUnfinishedRows`
+> （3200 条目 + 0.05 s 根预算，专门把截止线咬在成案中途——旧的出事位置）、
+> `:892` `testWalkDerivationUnreadableIsAConclusionNotATruncation`（切分那条）、
+> `:879` 超时与取消并成一个结论。
+> **还剩一件没结**：`dev-artifact-walk-merge.md` §4.2(b) 的收紧（子树内部读不进 → `size = nil`）
+> **仍是待拍板**，现口径照旧静默计 0（`ProjectArtifactScanner.swift:615`、`:676-677` 两处注释都写着
+> "§4.2(b) 待拍板，本轮不做"）。所以本节的"已扫完 vs 读不到"矛盾消除了，
+> 但"量到了其实没量全"那一条**依然在**，它是口径变更、归协调者拍板，不是这页能自己改的。
 
 ### 8.7 还原度结论
 

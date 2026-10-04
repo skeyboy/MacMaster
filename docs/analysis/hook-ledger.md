@@ -143,6 +143,13 @@
 
 1. **README §2 矩阵已过期**：补列 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（见本文件文末「已落地修正」）；同步把 `mmmonitor` 行从"无内容钩子"更新为已含 `MM_MONITOR_HOLD` / `MM_MONITOR_FIXTURE`。本轮已直接改 `docs/design-system/README.md`。
 2. **`MM_OPTIMIZER` 缺少面向无头核对的统一夹具入口**：~~目前只有 `MM_OPEN_TAB`~~ **已落地**：集成阶段新增 `MM_OPTIMIZER_FIXTURE`（duplicates:N/empty/scannedEmpty、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected），见 `OptimizerFixtureHooks.swift`。
+   **但这条现在换个卡法**：钩子在、**一张照片都没拍过**——`grep -r MM_OPTIMIZER_FIXTURE Scripts/` 0 命中，
+   `docs/verification/` 下 24 个目录里没有优化器那一档（2026-10-04 现查）。所以下一步不是写钩子，
+   是写 `Scripts/p6x-optimizer-capture.sh`（提案见 `fidelity-optimizer.md` §6 #5，手法照 `p65-swap-capture.sh`）。
+   另外这一条本身就是**台账自己过期**的样本：钩子落在 `969e548`，而它正是首次提交
+   `fidelity-optimizer.md` 那次提交 `e96c95b` 的**祖先**——文档里"只有 `MM_OPEN_TAB` 一个钩子"
+   在写下那天就已经是假的；钩子文件头部注释还引用"§5 #1–7"，也就是审计者自己的建议，
+   建议被实现完了、建议没被划掉。
 3. **`MM_DISK_SCAN` 越界值处理**：~~当前 `MMDisk.swift:135` 未校验 /tmp~~ **已落地**：集成阶段对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 `/tmp`/`/private/tmp` 前缀守卫，越界写 stderr 并忽略。
 
 ## 5. 取证工具链（P4 浅色档）
@@ -200,3 +207,10 @@
 - **"不许写"要落到类型上，不要落到注释上**（P6.4）：`SMCCommand` 只有 `readBytes=5` /
   `keyFromIndex=8` / `readKeyInfo=9` 三个取值，写命令与解锁风扇的 `F{id}Md`/`Ftst`
   在这个枚举里**没有对应的 case**。光在文件头写"本实现只读"，下一个人加一条命令就破功了。
+- **钩子台账要有第三个状态：能力就绪、尚未取证**（P6.5b）：这份台账历来只记"有没有这个钩子"，
+  于是 `MM_OPTIMIZER_FIXTURE` 一记"已落地"就翻篇了，实际上**它一次都没被脚本用过**
+  （`grep -r MM_OPTIMIZER_FIXTURE Scripts/` 0 命中，`docs/verification/` 24 个目录里没有优化器那一档）。
+  一条没跑过的钩子和没有钩子，对下一轮取证来说**是同一件事**，但对"要不要再写一个钩子"来说是完全不同的两件事——
+  所以判"这一档拍不到"之前，先 `grep Scripts/` 确认是缺钩子还是缺人跑。
+  反过来也成立：**已拍过的档要在表里带上照片目录名**（`p64` / `p65` / `p62b-fidelity` 那种），
+  否则下轮只能重跑一遍才知道拍过。
