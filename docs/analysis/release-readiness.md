@@ -18,9 +18,10 @@
   本机实测七行能力**零行被打断**，所以走 §2.1 第 2 条**不需要砍功能**；
   剩下的空白是 `launchctl` 的**写侧**没测（会真改用户 launchd 状态），已如实记在 §3。
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
-- **§10 那份 checklist 的 1–3 步已经真跑过一遍**（P8 之后，2026-10-05）：571/0/1 → `VERSION=1.0.0 BUILD=1`
-  的候选产物 → 三张照片把"版本号走到界面"这条链闭合（§7.2）。**判定没变**：卡在第 4 步那四项人工决定上。
-  P11 之后第 1 步重跑是 **581/0/1**（多的 10 条全在 MMGuardian：活动卡那三处读法的判据，见 §3）。
+- **§10 那份 checklist 的 1–3 步已经真跑过两遍**（P8 之后一遍；**P12 在 P11 修完活动卡的那份代码上又跑一遍**，
+  2026-10-05）：571/0/1 → 581/0/1，`VERSION=1.0.0 BUILD=1` 的候选产物，照片把"版本号走到界面"这条链
+  闭合了两次（§7.2 与 §7.3）。**判定没变**：卡在第 4 步那四项人工决定上。
+  P12 顺带把 §7.2 挂着的那句"含义未查"量成了事实：**那行 sandbox 警告是启动路径带来的，不是签名**（§7.3）。
 
 ## 1. 本轮实测数字
 
@@ -28,7 +29,7 @@
 | --- | --- | --- |
 | 测试总数 | **581** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
-| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift:173 testMountedVolumeRootIsBlocked`，跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
+| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（P12 现读 `:167`；此前写 `:173`，**漂了 6 行且没人说得清是哪一轮漂的**——这一格自 P7 起没被重读过），跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
 | 生产代码量 | **26,428 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P11 重跑；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾） |
 | 测试代码量 | **8,957 行** | 同一条命令换成 `-path '*/Tests/*'`（P11 重跑；P7 时 8,790，P8 时 8,846） |
 | 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11 实测轮一个新增钩子都没加**（见 §3 的"零夹具"规定） |
@@ -38,6 +39,13 @@
 逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 P11 重跑）：
 MMCore 43 · MMUI 17 · MMFileScanner 116 · MMCleaner 18 · MMUninstaller 121 ·
 MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian 93 · MMOptimizer 54。
+
+> **P12（2026-10-05，发版核验轮）把上表八行全部现读复核了一遍**：581/0/1（逐包分布同上，MMGuardian 93）、
+> 26,428 / 8,957 行、52 个钩子名、4 处 `Process()`、网络代码零命中——**六个数一个都没漂**；
+> 漂的是两处**位置引用**：MMGuardian 的 93 条没同步进 §6（那里还写 83），
+> 以及这一行原本的 `DiskRemovalTests.swift:173`（现读 `:167`）。
+> 唯一那条跳过仍是 `testMountedVolumeRootIsBlocked`（本机没有第二块挂载卷）。
+> **教训**：加一轮只往 §1 追加一个数，不等于全文档同步；计数漂移的地方是**引用计数的句子**，不是计数表。
 
 > **`run-all-tests.sh` 存在的理由**：`swift test | tail -4` 只剩 swift-testing 的
 > `Test run with 0 tests`，会把 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；
@@ -230,8 +238,10 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 
 **读**（全部在用户本机，无外发）：
 - 缓存与日志根：`~/Library/Caches`、`~/Library/Logs`、`~/Library/Containers/*/Data/Library/Caches`、
-  `getconf DARWIN_USER_CACHE_DIR`（`CacheScanner.swift:131-162`）、系统级 `/Library/Caches`、`/Library/Logs`
-  （`SystemAnalyzer.swift:104-176`）。
+  `getconf DARWIN_USER_CACHE_DIR`（`CacheScanner.swift` 的 `DarwinCachePaths.userCacheDirectory()`，
+  P12 现读 `:153-160`；此前引的 `:131-162` 只盖得住这一处——四类可清理根目录其实列在同一个文件的
+  类别表里，`:462-558`）、系统级 `/Library/Caches`、`/Library/Logs`
+  （`SystemAnalyzer.swift:104-176`，P12 现读复核：`:104-105` 是两根，`:161-176` 是那两个类别）。
 - iOS 备份目录（**只读列体积，分类为只读不给删除入口**）：`~/Library/Application Support/MobileSync/Backup`
   （`SystemAnalyzer.swift:118,150`）。
 - 浏览器：优化页只列**缓存目录**（`MMOptimizer.swift:615-616` 的
@@ -262,10 +272,16 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
   UI 侧必须勾选确认（`MMDisk.swift:1252` 的 Toggle，`:1269` 的
   `.disabled(plan.isEmpty || !permanentAcknowledged)`），且每次执行后 `permanentAcknowledged` 复位
   （`:1338`、`:1374`）。照片证据：`docs/verification/p68-disk/` 四档。
-- 永久删除**不写台账**（`FileTrashService.swift:79-83` 的文件注释写明理由：
-  没有"到哪去"就写进「最近操作」，只会多出一个点不动的撤回按钮）。
+- 永久删除**不写台账**（`FileTrashService.swift` 的 `permanentlyDelete` 上面那段文档注释写明理由，
+  P12 现读 `:71-81`、"不写台账"那两行在 `:77-78`。此前本文写的是"`:79-83` 的**文件注释**"——
+  行号漂了三行，而且那是**函数**的文档注释、不是文件头注释，两个错各属一类）。
 - 撤回路径**故意不经 DeletionGuard**：它写回的是台账里记的 `originalPath`，
   不是新路径。这条是设计而非漏洞，记在 `docs/analysis/deletion-guard.md`。
+- **P12 现读复核这一节的全部位置引用**：`DeletionGuard.rejection` 的非测试调用点仍是 **4 处**
+  （`FileTrashService.swift:43`、`:86`、`DiskRemoval.swift:98`、`MMCleaner.swift:931`），
+  永久删除那一支的五个行号（`MMDisk.swift:1382`/`:1252`/`:1269`/`:1338`/`:1374`）也全对得上；
+  **漂的只有上一条那处**（`:79-83` → `:71-81`），外加它把函数注释说成了文件注释。
+  这一节是本文行号最密的一处，九对一漂；别的节没这个运气（§4、§8、§9 各漂了一到两处，已改）。
 
 ## 6. 逐模块判定
 
@@ -280,9 +296,9 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 | MMUninstaller（卸载） | **可发布** | 121 测试（全仓最多）。开着的是 **B1**（列表宽 268 令牌 vs 稿 300，归协调层）、**B2**（`MM_SHOW_TRASH_CONFIRM` 需与 `MM_TRASH_SCAN_HOME` 同时给的互锁没写进文档）——两条都是文档/稿侧缺口，不影响功能 |
 | MMDisk（磁盘分析） | **可发布·需标注** | 66 测试（1 跳过）。永久删除闸门见 §5。**标注内容**：treemap 需要真实扫描，大目录下扫描时间与内存都要在说明里提一句；**触达深度上限（`maxDepth = 20`）的目录只量字节不列名字**，界面上写的是「子项 未枚举」——这句要在发版说明里保留，否则用户会以为那一格坏了。**I4 已于 P8 收口**（标签回「子项」+ 封顶档说「未枚举」，见 §7.1 与 `fidelity-disk.md` §12），仍开着的是 **I3**（详情头部图标与稿不同）、**I6**（相对时间 vs 绝对日期），以及**稿侧** `04-disk.html:163` 仍写递归「文件数 42,180」 |
 | MMMonitor（监控 + 菜单栏） | **可发布** | 53 测试。SMC/IOKit 都有失败降级并在界面上说原文原因（§3 那两行）。开着 **I8**（网络速率只在菜单栏显示、页面不用——归设计稿决定） |
-| MMGuardian（守护） | **可发布·需标注** | 83 测试。**标注内容**：TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；统一日志那一档在非受限环境也会慢，已有超时保护 |
+| MMGuardian（守护） | **可发布·需标注** | **93 测试**（P11 +10，§1 的 P12 复核把这一格从 83 改对）。**标注内容**：TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；统一日志那一档要起 `log show`、单趟输出就有 199,740 字节，**读法必须是流式的**（P11 的三条缺陷全在这一档，见 §3），且非受限环境也会慢，8 秒上限之后照常解析已读到的部分 |
 | MMOptimizer（优化） | **可发布·需标注** | 54 测试。开着的是**形态题**（`MMFailurePanel` 通栏条 vs 带边框卡，与 cleaner I5 同一件事，归协调层）与 `fidelity-optimizer.md` 的 #8/#10 未拍全（跨 tab 运行态、阶段枚举）。**标注内容**：重复文件删除前必须人工核对分组，PROTECTED 组永远不给删除入口 |
-| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 571 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片 |
+| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 581 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片 |
 | MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉 |
 
 ## 7. 本轮收口的四处（都是"用户可达"的那一类）
@@ -322,14 +338,49 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 "概览的读数放在这一层：侧边栏…和概览页要用同一个测量结果"），相等是结构决定的。
 §7.1 的判据只在 `p8-dashboard-scope/` 那三档"改勾选 → 同一格数字跟着变"的照片里。
 
-**一条如实记录的观察**：六份日志（P7 的三份 + 本轮三份）都有一行
-`sandbox_extension_issue_file_to_process failed for …: 1 (Operation not permitted)`，
-来自 ad-hoc 构建从 `/tmp` 起进程。含义未查，两轮都有、非本轮引入，界面与功能不受影响；
-换成 Developer ID 签名 + 正常安装位置之后应复看一次再决定要不要当问题。
+**一条如实记录的观察（P12 已把它从"含义未查"变成量过的）**：六份日志（P7 的三份 + 本轮三份）都有一行
+`sandbox_extension_issue_file_to_process failed for …: 1 (Operation not permitted)`。
+当时写的是"来自 ad-hoc 构建从 `/tmp` 起进程"——那半句里捆了**两个变量**（签名档次、启动路径），
+而这两个当时都没单独测过。P12 做了单变量对照，结论在 §7.3：**这一行是路径带来的，与签名档次无关**。
+
+### 7.3 P12：§10 第 1–3 步在 P11 之后的二进制上重跑，顺手把 §7.2 那行警告归了因（2026-10-05）
+
+跑法就是 §10 那三行命令；产物 `/tmp/mm-app-v1`，证据 `docs/verification/p12-v1/`
+（三张照片 + 三份带归因头的日志 + 两份探针日志 + 一张"用户目录起进程"的窗口照片）。
+
+| 判据 | 量到的 | 出处 |
+| --- | --- | --- |
+| 第 1 步 全量测试 | **581 / 0 / 1**，逐包分布与 §1 一致（MMGuardian 93） | `./Scripts/run-all-tests.sh`（原始输出在 `/tmp/macmaster-tests/`，一次性的） |
+| 第 2 步 图标自证 | `✓ 反向解出 10 档；1024 档 270,169 字节` | `./Scripts/make-icon.sh --check` |
+| 第 2 步 候选产物 | plist `1.0.0` / `1` / `CFBundleIconFile=AppIcon`，签名 `flags=0x2(adhoc)` | `p12-v1/0{1,2,3}-*.log` 的 `# plist:` 与 `# codesign:` 两行 |
+| 第 3 步 版本链闭合 | 关于页同一屏「版本 1.0.0 (1)」+ AppIcon 本体（蓝底三颗星）+「尚未选择许可」+「未配置官方渠道」+「反馈问题」灰着 | `02-about.png` |
+| 第 3 步 最小窗口不截 | 1000×600 下「交换 688.6 MB / 2.15 GB」整行可读——P7a 那处 `minimumScaleFactor` 在**带 P11 改动的二进制**上仍成立 | `03-dashboard-min.png` |
+| 第 4 步 | **仍未做**：许可、`NSHumanReadableCopyright` 的年份与权利人、签名方式选定 | §2 |
+
+**这轮新量的一件事**（还 §7.2 那笔账）：
+
+```
+./Scripts/p12-sandbox-warning-probe.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p12-v1
+```
+
+同一份 bundle 原样拷进 `~/.mm-p12-probe/`（拷完立刻 `codesign --verify --deep --strict` 自证一次，
+两份日志里的 `# 签名：` 同为 `flags=0x2(adhoc)`），两个位置各起 7 秒：
+`/tmp` → 那行警告 **1 次**；用户目录 → **0 次**；两档进程都活过 7 秒，
+且用户目录那一档的界面照常出真实读数（`06-home-location-window.png`：45.79 GB 可用、
+CPU 8%·10 核 4+6、内存 16.05 / 25.77 GB、可释放三项 1.92 GB / 1.19 GB / 204.8 MB、最近操作四条）。
+
+**所以：发版说明里不用提这一行。** 它是我们**把产物放在 `/tmp` 里取证**带来的，正常安装位置没有它。
+**仍未查的部分要说清**：这一轮只把"签名档次 vs 启动路径"两个变量拆开，没查**路径的哪个属性**造成的
+（`/tmp` 同时是 world-writable + sticky + `/private/tmp` 的别名，三者没拆）。
+要拆得再换三个位置各起一次；这一行既无害、也不写进用户机器上的任何日志，P12 判为不值得再花一轮，
+**但换 Developer ID 之后仍应复看一次**——那时签名这个变量真的变了。
+
+**`06` 那张是暗色的，而且这是有意的**：它没传 `MM_APPEARANCE`（01/02/03 由脚本固定传 `light`），
+所以界面跟随系统外观。两个含义：① 这一张**不能**当浅色档对照（两档对照在 `p4-light-dark/` 与 `p64-dark/`）；
+② 它顺手证明了"不传钩子时界面跟随系统"这条默认路径——那是 §1–§9 之外没人单独取证过的一格。
 
 
 ## 8. 已知不一致（不阻塞发版，但要有账）
-
 - ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
   拼法收敛到 `CacheScanScope.selected(systemCache:appCache:logs:temp:)`（`CacheScanner.swift`），
   清理页 `MMCleaner.swift` 的 `scope(from:)` 与概览 `DashboardModel.measureReclaimable()` 共用它，
@@ -339,30 +390,34 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
   取证：`docs/verification/p8-dashboard-scope/` 三档（只勾日志 **41.8 MB**，且它正好等于卡里
   两个可删类之和 34.3 + 7.5，只读的「系统日志 101.7 MB」不计入 / 全关「未勾选类别」/ 还原全开 **5.38 GB**）。
   **仍然成立的边界**：概览那张按钮只做跳转（`MainWindow.swift:644`），不在概览页删任何东西。
-- **"检查更新"不是死开关，但它不联网**：`SettingsView.swift:304-310` 只读本机 Info.plist，
+- **"检查更新"不是死开关，但它不联网**：`SettingsView.swift` 的 `checkForUpdates()`（P12 现读 `:319-323`；
+  本文此前写 `:304-310`，那是 P7 时的行号，已经漂了）只读本机 Info.plist，
   并在弹窗文案里明说"当前构建未配置更新服务器"。发版说明别写"自动更新"。
-- **"反馈问题"按钮是 disabled**：`SettingsView.swift:280-288`，旁边一句"未找到官方反馈渠道地址，不做虚构链接"。
-  有了仓库地址再放开。
-- **5 个空目录**：`MacMaster/`、`MacMasterHelper/Sources/MacMasterHelper/`、
-  `MacMasterWidgets/Sources/MacMasterWidgets/`、`docs/verification/mmguardian/`、`docs/verification/shell/`
-  （git 不跟踪空目录，所以 `git status` 里看不见；前两处像是没落地的 helper/widget 骨架）。
-  要么补内容要么删掉，别让下一个人以为有个 helper 靶子。
+- **"反馈问题"按钮是 disabled**：`SettingsView.swift` 那一段（P12 现读 `:293-301`，此前写的 `:280-288` 同样漂了），
+  旁边一句"未找到官方反馈渠道地址，不做虚构链接"。有了仓库地址再放开。
+- **5 处空骨架**（P12 现读复核，五处都还在）：`MacMaster/`、`MacMasterHelper/Sources/MacMasterHelper/`、
+  `MacMasterWidgets/Sources/MacMasterWidgets/`、`docs/verification/mmguardian/`、`docs/verification/shell/`。
+  说它们"空"是指**零个文件**——`find MacMaster -type f` 返回 0，而 `MacMaster/` 这个目录本身不是空的，
+  里面套着 `MacMaster/Sources/MacMaster` 这一层空路径（git 不跟踪空目录，所以 `git status` 里看不见）。
+  前两处像是没落地的 helper/widget 骨架。要么补内容要么删掉，别让下一个人以为有个 helper 靶子。
 - **`.gitignore` 把参考仓库排除了**（`docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/`），
   而多份分析文档正文按那些路径引了源码位置。**别人 clone 之后那些引用是断链**。
   发版文档要么把引用改成"项目名 + 文件路径"这种可自证的写法，要么在 README 里说明这些目录需自行 clone。
 
 ## 9. 建议的 v1.0 范围与版本号
 
-**发**：§6 表中所有"可发布"档，即九屏全部功能；`LSMinimumSystemVersion 14.0`。
+**发**：§6 表中所有"可发布"档，即九屏全部功能；`LSMinimumSystemVersion 14.0`
+（P12 现读：`Scripts/make-app.sh` 写 plist 的那一段，`<key>LSMinimumSystemVersion</key>` + `<string>14.0</string>`）。
 **在发版说明里明确标注**：§6 表里那四条"可发布·需标注"（判定列逐行数，别拿 `grep -c 需标注` 当计数——
 本文自己这段话里就含一次"需标注"）、§4 的写盘三项。（§8 那条"概览口径"已于 P8 收口，
 不再需要标注——现在概览与清理页是同一个数。）
-**不发**：Mac App Store（§3 的六行砍得太狠）；多语言（语言开关本轮已禁用，没有 UI 消费点）；
+**不发**：Mac App Store（§3 那张表里**已测的七行全部会被沙盒砍掉**，§3 结论 2）；
+多语言（语言开关本轮已禁用，没有 UI 消费点）；
 自动更新（没有更新服务器）；helper/widget 两个空壳（§8）。
 
 **版本号建议**：`CFBundleShortVersionString=1.0.0`、`CFBundleVersion=1`。
 版本号只有一个来源——`Scripts/make-app.sh` 里 `VERSION=${VERSION:-1.0.0}` 与 `BUILD=${BUILD:-1}`
-那两行（现 `:38-39`），所以**发版命令就是**：
+那两行（P12 现读 `:39-40`；此前写 `:38-39`，P10 加图标注释时往下漂了一行），所以**发版命令就是**：
 
 ```
 VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh
@@ -384,7 +439,12 @@ P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2
 VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch-v1
 
 # 3. 三张基础照片 + 把签名/plist（含 CFBundleIconFile）/gatekeeper 结论写进日志归因头
+#    重跑要换输出目录：这一条写进 /tmp 的那份日志归因头会**盖掉上一轮的证据**。
+#    P9 第一遍写的是 docs/verification/v1.0.0/，P12 第二遍写 docs/verification/p12-v1/。
 ./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/v1.0.0
+
+# 3b.（可选，一次性的归因探针）那行 sandbox_extension 警告是路径带来的还是签名带来的（§7.3）
+./Scripts/p12-sandbox-warning-probe.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p12-v1
 
 # 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
@@ -407,4 +467,34 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 
 **P11 之后（2026-10-05）第 1 步重跑 581/0/1** ✅；**第 5 步也真跑了一遍**（在选定签名方式之前先把它量清）：
 `docs/verification/p11-hardened/` 两档各 5 张照片 + 2 组监听取证，判据与三条限定都在 §3。
+
+**P12（2026-10-05，同一天的第二遍）第 1–3 步在带 P11 改动的二进制上重跑** ✅✅✅：
+581/0/1 → `make-icon.sh --check` 过 → `/tmp/mm-app-v1`（`VERSION=1.0.0 BUILD=1`）→
+`docs/verification/p12-v1/`（三张照片 + 三份归因日志 + 两份探针日志 + 一张用户目录窗口照片），
+逐条判据见 §7.3；第 4 步 ⬜ 仍待人拍板；第 5 步不需要重跑（P11 那一份代码没再动过签名相关的东西，
+而 §3 的三条限定仍然成立）。第 2、3 与 3b 步的产物与探针目录都是**一次性的**，跑完已清掉。
+
+## 11. 「能不能发第一个稳定版本」——P12 的正面回答
+
+问的不是"还有什么没做"，而是**今天把这份代码发出去，会不会说到做不到**。分三层答：
+
+1. **作为"自己编译自己用 / 带源码的私有分发"：能发，今天就能。** §10 第 1–3 步跑过两遍、
+   §6 那十行判定全落在"可发布"或"可发布·需标注"两档（**没有一行是"不发这一屏"**）、
+   §5 那道闸门两个删除出口都过、§4 零网络代码。
+   需要写的只有 §9 那四条标注 + §4 的写盘三项（其中 `trash-history.json` 会记用户文件路径，必须写）。
+2. **作为"给陌生人的 dmg"：还差三项，且三项都不是代码。** §2.1 的签名与公证（要账号）、
+   §2.3 的许可（要拍板）、`NSHumanReadableCopyright` 的年份与权利人（要填名字）。
+   **代价面 P11 已经量过**：走 Developer ID + 公证**不需要砍任何功能**（§3 结论 1，七行零打断）。
+   所以这三项是**决定**，不是工作量。
+3. **发之前不必再补的技术项**：本轮把 §3 的空白（`launchctl` 写侧）之外能测的都测了；
+   §8 那五条是账、不是门（两处行号漂移本轮已改，两处死开关已明说，五处空骨架待人工决定，
+   `.gitignore` 那条断链要在 README 里说明）。
+
+**唯一一处"能力靠肉眼而不是靠测试"**：壳层零测试目标（§6 最后一行）。这一条**不阻塞发版**，
+但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 581 条测试**没覆盖**的那一层，
+它靠的是 `docs/verification/` 下那 **37 个已入库目录**（P12 这一轮之后是 38）的实机照片。
+
+**P12 新增的一条待办（不阻塞）**：活动卡的文案合同（`fidelity-guardian.md` §6.6.6，任务 #107）——
+它现在显示的 5 行里有 4 行是应用自己的回声。这一格要不要发，取决于第 2 层的三项什么时候定；
+定了走 Developer ID，那张卡的谓词得先重定，否则用户看到的"系统活动"其实是"我们自己在扫描"。
 

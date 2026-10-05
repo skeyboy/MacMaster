@@ -147,5 +147,11 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 细节与判据在 §3 末尾与 `hook-ledger.md` §5，方法教训在 `fidelity-guardian.md` §6.6.6。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）已在 2026-10-05 实跑，证据 `docs/verification/v1.0.0/`；
-第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
+"版本号从打包脚本走到关于页"）**已实跑两遍，都在 2026-10-05**：P9 那遍 571/0/1（证据
+`docs/verification/v1.0.0/`），**P12 那遍在带 P11 改动的二进制上重跑 581/0/1**（证据
+`docs/verification/p12-v1/`，判据逐条见 §7.3）。第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
+
+P12 顺手还掉了 §7.2 那笔挂着账：取证日志里那行 `sandbox_extension_issue_file_to_process …`
+**是启动路径带来的，不是签名档次**（同一份 bundle 拷到用户目录起进程，两档签名同为 `adhoc`，
+`/tmp` 1 次、用户目录 0 次，界面照常出真实读数）。复跑 `./Scripts/p12-sandbox-warning-probe.sh`。
+含义：发版说明里不用写这一行。

@@ -1,0 +1,9 @@
+# P12 定位对照·画面侧：同一份 bundle 的拷贝从用户目录起进程，抓它自己的窗口（window-ids.swift --pid → screencapture -l）
+# 命令：~/.mm-p12-probe/MacMaster.app/Contents/MacOS/MacMaster   2026-10-05 15:48:4x +0800   pid=97588 windowid=3162
+# env:（**一个都没传**——01/02/03 那三张是 p7-release-check.sh 拍的，它固定带 MM_APPEARANCE=light）
+# 结果：这一张是**暗色**。含义：外观钩子不传时界面跟随系统外观（本机系统档=暗），
+#       所以"暗"不是这个位置带来的差别，是 env 的差别；两档外观的对照证据在 p4-light-dark/ 与 p64-dark/。
+# 判据：画面上是真实读数（45.79 GB 可用 / 共 494.38 GB、CPU 8%·10 核 4+6、内存 16.05/25.77 GB、
+#       交换 688.6 MB / 2.15 GB、可释放三项 1.92 GB / 1.19 GB / 204.8 MB、最近操作四条含一条"3 项失败"），
+#       不是空白窗口——从正常安装位置起，功能面与 /tmp 一致（唯一的差是 05 那行 sandbox_extension 警告没了）。
+# 进程 7 秒后仍在运行，随后 kill（本轮自己起的 pid）。

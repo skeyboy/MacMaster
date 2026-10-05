@@ -1,0 +1,7 @@
+# p12-sandbox-warning-probe.sh 05-sandbox-warning-tmp  2026-10-05 15:50:35 +0800
+# app=/tmp/mm-app-v1/MacMaster.app
+# 签名：flags=0x2(adhoc) Signature=adhoc 
+# 命令：/tmp/mm-app-v1/MacMaster.app/Contents/MacOS/MacMaster（不带任何 MM_* env）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-v1/MacMaster.app: 1 (Operation not permitted)
+# 进程 7 秒后：仍在运行（pid=97805，本脚本自己起的）
+# sandbox_extension_issue_file_to_process 出现次数：1
