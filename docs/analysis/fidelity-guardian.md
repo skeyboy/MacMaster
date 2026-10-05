@@ -17,6 +17,9 @@
 > 逐元素对照 **约 60 项**，其中 **16 项存在需归属的差异**（**高 0 / 中 3 / 低 13**）：
 > **实现该改 4 条**（I1–I4）、**设计稿该改 9 条 + 全站 4 条口径**（S1–S11，其中 S1/S2/S3/S4 为全站 token 漂移）、
 > **两边都改 0 条**。**另有 1 张实现独有卡（系统活动）完全没被设计稿覆盖**（其状态钩子已落地，见 §6.6.3）。
+> **P13 更正这两句**：那张卡已在 P11c 进稿（§6.7，S12 关闭）；"两边都改"从 0 条变 **1 条**、
+> 需归属的差异因此是 **17 项**（**高 0 / 中 3 / 低 14**）——新增的 **D1** 是页头副标题只列三件事、
+> 而这一屏有四张卡，两边同一句文案，见 §7.1。
 >
 > **P6.2b 更新（2026-10-03）**：实现该改从 4 条变 6 条（新增 I5 整页分隔语言、I6 定高切字），其中 **I1/I3/I5/I6 已落地**、
 > I2 归协调层；§4 里"无头拍不到"的 5 项已实拍（`docs/verification/p62b-fidelity/`），
@@ -31,6 +34,11 @@
 > 卡片改名「密钥与自启配置的改动时间」，设计稿 06 也补了这一节（S12 关闭）**。
 > 撤下它的全部实测（八档谓词、三家参考项目对照）与新的文案合同在 **§6.7**；
 > 顺带修掉一个真机上恒为 0 行的 `prefix(3)` 缺陷也在那一节。
+>
+> **P13 更新（2026-10-05）**：这一卡的**发版侧照片**补上了——`docs/verification/p13-v1/01-real-machine.png`
+> 拍在 `VERSION=1.0.0 BUILD=1` 的候选产物上（§6.7 那四档是调试构建，两回事）。同一轮把本文
+> §1 的**行号引用全量现读了一遍**：11 处漂了 9 处，**没有一处指错元素**——结论有效、坐标过期，
+> 逐条已就地更正（§7.2 有对照表）。新增开放项 **D1**（§7.1）。
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
@@ -67,10 +75,10 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 标题「隐私守护」 | `MMGuardian.swift:24` | ✅ | 逐字一致 | — | — |
-| 副标题「摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理」 | `:24` | ✅ | 逐字一致（与 `guardian-device-usage.md` 复核口径"非实时监听"对齐） | — | — |
+| 副标题「摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理」 | `:24` | ✅ | 逐字一致（与 `guardian-device-usage.md` 复核口径"非实时监听"对齐）。**但两边一起漏了一件事：这句只列了三张卡，这一屏现在有四张**——见 §7 的 D1 | — | **两边都改 D1（P13 新增）** |
 | 右侧「刷新」按钮 | `:25-27` `.buttonStyle(.bordered)` `.controlSize(.small)` | ✅ | 稿内 `<span class="btn sm">刷新</span>` 对应 | — | — |
-| 稿 toolbar 内「测量于 10:24:07」（A 稿有、B 稿无，稿内自不一致） | 实现把"测量于 …"放到**当前占用卡头**（`MMGuardian.swift:84`），toolbar 不放时间 | ❌ | 采样时刻位置分歧：设计画在 toolbar，实现画在占用卡头（更贴近数据，且 B 稿本就没画时间，实现反而更一致） | 低 | 设计稿该改 S5 |
-| 卡头摄像头图标恒为次级色（不表态） | `MMGuardian.swift:80` `.foregroundStyle(MMColor.secondaryLabel)` | ✅ | 与稿 cap"卡头的摄像头图标不参与表态"一致——红色只属于"正在被使用" | — | — |
+| 稿 toolbar 内「测量于 10:24:07」（A 稿有、B 稿无，稿内自不一致） | 实现把"测量于 …"放到**当前占用卡头**（`MMGuardian.swift:88-92`，P13 现读；原记 `:84` 已漂），toolbar 不放时间 | ❌ | 采样时刻位置分歧：设计画在 toolbar，实现画在占用卡头（更贴近数据，且 B 稿本就没画时间，实现反而更一致） | 低 | 设计稿该改 S5 |
+| 卡头摄像头图标恒为次级色（不表态） | `MMGuardian.swift:82-85`（`iconTint: MMColor.secondaryLabel` 在 `:85`，P13 现读；原记 `:80` 是 `occupancyCard` 声明那一行） | ✅ | 与稿 cap"卡头的摄像头图标不参与表态"一致——红色只属于"正在被使用" | — | — |
 
 ### 1.2 当前占用卡（P3.1）
 
@@ -84,18 +92,18 @@
 | absent 档（B 稿）：「本机没有摄像头」/「无可用麦克风」，中性灰 readonly | `DeviceUsage.swift:173-180` `deviceAbsent` + `DeviceUsageRow:615` 灰 tint | ✅ | 逐字一致；灰非绿（"无法确定"绝不借绿） | — | — |
 | 图标环 34pt、2px 描边、**只有 live 上色**（稿 `.urow .ring` + `.urow.live .ring`） | `DeviceUsageRow` 的 `ZStack{ Circle().stroke … }` | ✅（P6.2c 起） | 原记"实现只有纯图标、无环"是**看漏了**：环一直在，但**三处与稿不符**——外圈 30pt（frame 用的就是 `iconRow` 28）而非稿面渲染出的 38pt；描边跟着语义 tint 走，于是空闲态是一枚**绿环**，而稿里绿色只属于右侧 `badge safe`，环与图标不参与表态；live 缺那层 `--c-danger-soft` 红底。三处已按稿校正（直径走新常量 `MMMetric.iconRing`，取 36 而非稿面 34，换算见 §6.6.1） | 低 | 实现该改 I4 → **已落地** |
 | 占用行 min-height 56pt（稿 `.urow`） | `DeviceUsageRow` `frame(minHeight: MMMetric.rowRegular)`（rowRegular=44，`MMDesign.swift` token `--row-h-regular:44px`） | ❌ | 设计 56pt vs 实现 44pt，行高不一致 | 低 | 设计稿该改 S7 |
-| 口径脚注「空闲=设备在且测到没人驱动；无法确定≠没有应用在用；本机没有设备时如实显示…」 | `MMGuardian.swift:99-107`（"占用时系统公开接口不返回进程名，本面板不猜使用方"） | ⚠️ | 语义一致，实现脚注略简、未展开"本机没有设备"那半句（该态已有独立徽章，冗余可接受） | 低 | 记录 |
-| 首帧（deviceUsage 空）→ 2 条 `MMSkeletonRow` | `MMGuardian.swift:90-93`；由 `MM_GUARDIAN_LOAD=hold` 定格 | ✅（代码分支） | 设计稿未绘骨架 artboard，但钩子可构造 | 低 | 设计稿该改 S8（建议补骨架态 artboard） |
+| 口径脚注「空闲=设备在且测到没人驱动；无法确定≠没有应用在用；本机没有设备时如实显示…」 | `MMGuardian.swift:112-120`（文案在 `:116`，"占用时系统公开接口不返回进程名，本面板不猜使用方"；P13 现读，原记 `:99-107` 已漂） | ⚠️ | 语义一致，实现脚注略简、未展开"本机没有设备"那半句（该态已有独立徽章，冗余可接受） | 低 | 记录 |
+| 首帧（deviceUsage 空）→ 2 条 `MMSkeletonRow` | `MMGuardian.swift:97-102`（P13 现读，原记 `:90-93` 已漂）；由 `MM_GUARDIAN_LOAD=hold` 定格 | ✅（代码分支） | 设计稿未绘骨架 artboard，但钩子可构造 | 低 | 设计稿该改 S8（建议补骨架态 artboard） |
 | 四档 montage（A 稿把四档并排画全） | 每设备仅持一态，需用 `MM_GUARDIAN_FIXTURE` 分屏截图（camera/mic 各一态） | ⚠️ | A 稿四行不是单屏可渲染态，实现每设备一行——设计应标注"每态独立示意"避免被当成单屏 | 低 | 提协调者 G4 |
 
 ### 1.3 敏感权限授权卡（P3.2）—— 重点：授权表读不到 ≠ 未授权
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「敏感权限授权」+「SQLite 只读查询 · 不写库不提权」 | `MMGuardian.swift:122-129` | ✅ | 逐字一致 | — | — |
-| **`.unreadable`（两库都打不开）→ 不画列表，只给原因 + 引导**（C 稿左卡） | `TCCViewerState.unreadable` + `TCCProbe` `.unreadable(reason:)` 两类型隔离；`MMGuardian.swift:136-148` `MMEmptyState(title:"读不到 · 需要完全磁盘访问")` | ✅ | **红线守住**：读不到态**绝不画列表**，与"明确未授权"是两套代码路径 | — | — |
-| **`.emptyRead`（可读且 0 行）→ "相关服务没有授权记录"，明确"查到了没有不是没查到"**（C 稿右卡） | `TCCViewer.build` `if unreadable.isEmpty { return .emptyRead }`；`MMGuardian.swift:149-155` | ✅ | **红线守住**：只有"没有任何库 unreadable"才允许出现此档；有库没读到则降 `.partial` | — | — |
-| **`.partial`（一库可读一库打不开）→ 列表 + 顶部点名读不到的库** | `TCCViewer.build` partial + `MMGuardian.swift:156-158` `partialStrip` | ✅ | **红线守住**：partial 档**只列读到的库的行**，过滤掉读不到库（见下 F 项） | — | — |
+| 卡标题「敏感权限授权」+「SQLite 只读查询 · 不写库不提权」 | `MMGuardian.swift:153-158`（P13 现读，原记 `:122-129` 已漂） | ✅ | 逐字一致 | — | — |
+| **`.unreadable`（两库都打不开）→ 不画列表，只给原因 + 引导**（C 稿左卡） | `TCCViewerState.unreadable` + `TCCProbe` `.unreadable(reason:)` 两类型隔离；`MMGuardian.swift:169-182` `MMEmptyState`，标题常量 `TCCCopyTable.unreadableTitle`（`TCCAuthorization.swift:239` = "读不到 · 需要完全磁盘访问"） | ✅ | **红线守住**：读不到态**绝不画列表**，与"明确未授权"是两套代码路径 | — | — |
+| **`.emptyRead`（可读且 0 行）→ "相关服务没有授权记录"，明确"查到了没有不是没查到"**（C 稿右卡） | `TCCViewer.build` `if unreadable.isEmpty { return .emptyRead }`；`MMGuardian.swift:183-190`（原记 `:149-155`） | ✅ | **红线守住**：只有"没有任何库 unreadable"才允许出现此档；有库没读到则降 `.partial` | — | — |
+| **`.partial`（一库可读一库打不开）→ 列表 + 顶部点名读不到的库** | `TCCViewer.build` partial + `MMGuardian.swift:191-195` 调 `partialStrip`（定义 `:221`；原记 `:156-158`） | ✅ | **红线守住**：partial 档**只列读到的库的行**，过滤掉读不到库（见下 F 项） | — | — |
 | `.loaded`（两库可读有行）→ 列表 | `TCCViewerState.loaded` + `tccRowsList` | ✅ | — | — | — |
 | 部分可读警示条原文「系统级库读不到：open 被拒：Operation not permitted（errno 1）；sqlite rc=23 authorization denied——清单可能不完整」 | `TCCFixture.partialNote`（`TCCAuthorization.swift:263-265`）+ 真实 `TCCProbe` 拼 reason | ✅ | 逐字一致 | — | — |
 | auth_value 映射 0 拒绝/2 允许/3 部分允许/4 已禁用；表外值(含旧系统 1)→「未知值 (N)」 | `TCCAuthStatus.from`（`TCCAuthorization.swift:66-74`）+ `copy` `unknown(value)` | ✅ | 1 及表外值一律"未知值"，永不猜"允许" | — | — |
@@ -118,7 +126,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「登录项 N 项」+「打开系统设置 · 登录项」 | `MMGuardian.swift:213-222` | ✅ | 本机 N=17（与 hook-ledger"本机 17 项"一致） | — | — |
+| 卡标题「登录项 N 项」+「打开系统设置 · 登录项」 | `MMGuardian.swift:252-261`（P13 现读，原记 `:213-222`） | ✅ | 本机 N=17（与 hook-ledger"本机 17 项"一致） | — | — |
 | 行1 改名停用：`com.codex...disabled` + 「改名停用」徽章 + 开关 | `LoginItemRow:533-559`（renamedDisabled→「改名停用」徽章；user 域→`Toggle`） | ✅ | 开关 off（enabled=false）对应稿 `.sw` | — | — |
 | 行2 未加载：`com.pnuts.jenkins` +「没在当前会话里加载」(warn) + 开关 on | `LoginItemAnomalyCopy.badge(.plistNotLoaded)` + `isWritable`→`Toggle` on | ✅ | 逐字一致 | — | — |
 | 行3 系统域未加载：`com.sogou...` +「没在当前会话里加载」+「只读」+「在系统设置中管理」 | `domain==.system`→`isWritable=false`→只读徽章+按钮；异常 plistNotLoaded | ✅ | 双徽章+按钮，与稿一致 | — | — |
@@ -126,8 +134,8 @@
 | 脚注①孤儿：「launchd 里还挂着 N 个非苹果标签…com.ollama.ollama、com.postgresapp…不一定是残留」 | `LoginItemAudit.swift` + `LoginItemAnomalyCopy.orphanNote` + `auditFooter`（count+前 6 标签） | ✅ | 语义一致（标签名是样本数据，结构一致） | — | — |
 | 脚注②「没在当前会话里加载≠坏了…不替你下结论」 | `LoginItemAnomalyCopy.footnote`（`LoginItemAudit.swift:202`） | ✅ | 逐字一致 | — | — |
 | 不可核对脚注「这一轮没对表…没查到不会被写成没加载」 | `LoginItemAnomalyCopy.indeterminateNote` + `auditFooter` `!determinate` 分支 | ✅ | 由 `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` 可构造 | — | — |
-| 读取失败横幅（顶部黄条，scanerror 档） | `readErrorBanner`(`MMGuardian.swift:31-69`) + `scanErrors` | ✅（代码分支） | 由 `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` 注入；**设计稿无专用 artboard 描绘该横幅** | 低 | 设计稿该改 S11 |
-| 写失败面板（toggle 系统域/改名文件被拒 → `MMFailurePanel`） | `MMGuardian.swift:42-48,502-510` | ✅（代码分支） | 交互结果态；**设计稿未绘** | 低 | 设计稿该改 S11（同条） |
+| 读取失败横幅（顶部黄条，scanerror 档） | 调用点 `MMGuardian.swift:31-33` + 定义 `readErrorBanner`（`:60-76`，P13 现读；原记 `:31-69`）+ `vm.scanErrors`（`:423`） | ✅（代码分支） | 由 `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` 注入；**设计稿无专用 artboard 描绘该横幅** | 低 | 设计稿该改 S11 |
+| 写失败面板（toggle 系统域/改名文件被拒 → `MMFailurePanel`） | `MMGuardian.swift:44-50`（面板）与 `:590-598`（`toggle(_:)` 把失败 append 进 `writeFailures`；原记 `:42-48,502-510`，后一处已被 P11c 的删改挪走） | ✅（代码分支） | 交互结果态；**设计稿未绘** | 低 | 设计稿该改 S11（同条） |
 | 登录行 min-height 44pt（稿 `.login`） | `LoginItemRow` `frame(minHeight:)`（P6.2b 前是 `frame(height: 44/56)` **定高**） | ❌→✅ | 原判定"✅ 与 token 一致"是**错的**：稿写 min-height，实现写死 height，带异常徽章的行有第三行文字，44/56 钉死就把徽章那行齐根切掉。改后见 `p62b-fidelity/04-guardian-fixture-rows.png`（三行徽章完整） | 低 | 实现该改 I6 → **已落地** |
 
 ### 1.5 密钥与自启配置的改动时间卡（P11c 定合同；设计稿 06 已补这一节）
@@ -157,7 +165,7 @@
 3. **【低】I3 · 当前占用卡头缺"只读检测 · 不申请任何权限"诚实小字** —— **已落地，但不是 P6.2b 落的（复核更正）**：
    两句诚实披露都由 **`e3928fe`（2026-09-30，`fix(guardian): 占用卡头补诚实披露小字、占用行补图标环`）**加进代码，
    当时是卡头内的独立 `Text`（旧 `:90`、TCC 卡在旧 `:131`）；P6.2b（`1d5849b`，2026-10-03）只是把它们**搬进**
-   `sectionHeader(caption:)`（现 `MMGuardian.swift:82-87`、`:149`）。
+   `sectionHeader(caption:)`（P13 现读：占用卡 `MMGuardian.swift:82-87`、TCC 卡 `:153-158`）。
    原句"区块头搬到卡外时**按稿补**小字"把两件事记成了一件事——搬运是真的，"补"不是。
    **对结论无影响**（这一项确实关了），但 `e3928fe` 那笔同时还动了占用行图标环，而**图标环那条（I4）的正确归属是 `45a5de5`（P6.2c）**，
    两条相邻、来源不同，记错了下次就会去 P6.2b 的 diff 里找不到东西。
@@ -510,5 +518,56 @@ Pearcleaner 只展示 `kMDItemLastUsedDate` 且文案就是 "Last Used Date"（`
 生产代码 26,428 → **26,340** 行（−88），测试代码 8,957 → **8,984** 行；
 非测试源码里的 `Process()` 启动点 4 → **3** 处；取证钩子名仍是 **52** 个（本轮一个新钩子都没加，
 `MM_GUARDIAN_ACTIVITY_FIXTURE` 是既有的，只改了它的 rows 档用词）。
+
+## 7. P13：候选产物上重拍 + 本文行号引用现读复核（2026-10-05）
+
+`release-readiness.md` §7.4 记的是发版侧那一遍；这一节只记**本文档自己**被重读出来的东西。
+
+### 7.1 页头副标题少列一张卡 —— 新增 **D1（两边都改）**
+
+`MMGuardian.swift:24` 与稿 `06-guardian.html:93`、`:305` 三处的副标题逐字相同，
+所以 §1.1 那一行从前是 ✅——**"两边一致"是真的，"两边都对"不是**：这句只列了三件事
+（占用 / TCC / 登录项），而这一屏有四张卡（第四张就是 §6.7 改名之后的「密钥与自启配置的改动时间」，
+`MMGuardian.swift:39` 的 `if shows(.activity) { activityCard }`）。
+
+**为什么现在才看得见**：从前那第四张叫「系统活动」，"活动"这词宽到没人拿它去数副标题列了几项；
+P11c 把它改成一个具体到路径种类的名字之后，**它和那三项就是同一类东西**，缺一项才成了缺口。
+这是一条**改名把另一处的旧账照出来了**的记录——改文案的收尾不是改那一处，是把引用它的每一处都过一遍。
+
+**归属**：实现 + 设计稿同一句文案，改哪边都要动两边（源码一行、稿两行），所以记为**两边都改 D1**，
+本文的"两边都改"从 **0 条变 1 条**。严重度**低**：副标题不是承诺，页面上四张卡都在，
+没有一处说了代码支撑不了的话——它只是少说了一件已经存在的事。**不阻塞发版。**
+
+### 7.2 本文 §1 的行号引用：一次全量现读，漂了 9 处
+
+P11c 删了 `ActivityScanner` 那一段之后，本文所有指向 `MMGuardian.swift` 的行号都被规则要求重读了一遍。
+结论：**§1.2–§1.4 的九处引用全漂**，漂幅 +9 到 +41 不等（不是同一个常数，所以不是"整段位移"，
+是 P6.2b/P6.2c/P11 三轮在文件不同位置增行累积出来的）。逐条已就地改成现读数并各自标注"P13 现读"：
+
+| 元素 | 原记 | 现读 |
+| --- | --- | --- |
+| 占用卡"测量于 …"在卡头 | `:84` | `:88-92` |
+| 占用卡头图标 `iconTint` | `:80` | `:82-85`（原记那一行是 `occupancyCard` 声明） |
+| 占用卡口径脚注 | `:99-107` | `:112-120`（文案在 `:116`） |
+| 占用卡首帧骨架 | `:90-93` | `:97-102` |
+| TCC 卡标题 + caption | `:122-129` | `:153-158` |
+| `.unreadable` 态不画列表 | `:136-148` | `:169-182`（标题常量在 `TCCAuthorization.swift:239`，不在本文件） |
+| `.emptyRead` 态 | `:149-155` | `:183-190` |
+| `.partial` 态警示条 | `:156-158` | `:191-195`（`partialStrip` 定义在 `:221`） |
+| 登录项卡标题 + 按钮 | `:213-222` | `:252-261` |
+| 读取失败横幅 | `:31-69` | 调用 `:31-33`、定义 `:60-76` |
+| 写失败面板 | `:42-48,502-510` | `:44-50` 与 `:590-598` |
+
+**没有一处是"引用指错了元素"**——每一条按新行号读回去，说的还是同一件事。
+所以这一批的正确读法是：**结论全部有效，坐标全部过期**。这也正是 `release-readiness.md` §5
+那句"本文行号最密的一处"反复撞的同一面墙：**行号是最先过期、又最不会报错的引用**。
+本文往后新增引用时优先写**符号名 + 一句语义**（如 `partialStrip` 定义 `:221`），
+行号只当辅助坐标，理由就记在这里。
+
+**P13 重跑复核的数**（全部现读，与 §6.7 结尾那一段对照）：全量测试 **579 / 0 / 1**（MMGuardian 91，
+逐包求和 = 579）；生产代码 **26,340** 行、测试代码 **8,984** 行——**这两个数没漂**，
+说明 P11c 之后没有别的轮动过源码。候选产物上的照片在 `docs/verification/p13-v1/01-real-machine.png`
+（`# expect:` 五条 `stat` 读数与画面上的"46 天前 / 8 小时前 / 3·10·28 天前"逐条推得回，`.gnupg` 仍无行）。
+
 
 

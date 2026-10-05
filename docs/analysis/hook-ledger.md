@@ -269,7 +269,7 @@
 | `Scripts/p68-disk-capture.sh` | 磁盘页删除面板四档：回收/裁决面板 → 永久删除面板（未勾选）→ 同一块（已勾选）→「已永久删除」回执条 | **P6.8c 新增**。它是这一族钩子的**顺序依赖**最容易踩空的一屏：`MM_DISK_SELECT` 把扫描根写在第一个会把 `selected` 走成 nil，`MM_SHOW_TOAST=permanent` 必须不带 `MM_SHOW_CONFIRM`（它自己 return），而绿色撤回那条回执**必须**带 `MM_SHOW_CONFIRM` 才够得着、可面板是 `.sheet` 又会盖住它——所以四档里唯独没有它（判据见 `fidelity-disk.md` §11.4）。04 档另有 `TOAST_SETTLE=5`：**吐司自己带 10 秒倒计时**，按通用 10 秒去拍正好卡在 `1s` 上 |
 | `Scripts/p7-empty-scope-capture.sh` | 清理页空扫描范围两档：①四个类别开关全关 ②删回默认值作对照 | **P7a 新增**。这一档**没有对应钩子**，状态来自 `defaults write com.macmaster.app`（那四个开关本来就是持久化设置，页面 `.task` 进页即扫，所以"改设置 → 起进程"就够了，不需要合成点击）。代价是这把钥匙动的是**真实域**，所以脚本 `trap restore EXIT` 保证退出必删键，并把动过哪几个键写进归因头的第三行 `# defaults:`。**这是第四种注入手法**，与前三种（env 钩子 / 夹具目录 / 真实负载）不同：它改的是用户机器上长期留下的状态，跑挂了就一直关着——所以只有"页面自己会读设置"的这一类态能用它，且必须成对拍（异常档 + 还原档） |
 | `Scripts/run-all-tests.sh` | 九包全量 `swift test`，逐包一行结论 + 总计 | **P7 新增**。它修的是**读数本身的形态错**：`swift test \| tail -4` 只剩 swift-testing 那行 `Test run with 0 tests`，于是 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；而按 `with N failures` 字面顺序解析会把有跳过项的 MMDisk 解析成 **0 个测试**（那一行实为 `with 1 test skipped and 0 failures`）。两个坑都写进脚本注释了。**只认「Test Suite 'All tests' passed/failed」后面那一行**才是包级总数，中间同名格式的行是各测试类的分项 |
-| `Scripts/p7-release-check.sh` | 发布候选产物的基础三照 + **签名/plist/Gatekeeper 结论**：①概览（不注钩子，真数据）②关于页（`MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about`，判据是打包时指定的版本号必须出现在画面上）③`MM_WINDOW_SIZE=1000x600` 下限窗口概览 | **P7b 新增**。它归因头多了三行非照片证据：`# codesign:`（`flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`）、`# plist:`（`CFBundleShortVersionString`/`CFBundleVersion` 逐键）、`# spctl:`（`rejected`）。两个用途：① **版本号链自证**——`make-app.sh` 写的 plist 与「关于」页画出来的字符串必须在同一张图里对得上，这比读代码强；② **签名状态是有照片的结论**，发版判定（`docs/analysis/release-readiness.md` §2）不用凭记忆。**P10 给 `# plist:` 又加一键** `CFBundleIconFile=${icon:-（无）}`：图标缺档不会有任何地方报错（Dock 只是变成通用白纸），所以只能把它塞进每次构建都必写的归因头里，让"这次到底带没带图标"成为一个有日志可查的事实而不是事后回忆。注意第三档：`1000x600` 就是窗口下限（`MacMasterApp.swift` 的 `minWidth/minHeight`），**再小的请求会被夹回去**，所以它测的是"下限窗口里会不会截字"，不是"能不能更小"——本轮正是这一档抓出内存卡「交换 …」那行的截断 |
+| `Scripts/p7-release-check.sh` | 发布候选产物的基础三照 + **签名/plist/Gatekeeper 结论**：①概览（不注钩子，真数据）②关于页（`MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about`，判据是打包时指定的版本号必须出现在画面上）③`MM_WINDOW_SIZE=1000x600` 下限窗口概览 | **P7b 新增**。它归因头多了三行非照片证据：`# codesign:`（`flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`）、`# plist:`（`CFBundleShortVersionString`/`CFBundleVersion` 逐键）、`# spctl:`（`rejected`）。两个用途：① **版本号链自证**——`make-app.sh` 写的 plist 与「关于」页画出来的字符串必须在同一张图里对得上，这比读代码强；② **签名状态是有照片的结论**，发版判定（`docs/analysis/release-readiness.md` §2）不用凭记忆。**P10 给 `# plist:` 又加一键** `CFBundleIconFile=${icon:-（无）}`：图标缺档不会有任何地方报错（Dock 只是变成通用白纸），所以只能把它塞进每次构建都必写的归因头里，让"这次到底带没带图标"成为一个有日志可查的事实而不是事后回忆。注意第三档：`1000x600` 就是窗口下限（`MacMasterApp.swift` 的 `minWidth/minHeight`），**再小的请求会被夹回去**，所以它测的是"下限窗口里会不会截字"，不是"能不能更小"——本轮正是这一档抓出内存卡「交换 …」那行的截断。**已跑三遍**：`v1.0.0/`（P9，571）→ `p12-v1/`（P12，581）→ `p13-v1/`（P13，579），三遍都是 `1.0.0(1)` / adhoc / `rejected`，判据见 `release-readiness.md` §7.2–§7.4 |
 | `Scripts/p8-dashboard-scope-capture.sh` | 概览页「可清理跟勾选走」三档：①只勾日志 ②四个全关 ③删回默认值对照 | **P8 新增**，手段同 P7a（`defaults write` + `trap restore EXIT` + 归因头第三行 `# defaults:` 逐个键点名）。判据不是"数字变小"这种要看运气的说法，而是**结构性**的：01 那一档卡里只剩日志三类，「可立即释放 41.8 MB」正好等于两个可删类之和（应用日志 34.3 + 崩溃与诊断 7.5），只读的「系统日志 101.7 MB」不计入；03 同一格是 5.38 GB。02 是**未勾选类别**，不是「未扫描」也不是「测量失败」。两处实测代价：概览扫的是真实缓存，`SETTLE` 得给到 16 秒；窗口尺寸必须脚本自己写死（`SIZE=1400x1000`）——App 会恢复上次退出的 frame，第一次实跑恢复到 1000x652pt，要拍的那一卡直接落到折叠线以下 |
 | `Scripts/p8-disk-depth-capture.sh` + `Scripts/disk-depth-fixture.sh` | 磁盘详情第四格三档：①封顶节点=**未枚举** ②正常目录=真实计数 ③文件=— | **P8 新增**。普通夹具（`disk-fixture.sh` 最深两三层）永远走不到 `depth >= maxDepth` 那一支，所以另造一棵 20 层窄树：扫 `根/L01…L20` 时 depth=20，L20 里的目录 L21 被做成 `children: []` + `deepSize` + `descendantsMeasured: false`。钩子凭据是日志那行 `MM_DISK_SELECT 已选中 …（2.2 MB）`，与画面上「占用 2.2 MB」对得上，才证明这一档拍的是"字节量到了、名字没枚举"这一对（旧代码在这里写的是 `0`）。两个坑记在这：① zsh 里累加路径的变量**不能叫 `path`**（它与 `PATH` 绑定，一赋值 `seq`/`mkdir` 就 command not found）；② 01 档会顺带触发一次单层重枚举（`openDirectory` 遇到未缓存的一层起 `doNavigate`），所以 treemap 里 L21 底下看得见内容，而右侧详情读的是原扫描树里那个封顶节点——这正是"未枚举"该有的样子：这一层没枚举过，不等于它底下是空的 |
 | `Scripts/make-icon.sh` + `Scripts/make-icon.swift` | 生成 `Resources/AppIcon.icns`（十档），再**反向解一次核对**；`--check` 只核对不重生成 | **P10 新增**，这一条不是取证脚本而是**产物生成器**——图标没有钩子可注入，但它同样要"每个数字能自证"。形状取自设计系统的 `sparkles`（`docs/design-system/icons.js`），内外半径比 0.362 是从那条 path 直接量的，所以稿与产物可以逐数比对。判据刻意不用 `sips -g pixelWidth`：那只会报容器里被挑中的一档，**看不出十档是不是都在**，而少一档的后果（Dock 16pt 拿大图硬缩）在 plist、codesign、界面上都没有任何征兆。所以走 `iconutil -c iconset` 解回来数档数、比 1024 档字节数（现测 270,169 与源 PNG 一致） |
@@ -277,7 +277,11 @@
 | `Scripts/p11-pipe-deadlock-repro.swift` | 不启动应用，只按同样的 API 形状跑同一条 `log show`：① 先 `waitUntilExit()` 再读 ② 读与等分占两条队列、**一超时整批丢掉** ③ 仓库实装（边读边攒、超时只杀子进程），各打印**自己的**耗时、字节数与可用事件条数；末位参数是 ③ 的轮数 | **P11 新增**。它是"这一格为什么是空的"的**独立复现件**：现测 ① 停在整 **65,536** 字节、8.01 秒到点被杀，② **0.82 秒**取回 **198,172** 字节，③ 五轮 0.83–0.90 秒正常退出、154–156 条事件行可用。有这一个文件，下一轮不必重跑整个应用、也不必信我们的叙述就能自己撞见同一个死锁 |
 | `Scripts/make-app.sh` 的 `HARDENED=1` | 额外打 `--options runtime`，并在构建末尾**自己读回** `codesign -dv` 的 flags 一行 | **P11 新增档位**。它**不是任何一种发布形态**（发布要证书 + 公证），只是这一轮的量具。签名档次必须由脚本自己读回来打印——`codesign` 加了什么标志，看构建日志比看脚本可靠 |
 | `Scripts/p12-sandbox-warning-probe.sh` | 同一份 bundle 原样拷进 `~/.mm-p12-probe/`（拷完 `codesign --verify --deep --strict` 自证），两个位置各起 7 秒，只比那一行 `sandbox_extension_issue_file_to_process` 出现的**次数** | **P12 新增**。它不为任何钩子服务，是为**还一笔旧账**：那行警告从 P7 起在每一份取证日志里都有，当时的解释是"ad-hoc 构建从 /tmp 起进程"——一句话捆了签名与路径两个变量，而两个都没单独测过。现测：`/tmp` **1 次**、用户目录 **0 次**，两档同为 `flags=0x2(adhoc)`、都活过 7 秒、界面都出真实读数 → **是路径不是签名**。探针目录跑完自删 |
-| `Scripts/p11c-activity-capture.sh` | 四档零点击照片（真机 / 夹具 rows / 夹具 empty / 夹具 rows @1000×700），每份 `.log` 带 `# codesign:` 与 `# env:` 归因头；**真机档额外写 `# expect:` 行**——脚本用 `stat` 现读那五个路径的 mtime，与代码的 `attributesOfItem` 是两条不同的读法 | **P11c 新增**。它要闭的是照片侧那一环：卡片上那五个"X 前"必须能从 expect 行**算**出来（`.ssh` 08-20 14:23 → 照片 46 天前、`Keychains` 10-05 07:59 → 8 小时前），否则照片只是好看。两条读法对上才算数，这是 P6.7b"合成值有没有真的出现在画面上"那条判据的反向用法：**真值也要出现在照片里，并且要能从另一条路推出来** |
+| `Scripts/p11c-activity-capture.sh` | 四档零点击照片（真机 / 夹具 rows / 夹具 empty / 夹具 rows @1000×700），每份 `.log` 带 `# codesign:` 与 `# env:` 归因头；**真机档额外写 `# expect:` 行**——脚本用 `stat` 现读那五个路径的 mtime，与代码的 `attributesOfItem` 是两条不同的读法 | **P11c 新增**。它要闭的是照片侧那一环：卡片上那五个"X 前"必须能从 expect 行**算**出来（`.ssh` 08-20 14:23 → 照片 46 天前、`Keychains` 10-05 07:59 → 8 小时前），否则照片只是好看。两条读法对上才算数，这是 P6.7b"合成值有没有真的出现在画面上"那条判据的反向用法：**真值也要出现在照片里，并且要能从另一条路推出来**。**P13 又用了一次、只跑一档**：
+`ONLY=01 ./Scripts/p11c-activity-capture.sh /tmp/mm-app-p13/MacMaster.app docs/verification/p13-v1`，
+把真机那一档拍在 **`VERSION=1.0.0` 的发版候选产物**上（`p11c-activity/` 那四档是调试构建）。
+`ONLY=` 这一档存在的意义就在这儿：**发版侧要的是"这份二进制"，不是"这一族状态"**，
+四档重跑一遍只是把同一批夹具再点一次 |
 - **`waitUntilExit()` 之后再读管道，是一个只在"输出够大"时才发作的死锁**（P11）：`Pipe` 的内核缓冲
   只有 64 KB，子进程写满就卡在 `write`，父进程卡在 `wait`，谁也不动。这一路的输出量取决于**本机日志量**，
   所以它在开发机上可以永远不出现——`scanUnifiedLog()` 自落地起就从未返回过内容，而界面显示的是
@@ -413,3 +417,15 @@
   所以判"这一档拍不到"之前，先 `grep Scripts/` 确认是缺钩子还是缺人跑。
   反过来也成立：**已拍过的档要在表里带上照片目录名**（`p64` / `p65` / `p62b-fidelity` 那种），
   否则下轮只能重跑一遍才知道拍过。
+- **行号是最先过期、又最不会报错的引用**（P13）：P11c 之后按规则把 `fidelity-guardian.md` §1 的
+  指向 `MMGuardian.swift` 的行号全量重读了一遍，**11 处里 9 处漂**（+9 到 +41，不是同一个常数，
+  所以不是"整段位移"，是多轮在不同位置增行累积出来的）。关键是**没有一处指错元素**：
+  按新行号读回去，说的还是同一件事。所以行号漂移**不会让文档变错，只会让文档变得无法核对**——
+  而下一个人以为它还能核对。两条规矩：① 新增引用优先写**符号名 + 一句语义**，行号只当辅助坐标；
+  ② 只要动了某个文件，**引用它的那份文档的行号必须重读**，别指望"我这轮没改那一块"。
+- **"两边一致"不等于"两边都对"**（P13 新增 D1）：守护页页头副标题在源码与设计稿里逐字相同，
+  所以对照表给了 ✅，这一状态保持了十几轮。它缺的是**第四张卡的名字**——而从前那张卡叫「系统活动」，
+  名字含糊到没人拿它去数副标题列了几项。P11c 把它改成「密钥与自启配置的改动时间」之后，
+  它和另外三项成了同一类东西，缺口才看得见。**教训**：逐元素对照表测的是"两边像不像"，
+  它测不出"两边一起漏了第三方"；**改名会让别的旧账变成可见的缺陷**，所以每改一次名，
+  要把引用这个名字的每一处（页头、副标题、设计稿、README、发版说明）一起过一遍。
