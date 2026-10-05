@@ -229,7 +229,13 @@ CFBundleShortVersionString / CFBundleVersion 实际值为准。<b>「反馈问�
 「检查更新」的弹窗态没在本板画：alert 标题「检查更新」、正文
 "已是最新版本（x.y.z（n)。\n当前构建未配置更新服务器，此检查仅读取本机 Info.plist。"、
 按钮「好」——<b>没有更新服务器，它只报本机版本，不宣称"检查过了全网最新"</b>。
-macbook.and.iphone 精灵图标是近似自绘（icons.js 无此符号），实机直接换 SF Symbol。</div>
+「许可」这一格与实现同口径写<b>尚未选择许可</b>：仓库里没有 LICENSE 文件，<b>稿子不许替项目宣称授权</b>
+（判据与"定了许可之后要动的三处"见 `docs/analysis/release-readiness.md` §2.3）。
+这一枚是<b>应用图标本体</b>，不是占位符：`Resources/AppIcon.icns` 由 `Scripts/make-icon.swift` 画，
+本板用的是<b>同一组几何与色值</b>（圆角 22.37/100、四角星内外半径比 0.362、梯度 #0A84FF→#0040DD、
+三颗星 42/42·70/66·63/28 与不透明度 1/.92/.80），所以稿与产物可以逐数比对。
+实机取 `NSApp.applicationIconImage`；`swift run` 这种没有 bundle 的跑法退回 SF Symbol
+`macbook.and.iphone`，<b>不画一张白纸冒充图标</b>。</div>
 <div class="sheet mm-screen">
   <div class="sheet-head"><h1>设置</h1>
     <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
@@ -237,11 +243,16 @@ macbook.and.iphone 精灵图标是近似自绘（icons.js 无此符号），实�
     <span>通用</span><span>监控</span><span>清理</span><span class="on">关于</span></span></div>
   <div class="hairline"></div>
   <div class="about">
-    <svg class="i appic" viewBox="0 0 16 16" style="width:48px;height:48px;flex-basis:48px">
-      <path d="M2.2 3.6h6.2c.4 0 .8.3.8.8v5.2H1.4V4.4c0-.4.4-.8.8-.8z"/>
-      <path d="M.6 11.2h9.8l.6 1.8H0z"/>
-      <path d="M12.3 5.4h2c.5 0 .9.4.9.9v6c0 .5-.4.9-.9.9h-2c-.5 0-.9-.4-.9-.9v-6c0-.5.4-.9.9-.9z"/>
-      <path d="M12.9 11.3h1"/>
+    <svg class="i appic" viewBox="0 0 100 100" style="width:48px;height:48px;flex-basis:48px">
+      <defs>
+        <linearGradient id="appic-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0A84FF"/><stop offset="1" stop-color="#0040DD"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" rx="22.37" fill="url(#appic-bg)"/>
+      <path fill="#fff" d="M42 12.5 49.55 34.45 71.5 42 49.55 49.55 42 71.5 34.45 49.55 12.5 42 34.45 34.45Z"/>
+      <path fill="#fff" fill-opacity=".92" d="M70 53.5 73.2 62.8 82.5 66 73.2 69.2 70 78.5 66.8 69.2 57.5 66 66.8 62.8Z"/>
+      <path fill="#fff" fill-opacity=".8" d="M63 20.5 64.92 26.08 70.5 28 64.92 29.92 63 35.5 61.08 29.92 55.5 28 61.08 26.08Z"/>
     </svg>
     <div class="row-h" style="flex-direction:column;gap:2px">
       <span class="nm">MacMaster</span>
@@ -249,7 +260,7 @@ macbook.and.iphone 精灵图标是近似自绘（icons.js 无此符号），实�
     </div>
     <div class="meta">
       <div class="krow"><span class="k">开发者</span><span>MacMaster Team</span></div>
-      <div class="krow"><span class="k">许可</span><span>MIT License</span></div>
+      <div class="krow"><span class="k">许可</span><span>尚未选择许可</span></div>
       <div class="krow"><span class="k">反馈</span><span>未配置官方渠道</span></div>
     </div>
     <div class="sp" style="flex:1"></div>

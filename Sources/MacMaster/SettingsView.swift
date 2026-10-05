@@ -243,11 +243,26 @@ struct SettingsView: View {
         settings.excludedFolderPaths.append(path)
     }
 
-    private var aboutView: some View {
-        VStack(spacing: MMGap.lg) {
+    /// 关于页那枚图标画的是**这个 bundle 自己的图标**（`Resources/AppIcon.icns`，
+    /// 由 `./Scripts/make-icon.sh` 生成）。以前这里是 SF Symbol `macbook.and.iphone`，
+    /// 那是一个"任何应用都能用"的占位符——关于页说"我是 MacMaster"，配图却是通用图形。
+    /// 没有 bundle 的跑法（`swift run`）拿不到 icns，那时退回占位符，而不是画一张白纸。
+    @ViewBuilder
+    private var appIconArtwork: some View {
+        if Bundle.main.url(forResource: "AppIcon", withExtension: "icns") != nil {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 48, height: 48)
+        } else {
             Image(systemName: "macbook.and.iphone")
                 .font(.system(size: 48))
                 .foregroundStyle(MMColor.accent)
+        }
+    }
+
+    private var aboutView: some View {
+        VStack(spacing: MMGap.lg) {
+            appIconArtwork
 
             VStack(spacing: MMGap.xxs) {
                 Text("MacMaster").font(.title2.weight(.semibold))

@@ -27,6 +27,10 @@ ver=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
       | sed -nE 's/.*"CFBundleShortVersionString" => "(.*)".*/\1/p')
 bld=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
       | sed -nE 's/.*"CFBundleVersion" => "(.*)".*/\1/p')
+# 图标键也收进同一行：缺 CFBundleIconFile 时 Dock 是通用白纸，而 plist 别处一切正常，
+# 事后没人想得起来"这次构建到底带没带图标"。
+icon=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
+      | sed -nE 's/.*"CFBundleIconFile" => "(.*)".*/\1/p')
 # spctl 对未公证的产物一定非零退出，这不是错误，是这一档的结论本身，所以不能让它中断脚本。
 # 结论整行收下来（`|| true` 之外还要 `tr` 成一行）：BSD 下按行取下标拿到过孤零零一个 "/"。
 assess=$(spctl -a -t exec -vv "$APP" 2>&1 | tr '\n' ' ' || true)
@@ -39,7 +43,7 @@ shot() {
     print -r -- "# p7-release-check.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP"
     print -r -- "# env: MM_APPEARANCE=$APPEARANCE ${(j: :)@}"
     print -r -- "# codesign: $sig"
-    print -r -- "# plist: CFBundleShortVersionString=$ver CFBundleVersion=$bld"
+    print -r -- "# plist: CFBundleShortVersionString=$ver CFBundleVersion=$bld CFBundleIconFile=${icon:-（无）}"
     print -r -- "# spctl: $assess"
   } >"$log"
   env MM_APPEARANCE="$APPEARANCE" "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
@@ -69,4 +73,5 @@ shot 02-about MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about
 #     默认窗 1100x700 在 `:42`），再小的请求会被夹回来。
 shot 03-dashboard-min MM_WINDOW_SIZE=1000x600
 
-print -r -- "→ $OUT（判据：02 上「关于」那行显示 $ver($bld)；照片里没有就是版本没走到界面，不是「差不多」）"
+print -r -- "→ $OUT（判据：02 上「关于」那行显示 $ver($bld)，照片里没有就是版本没走到界面，不是「差不多」；"
+print -r -- "  同一张上的图标应是 AppIcon 本体（蓝底三颗星，CFBundleIconFile=${icon:-（无）}），不是 SF Symbol 占位符）"

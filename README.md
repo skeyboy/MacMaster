@@ -28,6 +28,12 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 **版本号只有一个真源**：上面那条 `VERSION=/BUILD=`。设置页「关于」读的是 bundle 的
 `Info.plist`，而那份 plist 是 `make-app.sh` 写的——不要去脚本里改字面量。
 
+**应用图标是画出来的**，不是一张来路不明的 png：`./Scripts/make-icon.sh` 跑
+`Scripts/make-icon.swift` 生成十档 iconset → `iconutil` 打成 `Resources/AppIcon.icns`，
+然后**反向解一次**核对十档齐全（少一档时 Dock 缩到 16pt 会拿大图硬缩，而 plist 与签名一切正常、
+没有任何一处会报错，所以判据只能是档数与字节数）。`make-app.sh` 看见这个文件才写
+`CFBundleIconFile`——键在而文件没了，比"没这一键"更难查。
+
 ## 测试
 
 ```bash
@@ -118,10 +124,12 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 ## 发布状态
 
 **功能就绪、分发未就绪**。产物是 ad-hoc 签名（`flags=0x2(adhoc)`、`TeamIdentifier=not set`），
-Gatekeeper 判 `rejected`；没有图标；许可未定。自己编译自用不受影响，发给别人则要先补这三项。
+Gatekeeper 判 `rejected`；许可未定。自己编译自用不受影响，发给别人则要先补这两项。
+图标已补（`Resources/AppIcon.icns` + `CFBundleIconFile`，来历与取舍见
+`docs/analysis/release-readiness.md` §2.2）。
 逐模块判定、hardened runtime / 沙盒会打断哪七条现有能力、以及 v1.0 建议范围与
 发版前 checklist：**`docs/analysis/release-readiness.md`**。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
 "版本号从打包脚本走到关于页"）已在 2026-10-05 实跑，证据 `docs/verification/v1.0.0/`；
-第 4 步（许可、图标、权利人、签名方式）是人的决定，实现不代拍。
+第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。

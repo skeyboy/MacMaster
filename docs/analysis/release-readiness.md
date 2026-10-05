@@ -10,8 +10,9 @@
 
 - **功能面：可以发。** 九个包全绿：`571` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
-- **分发面：现在这份产物不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
-  没有图标、没有许可证书（§2）。这三件事都不是代码问题，是**发版动作**问题，各自都有明确的补法。
+- **分发面：现在这份产物还不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
+  没有许可证书（§2）。图标那一项 **P10 已补**（§2.2：`Resources/AppIcon.icns` + `CFBundleIconFile`）。
+  剩下的都不是代码问题，是**发版动作**问题，各自都有明确的补法。
 - **一句话判定**：作为 **"自己编译自己用 / 附带源码的私有分发"**——今天就能发。
   作为 **"给陌生人的 dmg"**——差 §2 的三项，且 §3 那条 hardened runtime 的兼容验证必须先跑一遍。
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
@@ -22,10 +23,10 @@
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **571** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P8 于 2026-10-05 重跑**：P7 落地时是 566，此后 +5（MMDisk 4 条 + MMFileScanner 1 条，见 §7.1） |
+| 测试总数 | **571** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P8 于 2026-10-05 重跑**：P7 落地时是 566，此后 +5（MMDisk 4 条 + MMFileScanner 1 条，见 §7.1）。**P10 再跑仍是 571/0/1**——那一轮只动壳层与打包脚本，包内测试数不该变，变了才要查 |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
 | 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift:173 testMountedVolumeRootIsBlocked`，跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
-| 生产代码量 | **26,310 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P8 重跑；P7 时 26,262） |
+| 生产代码量 | **26,325 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P10 重跑；P8 时 26,310，多的 15 行是关于页那枚 `appIconArtwork`） |
 | 测试代码量 | **8,846 行** | 同一条命令换成 `-path '*/Tests/*'`（P8 重跑；P7 时 8,790） |
 | 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫 |
 | 子进程启动点 | **4 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 4 行，见 §3 |
@@ -63,19 +64,40 @@ spctl -a -vv -t execute   →  /tmp/mm-app-p7b/MacMaster.app: rejected
 
 ### 2.2 图标 —— 挡住"它像个正经应用"
 
-`plutil -p Contents/Info.plist` 里**没有任何图标键**（`CFBundleIconFile`/`CFBundleIconName` 都不存在），
-`find` 全仓 `*.icns` 也无命中。现测的 plist 完整键集就是 12 个键：
+**P10（2026-10-05）已补这一项的前半段**：`Resources/AppIcon.icns` 入库，`make-app.sh` 把它拷进
+`Contents/Resources/` 并写 `CFBundleIconFile=AppIcon`。现测（`/tmp/mm-app-p10/MacMaster.app`）：
 
 ```
-CFBundleDevelopmentRegion=zh_CN  CFBundleExecutable=MacMaster  CFBundleIdentifier=com.macmaster.app
-CFBundleInfoDictionaryVersion=6.0  CFBundleName=MacMaster  CFBundlePackageType=APPL
-CFBundleShortVersionString=1.0.0-rc1  CFBundleVersion=1  LSApplicationCategoryType=public.app-category.utilities
-LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyright=MacMaster
+plutil -p Contents/Info.plist → "CFBundleIconFile" => "AppIcon"
+Contents/Resources/AppIcon.icns → 518,512 字节
+./Scripts/make-icon.sh --check  → ✓ 反向解出 10 档；1024 档 270169 字节
 ```
 
-- 缺图标在 Dock 里就是那张通用白纸。这是**发版必须补的一项**，且和 §2.1 一样是动作不是代码。
-- `NSHumanReadableCopyright` 现值是裸的 `MacMaster`，**没有年份也没有权利人**。
-  这一格填谁的名字是法律问题，与 §2.3 一起由人拍板。
+图标是**画出来的**，不是一张来路不明的 png：`Scripts/make-icon.swift` 用 CoreGraphics 画十档，
+形状取自设计系统自己的品牌符号 `sparkles`（`docs/design-system/icons.js` 那条 path，
+也是侧边栏「✦ MacMaster」那颗），内外半径比 0.362 直接从那条 path 量出。
+判据不是"看着像"：`make-icon.sh` 生成之后**用 `iconutil -c iconset` 反向解一次**，
+核对十档齐全且 1024 档字节数与源 PNG 一致——少一档时 Dock 缩到 16pt 会拿大图硬缩，
+而 plist 与 codesign 全都正常、没有任何一处报错，所以只能这样自证。
+
+**如实记下的两处代价**：
+1. 圆角是**普通圆角矩形**（`cornerRatio = 0.2237`）近似苹果的连续曲率 squircle。
+   32pt 以下看不出差别，1024 档放大看边缘会发现没那么"鼓"。要真 squircle 得换超椭圆路径，
+   这一版没做。
+2. 16/32 两档**只画大星**（`size >= 48` 才画三颗）——三颗星挤在 32px 里是一团糊，糊掉不如少画。
+   这是取舍，不是漏了。
+
+关于页那一枚也一并换成图标本体（`SettingsView.swift` 的 `appIconArtwork`，
+以前是 SF Symbol `macbook.and.iphone` 占位符）。取证：`docs/verification/p10-icon/02-about.png`
+同一张里能看到蓝底三颗星 + 「版本 1.0.0 (1)」，设计稿 `09-settings.html` 的 09d 板用的是**同一组几何与色值**。
+`swift run` 那种没有 bundle 的跑法走另一支（退回占位符），**不画一张白纸冒充图标**。
+
+**这一项剩下的部分仍是动作不是代码**：`NSHumanReadableCopyright` 现值是裸的 `MacMaster`，
+**没有年份也没有权利人**（填谁的名字是法律问题，与 §2.3 一起由人拍板）。
+
+`find` 全仓 `*.icns` 在 P10 之前无命中；当时的 plist 完整键集是 12 个键、**没有任何图标键**
+（`CFBundleIconFile`/`CFBundleIconName` 都不存在），那一份现测留在 `p7-release-build/` 的日志里。
+
 - `CFBundleDevelopmentRegion=zh_CN`：界面目前是中文单语（§6 壳层那一行有证据），
   英文环境首次启动会拿到中文的 `CFBundleDevelopmentRegion` 提示，可接受，但要写明。
 
@@ -87,9 +109,11 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 - 因此 `about` 那一格此前写的 `MIT License` 是一句**代码库里找不到凭据的话**。
   本轮已把界面文案改回事实：`SettingsView.swift` 现在显示「许可 尚未选择许可」，
   照片见 `docs/verification/p7-release-build/02-about.png`。
-- **选哪种许可是法律决定**。本文只列出这一项没定，以及定了之后要动的三处：
-  补 `LICENSE` 文件、改回 `SettingsView.swift` 那一格、同步设计稿
-  `docs/design-system/screens/shell/09-settings.html:252` 的对应格（那一格现读仍写着 `MIT License`）。
+- **选哪种许可是法律决定**。本文只列出这一项没定，以及定了之后要动的地方：
+  补 `LICENSE` 文件、改 `SettingsView.swift` 那一格。设计稿那一格 **P10 已跟实现同口径**
+  （`09-settings.html` 的 09d 板现写「尚未选择许可」，并在板注里写明"稿子不许替项目宣称授权"），
+  所以定许可之后是**两处一起改回**，不会再出现"稿说 MIT、实现说没定"那种分叉。
+  现测复核（2026-10-05 P10）：`find . -maxdepth 3 -iname 'LICENSE*'` 仍只命中 `docs/lemon-cleaner/` 那两份第三方许可。
 
 ## 3. hardened runtime / 沙盒会打断什么
 
@@ -200,7 +224,7 @@ IOKit 磁盘统计 / kqueue 监听 / TCC.db，一行一条）——**不建议�
 | 签名档次（未变） | `flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`、`spctl: … rejected` | 三份日志的 `# codesign:` / `# spctl:` 两行 |
 | 最小窗口不截 | 1000×600 下「交换 688.6 MB / 2.15 GB」整行可读（P7a 那个 `minimumScaleFactor` 在候选产物上仍成立） | `v1.0.0/03-dashboard-min.png` |
 | P7a 三句实话在屏 | 「尚未选择许可」/「未配置官方渠道」+「反馈问题」灰着 /「检查更新」可用但弹窗自陈只读本机 plist | `02-about.png`（前两项同屏可见） |
-| 第 4 步 | **未做，也不该由实现做**：许可、图标、`NSHumanReadableCopyright` 年份与权利人、签名方式 | §2 |
+| 第 4 步 | **未做，也不该由实现做**：许可、`NSHumanReadableCopyright` 的年份与权利人、签名方式。（这一项原本还含"没有图标"，P10 已补，见 §2.2） | §2 |
 
 **一条防误读的注**：这张概览上侧栏「系统清理 4.28 GB」与概览「可清理 4.28 GB」同值，
 但**它不构成 §7.1 那条改动的证据**——两处读的是同一份测量（`MainWindow.swift:11` 那句注释就是
@@ -264,13 +288,14 @@ P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2
 # 1. 全量测试（期望 571/0/1；数字变了要回写本文 §1）
 ./Scripts/run-all-tests.sh
 
-# 2. 构建候选产物（版本单一来源）
+# 2. 构建候选产物（版本单一来源；图标随仓库带着，构建前先自证一次）
+./Scripts/make-icon.sh --check          # 反向解一次 icns，核十档齐全
 VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch-v1
 
-# 3. 三张基础照片 + 把签名/plist/gatekeeper 结论写进日志归因头
+# 3. 三张基础照片 + 把签名/plist（含 CFBundleIconFile）/gatekeeper 结论写进日志归因头
 ./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/v1.0.0
 
-# 4. 人工确认：许可已定（补 LICENSE 文件）/ 图标已生成（plist 出现 CFBundleIconFile）/
+# 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
 ```
 

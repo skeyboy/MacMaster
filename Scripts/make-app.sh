@@ -47,6 +47,18 @@ BIN_SRC="${SCRATCH:-$ROOT/.build}/release/$BIN_NAME"
 cp "$BIN_SRC" "$APP/Contents/MacOS/$BIN_NAME"
 chmod +x "$APP/Contents/MacOS/$BIN_NAME"
 
+# 图标：由 ./Scripts/make-icon.sh 画出来并核过十档的 icns，仓库里带着。
+# 这里只在文件真的存在时才写 CFBundleIconFile——键在而文件没了，Finder 会退回通用图标，
+# 而 plist 看上去"有图标"，那是比"没这一键"更难查的假象。
+ICON_KEY=""
+if [[ -f "$ROOT/Resources/AppIcon.icns" ]]; then
+    cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+    ICON_KEY='    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>'
+else
+    print -u2 -- "提示：缺 Resources/AppIcon.icns，本次产物不写 CFBundleIconFile（跑 ./Scripts/make-icon.sh 生成）"
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -56,6 +68,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <string>zh_CN</string>
     <key>CFBundleExecutable</key>
     <string>MacMaster</string>
+${ICON_KEY}
     <key>CFBundleIdentifier</key>
     <string>com.macmaster.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
