@@ -7,7 +7,9 @@ import Foundation
 ///   即与 UI 可见默认值一致），后续每次赋值自动回写。
 /// - UI 层通过 SwiftUI `.environmentObject(AppSettings.shared)` 注入并绑定。
 /// - 约定：仅在主线程写入（UI 绑定路径），读取线程安全（值类型快照）。
-/// - 界面语言不在本存储中，由 `Localization` 自身通过 @AppStorage 持久化（已工作）。
+/// - 界面语言不在本存储中，由 `Localization` 自身通过 @AppStorage 持久化。
+///   持久化是好的，**生效不是**：`L(_:)` 在界面上零调用点，切换语言目前不改变任何文案
+///   （设置页那一行已按"暂不生效"如实标注）。
 public final class AppSettings: ObservableObject {
     public static let shared = AppSettings()
 

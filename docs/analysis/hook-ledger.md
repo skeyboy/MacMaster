@@ -52,6 +52,15 @@
   `p7-brew/09-real-machine.jpg` 拍的是磁盘分析页，不是卸载页（§8.1 那一格的判定作废，见
   `fidelity-uninstaller.md` §12.3）。P6.8b 再补一刀：这些 `.log` 只记应用 stderr，
   看不出本档注入了什么——归因头两行从此由脚本自己写（见 §5 末尾）。
+  **P6.8c 与 P7a 都没有新增钩子名**（2026-10-05 现跑同一条
+  `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u | wc -l` = **52**，
+  其中 `MM_TRASH_FIXTURE_PROBE` 仍是测试里探 `/tmp` 守卫的临时 key，运行时钩子 51 个）。
+  **P7a 是这一族里第一条不靠钩子的取证**：清理页"四个类别开关全关"这一态由
+  `defaults write com.macmaster.app` 直接改持久化设置得到，页面 `.task` 进页即扫，
+  于是既没有新 `MM_*`、也没有合成点击。归因头因此多了第三行 `# defaults:`
+  （见 §5 `Scripts/p7-empty-scope-capture.sh`）。**这一类手段的代价要写清**：
+  它动的是用户机器上的真实域，脚本必须 `trap` 还原并且成对拍（异常档 + 还原档），
+  否则下一轮所有人读到的都是一台"清理页什么都不扫"的机器。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -253,6 +262,9 @@
 | `Scripts/p68-brew-capture.sh` | 「安装来源」九档：五档来源各一张 + 确认面板 + 深色 + 最小窗口 + 真机 | **P6.8 新增**。同上，旧目录 `p7-brew/` 未动。默认每次现造一棵 `provenance-fixture.sh`（`FIX=` 可复用）：staged 链接的设备号判据依赖"链接指向的就是这棵树里的这份 bundle"，拿旧目录重跑没坏，但照片里的路径会指着一次没发生过的运行。09 真机档可 `REAL_SELECT=` 点名（本机已无 Highball，本轮用的是 `WailBrew`，见 `fidelity-uninstaller.md` §12.3） |
 | `Scripts/p68-trash-capture.sh` | 废纸篓监听两档：提示卡（夹具 + 脚本自己 `mv`）/ 无权限横幅（真机、无钩子） | **P6.8 新增**。01 的时序是全部取证脚本里最脆的一档：**基线必须晚于 `mv`**，否则拖进去的应用被当成"启动前就在"的历史条目、卡片根本不出现——所以脚本先轮询到窗口 id、再留 2 秒给 `startTrashWatching`，才动手 `mv`；`AFTER_MOVE` 默认 60 秒，因为残留扫描的合并计时器排在 MainActor 上、要等 41 个应用测完。跑前会验 `/tmp/mmstage/Foo.app` 还在，不满足就点名让人重跑夹具而不是拍出一张假态 |
 | `Scripts/p68-disk-capture.sh` | 磁盘页删除面板四档：回收/裁决面板 → 永久删除面板（未勾选）→ 同一块（已勾选）→「已永久删除」回执条 | **P6.8c 新增**。它是这一族钩子的**顺序依赖**最容易踩空的一屏：`MM_DISK_SELECT` 把扫描根写在第一个会把 `selected` 走成 nil，`MM_SHOW_TOAST=permanent` 必须不带 `MM_SHOW_CONFIRM`（它自己 return），而绿色撤回那条回执**必须**带 `MM_SHOW_CONFIRM` 才够得着、可面板是 `.sheet` 又会盖住它——所以四档里唯独没有它（判据见 `fidelity-disk.md` §11.4）。04 档另有 `TOAST_SETTLE=5`：**吐司自己带 10 秒倒计时**，按通用 10 秒去拍正好卡在 `1s` 上 |
+| `Scripts/p7-empty-scope-capture.sh` | 清理页空扫描范围两档：①四个类别开关全关 ②删回默认值作对照 | **P7a 新增**。这一档**没有对应钩子**，状态来自 `defaults write com.macmaster.app`（那四个开关本来就是持久化设置，页面 `.task` 进页即扫，所以"改设置 → 起进程"就够了，不需要合成点击）。代价是这把钥匙动的是**真实域**，所以脚本 `trap restore EXIT` 保证退出必删键，并把动过哪几个键写进归因头的第三行 `# defaults:`。**这是第四种注入手法**，与前三种（env 钩子 / 夹具目录 / 真实负载）不同：它改的是用户机器上长期留下的状态，跑挂了就一直关着——所以只有"页面自己会读设置"的这一类态能用它，且必须成对拍（异常档 + 还原档） |
+| `Scripts/run-all-tests.sh` | 九包全量 `swift test`，逐包一行结论 + 总计 | **P7 新增**。它修的是**读数本身的形态错**：`swift test \| tail -4` 只剩 swift-testing 那行 `Test run with 0 tests`，于是 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；而按 `with N failures` 字面顺序解析会把有跳过项的 MMDisk 解析成 **0 个测试**（那一行实为 `with 1 test skipped and 0 failures`）。两个坑都写进脚本注释了。**只认「Test Suite 'All tests' passed/failed」后面那一行**才是包级总数，中间同名格式的行是各测试类的分项 |
+| `Scripts/p7-release-check.sh` | 发布候选产物的基础三照 + **签名/plist/Gatekeeper 结论**：①概览（不注钩子，真数据）②关于页（`MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about`，判据是打包时指定的版本号必须出现在画面上）③`MM_WINDOW_SIZE=1000x600` 下限窗口概览 | **P7b 新增**。它归因头多了三行非照片证据：`# codesign:`（`flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`）、`# plist:`（`CFBundleShortVersionString`/`CFBundleVersion` 逐键）、`# spctl:`（`rejected`）。两个用途：① **版本号链自证**——`make-app.sh` 写的 plist 与「关于」页画出来的字符串必须在同一张图里对得上，这比读代码强；② **签名状态是有照片的结论**，发版判定（`docs/analysis/release-readiness.md` §2）不用凭记忆。注意第三档：`1000x600` 就是窗口下限（`MacMasterApp.swift` 的 `minWidth/minHeight`），**再小的请求会被夹回去**，所以它测的是"下限窗口里会不会截字"，不是"能不能更小"——本轮正是这一档抓出内存卡「交换 …」那行的截断 |
 - **每份 `.log` 开头两行归因头**（P6.8b）：三个 p68 脚本的日志先写
   `# <脚本> <档> <时间> app=… fixture=…` 与 `# env: <本档全部注入变量>`，再接应用 stderr。
   原因是**钩子的成功路径大多不说话**（`MM_UNINSTALL_SELECT` 只在落空时写一行、

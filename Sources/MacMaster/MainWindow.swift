@@ -482,7 +482,9 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(title).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 Text(value).font(.callout).monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
-                Text(note).font(.caption2).monospacedDigit().foregroundStyle(MMColor.tertiaryLabel).lineLimit(1)
+                // note 也要能缩：内存那行是「交换 688.6 MB / 2.1 GB」，默认窗口宽度下
+                // 不缩放就会被截成「2.1…」，看着像数据读坏了。缩放系数与上一行 value 同档。
+                Text(note).font(.caption2).monospacedDigit().foregroundStyle(MMColor.tertiaryLabel).lineLimit(1).minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)
         }

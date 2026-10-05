@@ -391,7 +391,7 @@ struct DevArtifactView: View {
 
             if !model.failures.isEmpty {
                 MMFailurePanel(
-                    summary: "已回收 \(MMFormat.bytes(model.lastResult?.totalSize))",
+                    summary: model.lastResult.map { "已回收 \(MMFormat.bytes($0.totalSize))" },
                     model.failures
                 ) {
                     model.failures = []

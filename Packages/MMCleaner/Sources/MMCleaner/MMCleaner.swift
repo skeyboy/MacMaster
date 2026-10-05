@@ -367,7 +367,7 @@ public struct CleanerView: View {
 
             if !model.failures.isEmpty {
                 MMFailurePanel(
-                    summary: "已回收 \(MMFormat.bytes(model.lastResult?.totalSize))",
+                    summary: model.lastResult.map { "已回收 \(MMFormat.bytes($0.totalSize))" },
                     model.failures
                 ) {
                     model.failures = []
@@ -442,10 +442,17 @@ public struct CleanerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(MMColor.contentBackground)
         } else if model.categories.isEmpty {
+            // 一个类别都没勾选时 `CacheScanner` 直接返回空清单、`isComplete` 仍是 true，
+            // 说"没有可清理的内容"就是替用户下他没问过的结论：本轮压根没检查任何类别。
+            let scopeEmpty = model.scope(from: settings).isEmpty
             MMEmptyState(
-                systemImage: "sparkles",
-                title: "没有可清理的内容",
-                detail: "已检查 \(model.categories.count) 个类别。扫描中途取消时结果不完整，请重新扫描。",
+                systemImage: scopeEmpty ? "slider.horizontal.below.rectangle" : "sparkles",
+                title: scopeEmpty ? "没有勾选任何扫描类别"
+                      : model.isPartial ? "扫描中途取消，结果不完整"
+                      : "没有可清理的内容",
+                detail: scopeEmpty ? "设置 · 清理里的四个类别开关都关着，这一轮一项都没有检查。"
+                      : model.isPartial ? "第一类还没扫完就取消了，现在还不能说有没有可清理的东西。"
+                      : "已勾选的类别全部检查完，没有发现可清理的条目。",
                 action: AnyView(Button("重新扫描") { model.scan(settings: settings) })
             )
         } else {

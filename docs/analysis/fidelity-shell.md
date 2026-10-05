@@ -80,7 +80,26 @@
 | --- | --- | --- | --- | --- | --- |
 | 500×400 sheet + MMPageHeader「设置」+ xmark 关闭 | `SettingsView.swift:20-30,55` | ✅ | 一致（稿子按内容展开高度，已注明实机固定 400 内部滚动） | — | — |
 | 四 tab 分段（通用/监控/清理/关于） | `SettingsView.swift:32-41` `Picker(.segmented)` | ✅ | 一致 | — | — |
-| 09a 语言（简/英）、启动（开机启动/最小化菜单栏） | `SettingsView.swift:61-97` | ✅ | 一致；注册失败橙色脚注实机有（`loginItem.lastError`）、稿子注明"没画"→ 规格待补 | 低 | 待集成阶段落地（错误态规格） |
+| 09a 语言（简/英）、启动（开机启动/最小化菜单栏） | `SettingsView.swift:61-97` | ⚠️ | 视觉一致；注册失败橙色脚注实机有（`loginItem.lastError`）、稿子注明"没画"→ 规格待补。**语言是死开关**，见下方补记 | 低 | ~~待集成阶段落地（错误态规格）~~ 语言项 P7a 已处理 |
+
+> **补记（P7a，2026-10-05）：这一行的 ✅ 当初只核了"长得像"，没核"按下去有没有用"。**
+> `app.language` 只有持久化没有生效端：`Localization.localized(_:)`（`Packages/MMCore/Sources/MMCore/Localization.swift:202`）
+> 与便捷函数 `L(_:)`（`:208`）**在全仓界面代码里零调用点**（现读
+> `grep -rnE '(^|[^A-Za-z0-9_])L\(' --include='*.swift' Packages Sources`，除定义与两处注释外无命中），
+> 全站文案是一套写死的中文。也就是说这台机器上 `app.language=en` 存着、界面却一个字也不会变，
+> 而选择器还能改——**这是"控件在、状态存、效果无"三件套齐全的死开关**。
+> → 已把选择器 `.disabled(true)`（`SettingsView.swift:75`）并加脚注
+> 「界面文案尚未接入多语言，切换不会改变界面」（`:76`）；`AppSettings.swift:11` 的文档注释同步改成
+> "持久化是好的，**生效不是**"。真机取证 `docs/verification/p7-settings-lang/{png,log}`。
+> **这不是"改好了"，是把假话改成实话**：接不接多语言仍是产品决定，接法有两种
+> （把界面字符串逐个走 `L(_:)`，或干脆删掉 `Localization.swift` 与这个开关），本页不代选。
+> 设置页其余各行的键都有真实消费方（逐个对过代码），**语言是全站唯一一个**。
+> 两个容易误判成死开关的，把通路记在这里免得下轮再数一遍：
+> `launchAtLogin` 是**回填值**而不是指令——`LaunchBehavior.swift:30/46` 从 `SMAppService.mainApp`
+> 的注册状态反写这个键，真正干活的是同文件的 `register()/unregister()`（`:37/:39`）；
+> `monitorRefreshInterval`（界面上那个 1/2/5 选择器，`SettingsView.swift:118`）没有直接消费方，
+> 它经 `AppSettings.swift:203-204` 算成 `monitorRefreshIntervalSeconds`，
+> 由 `MenuBarManager.swift:103/128` 取用。
 | 09b 监控三开关 + 间隔(1/2/5) + 两通知 | `SettingsView.swift:99-129` | ✅ | 逐字对上；**行首无图标**（稿子已按实机去图标） | — | — |
 | 09b 阈值脚注「CPU ≥85% / 内存 ≥90% / 5 分钟冷却」 | `SettingsView.swift:122` | ✅ | 静态说明，一致 | — | — |
 | 09c 扫描范围 4 + 安全 2 + 废纸篓 1 + 删除历史 + 排除项 | `SettingsView.swift:131-218` | ✅ | 一致；"台账条目 3/20" 实机 N 动态、排除项默认空列表（稿子示例值） | 低 | 设计稿该改 S2（示例值标注） |

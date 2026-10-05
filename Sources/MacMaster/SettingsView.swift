@@ -69,6 +69,13 @@ struct SettingsView: View {
                     Text("English").tag(Localization.Language.english)
                 }
                 .pickerStyle(.segmented)
+                // 全站界面文案目前只有一套中文：`Localization.localized(_:)` 与 `L(_:)`
+                // 在界面上零调用点（现读 2026-10-05），所以这个开关拨动只改 UserDefaults，
+                // 画面一个字都不变。给它一句实话，比留一个看起来能用的开关好。
+                .disabled(true)
+                Text("界面文案尚未接入多语言，切换不会改变界面")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
             }
 
             Section("启动") {
@@ -250,7 +257,14 @@ struct SettingsView: View {
             MMCard(padding: MMGap.md) {
                 VStack(spacing: MMGap.xs) {
                     MMKeyRow("开发者", "MacMaster Team")
-                    MMKeyRow("许可", "MIT License")
+                    // 设计稿 09-settings.html:252 这一格写的是 "MIT License"，实现照抄了。
+                    // 但仓库里从来没有 LICENSE 文件（现读 2026-10-05：根目录 `ls LICENSE*` 无命中），
+                    // 也就是说界面上那句"本项目按 MIT 授权"在代码库里找不到任何凭据。
+                    // 选哪种许可是法律决定，不由实现代选；这里只把话说回当前事实。
+                    // 这一格的值列宽有限（写整句会被截成 "LICENSE…"），所以只放结论，
+                    // 解释留在 `README.md` 与 `docs/analysis/release-readiness.md`。
+                    // 定了许可之后：补 LICENSE 文件 + 改回这一行 + 同步设计稿那一格。
+                    MMKeyRow("许可", "尚未选择许可")
                     // 没有官方反馈渠道就不放按钮：一个点了没反应、或指向虚构地址的
                     // "反馈问题"，比少一个按钮糟得多。
                     MMKeyRow("反馈", "未配置官方渠道")

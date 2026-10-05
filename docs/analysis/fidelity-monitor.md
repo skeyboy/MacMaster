@@ -181,6 +181,13 @@
    真失败才点名 API。与磁盘 IO 卡（`.unavailable(reason:)`）的口径对齐了。
    仍留一半：`②host_statistics64 真失败` 与 `③vm_page_size 异常` 两种真失败在采样器里没区分，
    现在都归到同一句点名 API 的文案下——比原来准，但还没到"逐因逐句"。
+   **复核 2026-10-05（P7）：这"一半"不成立，本条可以整条划掉。**
+   现读 `MetricReaders.swift:140-166`：`MemoryReader.read()` 返回 nil 的路径**只有一条**
+   （`:148` `kr != KERN_SUCCESS`，就是 `host_statistics64` 本身失败）；`vm_kernel_page_size`
+   在 `:152` 只是参与换算，它异常会算错数而**不会**走到 nil，所以它不可能是那句文案的另一种成因。
+   `sysctlbyname` 失败另有 `swapOK=false` 单独承载（`:155/:162-164`），也不借这句话。
+   → `MMMonitor.swift:194` 那句「（host_statistics64 失败）」**是逐因的，不是概括的**；
+   要再"逐因逐句"就得先造出第二个 nil 成因，而目前没有。**不再占欠账。**
 3. **【中】I3 · 磁盘 IO「还没法差分」与「读不到」同形**（`SystemMetricSampler.swift:94` / `MMMonitor.swift:101-106`）
    首帧 `.ok` + nil 速率时两行「—」且无原因行。→ 建议：`.ok` 但 `diskRate == nil` 时补一行
    caption「需两次采样才能算出速率」，让三态（有数 / 待差分 / 不可用）在图元层可分。

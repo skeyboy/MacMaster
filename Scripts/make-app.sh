@@ -31,6 +31,13 @@ BUILD_ARGS=(-c release)
 [[ -n "$SCRATCH" ]] && BUILD_ARGS+=(--scratch-path "$SCRATCH")
 APP="$APP_DIR/$BIN_NAME.app"
 
+# 版本号的唯一真源在这里：设置页「关于」读的是 bundle 的 Info.plist（`SettingsView.swift` 的
+# `versionText`，现读 :298——按符号名找，别按行号找），
+# 而那份 plist 是本脚本写的。发版时 `VERSION=1.1.0 BUILD=7 ./Scripts/make-app.sh`，
+# 不要到下面的 plist 里改字面量——那会让" About 显示的版本"和"打包脚本产出的版本"分家。
+VERSION=${VERSION:-1.0.0}
+BUILD=${BUILD:-1}
+
 mkdir -p "$APP_DIR"
 swift build "${BUILD_ARGS[@]}"
 
@@ -40,7 +47,7 @@ BIN_SRC="${SCRATCH:-$ROOT/.build}/release/$BIN_NAME"
 cp "$BIN_SRC" "$APP/Contents/MacOS/$BIN_NAME"
 chmod +x "$APP/Contents/MacOS/$BIN_NAME"
 
-cat > "$APP/Contents/Info.plist" <<'PLIST'
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -58,9 +65,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>$VERSION</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>$BUILD</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
