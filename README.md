@@ -110,13 +110,18 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
   现在没有任何代码在里面。
 - `docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/` 在 `.gitignore` 里（各自带独立 `.git` 与许可）。
   多份分析文档按这些路径引了第三方源码位置，**clone 之后那些引用是断链**，需要自行 clone 对应项目。
-- 概览页的"可清理"走 `CacheScanner().scanAll()`，**不看清理页那四个勾选**，
-  所以可能比清理页报得多。不构成安全问题（概览不删东西），但口径不一致，记在
-  `docs/analysis/release-readiness.md` §8。
+- ~~概览页的"可清理"走 `scanAll()`，不看清理页那四个勾选~~ —— **P8（2026-10-05）已修**：
+  两个页面现在共用 `CacheScanScope.selected(...)` 拼勾选、也共用同一份排除清单，
+  四个类别全关时概览显示「未勾选类别」而不是一个来路不明的数。
+  取证与逐档读数记在 `docs/analysis/release-readiness.md` §7.1。
 
 ## 发布状态
 
 **功能就绪、分发未就绪**。产物是 ad-hoc 签名（`flags=0x2(adhoc)`、`TeamIdentifier=not set`），
 Gatekeeper 判 `rejected`；没有图标；许可未定。自己编译自用不受影响，发给别人则要先补这三项。
-逐模块判定、hardened runtime / 沙盒会打断哪六条现有能力、以及 v1.0 建议范围与
+逐模块判定、hardened runtime / 沙盒会打断哪七条现有能力、以及 v1.0 建议范围与
 发版前 checklist：**`docs/analysis/release-readiness.md`**。
+
+checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
+"版本号从打包脚本走到关于页"）已在 2026-10-05 实跑，证据 `docs/verification/v1.0.0/`；
+第 4 步（许可、图标、权利人、签名方式）是人的决定，实现不代拍。

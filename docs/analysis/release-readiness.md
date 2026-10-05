@@ -15,6 +15,8 @@
 - **一句话判定**：作为 **"自己编译自己用 / 附带源码的私有分发"**——今天就能发。
   作为 **"给陌生人的 dmg"**——差 §2 的三项，且 §3 那条 hardened runtime 的兼容验证必须先跑一遍。
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
+- **§10 那份 checklist 的 1–3 步已经真跑过一遍**（P8 之后，2026-10-05）：571/0/1 → `VERSION=1.0.0 BUILD=1`
+  的候选产物 → 三张照片把"版本号走到界面"这条链闭合（§7.2）。**判定没变**：卡在第 4 步那四项人工决定上。
 
 ## 1. 本轮实测数字
 
@@ -106,7 +108,8 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 
 **结论**：走第 2 条之前，必须先做一次 **hardened runtime 实测轮**（用现有 `Scripts/p7-release-check.sh`
 的形态，把上面每一行都拍一张"打了 runtime 标志之后还剩什么"的照片）。现在一条都还没验过。
-走第 3 条（沙盒）等于砍掉 §3 里的六行——**不建议纳入 v1.0**。
+走第 3 条（沙盒）等于砍掉上面那张表的**全部七行**（launchctl / log show / tmutil / SMC /
+IOKit 磁盘统计 / kqueue 监听 / TCC.db，一行一条）——**不建议纳入 v1.0**。
 
 ## 4. 隐私面（发版说明里必须写的东西）
 
@@ -186,6 +189,30 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 两处都是**先有单测再有照片**：MMDisk 新增 4 条（含"未枚举那一档不许含 0"）、MMFileScanner 新增 1 条
 （四个开关逐个映射到 OptionSet 位）。全仓现测 **571/0/1**（见 §1）。
 
+### 7.2 §10 checklist 的 1–3 步已实跑（2026-10-05，v1.0.0 候选产物）
+
+跑法就是 §10 那三行命令，产物落在 `/tmp/mm-app-v1`，证据在 `docs/verification/v1.0.0/`
+（3 张照片 + 3 份带归因头的日志）。逐条结论：
+
+| 判据 | 量到的 | 出处 |
+| --- | --- | --- |
+| 版本链闭合 | plist `CFBundleShortVersionString=1.0.0 CFBundleVersion=1`，**关于页同一屏显示「版本 1.0.0 (1)」** | `v1.0.0/02-about.log` 第 4 行 + `02-about.png` |
+| 签名档次（未变） | `flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`、`spctl: … rejected` | 三份日志的 `# codesign:` / `# spctl:` 两行 |
+| 最小窗口不截 | 1000×600 下「交换 688.6 MB / 2.15 GB」整行可读（P7a 那个 `minimumScaleFactor` 在候选产物上仍成立） | `v1.0.0/03-dashboard-min.png` |
+| P7a 三句实话在屏 | 「尚未选择许可」/「未配置官方渠道」+「反馈问题」灰着 /「检查更新」可用但弹窗自陈只读本机 plist | `02-about.png`（前两项同屏可见） |
+| 第 4 步 | **未做，也不该由实现做**：许可、图标、`NSHumanReadableCopyright` 年份与权利人、签名方式 | §2 |
+
+**一条防误读的注**：这张概览上侧栏「系统清理 4.28 GB」与概览「可清理 4.28 GB」同值，
+但**它不构成 §7.1 那条改动的证据**——两处读的是同一份测量（`MainWindow.swift:11` 那句注释就是
+"概览的读数放在这一层：侧边栏…和概览页要用同一个测量结果"），相等是结构决定的。
+§7.1 的判据只在 `p8-dashboard-scope/` 那三档"改勾选 → 同一格数字跟着变"的照片里。
+
+**一条如实记录的观察**：六份日志（P7 的三份 + 本轮三份）都有一行
+`sandbox_extension_issue_file_to_process failed for …: 1 (Operation not permitted)`，
+来自 ad-hoc 构建从 `/tmp` 起进程。含义未查，两轮都有、非本轮引入，界面与功能不受影响；
+换成 Developer ID 签名 + 正常安装位置之后应复看一次再决定要不要当问题。
+
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 
 - ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
@@ -219,16 +246,17 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 自动更新（没有更新服务器）；helper/widget 两个空壳（§8）。
 
 **版本号建议**：`CFBundleShortVersionString=1.0.0`、`CFBundleVersion=1`。
-版本号只有一个来源——`Scripts/make-app.sh:37-38` 的 `VERSION`/`BUILD` 环境变量，
-默认 `1.0.0`/`1`，所以**发版命令就是**：
+版本号只有一个来源——`Scripts/make-app.sh` 里 `VERSION=${VERSION:-1.0.0}` 与 `BUILD=${BUILD:-1}`
+那两行（现 `:38-39`），所以**发版命令就是**：
 
 ```
 VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh
 ```
 
-本轮的 `1.0.0-rc1 (1)` 是**取证用的构建**，界面显示的字符串与 plist 一致（照片
-`p7-release-build/02-about.png` 里能看到「版本 1.0.0-rc1 (1)」），这条链已经自己验过一遍了。
-不要 `rc` 进正式版：`make-app.sh` 不解析版本号，`rc` 会原样进 plist，`about` 页会跟着显示。
+P7 那轮的 `1.0.0-rc1 (1)` 是**取证用的构建**，界面显示的字符串与 plist 一致；
+P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2 第一行：plist `1.0.0`/`1` ↔ 关于页
+「版本 1.0.0 (1)」，同一张照片里）。不要 `rc` 进正式版：`make-app.sh` 不解析版本号，
+`rc` 会原样进 plist，`about` 页会跟着显示。
 
 ## 10. 发版前 checklist（可直接执行）
 
@@ -247,3 +275,9 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 ```
 
 第 4 步全过之前，本文的判定停留在"功能就绪、分发未就绪"。
+
+**2026-10-05 实跑状态**：第 1 步 571/0/1 ✅；第 2 步产物 `/tmp/mm-app-v1/MacMaster.app`（release 配置，
+`VERSION=1.0.0 BUILD=1`，隔离 scratch `/tmp/mm-scratch-v1`）✅；第 3 步
+`docs/verification/v1.0.0/`（三张照片 + 三份日志，判据逐条见 §7.2）✅；第 4 步 ⬜ 待人拍板。
+第 2、3 步的产物与临时目录是**一次性的**，跑完已清掉，只有 `docs/verification/v1.0.0/` 入库。
+
