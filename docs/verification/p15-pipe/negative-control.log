@@ -1,0 +1,48 @@
+# p15 negative control（证伪：新合同测试确实拦得住'先等再读'那个形状）
+# date: 2026-10-05 17:22（本机本地时间）
+# command: ./Scripts/run-all-tests.sh 之外单独跑的 --filter CommandRunnerPipeTests
+#   swift test --package-path Packages/MMCore --scratch-path /tmp/mm-scratch-p15-core \
+#     --filter CommandRunnerPipeTests 2>&1 | tee /tmp/p15-negative-control-raw.txt
+# shape under test: CommandRunner.run 被临时改回'先 waitUntilExit() 再一次性读两根管道'
+#   ——即 P11 §5 记的那个错误形状；改回后没有动任何测试代码。
+# expected: 两条 >64 KB 的用例失败，且失败原因是 timedOut(10.0) 而不是'读少了'。
+#   这一条很要紧：如果它失败成'字节数不对'，说明死锁没真发作，只是数字飘了。
+# observed: 2 failures，10.095 s / 10.017 s，均为 caught error: "timedOut(10.0)"
+#   → 死锁确实存在，是超时保护把它从'永久卡住'变成了一次失败；测试能看见。
+# restore: 随后把 CommandRunner.swift 还原成读/等分占两条队列的写法，
+#   现读 grep：全仓库（含测试）只有 CommandRunner.swift:51 一处 Process()，
+#   waitUntilExit() 只出现在 readerQueue.async 那一条队列里。
+#   还原后 ./Scripts/run-all-tests.sh 于 17:27 跑完：9 个包 590 tests / 0 failures / 1 skipped
+#   （MMCore 48、MMFileScanner 117、MMGuardian 96 —— 这三处正是本轮被改到的包）。
+# note: 下面的行号 74 是当时那份'先等再读'临时文件的行号，不是提交版的行号。
+
+Building for debugging...
+[1 / 5]
+[2 / 6] MMCore
+[3 / 7] MMCore
+[7 / 11] MMCore
+[10 / 11] MMCoreTests-product
+Build complete! (1.03秒)
+Test Suite 'Selected tests' started at 2026-10-05 17:22:04.757.
+Test Suite 'MMCoreTests.xctest' started at 2026-10-05 17:22:04.758.
+Test Suite 'CommandRunnerPipeTests' started at 2026-10-05 17:22:04.758.
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testMissingExecutableIsNotSilentlyEmpty]' started.
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testMissingExecutableIsNotSilentlyEmpty]' passed (0.000 seconds).
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testNonZeroExitKeepsStderrText]' started.
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testNonZeroExitKeepsStderrText]' passed (0.102 seconds).
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testStderrBiggerThanPipeBufferIsReadInFull]' started.
+/Users/lee/Desktop/MacMaster/Packages/MMCore/Sources/MMCore/CommandRunner.swift:74: error: -[MMCoreTests.CommandRunnerPipeTests testStderrBiggerThanPipeBufferIsReadInFull] : failed: caught error: "timedOut(10.0)"
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testStderrBiggerThanPipeBufferIsReadInFull]' failed (10.095 seconds).
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testStdoutBiggerThanPipeBufferIsReadInFull]' started.
+/Users/lee/Desktop/MacMaster/Packages/MMCore/Sources/MMCore/CommandRunner.swift:74: error: -[MMCoreTests.CommandRunnerPipeTests testStdoutBiggerThanPipeBufferIsReadInFull] : failed: caught error: "timedOut(10.0)"
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testStdoutBiggerThanPipeBufferIsReadInFull]' failed (10.017 seconds).
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testTimeoutTerminatesAndReports]' started.
+Test Case '-[MMCoreTests.CommandRunnerPipeTests testTimeoutTerminatesAndReports]' passed (0.204 seconds).
+Test Suite 'CommandRunnerPipeTests' failed at 2026-10-05 17:22:25.177.
+	 Executed 5 tests, with 2 failures (2 unexpected) in 20.419 (20.420) seconds
+Test Suite 'MMCoreTests.xctest' failed at 2026-10-05 17:22:25.178.
+	 Executed 5 tests, with 2 failures (2 unexpected) in 20.419 (20.420) seconds
+Test Suite 'Selected tests' failed at 2026-10-05 17:22:25.178.
+	 Executed 5 tests, with 2 failures (2 unexpected) in 20.419 (20.420) seconds
+Note: Some test targets reported failures:
+  - MMCoreTests (XCTest)

@@ -1,4 +1,5 @@
 import Foundation
+import MMCore
 
 /// 只读空间报告（路线图 P4 第 4.6 项）。
 ///
@@ -267,45 +268,29 @@ public enum LocalSnapshotReader {
     }
 
     /// 默认真的命令执行器（`read` 的默认参数，因此必须是 public）。
-    /// Process 的输出要在退出后一次性读完，否则大输出会把子进程堵在管道上。
+    ///
+    /// 起进程与读管道都在 `CommandRunner` 里（纪律：**读和等分占两条队列**，
+    /// 超过 64 KB 的输出就不会把子进程堵在 `write()` 上）。
+    /// 从前这一处写的正好是反的口径——"输出要在退出后一次性读完"——
+    /// 那正是 P11 实测到的死锁形状，只因 tmutil 在本机只输出 22 字节才没发作
+    /// （见 `docs/analysis/hook-ledger.md` §5）。这里只把它的失败换成 `CommandError`，
+    /// 让上面"tmutil 在 N 秒内没有返回"那套措辞保持不变。
     public static func run(executable: String, arguments: [String], timeout: TimeInterval) throws -> String {
-        guard FileManager.default.isExecutableFile(atPath: executable) else {
-            throw CommandError.launchFailed("找不到可执行文件 \(executable)")
-        }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
-
+        let output: CommandRunner.Output
         do {
-            try process.run()
-        } catch {
-            throw CommandError.launchFailed(error.localizedDescription)
-        }
-
-        let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning {
-            if Date() >= deadline {
-                process.terminate()
-                throw CommandError.timedOut(timeout)
+            output = try CommandRunner.run(executable: executable, arguments: arguments, timeout: timeout)
+        } catch let failure as CommandRunner.Failure {
+            switch failure {
+            case .notExecutable(let path): throw CommandError.launchFailed("找不到可执行文件 \(path)")
+            case .launchFailed(let message): throw CommandError.launchFailed(message)
+            case .timedOut(let seconds): throw CommandError.timedOut(seconds)
             }
-            usleep(20_000)
         }
-        process.waitUntilExit()
-
-        let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-        let text = String(data: outData, encoding: .utf8) ?? ""
-        guard process.terminationStatus == 0 else {
-            let message = String(data: errData, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            throw CommandError.exited(process.terminationStatus,
-                                      message.isEmpty ? "无错误输出" : message)
+        guard output.status == 0 else {
+            let message = output.stderrTrimmed
+            throw CommandError.exited(output.status, message.isEmpty ? "无错误输出" : message)
         }
-        return text
+        return output.stdout
     }
 }
 

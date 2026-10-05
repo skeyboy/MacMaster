@@ -40,10 +40,11 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
 ```
 
-现测（2026-10-05，P14 之后重跑）：**583 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
-删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583。
-**逐包求和 = 583**，这一条自 P11c 起每轮都当自证用）。不要手敲 `swift test | tail -4`——
-SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示成"跑了 0 个"
+现测（2026-10-05，P15 之后重跑）：**590 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
+P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590。
+**逐包求和 = 590**，这一条自 P11c 起每轮都当自证用）。不要手敲 `swift test | tail -4`——
+SwiftPM 的结论行有两种形态，那样会把 MMCore 的 48 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 
 **壳层 `Sources/MacMaster` 没有测试目标**（根 `Package.swift` 只有一个 `.executableTarget`），
@@ -63,7 +64,7 @@ SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示
 | 优化 | `MMOptimizer` | 重复文件（SHA-256）、浏览器缓存、开发工具占用、系统状态 |
 | 设置 | `MMCore` + 壳层 | 18 项持久化设置 + 关于页 |
 
-包结构：`Packages/MMCore`（设置、删除闸门、台账、导航）、`MMUI`（设计令牌与共享组件）、
+包结构：`Packages/MMCore`（设置、删除闸门、台账、导航、**全站唯一的系统命令入口 `CommandRunner`**）、`MMUI`（设计令牌与共享组件）、
 `MMFileScanner`（遍历与各类扫描器）是**三个共享层**，其余六个是功能模块。
 **功能模块之间互不依赖**——现读全仓 `^import MM` 只有 `MMCore`/`MMUI`/`MMFileScanner` 三种命中，
 六个功能模块一个也没 import 过另一个功能模块。跨页跳转因此走 `NotificationCenter`
@@ -165,12 +166,13 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）**已实跑四遍，都在 2026-10-05**：P9 那遍 571/0/1（证据
+"版本号从打包脚本走到关于页"）**已实跑五遍，都在 2026-10-05**：P9 那遍 571/0/1（证据
 `docs/verification/v1.0.0/`），P12 那遍在带 P11 改动的二进制上重跑 581/0/1（证据
 `docs/verification/p12-v1/`），**P13 那遍在带 P11c 改动的二进制上重跑 579/0/1**（证据
 `docs/verification/p13-v1/`，判据逐条见 §7.4；这一遍还多拍一张——改名之后的活动卡，
 拍在**发版候选产物**上而不是调试构建上），**P14 那遍在带页头合同的二进制上重跑 583/0/1**（证据
-`docs/verification/p14-v1/`，见 §7.5）。第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
+`docs/verification/p14-v1/`，见 §7.5），**P15 那遍在带 `CommandRunner` 的二进制上重跑 590/0/1**（证据
+`docs/verification/p15-v1/` + `docs/verification/p15-pipe/`，见 §7.6）。第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
 
 **P14（2026-10-05）改的是守护页页头那一句副标题**：它从前只列三件事，而那一屏有四张卡
 （P11c 给第四张卡改名之后这个缺口才看得见）。现在副标题由一份四段清单生成，段数有单测钉住，
@@ -183,3 +185,13 @@ P12 顺手还掉了 §7.2 那笔挂着账：取证日志里那行 `sandbox_exten
 **是启动路径带来的，不是签名档次**（同一份 bundle 拷到用户目录起进程，两档签名同为 `adhoc`，
 `/tmp` 1 次、用户目录 0 次，界面照常出真实读数）。复跑 `./Scripts/p12-sandbox-warning-probe.sh`。
 含义：发版说明里不用写这一行。
+
+**P15（2026-10-05）收的是 P11 留的那笔"同类形状还在别处"**：全站起系统命令的地方从前有三处，
+每一处都自己写一遍"起进程 → 等退出 → 读管道"，而 **`Pipe` 的内核缓冲只有 64 KB**——先等再读的写法
+对不对，取决于这台机器上那条命令当时吐多少字节（现测 `launchctl list` 18.5–19.5 KB、`tmutil` 21 字节，
+所以它在开发机上**可以永远不出现**）。现在三处并成 `Packages/MMCore/Sources/MMCore/CommandRunner.swift`
+一处（全仓 `Process()` 现读只剩这一行），读与等分占两条队列，配 5 条喂 >64 KB 输出的合同测试，
+**并且做过事前否证**：把形状改回"先等再读"，那两条用例报的是 `timedOut(10.0)` 而不是"数字不对"
+（`docs/verification/p15-pipe/negative-control.log`）。两处按量到的余量做了两件不同的事：
+`launchctl list` 读侧加 10 秒时限（超时只少一句结论），停用登录项的写侧**不加**（"没等到回话"不能被写成"没改成"）。
+复跑 `./Scripts/p15-pipe-capture.sh <候选产物> docs/verification/p15-pipe`。发版判定没变。

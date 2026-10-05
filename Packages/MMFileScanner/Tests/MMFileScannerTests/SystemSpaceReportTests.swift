@@ -146,6 +146,20 @@ final class SystemSpaceReportTests: XCTestCase {
         XCTAssertTrue(listing.isAvailable, "真机 tmutil 输出必须能解析：\(listing.reason ?? "—")")
     }
 
+    /// 默认执行器换成 `CommandRunner` 之后要钉的一条：tmutil 在本机只输出 22 字节，
+    /// **"没发作"从来不等于"写对了"**——先等退出再读管道的那一版，遇到超过 64 KB 的
+    /// 输出会把自己卡到超时，再把整批丢掉报成"不可用"（P11 的实测形状）。
+    /// 这里喂一条必定 512 KB 的命令，走真的执行器，要求整批拿回来。
+    func testDefaultRunnerReadsOutputBiggerThanPipeBuffer() throws {
+        let text = try LocalSnapshotReader.run(
+            executable: "/bin/sh",
+            arguments: ["-c", "yes A | head -c 524288"],
+            timeout: 10
+        )
+        XCTAssertEqual(text.count, 524_288,
+                       "默认执行器只拿回 \(text.count) 字节（应为 524288）——管道被堵住时的典型读数")
+    }
+
     // MARK: - APFS 可清除空间
 
     func testPurgeableIsTheDifferenceBetweenTheTwoCapacityReadings() {

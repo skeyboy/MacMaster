@@ -356,57 +356,48 @@ enum POSIXFileIO {
 // MARK: - launchctl
 
 public enum LaunchctlRunner {
+    private static let launchctlPath = "/bin/launchctl"
+
+    /// `launchctl list` 的时限。现测定时（本机 2026-10-05：毫秒级返回，五轮 3.0–5.6 ms；
+    /// 同一天多处现读 18,541–19,540 字节）；10 s 相对那几毫秒是一千八到三千倍的余量，它存在的意义
+    /// 不是"跑得快不快"，是把这一条从**永久卡住**变成界面上那句
+    /// 「这一轮没能和 launchd 对表（原因），所以下面不标注加载状态」——改之前这里没有任何时限。
+    private static let listTimeout: TimeInterval = 10
+
     /// 返回 nil = 成功；返回字符串 = 失败原文（stderr 或 exit 码）。不再 try? 吞。
+    ///
+    /// 不设时限：这是写侧，"没等到回话"不能说成"没改成"，宁可等。
     public static func disable(command: String, path: String) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = [command, "-w", path]
-        let errPipe = Pipe()
-        process.standardError = errPipe
-        process.standardOutput = Pipe()
+        let output: CommandRunner.Output
         do {
-            try process.run()
+            output = try CommandRunner.run(executable: launchctlPath, arguments: [command, "-w", path])
         } catch {
             return "无法启动 launchctl：\((error as NSError).localizedDescription)"
         }
-        process.waitUntilExit()
-        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-        let errText = String(data: errData, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard process.terminationStatus == 0 else {
+        let errText = output.stderrTrimmed
+        guard output.status == 0 else {
             return errText.isEmpty
-                ? "exit \(process.terminationStatus)"
-                : "exit \(process.terminationStatus)：\(errText)"
+                ? "exit \(output.status)"
+                : "exit \(output.status)：\(errText)"
         }
         return errText.isEmpty ? nil : "launchctl 警告：\(errText)"
     }
 
     /// 只读快照：跑 `launchctl list` 并把输出交给解析层。
     /// 这是纯查询——不 load/unload/enable/disable 任何东西。
-    /// 任何一步失败都换成 `.unavailable(原因)`，让上层显式说"这一轮没核对成"。
+    /// 任何一步失败都换成 `.unavailable(原因)`，让上层显式说"这一轮没能和 launchd 对表"。
     public static func listSnapshot() -> LaunchdSnapshot {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
-        process.arguments = ["list"]
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = errPipe
+        let output: CommandRunner.Output
         do {
-            try process.run()
+            output = try CommandRunner.run(executable: launchctlPath, arguments: ["list"], timeout: listTimeout)
         } catch {
             return .unavailable(reason: "无法启动 launchctl：\((error as NSError).localizedDescription)")
         }
-        process.waitUntilExit()
-        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-        guard process.terminationStatus == 0 else {
-            let errText = String(data: errData, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return .unavailable(reason: "launchctl list exit \(process.terminationStatus)"
+        guard output.status == 0 else {
+            let errText = output.stderrTrimmed
+            return .unavailable(reason: "launchctl list exit \(output.status)"
                 + (errText.isEmpty ? "" : "：\(errText)"))
         }
-        let text = String(data: outData, encoding: .utf8) ?? ""
-        return LaunchctlListParser.parse(text)
+        return LaunchctlListParser.parse(output.stdout)
     }
 }

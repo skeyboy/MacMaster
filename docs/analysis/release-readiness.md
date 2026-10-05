@@ -8,7 +8,7 @@
 
 ## 0. 结论先行
 
-- **功能面：可以发。** 九个包全绿：`583` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
+- **功能面：可以发。** 九个包全绿：`590` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
 - **分发面：现在这份产物还不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
   没有许可证书（§2）。图标那一项 **P10 已补**（§2.2：`Resources/AppIcon.icns` + `CFBundleIconFile`）。
@@ -16,37 +16,43 @@
 - **一句话判定**：作为 **"自己编译自己用 / 附带源码的私有分发"**——今天就能发。
   作为 **"给陌生人的 dmg"**——差 §2 的三项。§3 那条 hardened runtime 的兼容验证 **P11 已跑完**：
   本机实测七行能力**零行被打断**，所以走 §2.1 第 2 条**不需要砍功能**；
-  剩下的空白是 `launchctl` 的**写侧**没测（会真改用户 launchd 状态），已如实记在 §3。
+  剩下的空白是 `launchctl` 的**写侧**没测（会真改用户 launchd 状态），已如实记在 §3；
+  **读侧**自 P15 起有一条真机测试（`LaunchctlRunnerTests`，纯查询不动 launchd）。
   （**P11c 注**：那七行里的"启 `/usr/bin/log show` 读统一日志"一行，**下一轮就从界面上撤下了**，
   所以当前二进制只剩六行需要那份兼容结论——测量本身没白做，它正是撤下的依据，见 §3 末尾与 §6.7。）
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
-- **§10 那份 checklist 的 1–3 步已经真跑过四遍**（P8 之后一遍 571/0/1；**P12 在带 P11 改动的二进制上
-  581/0/1**；**P13 在带 P11c 改动的二进制上 579/0/1**；**P14 在带页头合同改动的二进制上 583/0/1**，
-  都是 2026-10-05）：
-  `VERSION=1.0.0 BUILD=1` 的候选产物，照片把"版本号走到界面"这条链闭合了四次
-  （§7.2、§7.3、§7.4、§7.5）。**判定没变**：卡在第 4 步那四项人工决定上。
+- **§10 那份 checklist 的 1–3 步已经真跑过五遍**（P8 之后一遍 571/0/1；**P12 在带 P11 改动的二进制上
+  581/0/1**；**P13 在带 P11c 改动的二进制上 579/0/1**；**P14 在带页头合同改动的二进制上 583/0/1**；
+  **P15 在带 `CommandRunner` 的二进制上 590/0/1**，都是 2026-10-05）：
+  `VERSION=1.0.0 BUILD=1` 的候选产物，照片把"版本号走到界面"这条链闭合了五次
+  （§7.2、§7.3、§7.4、§7.5、§7.6）。**判定没变**：卡在第 4 步那三项人工决定上
+  （许可 / `NSHumanReadableCopyright` / 签名方式——这里从前写"四项"，与 §7.5、§11 的"三项"对不上，
+  现读 §10 第 4 步只有三条，已改齐）。
   P12 顺带把 §7.2 挂着的那句"含义未查"量成了事实：**那行 sandbox 警告是启动路径带来的，不是签名**（§7.3）。
   P11c 动过活动卡，**P13 就是那一遍补的账**：除了三张基础照片，还在候选产物上重拍了改名之后的
   那张卡（§7.4 表格最后一行）。P14 动的是页头副标题，所以第四遍之外另拍了一组三档宽度的排版照片（§7.5）。
-  **期望值以 §1 为准**，别拿 581 或 579 当基准。
+  P15 动的是取数那条路，所以第五遍之外补的是**"屏幕上那句话还是不是这台机器上的真话"**两档照片，
+  加一份把形状改回错误写法去做的事前否证（§7.6）。
+  **期望值以 §1 为准**，别拿 571 / 581 / 579 / 583 当基准。
 
 ## 1. 本轮实测数字
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **583** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了。**P14 再重跑：579 → 583**（+4，`GuardianHeaderContractTests`：页头副标题的段数合同，见 §7.5） |
+| 测试总数 | **590** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了。**P14 再重跑：579 → 583**（+4，`GuardianHeaderContractTests`：页头副标题的段数合同，见 §7.5）。**P15：583 → 590**（+7：`CommandRunnerPipeTests` 5 条 >64 KB 管道的读法判据、`LaunchctlRunnerTests` 1 条真机只读、`SystemSpaceReportTests` 1 条同族；见 §7.6） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
-| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（P12 现读 `:167`；此前写 `:173`，**漂了 6 行且没人说得清是哪一轮漂的**——这一格自 P7 起没被重读过），跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
-| 生产代码量 | **26,358 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（**P14 重跑**；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**，P14 +18 是 `GuardianPageCopy` 那一份清单与两条注释） |
-| 测试代码量 | **9,026 行** | 同一条命令换成 `-path '*/Tests/*'`（P14 重跑；P7 时 8,790，P8 时 8,846，P11 时 8,957，P11c 时 8,984） |
-| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11、P11c、P14 三轮一个新增钩子都没加**（P11c 只改了既有 `MM_GUARDIAN_ACTIVITY_FIXTURE` 的 `rows` 档用词；P14 的新脚本 `p14-header-capture.sh` 只组合已有钩子，且判据是"零夹具"） |
-| 子进程启动点 | **3 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 3 行（P14 现读复核仍是 3；从前是 4 处，`ActivityScanner.scanUnifiedLog` 那一处随统一日志族删除）。见 §3 |
+| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（**P15 现读复核**：函数声明在 `:167`，XCTest 日志回的是里面那句 `try XCTSkipIf` 的 `:173`——**两个数都对，指的是两件事**，从前在这两行之间来回改过一次）。跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
+| 生产代码量 | **26,453 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（**P15 重跑**；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**，P14 +18 是 `GuardianPageCopy` 那一份清单与两条注释，P15 +95 = `CommandRunner.swift` 120 行 − 两处调用点各自删掉的旧读法 25 行） |
+| 测试代码量 | **9,160 行** | 同一条命令换成 `-path '*/Tests/*'`（P15 重跑；P7 时 8,790，P8 时 8,846，P11 时 8,957，P11c 时 8,984，P14 时 9,026；P15 +134 = `CommandRunnerPipeTests` 87 + `LaunchctlRunnerTests` 33 + `SystemSpaceReportTests` 那 1 条 14） |
+| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11、P11c、P14、P15 四轮一个新增钩子都没加**（P11c 只改了既有 `MM_GUARDIAN_ACTIVITY_FIXTURE` 的 `rows` 档用词；P14 的 `p14-header-capture.sh`、P15 的 `p15-pipe-capture.sh` 都只组合已有钩子，且判据是"零夹具"） |
+| 子进程启动点 | **1 处** | `grep -rn "Process()" Sources Packages`（非测试）现读只命中 `Packages/MMCore/Sources/MMCore/CommandRunner.swift:51` 一行；**含测试目录也是 1**（本轮现读复核过）。这一格从前写 3（P11c 前是 4）：`scanUnifiedLog` 那一处随统一日志族删除（4→3），P15 把剩下的三处——`SystemSpaceReport` 的 tmutil、`LoginItemStore` 的 launchctl **读**（列表）与**写**（停用）——并进那一个文件（3→1）。**形状只有一个 owning 文件，判据在 `CommandRunnerPipeTests`**，见 §7.6 |
 | 网络代码 | **0** | `grep` `URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里**无命中** |
 
-逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 **P14** 重跑）：
-MMCore 43 · MMUI 17 · MMFileScanner 116 · MMCleaner 18 · MMUninstaller 121 ·
-MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian **95** · MMOptimizer 54。
-**逐包求和 = 583**，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
+逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 **P15** 重跑，日志留在 `/tmp/macmaster-tests/`）：
+MMCore **48** · MMUI 17 · MMFileScanner **117** · MMCleaner 18 · MMUninstaller 121 ·
+MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian **96** · MMOptimizer 54。
+**逐包求和 = 590**，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
+P15 只动了三包：MMCore +5（`CommandRunnerPipeTests`）、MMFileScanner +1、MMGuardian +1。
 
 > **P12（2026-10-05，发版核验轮）把上表八行全部现读复核了一遍**：581/0/1（逐包分布同上，MMGuardian 93）、
 > 26,428 / 8,957 行、52 个钩子名、4 处 `Process()`、网络代码零命中——**六个数一个都没漂**；
@@ -65,7 +71,7 @@ MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian **95** · MMOptimizer 5
 > 与 `run-all-tests.sh` 的总数对上，说明没有第二个包的数被顺手动过。
 
 > **`run-all-tests.sh` 存在的理由**：`swift test | tail -4` 只剩 swift-testing 的
-> `Test run with 0 tests`，会把 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；
+> `Test run with 0 tests`，会把 MMCore 的 48 个测试（P15 现读）在屏幕上显示成"跑了 0 个"；
 > 而按 `with N failures` 的字面顺序解析会把有跳过项的 MMDisk 解析成 **0 个测试**
 > （那一行实为 `with 1 test skipped and 0 failures`）。这两个坑都写进了脚本注释。
 
@@ -177,10 +183,10 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 
 | 能力 | 代码位置（按符号名找） | 预测 | **实测（base ↔ hr）** |
 | --- | --- | --- | --- |
-| 启 `launchctl` 停用登录项（写侧） | `LoginItemStore.swift` `runLaunchctl`（`/bin/launchctl <cmd> -w <path>`） | runtime 需实测；沙盒会拒 | **未测**。点开关会真改用户 launchd 状态，本轮不制造这种改动——这是 §3 剩下的唯一空白 |
-| `launchctl list` 核对（读侧） | `LoginItemStore.swift` `launchctlSnapshot` | 同上 | **无差**：两档都是 17 项、同两行挂「没在当前会话里加载」（`02-login-{base,hr}.png` 逐字节相同） |
+| 启 `launchctl` 停用登录项（写侧） | `LoginItemStore.swift` `LaunchctlRunner.disable`（`/bin/launchctl <cmd> -w <path>`；**P15 起走 `CommandRunner`，不设时限**）。⚠️ 这一格从前写的 `runLaunchctl` 在仓库里根本没有这个符号——**现读核对后改名** | runtime 需实测；沙盒会拒 | **未测**。点开关会真改用户 launchd 状态，本轮不制造这种改动——这是 §3 剩下的唯一空白 |
+| `launchctl list` 核对（读侧） | 同上 `LaunchctlRunner.listSnapshot`（**P15 起走 `CommandRunner`，10 s 时限**）。⚠️ 从前写的 `launchctlSnapshot` 同样是不存在的符号 | 同上 | **无差**：两档都是 17 项、同两行挂「没在当前会话里加载」（`02-login-{base,hr}.png` 逐字节相同）。P15 在同一屏换了一条独立读法复核：`p15-pipe/01-login` 的 expect 行算出 17 行 / 2 个未加载，与照片逐字对得上 |
 | 启 `/usr/bin/log show` 读统一日志 | `MMGuardian.swift` `ActivityScanner.scanUnifiedLog`（**P11c 已删**，这一行记的是 P11 那一刻的实测） | runtime 需实测；受限环境会挂起，故自带 8 秒超时 | **无差**：两档各 **5 条真实事件行**、正文完整、**最新在前**（`03-activity-{base,hr}.png`，15:29 打在带流式读取 + 取尾 5 条的重建二进制上：base 五行 15:29:23.x、hr 五行 15:29:37.x，各自就是扫描那一刻）。两档不同的只有"哪 5 条最新"（相隔 14 秒拍的）。**这一格还查出了我们自己的三个 bug，见下**。**P11c 更正这一行的用途**：它证明的是"runtime 不拦这条路"，而下一轮量完八档谓词之后**这一族从界面上撤下了**（`fidelity-guardian.md` §6.7）——所以当前二进制里已经没有这一行，兼容结论只剩六行需要它，撤下的决定本身正是用这一路的实测做的 |
-| 启 `/usr/bin/tmutil` 列本地快照 | `SystemSpaceReport.swift` `tmutilPath` | 只读子命令；沙盒受阻 | **无差**：两档都出「磁盘空间只读报告」，本地快照 `0 个` + "这台 Mac 目前没有本地快照"（`05-space-*.png`） |
+| 启 `/usr/bin/tmutil` 列本地快照 | `SystemSpaceReport.swift` `tmutilPath`（读取器 `LocalSnapshotReader.run`，**P15 起走 `CommandRunner`**） | 只读子命令；沙盒受阻 | **无差**：两档都出「磁盘空间只读报告」，本地快照 `0 个` + "这台 Mac 目前没有本地快照"（`05-space-*.png`）。P15 另拍一档：`p15-pipe/02-space`，expect 行 `tmutil-bytes=21 / snapshot-lines=0` 与画面那句「本地快照 0 个」对得上 |
 | IOKit 读 AppleSMC 温度/风扇 | `SMC.swift` `IOServiceMatching("AppleSMC")` | 沙盒基本读不到；runtime 需实测 | **无差**：两档都是 174 个可信温度点 + 风扇 1 实测 1001/1000 RPM（区间 1000–4900）（`04-monitor-*.png`） |
 | IOKit 读磁盘统计 | `MetricReaders.swift` `IOServiceMatching("IOBlockStorageDriver")` | 同上 | **无差**：两档都是真实速率（读数随时间变，故照片 md5 不同，但两档同为"有数"） |
 | kqueue 监听目录 | `TrashWatcher.watchTarget()`、`AppFolderWatcher.watchTargets()` | 沙盒需 security-scoped 书签，否则静默失效 | **无差**：两档都出回声卡——废纸篓侧「刚拖进废纸篓：示例应用」+「本体已在废纸篓」，应用目录侧「刚从应用目录消失：Highball」+「应用目录里有 1 个新条目 Notion.app」（`watch-trash-*`、`watch-apps-*`） |
@@ -223,7 +229,13 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
   ① 旧写法停在整 **65,536** 字节、8.01 秒到点被杀；② 并行读 **198,172** 字节、**0.82 秒**返回；
   ③ 五轮 0.83–0.90 秒**正常退出**（没有触发超时），攒下 198,748–199,036 字节、**154–156 条事件行**可用。
   修法：读管道与等退出各占一条后台队列，且超时后**照常解析已经读到的部分**。
-  同样的"先等再读"形状在 `SystemSpaceReport.swift` 的 tmutil 那一处**没有**发作（输出小），本轮没改它。
+  同样的"先等再读"形状当时还留在 `SystemSpaceReport` 的 tmutil 与 `LoginItemStore` 的 launchctl 读/写两处，
+  只因输出小没发作。**这一段 P15 已收口**：三处并成 `MMCore/CommandRunner.swift` 一处（现读全仓库 `Process()` 只有它），
+  量出的余量是 tmutil **21–22 字节**、`launchctl list` **18,541–19,540 字节**（同日四次现读：
+  18,541 / 18,825 / 18,959 / 19,540，取证那一刻是 18,959；≈ 64 KB 缓冲的三成，
+  按同一次采样的 34 字节一行推算**还差约 1,400 行才填满**），
+  并配五条喂 >64 KB 输出的合同测试。**否证（`p15-pipe/negative-control.log`）**：把形状改回"先等再读"，
+  那两条用例报的是 `timedOut(10.0)` 而不是"数字不对"——死锁真实存在，超时只是在替它遮丑。详 §7.6。
   ⚠️ **这一条的第一版数据是量错的**：复现原先拿一个全局起点计时，② 打印的「8.90s」其实是
   "从脚本开始到现在"，把 ① 那 8 秒死锁算进了自己的账，读起来像"这条命令要 8.9 秒、超了应用侧 8 秒预算"。
   据此写进四份文档与源码注释的"实测 1.5 秒到 8.9 秒都出现过"**全部作废**，上面是逐支独立计时的重测值；
@@ -331,15 +343,15 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 
 | 模块 | 判定 | 依据与仍开放项 |
 | --- | --- | --- |
-| MMCore（设置/删除/台账） | **可发布** | 43 测试全绿；闸门与台账见 §5。无开放项 |
-| MMFileScanner（扫描层） | **可发布** | 116 测试全绿，含快照解析两种表头形态与分类型（真机发现的 bug 已钉住）；P8 起 `CacheScanScope.selected(...)` 是清理页与概览页共用的那一条拼法（逐开关映射有单测）。开放项都在 UI 层不在这里 |
+| MMCore（设置/删除/台账） | **可发布** | 48 测试全绿（P15 +5：`CommandRunnerPipeTests`）；闸门与台账见 §5，全站唯一的子进程入口 `CommandRunner` 也在这里（§7.6）。无开放项 |
+| MMFileScanner（扫描层） | **可发布** | 117 测试全绿，含快照解析两种表头形态与分类型（真机发现的 bug 已钉住）；P8 起 `CacheScanScope.selected(...)` 是清理页与概览页共用的那一条拼法（逐开关映射有单测）；P15 起 tmutil 那一路走 `CommandRunner`，并加了一条"喂 512 KB 也读得完"的判据。开放项都在 UI 层不在这里 |
 | MMCleaner（清理） | **可发布·需标注** | 18 测试。本轮 I4/I10 已收（`fidelity-cleaner.md`）。仍开着：**I5**（`MMFailurePanel` 缺"重试失败项"等补救——组件在 `c74f045` 已补，**全仓 11 个调用点（含壳层 `MainWindow.swift:244`）无一使用新 init**，`grep -rn "onRetry\|onCopyDiagnostics" Sources Packages` 除组件定义外零命中，所以统计行与页脚现在是死代码路径）、**I6b**（撤回开关只在缓存页 sheet，另两页走系统 `.alert`）、**I7**（只读分类仍带展开箭头）、**I8**（页签叫"缓存清理"、页头叫"系统清理"，两名不同源）。**标注内容**：可释放数字是扫描瞬时值，不是承诺值 |
 | MMUninstaller（卸载） | **可发布** | 121 测试（全仓最多）。开着的是 **B1**（列表宽 268 令牌 vs 稿 300，归协调层）、**B2**（`MM_SHOW_TRASH_CONFIRM` 需与 `MM_TRASH_SCAN_HOME` 同时给的互锁没写进文档）——两条都是文档/稿侧缺口，不影响功能 |
 | MMDisk（磁盘分析） | **可发布·需标注** | 66 测试（1 跳过）。永久删除闸门见 §5。**标注内容**：treemap 需要真实扫描，大目录下扫描时间与内存都要在说明里提一句；**触达深度上限（`maxDepth = 20`）的目录只量字节不列名字**，界面上写的是「子项 未枚举」——这句要在发版说明里保留，否则用户会以为那一格坏了。**I4 已于 P8 收口**（标签回「子项」+ 封顶档说「未枚举」，见 §7.1 与 `fidelity-disk.md` §12），仍开着的是 **I3**（详情头部图标与稿不同）、**I6**（相对时间 vs 绝对日期），以及**稿侧** `04-disk.html:163` 仍写递归「文件数 42,180」 |
 | MMMonitor（监控 + 菜单栏） | **可发布** | 53 测试。SMC/IOKit 都有失败降级并在界面上说原文原因（§3 那两行）。开着 **I8**（网络速率只在菜单栏显示、页面不用——归设计稿决定） |
-| MMGuardian（守护） | **可发布·需标注** | **95 测试**（P14 现读：`swift test --package-path Packages/MMGuardian` → `Executed 95 tests, with 0 failures`；91 → 95 是页头副标题那份合同，`GuardianHeaderContractTests` 四条，判据与**否证实验**见 `fidelity-guardian.md` §8.1）。**标注内容**：①TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；②活动卡现在叫「密钥与自启配置的改动时间」，**只有 mtime、不报"最近访问"**，卡片底部把这句写在界面上（八档谓词测量与三条合同见 `fidelity-guardian.md` §6.7）——发版说明里不能把这一格写成"最近访问记录"；③统一日志那一档**P11c 已整族撤下**，所以这一模块不再有"起子进程读系统日志"这一项（§3 第 2 行）。从前这里挂着的那三条 `log show` 缺陷随之消失，但死锁的教训与复现件 `Scripts/p11-pipe-deadlock-repro.swift` 保留；④**页头副标题是四段清单，加长它会静默变成省略号**（`MMPageHeader` 的副标题是 `.lineLimit(1)` + 中间截断），三档窗口的排版照片在 `docs/verification/p14-header/`，判据"那一行不许出现 `…`"（§7.5） |
+| MMGuardian（守护） | **可发布·需标注** | **96 测试**（P15 现读：`/tmp/macmaster-tests/MMGuardian.log` → `Executed 96 tests, with 0 failures`；91 → 95 是页头副标题那份合同，`GuardianHeaderContractTests` 四条，判据与**否证实验**见 `fidelity-guardian.md` §8.1；95 → 96 是 `LaunchctlRunnerTests` 那条真机只读判据，§7.6）。**标注内容**：①TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；②活动卡现在叫「密钥与自启配置的改动时间」，**只有 mtime、不报"最近访问"**，卡片底部把这句写在界面上（八档谓词测量与三条合同见 `fidelity-guardian.md` §6.7）——发版说明里不能把这一格写成"最近访问记录"；③统一日志那一档**P11c 已整族撤下**，所以这一模块不再有"起子进程读系统日志"这一项（§3 第 2 行）。从前这里挂着的那三条 `log show` 缺陷随之消失，但死锁的教训与复现件 `Scripts/p11-pipe-deadlock-repro.swift` 保留；④**页头副标题是四段清单，加长它会静默变成省略号**（`MMPageHeader` 的副标题是 `.lineLimit(1)` + 中间截断），三档窗口的排版照片在 `docs/verification/p14-header/`，判据"那一行不许出现 `…`"（§7.5）；⑤**`launchctl list` 这一路自 P15 起有 10 秒时限**，超时不会给出一个偏小的数，而是让整卡换成界面上那句现读原文「这一轮没能和 launchd 对表（原因），所以下面不标注加载状态——「没查到」不会被写成「没加载」。」（`LoginItemAnomalyCopy.indeterminateNote`）；停用那一侧（写）**不设时限**，界面上不会出现"没等到回话却说没改成" |
 | MMOptimizer（优化） | **可发布·需标注** | 54 测试。开着的是**形态题**（`MMFailurePanel` 通栏条 vs 带边框卡，与 cleaner I5 同一件事，归协调层）与 `fidelity-optimizer.md` 的 #8/#10 未拍全（跨 tab 运行态、阶段枚举）。**标注内容**：重复文件删除前必须人工核对分组，PROTECTED 组永远不给删除入口 |
-| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 583 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里 |
+| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 590 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里 |
 | MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉 |
 | 对外文案 `docs/website/index.html` | **不在产物里·本轮起才进表** | 这一页**从来没有跟实现对照过**：改动前 `grep -rn website docs/analysis/` 是 **0 命中**，九张 fidelity 对照表里也没有它的位置。P11c 撤下统一日志之后，页里那句"管理登录项，**监控系统活动**"当场变成假话（我们不再读日志，占用那一格也明写"非实时监听"），**本轮只改了被证伪的这两句**（卡片正文 + 截图位说明）。仍开着的：①其余口号未核（"一键清理"、"智能扫描系统缓存、日志、临时文件"、"实时监控 CPU…"）；②截图位是四个 `screenshot-placeholder` 的 div、全页 `<img>` 为 0，**一张真图都没有**；③下载那一枚主 CTA 是死链（现读 `:387`：`<a href="#" class="cta-button">下载 MacMaster</a>`，全站 `<a>` 只有锚点与这一枚 `#`，没有任何 dmg/仓库地址）。**发版若要用这一页，得单开一轮把它过完**——它不需要代码改动，需要的是有人对着界面逐句读一遍 |
 
@@ -477,6 +489,33 @@ P11c 把它改成「密钥与自启配置的改动时间」之后，**副标题�
 不在代码里。改名残留这一轮扫完（`fidelity-guardian.md` §8.3 那张处置表），
 顺带照出**第三个表面**——落地页从未与实现对照过，已进 §6 表格单独一行。
 
+### 7.6 P15：§10 第 1–3 步第五遍重跑，同时把"三处子进程调用"并成一处（2026-10-05）
+
+P15 动的是**取数那条路**（`Process` + `Pipe`），不是任何一屏的画法：三处启动点并成
+`MMCore/CommandRunner.swift`，`launchctl list` 那一路加上 10 秒时限，tmutil 那一路改为解析同一份输出。
+所以 §10 三步照跑（产物 `/tmp/mm-app-p15`，`VERSION=1.0.0` / `BUILD=1`），判据多了一条：
+**并完之后，屏幕上那句话在这台机器上还是不是真话**。证据 `docs/verification/p15-v1/`（三张）
++ `docs/verification/p15-pipe/`（两张照片 + 一份否证日志）。
+
+| 判据 | 量到的 | 出处 |
+| --- | --- | --- |
+| 第 1 步 全量测试 | **590 / 0 / 1**，逐包求和 = 590（MMCore 43 → **48**、MMFileScanner 116 → **117**、MMGuardian 95 → **96**） | `./Scripts/run-all-tests.sh`，日志 `/tmp/macmaster-tests/` |
+| 第 2 步 候选产物 | plist `1.0.0` / `1` / `CFBundleIconFile=AppIcon`，`Identifier=com.macmaster.app`、`flags=0x2(adhoc)`、`TeamIdentifier=not set`，`spctl` 判 `rejected` | `p15-v1/0{1,2,3}-*.log` 的 `# plist:` / `# codesign:` / `# spctl:`（三份逐字相同） |
+| 第 3 步 版本链闭合（第五遍） | 同一屏「版本 1.0.0 (1)」+ AppIcon 本体 +「尚未选择许可」+「未配置官方渠道」+「反馈问题」灰着；1000×600 那一档「交换 680.2 MB / 2.15 GB」整行可读 | `p15-v1/02-about.png`、`p15-v1/03-dashboard-min.png` |
+| **本轮新判据**：并完执行器之后界面还是真读数 | 登录项卡：expect 行 `launchctl-list-bytes=18959`、`login-item-files=17`、`not-loaded-labels=2 com.sogou.SogouServices com.sogou.SogouTaskManager` → 照片上**卡头 17 项**、**两条橙色「没在当前会话里加载」**，逐字对得上。快照那一屏：`tmutil-bytes=21 / snapshot-lines=0` → 画面「本地快照 0 个」+「这台 Mac 目前没有本地快照。」 | `Scripts/p15-pipe-capture.sh` → `p15-pipe/0{1,2}-*.{png,log}` |
+| 合同测试的**否证实验** | 把 `CommandRunner` 改回"先 `waitUntilExit()` 再一次性读" → 两条 >64 KB 用例 `failed (10.095 / 10.017 seconds)`，报的都是 `caught error: "timedOut(10.0)"`。**报的是超时、不是"字节数不对"**——这条区分很重要，它说明死锁真实存在、只是被超时拦下来了；如果没有超时，这两条用例会永远挂着 | `p15-pipe/negative-control.log`（含还原过程与还原后的 590/0/1） |
+
+**为什么这一轮值得单独记**：P11 那条教训（"没发作"不等于"写对了"）在 §3 挂了一整轮没闭，
+因为当时只改了出事的 `scanUnifiedLog` 一处，另两处被写成"输出小所以没发作"就放下了。
+P15 去量了那两个"小"到底多小（tmutil 21–22 字节 / launchctl 18,541–19,540 字节），
+**然后按这两个数做了两件不同的小事**：读侧加时限（超时只会少一句结论，不会说一句假话），
+写侧**不加**时限（"没等到回话"如果被写成"没改成"，就是一句会被用户当真的假话）。
+这两条决定都写进了源码注释，判据在 `CommandRunnerPipeTests`（5 条）+ `LaunchctlRunnerTests`（1 条真机只读）。
+
+**五遍重跑的差别只有一处**：571 → 581 → 579 → 583 → **590** 个测试，产物五遍都是 `1.0.0(1)` / adhoc / `rejected`，
+版本链五遍都闭合。**判定仍然没变**：第 4 步那三项（许可、`NSHumanReadableCopyright`、签名方式）是人的决定，
+不在代码里。
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 - ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
   拼法收敛到 `CacheScanScope.selected(systemCache:appCache:logs:temp:)`（`CacheScanner.swift`），
@@ -528,7 +567,7 @@ P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2
 ## 10. 发版前 checklist（可直接执行）
 
 ```
-# 1. 全量测试（期望 583/0/1、MMGuardian 95；数字变了要回写本文 §1）
+# 1. 全量测试（期望 590/0/1、MMGuardian 96；数字变了要回写本文 §1）
 ./Scripts/run-all-tests.sh
 
 # 2. 构建候选产物（版本单一来源；图标随仓库带着，构建前先自证一次）
@@ -538,8 +577,9 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 # 3. 三张基础照片 + 把签名/plist（含 CFBundleIconFile）/gatekeeper 结论写进日志归因头
 #    重跑要换输出目录：这一条写进 /tmp 的那份日志归因头会**盖掉上一轮的证据**。
 #    P9 第一遍写的是 docs/verification/v1.0.0/，P12 第二遍写 docs/verification/p12-v1/，
-#    P13 第三遍写 docs/verification/p13-v1/，P14 第四遍写 docs/verification/p14-v1/。
-./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p14-v1
+#    P13 第三遍写 docs/verification/p13-v1/，P14 第四遍写 docs/verification/p14-v1/，
+#    P15 第五遍写 docs/verification/p15-v1/。
+./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p15-v1
 
 # 3b.（可选，一次性的归因探针）那行 sandbox_extension 警告是路径带来的还是签名带来的（§7.3）
 ./Scripts/p12-sandbox-warning-probe.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p12-v1
@@ -547,6 +587,10 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 # 3c.（可选，只在动过任何一处 MMPageHeader 副标题时跑）页头副标题三档宽度不出现省略号（§7.5）
 #     副标题是 .lineLimit(1) + 中间截断：加长它不会报错、不会换行，只会静默切掉句子中段。
 ./Scripts/p14-header-capture.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p14-header
+
+# 3d.（可选，只在动过任何一处子进程调用时跑）launchctl / tmutil 两屏的真读数与照片逐字对得上（§7.6）
+#     零夹具、零合成点击；expect 行是另一条独立读法（plutil + launchctl），不与被测代码共用解析。
+./Scripts/p15-pipe-capture.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p15-pipe
 
 # 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
@@ -579,18 +623,25 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 `docs/verification/p14-header/`（三档窗口宽度 × 三张照片 + 三份日志，判据"副标题那一行不许出现 `…`"）。
 逐判据与否证实验见 §7.5。第 4 步仍 ⬜，第 5 步不需要重跑（P14 没动签名相关的任何东西）。
 
+**P15（2026-10-05，子进程调用并口之后）第 1–3 步第五遍重跑 590/0/1** ✅：`make-icon.sh --check` 仍是
+`✓ 反向解出 10 档；1024 档 270169 字节`（与 P13/P14 同一个数，图标这一轮没动）→ 产物 `/tmp/mm-app-p15` →
+证据 `docs/verification/p15-v1/`（三张照片 + 三份归因日志，`# plist:` / `# codesign:` / `# spctl:` 三行与 P14 逐字相同）；
+**另加 3d 那一档**：`docs/verification/p15-pipe/`（两档零夹具照片 + 两份 expect 日志 + 一份否证日志）。
+第 4 步仍 ⬜，第 5 步不需要重跑（P15 没动签名，`launchctl`/`tmutil` 两行是**只读**路径，
+写侧照旧不在测试里真动 launchd）。第 2、3、3d 步的产物与临时目录是一次性的，跑完已清掉。
+
 **P12（2026-10-05，同一天的第二遍）第 1–3 步在带 P11 改动的二进制上重跑** ✅✅✅：
 581/0/1 → `make-icon.sh --check` 过 → `/tmp/mm-app-v1`（`VERSION=1.0.0 BUILD=1`）→
 `docs/verification/p12-v1/`（三张照片 + 三份归因日志 + 两份探针日志 + 一张用户目录窗口照片），
 逐条判据见 §7.3；第 4 步 ⬜ 仍待人拍板；第 5 步不需要重跑（P11 那一份代码没再动过签名相关的东西，
 而 §3 的三条限定仍然成立）。第 2、3 与 3b 步的产物与探针目录都是**一次性的**，跑完已清掉。
 
-## 11. 「能不能发第一个稳定版本」——P14 的正面回答（P12 起笔，P13/P14 各补一遍核验）
+## 11. 「能不能发第一个稳定版本」——P15 的正面回答（P12 起笔，P13/P14/P15 各补一遍核验）
 
 问的不是"还有什么没做"，而是**今天把这份代码发出去，会不会说到做不到**。分三层答：
 
-1. **作为"自己编译自己用 / 带源码的私有分发"：能发，今天就能。** §10 第 1–3 步跑过**四遍**（P14 是最新一遍，
-   在带页头合同改动的二进制上），
+1. **作为"自己编译自己用 / 带源码的私有分发"：能发，今天就能。** §10 第 1–3 步跑过**五遍**（P15 是最新一遍，
+   在带 `CommandRunner` 改动的二进制上），
    §6 那十行判定（不含 P14 新加的对外文案那一格）全落在"可发布"或"可发布·需标注"两档
    （**没有一行是"不发这一屏"**）、
    §5 那道闸门两个删除出口都过、§4 零网络代码。
@@ -608,9 +659,9 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
    它从来没有跟实现对照过（§6 最后一行），只是它不进产物，所以不改变"能不能发"的判定。
 
 **唯一一处"能力靠肉眼而不是靠测试"**：壳层零测试目标（§6 最后一行）。这一条**不阻塞发版**，
-但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 583 条测试**没覆盖**的那一层，
-它靠的是 `docs/verification/` 下那 **44 个目录**（P14 现读 `ls -d docs/verification/*/ | wc -l`：
-P13 那一遍读到 42，P14 这轮新增 `p14-header/` 与 `p14-v1/` 两个。本文上一版写的是
+但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 590 条测试**没覆盖**的那一层，
+它靠的是 `docs/verification/` 下那 **46 个目录**（P15 现读 `ls -d docs/verification/*/ | wc -l`：
+P14 那一遍读到 44，P15 这轮新增 `p15-pipe/` 与 `p15-v1/` 两个。本文更早的版本写的是
 "37 个（P12 之后 38）"——那个数从 P10/P11 起就没跟着涨，是本文**唯一一个自己没被计数脚本罩住的数**，
 现已改成现读）。
 
@@ -629,4 +680,12 @@ P13 那一遍读到 42，P14 这轮新增 `p14-header/` 与 `p14-v1/` 两个。�
 而这份落地页**从来没有进过任何一张 fidelity 对照表**（改动前 `grep -rn website docs/analysis/` = 0 命中）。
 逐元素对照表能测"稿与实现像不像"，测不出"还有第三个表面没被看过"。已进 §6 表格单列一行，
 判档"不在产物里·本轮起才进表"，**不阻塞发版**，但发版若要用这一页就得先单开一轮把它过完。
+
+**P15（2026-10-05）没有关掉任何一条待办，它关掉的是 P11 留的那笔"同类形状还在别处"的账**：
+三处子进程启动点并成 `MMCore/CommandRunner.swift` 一处（§1 那一格从 3 变 1），
+读侧第一次有了时限、写侧明确不设时限，五条 >64 KB 的合同测试加一份事前否证（§7.6）。
+**这一轮对"能不能发"的判定没有影响**——它改的是取数路径的可靠性，不是任何一屏的画法，
+五遍核验的版本链、签名档次、Gatekeeper 结论逐字相同。它影响的是另一件事：
+**下一轮再加系统命令时，只有一个人人可用的入口、和一个"报字节数而不是报安心"的口径**（`hook-ledger.md` §5）。
+§3 那条空白（`launchctl` 写侧）仍然没测，P15 特意**没有**为了好看去测它——真点一下就会改这台机器的自启状态。
 

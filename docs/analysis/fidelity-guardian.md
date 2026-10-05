@@ -494,8 +494,12 @@ Pearcleaner 只展示 `kMDItemLastUsedDate` 且文案就是 "Last Used Date"（`
 
 1. **日志族整族撤下**——`scanUnifiedLog()` 连同四个拆行/取尾辅助函数一并删除。
    §6.6.6 那三条修复（死锁、列宽、取尾）不是白做的：它们把"这一路能不能用"量清楚了，
-   结论是**这一路能给用户的东西没有**；复现件 `Scripts/p11-pipe-deadlock-repro.swift` 留在仓库里，
-   因为 `SystemSpaceReport` 那处 `Process` + `Pipe` 是同一个形状（只因 tmutil 输出小才没发作）。
+   结论是**这一路能给用户的东西没有**；复现件 `Scripts/p11-pipe-deadlock-repro.swift` 留在仓库里。
+   **P15 把这一条的后半收了**：当时还留着的同形状两处（`SystemSpaceReport` 的 tmutil、本模块
+   `LaunchctlRunner` 的 launchctl 读与写，"只因输出小才没发作"）已并成 `MMCore/CommandRunner` 一处，
+   全仓库现读 `Process()` 只剩那一个文件里的一行，判据是五条喂 >64 KB 输出的合同测试，
+   外加一份"改回错误形状就会红"的否证（`docs/verification/p15-pipe/negative-control.log`）；
+   本模块这一侧另有一条真机只读判据 `LaunchctlRunnerTests`。详 `release-readiness.md` §7.6。
 2. **`detail` 一律是绝对路径、`time` 一律是那个 mtime 的相对说法**——从前敏感目录那行写
    「最近访问: 刚刚」而右侧时间列又写一遍「刚刚」：同一个数说两遍，而且说得不对
    （读的是 `.modificationDate`；mtime 只在目录**增删条目**时变，读取里面的密钥文件不动它）。

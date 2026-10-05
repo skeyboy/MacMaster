@@ -1,0 +1,10 @@
+# p15-pipe-capture.sh 02-space  2026-10-05 17:32:45 +0800  app=/tmp/mm-app-p15/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=cleaner MM_OPEN_TAB=cache MM_CLEANER_FILTER=邮件
+# fixtures: 无（这一轮要看的就是真读数；注入夹具会把「读回来了」这个判据本身抽掉）
+# codesign: flags=0x2(adhoc)
+# pid: 26824（由本脚本启动，也由本脚本 kill；不是用户的实例）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p15/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# expect: tmutil-bytes=21
+# expect: snapshot-lines=0（界面「本地快照 N 个」的 N；n=0 时界面写
+#          『这台 Mac 目前没有本地快照』，两种都不许写成『不可用』）
