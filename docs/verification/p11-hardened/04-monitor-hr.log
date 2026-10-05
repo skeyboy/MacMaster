@@ -1,0 +1,10 @@
+# p11-hardened-check.sh 04-monitor-hr  2026-10-05 15:36:26 +0800  app=/tmp/mm-app-p11-hr/MacMaster.app
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1100x1000 MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=sensors,disk
+# fixtures: 无（本轮全部走真实读取路径，除非上面 env 里明写了 WATCH 目录钩子）
+# codesign: Identifier=com.macmaster.app flags=0x10002(adhoc,runtime) Signature=adhoc TeamIdentifier=not set 
+# plist: CFBundleShortVersionString=1.0.0
+# spctl: /tmp/mm-app-p11-hr/MacMaster.app: rejected 
+# pid: 94653（由本脚本启动，也由本脚本 kill；不是用户的实例）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p11-hr/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1100x1000 请求 1100x1000pt，窗口实际 1100x1000pt

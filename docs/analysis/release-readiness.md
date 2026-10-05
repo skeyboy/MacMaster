@@ -8,33 +8,36 @@
 
 ## 0. 结论先行
 
-- **功能面：可以发。** 九个包全绿：`571` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
+- **功能面：可以发。** 九个包全绿：`581` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
 - **分发面：现在这份产物还不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
   没有许可证书（§2）。图标那一项 **P10 已补**（§2.2：`Resources/AppIcon.icns` + `CFBundleIconFile`）。
   剩下的都不是代码问题，是**发版动作**问题，各自都有明确的补法。
 - **一句话判定**：作为 **"自己编译自己用 / 附带源码的私有分发"**——今天就能发。
-  作为 **"给陌生人的 dmg"**——差 §2 的三项，且 §3 那条 hardened runtime 的兼容验证必须先跑一遍。
+  作为 **"给陌生人的 dmg"**——差 §2 的三项。§3 那条 hardened runtime 的兼容验证 **P11 已跑完**：
+  本机实测七行能力**零行被打断**，所以走 §2.1 第 2 条**不需要砍功能**；
+  剩下的空白是 `launchctl` 的**写侧**没测（会真改用户 launchd 状态），已如实记在 §3。
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
 - **§10 那份 checklist 的 1–3 步已经真跑过一遍**（P8 之后，2026-10-05）：571/0/1 → `VERSION=1.0.0 BUILD=1`
   的候选产物 → 三张照片把"版本号走到界面"这条链闭合（§7.2）。**判定没变**：卡在第 4 步那四项人工决定上。
+  P11 之后第 1 步重跑是 **581/0/1**（多的 10 条全在 MMGuardian：活动卡那三处读法的判据，见 §3）。
 
 ## 1. 本轮实测数字
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **571** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P8 于 2026-10-05 重跑**：P7 落地时是 566，此后 +5（MMDisk 4 条 + MMFileScanner 1 条，见 §7.1）。**P10 再跑仍是 571/0/1**——那一轮只动壳层与打包脚本，包内测试数不该变，变了才要查 |
+| 测试总数 | **581** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
 | 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift:173 testMountedVolumeRootIsBlocked`，跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
-| 生产代码量 | **26,325 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P10 重跑；P8 时 26,310，多的 15 行是关于页那枚 `appIconArtwork`） |
-| 测试代码量 | **8,846 行** | 同一条命令换成 `-path '*/Tests/*'`（P8 重跑；P7 时 8,790） |
-| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫 |
+| 生产代码量 | **26,428 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P11 重跑；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾） |
+| 测试代码量 | **8,957 行** | 同一条命令换成 `-path '*/Tests/*'`（P11 重跑；P7 时 8,790，P8 时 8,846） |
+| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11 实测轮一个新增钩子都没加**（见 §3 的"零夹具"规定） |
 | 子进程启动点 | **4 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 4 行，见 §3 |
 | 网络代码 | **0** | `grep` `URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里**无命中** |
 
-逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 P8 重跑）：
+逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 P11 重跑）：
 MMCore 43 · MMUI 17 · MMFileScanner 116 · MMCleaner 18 · MMUninstaller 121 ·
-MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian 83 · MMOptimizer 54。
+MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian 93 · MMOptimizer 54。
 
 > **`run-all-tests.sh` 存在的理由**：`swift test | tail -4` 只剩 swift-testing 的
 > `Test run with 0 tests`，会把 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；
@@ -60,6 +63,8 @@ spctl -a -vv -t execute   →  /tmp/mm-app-p7b/MacMaster.app: rejected
 1. **只用源码构建**：README 里写清 `./Scripts/make-app.sh`，不产出 dmg。零成本、零身份要求。
 2. **Developer ID + 公证**：需要 Apple Developer Program 账号（付费身份，**这项决定不属于实现**）。
    流程是 `codesign -s "Developer ID Application: …" --options runtime` → `notarytool submit` → `staple` → 打 dmg。
+   **代价面 P11 已量过**：`--options runtime` 那一位标志在本机打断了 §3 那张表里的零行，
+   走这条路**不需要砍功能**（限定条件见 §3 末尾三条）。
 3. **Mac App Store**：需要账号，且必须沙盒——**当前代码过不去**，见 §3。
 
 ### 2.2 图标 —— 挡住"它像个正经应用"
@@ -115,25 +120,111 @@ Contents/Resources/AppIcon.icns → 518,512 字节
   所以定许可之后是**两处一起改回**，不会再出现"稿说 MIT、实现说没定"那种分叉。
   现测复核（2026-10-05 P10）：`find . -maxdepth 3 -iname 'LICENSE*'` 仍只命中 `docs/lemon-cleaner/` 那两份第三方许可。
 
-## 3. hardened runtime / 沙盒会打断什么
+## 3. hardened runtime / 沙盒会打断什么 —— **P11 已实测（2026-10-05）**
 
-如果走 §2.1 的第 2 条（`--options runtime`）或第 3 条（沙盒），下列现有能力会受影响。
-**这几条不是"可能会"，是每一处都能指到代码的**：
+这一节以前是**预测**：每一行指着代码说"沙盒下会被拒 / hardened runtime 需实测"，
+而"需实测"挂了几天一条都没测过。预测不能当发版依据——表里若有一行其实不会断，我们就白担心一项能力；
+若有一行其实会断而没发现，发出去的 dmg 上那一格就是空的。现在它是照片。
 
-| 能力 | 代码位置 | 影响 |
-| --- | --- | --- |
-| 启 `launchctl` 停用登录项 | `LoginItemStore.swift:362`、`:389`（`/bin/launchctl <cmd> -w <path>`） | hardened runtime 下仍可用；**沙盒下会被拒**。这是唯一两处会改系统状态的 spawn |
-| 启 `/usr/bin/log show` 读统一日志 | `MMGuardian.swift:797`（predicate 只过 `login`/`auth` 关键字） | hardened runtime 下需要 `com.apple.security.get-task-allow` 类豁免以外的调试权限；实测在受限环境里**会挂起**，所以这条路径自带 8 秒 `DispatchSemaphore` 超时（教训记在 `hook-ledger.md` §5 `p62-capture.sh` 那行） |
-| 启 `/usr/bin/tmutil` 列本地快照 | `SystemSpaceReport.swift:170`（`tmutilPath`） | 只读子命令；沙盒下同样受阻 |
-| IOKit 读 AppleSMC 温度/风扇 | `SMC.swift:153-157`（`IOServiceMatching("AppleSMC")` → `IOServiceOpen`） | 沙盒基本读不到；hardened runtime 需实测。**"独立探针能读不等于 .app 里能读"**，这条坑已记在 `hook-ledger.md` 末尾 |
-| IOKit 读磁盘统计 | `MetricReaders.swift:84-88`（`IOBlockStorageDriver`） | 同上，已有 `diskIOFailure` 降级路径并在界面上明说"IOKit 未返回统计" |
-| kqueue 监听目录 | `TrashWatcher.swift:179`、`AppFolderWatcher.swift:228` | 监听的是 `~/.Trash` 与 `/Applications`；沙盒下需 user-selected 书签，否则监听静默失效 |
-| 只读打开 TCC.db | `TCCProbe.swift:76`（`sqlite3_open_v2(..., SQLITE_OPEN_READONLY)`） | **需要完全磁盘访问**；本机实测两库都打不开（用户级被隐藏成 ENOENT、系统级 rc=23），代码据此降级为"需要 FDA"横幅，见 `docs/analysis/guardian-tcc.md` |
+**量具**：同一份编译产物，两种签名档次，逐个能力拍对照照片。
 
-**结论**：走第 2 条之前，必须先做一次 **hardened runtime 实测轮**（用现有 `Scripts/p7-release-check.sh`
-的形态，把上面每一行都拍一张"打了 runtime 标志之后还剩什么"的照片）。现在一条都还没验过。
-走第 3 条（沙盒）等于砍掉上面那张表的**全部七行**（launchctl / log show / tmutil / SMC /
-IOKit 磁盘统计 / kqueue 监听 / TCC.db，一行一条）——**不建议纳入 v1.0**。
+```
+./Scripts/make-app.sh            -o /tmp/mm-app-p11-base -s /tmp/mm-scratch-p11   # flags=0x2(adhoc)
+HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11   # flags=0x10002(adhoc,runtime)
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-base/MacMaster.app docs/verification/p11-hardened base
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-hr/MacMaster.app   docs/verification/p11-hardened hr
+```
+
+判据不是"这一档好不好看"，而是**同一能力在两档之间有没有差**。两份 bundle 的 `codesign` cdhash 不同
+（签名嵌在二进制里，这必然不同），所以另外证一次二进制同一性：
+`codesign --remove-signature` 剥掉签名后两份可执行文件摘要一致，
+现测（P11b 修完 `scanUnifiedLog` 之后的那一对构建）
+`sha256 = 937567828cf75b9dc54dcba701aa9ecdb9601c5811a8ccdca34fea4ef21d74b6`、
+`md5 = 561d24ee77b3926a36f8f2519142bd33`。
+**这个数随构建变，不是常量**：本轮早先那一对（活动卡还在 `prefix(5)` 时）是
+`17cc4a102682cd34d83100f08e4e8118602519db7a435005019af8e87036fce5`——顺带认错过一次摘要算法，
+那串 64 位是 SHA-256 而当时写成了"md5"，现在两个都记。**要复现这一轮，重跑上面四条命令后
+自己现量一次同一性**，别拿本文这串去比。
+
+**本轮一个顶数据的夹具钩子都不带**（`MM_*_FIXTURE` 改的正是"喂给界面的数据"，而这一轮测的就是
+"取数那条系统调用还通不通"）；唯一例外是监听两档的**目录**钩子，它们只把 kqueue 指到 /tmp，事件仍走真实
+`DispatchSource`。零合成点击。
+
+| 能力 | 代码位置（按符号名找） | 预测 | **实测（base ↔ hr）** |
+| --- | --- | --- | --- |
+| 启 `launchctl` 停用登录项（写侧） | `LoginItemStore.swift` `runLaunchctl`（`/bin/launchctl <cmd> -w <path>`） | runtime 需实测；沙盒会拒 | **未测**。点开关会真改用户 launchd 状态，本轮不制造这种改动——这是 §3 剩下的唯一空白 |
+| `launchctl list` 核对（读侧） | `LoginItemStore.swift` `launchctlSnapshot` | 同上 | **无差**：两档都是 17 项、同两行挂「没在当前会话里加载」（`02-login-{base,hr}.png` 逐字节相同） |
+| 启 `/usr/bin/log show` 读统一日志 | `MMGuardian.swift` `ActivityScanner.scanUnifiedLog` | runtime 需实测；受限环境会挂起，故自带 8 秒超时 | **无差**：两档各 **5 条真实事件行**、正文完整、**最新在前**（`03-activity-{base,hr}.png`，15:29 打在带流式读取 + 取尾 5 条的重建二进制上：base 五行 15:29:23.x、hr 五行 15:29:37.x，各自就是扫描那一刻）。两档不同的只有"哪 5 条最新"（相隔 14 秒拍的）。**这一格还查出了我们自己的三个 bug，见下** |
+| 启 `/usr/bin/tmutil` 列本地快照 | `SystemSpaceReport.swift` `tmutilPath` | 只读子命令；沙盒受阻 | **无差**：两档都出「磁盘空间只读报告」，本地快照 `0 个` + "这台 Mac 目前没有本地快照"（`05-space-*.png`） |
+| IOKit 读 AppleSMC 温度/风扇 | `SMC.swift` `IOServiceMatching("AppleSMC")` | 沙盒基本读不到；runtime 需实测 | **无差**：两档都是 174 个可信温度点 + 风扇 1 实测 1001/1000 RPM（区间 1000–4900）（`04-monitor-*.png`） |
+| IOKit 读磁盘统计 | `MetricReaders.swift` `IOServiceMatching("IOBlockStorageDriver")` | 同上 | **无差**：两档都是真实速率（读数随时间变，故照片 md5 不同，但两档同为"有数"） |
+| kqueue 监听目录 | `TrashWatcher.watchTarget()`、`AppFolderWatcher.watchTargets()` | 沙盒需 security-scoped 书签，否则静默失效 | **无差**：两档都出回声卡——废纸篓侧「刚拖进废纸篓：示例应用」+「本体已在废纸篓」，应用目录侧「刚从应用目录消失：Highball」+「应用目录里有 1 个新条目 Notion.app」（`watch-trash-*`、`watch-apps-*`） |
+| 只读打开 TCC.db | `TCCProbe.swift` `sqlite3_open_v2(..., SQLITE_OPEN_READONLY)` | 需要完全磁盘访问 | **无差**：两档同一句降级，用户库 `ENOENT (errno 2)` / `rc=14`，系统库 `EPERM (errno 1)` / `authorization denied (rc=23)`（`01-tcc-*.png` 逐字节相同） |
+
+**实测换来的结论（替换掉原来的"先跑一遍再决定"）**：
+
+1. **hardened runtime 在本机打断了七行里的零行。** §2.1 第 2 条（Developer ID + 公证）
+   因此**不需要砍任何功能**——这一条以前是担心，现在是量过的。
+2. **沙盒（第 3 条）仍是砍掉全部七行**，且这一轮没有实测沙盒：要打就得另做一轮，
+   而结论 1 已经让"为了上架而沙盒"这件事显得不必要。v1.0 仍走第 1 或第 2 条。
+3. **两档照片逐字节相同不等于没拍到东西。** `01`/`02` 两对就是这样——它们是真读数
+   （降级横幅、17 项清单都在画面上），"相同"本身就是这一行的测量结果。
+   判据是**先看画面里有没有内容，再谈相同不相同**；空对空也会相同（P6.6 的教训）。
+
+**三个必须跟着这张表一起说的限定**：
+- `adhoc,runtime` **不等于** `Developer ID + --options runtime`。这一轮证的是"runtime 这一位标志会不会打断能力"，
+  公证、`com.apple.security.application-groups` 之类 entitlement 交互不在其列。
+- TCC 那一格**本机没有完全磁盘访问**，两档都是"读不到"。所以这一格测到的其实是
+  **"打了 runtime 之后没有变得更读不到"**，不是"runtime 下 TCC.db 可读"。
+  另外：两档 cdhash 不同，在一台**已经**授过 FDA 的机器上，授权是按 cdhash 记的，
+  换签名档次会被当成另一个应用 → 那种机器上重跑这一轮，`01` 这一对**预期不同**，别当回归。
+- 一台机器（Apple Silicon、macOS 27.0）、一种外观档（light）。
+
+**这一轮顺带查出的三个真实缺陷（都不是签名造成的，是读法造成的）**：
+
+- **管道死锁**：`scanUnifiedLog()` 先 `waitUntilExit()` 再 `readDataToEndOfFile()`。
+  `Pipe` 的内核缓冲只有 64 KB，而这条 `log show --last 5m` 本机现测返回 **199,740 字节 / 1,511 行**
+  （同时刻两次 199,740 与 200,017；命中谓词的量随这 5 分钟在写什么而变）——
+  子进程卡在 `write`、父进程卡在 `wait`，8 秒超时两败俱伤返回 nil。
+  于是**这个函数自落地起从未返回过内容**，界面上「系统日志事件」一行都没出现过，
+  而卡片显示的是另外两个信号，看上去像"这台机器没有日志事件"。
+  复现（不启动 App，同样的 API 形状跑同一条命令；末位数字是 ③ 的轮数）：
+  `swift Scripts/p11-pipe-deadlock-repro.swift 5` →
+  ① 旧写法停在整 **65,536** 字节、8.01 秒到点被杀；② 并行读 **198,172** 字节、**0.82 秒**返回；
+  ③ 五轮 0.83–0.90 秒**正常退出**（没有触发超时），攒下 198,748–199,036 字节、**154–156 条事件行**可用。
+  修法：读管道与等退出各占一条后台队列，且超时后**照常解析已经读到的部分**。
+  同样的"先等再读"形状在 `SystemSpaceReport.swift` 的 tmutil 那一处**没有**发作（输出小），本轮没改它。
+  ⚠️ **这一条的第一版数据是量错的**：复现原先拿一个全局起点计时，② 打印的「8.90s」其实是
+  "从脚本开始到现在"，把 ① 那 8 秒死锁算进了自己的账，读起来像"这条命令要 8.9 秒、超了应用侧 8 秒预算"。
+  据此写进四份文档与源码注释的"实测 1.5 秒到 8.9 秒都出现过"**全部作废**，上面是逐支独立计时的重测值；
+  教训本身记在 `hook-ledger.md` §5。
+- **列宽吃掉正文**：修好死锁之后第一次实机照片里，5 条「系统日志事件」全是
+  `日期 时间 线程 类型 Activity PID TTL` 这 7 段定宽列（占 78 个字符），
+  而旧代码截的是 `line.prefix(80)`——正文一个字都没进画面；另外 `log show` 的折行续行
+  被当成独立事件，卡片写着 5 条其实只有 4 条。现在按空格段拆列、续行并入上一条，
+  表头行不再顶成第一条事件。判据在 `ActivityScannerLogRowTests.swift`（10 条，喂的是本机抄下来的行形状）。
+- **「最近」画的是最旧的 5 条**：`log show` 是**升序**输出的（本机实测：末行时间戳与 `date` 只差一秒，
+  首行就是窗口起点），而代码取的是 `prefix(5)`。15:07 那两张照片把这件事直接画出来了——
+  五行全在 **15:02**，也就是**没有一行发生在最近 4 分钟内**，而每一行右侧写着「最近」。
+  现在改成 `recentLogRecords(of:)`：取**末尾** 5 条、最新的一条排最前，15:29 重拍的两档
+  五行时间戳就是扫描那一刻（base 15:29:23.x / hr 15:29:37.x）。判据是
+  `ActivityScannerLogRowTests` 里那两条 `testRecentRecords…`（9 条升序事件必须交出 8…4，不是 0…4）。
+
+**一个记下来、这一轮没改的现象：这张卡有一半在报它自己**。修好顺序之后重拍的两张照片里，
+`03-activity-base.png` 的 5 行有 4 行是应用自身活动的回声：
+`log … log run noninteractively, parent: 93499 (MacMaster), args: '/usr/bin/log' 'show' …`（就是这次扫描本身——
+`log` CLI 会把整条命令行写进正文，而我们的谓词原文含 `"login" OR … "auth"`，
+于是**这一行因为含有谓词文本而命中了自己的谓词**）、两行 `tccd: [com.apple.TCC:access] AUTHREQ_RESULT …`
+（守护页另一条读法——TCC 探测——刚问出去的那两次授权查询）、一行 `runningboardd … RBSSStateCaptureSet`
+（我们自己的进程被系统记了一次状态断言）。hr 那张同形：自己的 `log show`（parent 93561 MacMaster）+ 两行 tccd + 一行 runningboardd + 一行无关的 sharingd。
+**顺序修好之前这一格是被掩盖的**：`prefix(5)` 拿的是窗口最旧那头，正好躲开了"刚刚发生的都是我们自己"这一段。
+这一轮**没有**动谓词：按"我们自己的 pid / 命令行"过滤等于把探针写进产品逻辑，而 tccd、runningboardd
+那两行是别的进程写的、按 pid 根本滤不掉；真正的问题是这条谓词（`contains "login" OR contains "auth"`）
+当初就没有一份"这张卡该显示什么"的文案合同。收口它需要重定谓词 + 设计稿对这一屏的表态，
+记成独立一项（`fidelity-guardian.md` §6.6.3 末尾）。
+
+**同一轮还修了取证脚本自己的一个假选择器**：`p11-hardened-check.sh` 的 `ONLY=03,05` 逐档重拍
+写在注释里承诺过，实现却是整块用 `ONLY=shots` 把门——点名档号会把五档全跳过。现在五档各自把关。
 
 ## 4. 隐私面（发版说明里必须写的东西）
 
@@ -285,7 +376,7 @@ P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2
 ## 10. 发版前 checklist（可直接执行）
 
 ```
-# 1. 全量测试（期望 571/0/1；数字变了要回写本文 §1）
+# 1. 全量测试（期望 581/0/1；数字变了要回写本文 §1）
 ./Scripts/run-all-tests.sh
 
 # 2. 构建候选产物（版本单一来源；图标随仓库带着，构建前先自证一次）
@@ -297,6 +388,14 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 
 # 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
+
+# 5. 只有选了 §2.1 第 2 条（Developer ID + 公证）才要跑：同一份二进制打两种签名，
+#    逐能力拍对照照片，看 `--options runtime` 那一位标志有没有打断什么（§3 已跑过一轮）。
+#    换证书之后要重跑一次——那一轮证的是 ad-hoc+runtime，不是 Developer ID+runtime。
+./Scripts/make-app.sh            -o /tmp/mm-app-p11-base -s /tmp/mm-scratch-p11
+HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-base/MacMaster.app docs/verification/p11-hardened base
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-hr/MacMaster.app   docs/verification/p11-hardened hr
 ```
 
 第 4 步全过之前，本文的判定停留在"功能就绪、分发未就绪"。
@@ -305,4 +404,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 `VERSION=1.0.0 BUILD=1`，隔离 scratch `/tmp/mm-scratch-v1`）✅；第 3 步
 `docs/verification/v1.0.0/`（三张照片 + 三份日志，判据逐条见 §7.2）✅；第 4 步 ⬜ 待人拍板。
 第 2、3 步的产物与临时目录是**一次性的**，跑完已清掉，只有 `docs/verification/v1.0.0/` 入库。
+
+**P11 之后（2026-10-05）第 1 步重跑 581/0/1** ✅；**第 5 步也真跑了一遍**（在选定签名方式之前先把它量清）：
+`docs/verification/p11-hardened/` 两档各 5 张照片 + 2 组监听取证，判据与三条限定都在 §3。
 

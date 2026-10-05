@@ -1,0 +1,4 @@
+# p68-trash-capture.sh 01-trash-notice  2026-10-05 15:37:43 +0800  app=/tmp/mm-app-p11-base/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_TRASH_FIXTURE_DIR=/tmp/mmtrash MM_TRASH_SCAN_HOME=/tmp/mmhome
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p11-base/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）

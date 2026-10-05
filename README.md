@@ -40,7 +40,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
 ```
 
-现测（2026-10-05）：**571 个测试、0 失败、1 跳过**。不要手敲 `swift test | tail -4`——
+现测（2026-10-05，P11 之后重跑）：**581 个测试、0 失败、1 跳过**。不要手敲 `swift test | tail -4`——
 SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 
@@ -129,6 +129,22 @@ Gatekeeper 判 `rejected`；许可未定。自己编译自用不受影响，发�
 `docs/analysis/release-readiness.md` §2.2）。
 逐模块判定、hardened runtime / 沙盒会打断哪七条现有能力、以及 v1.0 建议范围与
 发版前 checklist：**`docs/analysis/release-readiness.md`**。
+
+**hardened runtime 那一栏 P11 已经从"预测"变成"实测"**（2026-10-05，§3）：同一份二进制打两种签名
+（`adhoc` / `adhoc,runtime`），七行能力逐个拍对照照片，**本机零行被打断**——所以"走 Developer ID + 公证
+要不要先砍功能"这个问题现在有答案了：不用砍。沙盒那一档仍是不砍七行不能上，且这一轮**没有**实测沙盒。
+复跑：
+
+```bash
+./Scripts/make-app.sh            -o /tmp/mm-app-p11-base -s /tmp/mm-scratch-p11
+HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-base/MacMaster.app docs/verification/p11-hardened base
+./Scripts/p11-hardened-check.sh /tmp/mm-app-p11-hr/MacMaster.app   docs/verification/p11-hardened hr
+```
+
+这一轮顺带查出并修了三个**与签名无关**的真实缺陷（`log show` 那条读法里的管道死锁、
+列宽把事件正文吃干净、以及 `prefix(5)` 在升序输出上取到的是**最旧**的 5 条却标着「最近」）——
+细节与判据在 §3 末尾与 `hook-ledger.md` §5，方法教训在 `fidelity-guardian.md` §6.6.6。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
 "版本号从打包脚本走到关于页"）已在 2026-10-05 实跑，证据 `docs/verification/v1.0.0/`；

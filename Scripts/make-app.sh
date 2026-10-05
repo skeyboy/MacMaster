@@ -6,6 +6,7 @@
 #
 #   ./Scripts/make-app.sh                                  # 默认 build/MacMaster.app
 #   ./Scripts/make-app.sh -o /tmp/mmb-x -s /tmp/mm-sc-x     # 隔离构建
+#   HARDENED=1 ./Scripts/make-app.sh ...                    # 额外打 --options runtime（见文末签名段）
 #
 # `-o/-s` 是给并发验证用的：多路施工时大家共用一个 `build/MacMaster.app` 和一份
 # `.build`，后构建的会把前构建正在跑的实例的二进制换掉，前一个截图就成了"看着是真的
@@ -97,9 +98,20 @@ PLIST
 # 这里不能只把输出丢掉就完事：脚本开了 set -e，签名一失败就静默退出 1，
 # 而 SwiftPM 已经打印过 "Build complete!"，看上去像构建成功、产物其实没签好。
 # 实测踩过的一次：-o 传成了 .../MacMaster.app，里面套了一层同名 bundle，--deep 直接失败。
-if ! codesign --force --deep --sign - --timestamp=none "$APP"; then
+#
+# HARDENED=1 额外打 `--options runtime`。这**不是任何一种发布形态**（发布要证书 + 公证），
+# 它只是 P11 实测轮的量具：同一份二进制上让 codesign 的 flags 多出 0x100(runtime)，
+# 好把"带这个标志到底打断什么"从预测变成照片。默认关闭，产物的形态与以前逐字节相同。
+SIGN_FLAGS=(--force --deep --sign - --timestamp=none)
+[[ "${HARDENED:-0}" == "1" ]] && SIGN_FLAGS+=(--options runtime)
+if ! codesign "${SIGN_FLAGS[@]}" "$APP"; then
     print -r -- "codesign 失败：$APP（上面是原错误输出）" >&2
     exit 1
 fi
+
+# 打完自己读回来：写 --options runtime 的人以为写了，和真的带 0x100(runtime)，
+# 中间隔着 codesign 是否吃下这个参数——不吃它只警告不报错。
+runtime_flags=$(codesign -dv "$APP" 2>&1 | grep -o 'flags=0x[0-9a-f]*([a-z,]*)' | head -1)
+print -r -- "签名档次：${runtime_flags:-（读不到 flags）}（HARDENED=${HARDENED:-0}）"
 
 print -r -- "$APP"

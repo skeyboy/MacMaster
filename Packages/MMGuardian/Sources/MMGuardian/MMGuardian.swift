@@ -810,32 +810,135 @@ enum ActivityScanner {
         }
 
         // 子进程超时保护：沙盒环境下 /usr/bin/log 可能挂起（sandbox_extension_issue），
-        // waitUntilExit() 会永远阻塞。8 秒足够正常 log show 完成（实测 ~1s），
-        // 超时后杀掉子进程、丢弃输出，降级为空列表。
+        // waitUntilExit() 会永远阻塞，所以等退出要放到别的队列上、并且有 8 秒上限。
+        //
+        // **读管道必须和等退出并行，不能等完再读**：Pipe 的内核缓冲只有 64 KB，
+        // 而这条 `log show --last 5m` 本机现测返回 199,740 字节 / 1,511 行。先 `waitUntilExit()`
+        // 再读，子进程卡在 write、父进程卡在 wait，复现脚本的 ① 就停在整 **65,536** 字节上直到 8 秒到点——
+        // 于是这个函数自落地起从未返回过内容，界面上「系统日志事件」一行都没出现过，
+        // 而卡片显示的是另外两个信号，看上去像"这台机器没有日志事件"。
+        // 复现（不启动 App，同样的 API 形状跑同一条命令）：`swift Scripts/p11-pipe-deadlock-repro.swift 5`
+        //
+        // **到点了也不能把已经读到的丢掉**：耗时取决于本机这 5 分钟里有多少日志命中谓词。
+        // 现测这一条跑得快（0.82–0.90 秒读完 198 KB），但它**在带沙盒的取证环境里整条挂住过**
+        // （`sandbox_extension_issue_file_to_process`，见 `docs/analysis/fidelity-guardian.md` §6.6.3），
+        // 而"什么时候挂住"不是我们能预测的那一类事。旧写法一超时就 `return nil`，
+        // 把"已经拿到手的真事件"和"一个字都没读到"弄成同一张脸——那是同一个静默空值的第二个来源。
+        // 现在边读边攒，超时只杀掉子进程，攒下的部分照常解析；一行都没读到时才返回 nil。
         let finished = DispatchSemaphore(value: 0)
+        let box = UnifiedLogOutput()
+        let handle = pipe.fileHandleForReading
+        DispatchQueue.global(qos: .utility).async {
+            while let chunk = try? handle.read(upToCount: 65_536), !chunk.isEmpty {
+                box.append(chunk)
+            }
+        }
         DispatchQueue.global(qos: .utility).async {
             proc.waitUntilExit()
             finished.signal()
         }
         if finished.wait(timeout: .now() + 8) == .timedOut {
             proc.terminate()
-            return nil
+            FileHandle.standardError.write(
+                "log show 8 秒未结束，已杀掉子进程；下面解析的是它在被杀之前写完的部分（\(box.snapshot().count) 字节）\n".data(using: .utf8)!)
         }
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let data = box.snapshot()
         guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
             return nil
         }
 
-        let lines = output.components(separatedBy: "\n").filter { !$0.isEmpty }.prefix(5)
-        return lines.map { line in
+        // `log show` 不带 `--style` 时第一行是列标题（"Timestamp  Thread  Type ..."），
+        // 它不是一条事件。以前 5 条名额里固定有一格是这行表头——卡片自报"修好了"之后
+        // 第一次实机照片就把它顶在了第一条。
+        let records = recentLogRecords(of: output)
+        return records.map { line in
             ActivityItem(
                 title: "系统日志事件",
-                detail: String(line.prefix(80)),
+                detail: unifiedLogRow(line),
                 time: "最近",
                 icon: "doc.text",
                 tone: .info
             )
+        }
+    }
+
+    /// 这 5 分钟窗口里**最新**的至多 `limit` 条，最新的一条排最前。
+    /// `log show` 是升序输出的（实测末行就是"刚刚那一秒"，首行是窗口起点），
+    /// 而旧代码取的是 `prefix(5)`——那正好是最旧的 5 条，右侧却写着「最近」。
+    /// P11 的两档对照照片把这件事暴露了出来：base 那张 5 行是 15:02:13–15:02:33，
+    /// 拍照片的时刻是 15:07，也就是画面上没有一行发生在最近 4 分钟内。
+    static func recentLogRecords(of output: String, limit: Int = 5) -> [String] {
+        Array(groupLogRecords(output).suffix(limit)).reversed()
+    }
+
+    /// 把 `log show` 的输出折成"一条事件一项"。
+    /// 一条事件的正文会因长度被折行，续行不以时间戳开头——旧代码按 `\n` 直接切，
+    /// 于是实机照片里第 5 条「系统日志事件」是上一条事件的半截尾巴
+    /// （`<RBConnectionListener| clients:[`），卡片写着 5 条其实只有 4 条事件。
+    /// 整批都认不出时间戳时（别的 `log` 版本）原样留下，不静默变空。
+    static func groupLogRecords(_ output: String) -> [String] {
+        var records: [String] = []
+        for line in output.components(separatedBy: "\n") where !line.isEmpty {
+            if line.hasPrefix("Timestamp") { continue }  // 不带 --style 时第一行是列标题，不是事件
+            if isLogRecordLine(line) {
+                records.append(line)
+            } else if let last = records.indices.last {
+                records[last] += " " + line
+            } else {
+                records.append(line)
+            }
+        }
+        return records
+    }
+
+    /// 事件行以 ISO-8601 时间戳开头（`2026-10-05 15:00:03.019740+0800 …`）。
+    /// 只认"前 4 位是数字、第 5 位是 `-`"，不去数列、也不假设年份。
+    static func isLogRecordLine(_ line: String) -> Bool {
+        guard line.count >= 5 else { return false }
+        let dash = line.index(line.startIndex, offsetBy: 4)
+        return line[dash] == "-" && line[line.startIndex..<dash].allSatisfy(\.isNumber)
+    }
+
+    /// 把 `log show` 的一行定宽列拆成正文。一行形如
+    /// `2026-10-05 14:57:15.732004+0800 0x19dd  Error  0x0  709  3  sharingd: (CoreUtils) [com.apple…] 正文`，
+    /// 前 7 段是列（日期 / 时间 / 线程 / 类型 / Activity / PID / TTL），列之间是一串对齐空格。
+    /// 之前这里是 `String(line.prefix(80))`：光那 7 段列就占掉 78 个字符，
+    /// 所以修好管道死锁之后第一次实机照片里，5 条「系统日志事件」全是列宽、一条正文都没有。
+    /// 认不出 7 段列的行（换行续行、别的 `log` 版本）退回整行，宁可难看也不丢事件。
+    static func unifiedLogRow(_ line: String) -> String {
+        var rest = Substring(line)
+        var clock = ""
+        for field in 0..<7 {
+            rest = rest.drop(while: { $0 == " " || $0 == "\t" })
+            guard let space = rest.firstIndex(where: { $0 == " " || $0 == "\t" }) else {
+                return String(line.prefix(120))
+            }
+            // 第 2 段是时间（第 1 段是日期），留着当行内时间戳——卡片的 time 只有"最近"。
+            if field == 1 { clock = String(rest[..<space]) }
+            rest = rest[space...]
+        }
+        let body = rest.trimmingCharacters(in: .whitespaces)
+        if body.isEmpty { return String(line.prefix(120)) }
+        return String((clock.isEmpty ? body : "\(clock) \(body)").prefix(140))
+    }
+
+    /// 后台队列边读边攒、主调线程到点取快照，两边跨线程，所以自带一把锁。
+    /// 用类而不是值捕获：信号量只提供"退出"这一件事的可见性，输出是随时可能被读的。
+    private final class UnifiedLogOutput: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage = Data()
+
+        func append(_ chunk: Data) {
+            lock.lock()
+            storage.append(chunk)
+            lock.unlock()
+        }
+
+        func snapshot() -> Data {
+            lock.lock()
+            defer { lock.unlock() }
+            return storage
         }
     }
 

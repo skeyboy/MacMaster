@@ -124,11 +124,11 @@
 | `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1141` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked。**P6.7 起这行开面板时写一条带 `marked.count` 的日志**，找不到的目标逐个点名（旧写法悄悄跳过，面板行数就成了自报） |
 | `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1165` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘 |
 | `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1129,1176` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法恢复"那一支（橙色三角、**无撤回按钮**），数字借自当前选中项，不移动任何文件 |
-| `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:410` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项。行号 P6.2b 起（整页骨架重排把钩子块往下推了 36 行） |
-| `MM_TCC_FIXTURE` | `MMGuardian` | `MMGuardian.swift:424` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
-| `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `MMGuardian.swift:438` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_LOAD` | `MMGuardian` | `MMGuardian.swift:450` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `MMGuardian.swift:461` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3） |
+| `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift` `GuardianViewModel.fixtureOverrides` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项。**这一族五个钩子的读取点全在 `GuardianViewModel` 的静态属性上**（原来是 `:410/:424/:438/:450/:461` 这种行号，P11b 一律换成符号名——它们已经漂过两次，每次改这一页都要重量） |
+| `MM_TCC_FIXTURE` | `MMGuardian` | `GuardianViewModel.tccFixtureState` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
+| `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `GuardianViewModel.loginFixtureStage` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
+| `MM_GUARDIAN_LOAD` | `MMGuardian` | `GuardianViewModel.holdInitialFrame` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
+| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `GuardianViewModel.activityFixtureStage` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3）。**P11b 的教训**：`rows` 档从来没证明过真实读取路径——它把待测的那条读法整条换掉了（§6.6.3 末尾） |
 | `MM_GUARDIAN_CARDS` | `MMGuardian` | `MMGuardian.swift` `GuardianCardFilter`（`GuardianFixtureHooks.swift`） | 卡显示过滤，逗号子集 `occupancy\|tcc\|login\|activity` | ✅ | 否 | **P6.2d 新增**。纯显示层过滤，不改变数据流；非法值整批拒绝并写 stderr。解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档用 `=activity` 只渲染活动卡，不再需要拉高窗口+压矮上方三卡 |
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift` | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、**caveat:unreadable:N / caveat:dataless:N（P6.6 新增，必须与 `duplicates:N` 同给，单独给则整条作废）**、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn。**P6.6 起有 `fixturePinned`**：给了夹具的 tab 会被钉住，随后落地的真实扫描结果整批丢弃。在此之前钩子是**半生效**的——三个 tab 的夹具被并发真实扫描覆盖，拍出来的照片挂着夹具文件名却是真实数据（见 §4 #2） |
@@ -273,6 +273,38 @@
 | `Scripts/p8-dashboard-scope-capture.sh` | 概览页「可清理跟勾选走」三档：①只勾日志 ②四个全关 ③删回默认值对照 | **P8 新增**，手段同 P7a（`defaults write` + `trap restore EXIT` + 归因头第三行 `# defaults:` 逐个键点名）。判据不是"数字变小"这种要看运气的说法，而是**结构性**的：01 那一档卡里只剩日志三类，「可立即释放 41.8 MB」正好等于两个可删类之和（应用日志 34.3 + 崩溃与诊断 7.5），只读的「系统日志 101.7 MB」不计入；03 同一格是 5.38 GB。02 是**未勾选类别**，不是「未扫描」也不是「测量失败」。两处实测代价：概览扫的是真实缓存，`SETTLE` 得给到 16 秒；窗口尺寸必须脚本自己写死（`SIZE=1400x1000`）——App 会恢复上次退出的 frame，第一次实跑恢复到 1000x652pt，要拍的那一卡直接落到折叠线以下 |
 | `Scripts/p8-disk-depth-capture.sh` + `Scripts/disk-depth-fixture.sh` | 磁盘详情第四格三档：①封顶节点=**未枚举** ②正常目录=真实计数 ③文件=— | **P8 新增**。普通夹具（`disk-fixture.sh` 最深两三层）永远走不到 `depth >= maxDepth` 那一支，所以另造一棵 20 层窄树：扫 `根/L01…L20` 时 depth=20，L20 里的目录 L21 被做成 `children: []` + `deepSize` + `descendantsMeasured: false`。钩子凭据是日志那行 `MM_DISK_SELECT 已选中 …（2.2 MB）`，与画面上「占用 2.2 MB」对得上，才证明这一档拍的是"字节量到了、名字没枚举"这一对（旧代码在这里写的是 `0`）。两个坑记在这：① zsh 里累加路径的变量**不能叫 `path`**（它与 `PATH` 绑定，一赋值 `seq`/`mkdir` 就 command not found）；② 01 档会顺带触发一次单层重枚举（`openDirectory` 遇到未缓存的一层起 `doNavigate`），所以 treemap 里 L21 底下看得见内容，而右侧详情读的是原扫描树里那个封顶节点——这正是"未枚举"该有的样子：这一层没枚举过，不等于它底下是空的 |
 | `Scripts/make-icon.sh` + `Scripts/make-icon.swift` | 生成 `Resources/AppIcon.icns`（十档），再**反向解一次核对**；`--check` 只核对不重生成 | **P10 新增**，这一条不是取证脚本而是**产物生成器**——图标没有钩子可注入，但它同样要"每个数字能自证"。形状取自设计系统的 `sparkles`（`docs/design-system/icons.js`），内外半径比 0.362 是从那条 path 直接量的，所以稿与产物可以逐数比对。判据刻意不用 `sips -g pixelWidth`：那只会报容器里被挑中的一档，**看不出十档是不是都在**，而少一档的后果（Dock 16pt 拿大图硬缩）在 plist、codesign、界面上都没有任何征兆。所以走 `iconutil -c iconset` 解回来数档数、比 1024 档字节数（现测 270,169 与源 PNG 一致） |
+| `Scripts/p11-hardened-check.sh` | 同一份二进制、两种签名档次（`flags=0x2(adhoc)` 与 `flags=0x10002(adhoc,runtime)`），逐能力拍七行对照照片：TCC.db / `launchctl list` / `log show` / SMC+IOKit 磁盘 / `tmutil` / 两组 kqueue 监听 | **P11 新增**。它把 `release-readiness.md` §3 那张**预测表**变成照片。两条硬规定写进脚本头：① **本轮零顶数据夹具**（`MM_*_FIXTURE` 改的正是"喂给界面的数据"，而这一轮测的是"取数那条系统调用还通不通"，带上夹具等于把待测对象换掉，照片会拍出一张漂亮的假绿）——唯一例外是监听两档的**目录**钩子，它们只把 kqueue 指到 /tmp，事件仍走真实 `DispatchSource`；② 需要点击才能触发的那条（登录项开关会真改用户 launchd 状态）**不测**，并把空白如实写回 §3。监听两档**不自己造时序**，直接调已验证的 `p68-trash-capture.sh` 与 `apps-watch-run.sh`——第一版在这里造过一次，`mv` 一个 `.txt`、等 9 秒，两档照片逐字节相同，看着像"签名不影响这一行"，其实什么都没拍到（要 `.app`、改动要晚于基线、mv 之后要等约 45–60 秒）。`ONLY=shots` / `ONLY=watch` / `ONLY=01,02,04,05` 逐档重拍（后者在 P11b 修完活动卡之后真的跑过一次，四档各自把关、没有把 03 捎上）|
+| `Scripts/p11-pipe-deadlock-repro.swift` | 不启动应用，只按同样的 API 形状跑同一条 `log show`：① 先 `waitUntilExit()` 再读 ② 读与等分占两条队列、**一超时整批丢掉** ③ 仓库实装（边读边攒、超时只杀子进程），各打印**自己的**耗时、字节数与可用事件条数；末位参数是 ③ 的轮数 | **P11 新增**。它是"这一格为什么是空的"的**独立复现件**：现测 ① 停在整 **65,536** 字节、8.01 秒到点被杀，② **0.82 秒**取回 **198,172** 字节，③ 五轮 0.83–0.90 秒正常退出、154–156 条事件行可用。有这一个文件，下一轮不必重跑整个应用、也不必信我们的叙述就能自己撞见同一个死锁 |
+| `Scripts/make-app.sh` 的 `HARDENED=1` | 额外打 `--options runtime`，并在构建末尾**自己读回** `codesign -dv` 的 flags 一行 | **P11 新增档位**。它**不是任何一种发布形态**（发布要证书 + 公证），只是这一轮的量具。签名档次必须由脚本自己读回来打印——`codesign` 加了什么标志，看构建日志比看脚本可靠 |
+- **`waitUntilExit()` 之后再读管道，是一个只在"输出够大"时才发作的死锁**（P11）：`Pipe` 的内核缓冲
+  只有 64 KB，子进程写满就卡在 `write`，父进程卡在 `wait`，谁也不动。这一路的输出量取决于**本机日志量**，
+  所以它在开发机上可以永远不出现——`scanUnifiedLog()` 自落地起就从未返回过内容，而界面显示的是
+  **另外两个信号**，看上去完全像"这台机器近 5 分钟没有活动事件"。两个可复用的判据：
+  ① 凡是 `Process` + `Pipe`，**读和等必须分占两条队列**（同仓 `SystemSpaceReport` 那一处是同样的形状，
+  只因 tmutil 输出小才没发作——"没发作"不等于"写对了"）；② 超时保护会**把死锁伪装成空结果**，
+  所以带超时的读取要配一个能报字节数的复现件（`p11-pipe-deadlock-repro.swift`），
+  否则下一次超时你只知道"没数"，不知道是"没数"还是"没读到"；
+  ③ **超时之后不要把已经读到的整批丢掉**——仓库里实装的是复现件的第三支（边读边攒、超时只杀子进程、
+  攒下的部分照常解析），因为"超时"和"这台机器没有事件"在界面上是同一句话，而它们不是同一件事。
+  现测这一条命令 0.82–0.90 秒就跑完（**没有**触发超时），所以第三支在照片上和第二支看不出区别——
+  它是给"会挂住的那种环境"买的保险，不是本轮的胜负手，别把它写成修好了什么。
+- **列宽会吃掉正文**（P11）：`log show` 不带 `--style` 时一行是 7 段定宽列 + 正文，
+  旧代码 `line.prefix(80)` 恰好截在列里，于是修好死锁之后的第一张照片是"5 条事件、0 个字的内容"。
+  同一批里还有两个同族错：列标题那一行被当成第 1 条事件，长消息的**折行续行**被当成独立事件
+  （卡片写着 5 条其实 4 条）。判据都在 `ActivityScannerLogRowTests`，喂的是本机抄下来的行形状。
+- **取"前 N 条"之前先量一遍子进程的输出顺序**（P11）：`log show` 是**升序**的（实测末行就是"刚刚那一秒"），
+  而 `scanUnifiedLog()` 取 `prefix(5)` 再配一句写死的 `time: "最近"`——于是卡片画的永远是这 5 分钟窗口
+  **最旧**的那头，15:07 拍的照片里五行时间戳全在 15:02。这一条**死锁修好之后才看得见**：
+  死锁时这一格根本没有行，顺序错了也没人能看到；而先看到的那两个错（列宽、续行）又恰好都在
+  "内容有没有活下来"这一侧，没人去问"这 5 条凭什么是这 5 条"。判据：`testRecentRecordsTakeTheNewestEndNotTheOldest`
+  喂 9 条升序事件，必须交出 8…4 而不是 0…4。**照片上的时间戳本身就是判据**，读照片时别只读文案。
+- **复现件里的计时必须逐支独立起点，不能共享一个全局起点**（P11，本轮自己量错自己的数）：
+  `p11-pipe-deadlock-repro.swift` 第一版用 `stamp()` 打印"从脚本开始到现在"，于是 ② 那一行报的
+  「8.90s」里含着 ① 的 8 秒死锁，读起来像"这条命令要 8.9 秒、超了应用侧 8 秒预算"——**而它自己只跑了 0.82 秒**。
+  这个伪结论被抄进了源码注释与三份文档才被发现（发现契机是 ③ 打印「9.73s 正常退出」，
+  一个不该出现的数：既然 8 秒就超时，正常退出怎么会花 9.73 秒）。两处可复用：
+  ① 多段对照的脚本，**每一段自己记 `t0`**；② 打印耗时的地方要顺手打印"这一支是否触发了它自己的超时"，
+  让"耗时 > 预算"这种组合自己暴露出来，而不是靠人回头看。
 - **每份 `.log` 开头两行归因头**（P6.8b）：三个 p68 脚本的日志先写
   `# <脚本> <档> <时间> app=… fixture=…` 与 `# env: <本档全部注入变量>`，再接应用 stderr。
   原因是**钩子的成功路径大多不说话**（`MM_UNINSTALL_SELECT` 只在落空时写一行、
