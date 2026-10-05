@@ -1,0 +1,10 @@
+# p14-header-capture.sh 02-min-window  2026-10-05 16:54:28 +0800  app=/tmp/mm-app-p14/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=guardian MM_WINDOW_SIZE=1000x600
+# fixtures: 无（本轮拍的是静态页头文案，注入夹具就不是用户看到的那个页头）
+# codesign: flags=0x2(adhoc)
+# 判据：照片上副标题那一行不许出现「…」。MM_WINDOW_SIZE 请求值会被
+#       .frame(minWidth:minHeight:) 夹，生效值看应用自己回读的那一行（本 .log 末尾）
+# pid: 12285（由本脚本启动，也由本脚本 kill；不是用户的实例）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p14/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1000x600 请求 1000x600pt，窗口实际 1000x652pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）

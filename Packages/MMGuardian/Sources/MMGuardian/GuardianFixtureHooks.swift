@@ -112,9 +112,9 @@ enum LoginItemFixture {
     ]
 }
 
-// MARK: - 系统活动卡（MM_GUARDIAN_ACTIVITY_FIXTURE）
+// MARK: - 密钥与自启配置的改动时间卡（MM_GUARDIAN_ACTIVITY_FIXTURE；P11c 之前这一卡叫「系统活动」）
 
-/// 系统活动卡此前没有任何钩子（fidelity-guardian G1）：空态与填充态都无法无头截图核对。
+/// 这一卡此前没有任何钩子（fidelity-guardian G1）：空态与填充态都无法无头截图核对。
 /// 这里补一个纯展示档位，口径与其它 fixture 一致：只顶替展示数据、不读 /tmp、不写盘、
 /// 不 spawn 子进程；合成条目一眼可辨（com.example.* / 明确"夹具值"字样）。
 enum GuardianActivityFixture {
@@ -185,7 +185,8 @@ enum GuardianCard: String, Equatable, Sendable, CaseIterable {
 
 /// 只影响**渲染哪几张卡**，不影响任何一张卡里读什么、怎么排。
 ///
-/// 加它的理由是一条实测出来的取景死角：第 4 张卡（系统活动）在 760pt 窗口里永远在折叠线下，
+/// 加它的理由是一条实测出来的取景死角：第 4 张卡（密钥与自启配置的改动时间，P11c 之前叫「系统活动」）
+/// 在 760pt 窗口里永远在折叠线下，
 /// 而窗口拉高这条路走不通——屏高 1080pt、`MM_WINDOW_SIZE` 请求 1400 会被 AppKit 夹到 ~1050，
 /// 夹取后的真实尺寸由 `LaunchBehavior` 回读凭据（不是我们请求的那个值）。
 /// 压矮上面几张卡也只是缓解：`MM_GUARDIAN_LOGIN_FIXTURE=rows` 那 7 行本身就有 ~500pt，

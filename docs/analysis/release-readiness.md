@@ -8,7 +8,7 @@
 
 ## 0. 结论先行
 
-- **功能面：可以发。** 九个包全绿：`579` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
+- **功能面：可以发。** 九个包全绿：`583` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
 - **分发面：现在这份产物还不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
   没有许可证书（§2）。图标那一项 **P10 已补**（§2.2：`Resources/AppIcon.icns` + `CFBundleIconFile`）。
@@ -20,30 +20,33 @@
   （**P11c 注**：那七行里的"启 `/usr/bin/log show` 读统一日志"一行，**下一轮就从界面上撤下了**，
   所以当前二进制只剩六行需要那份兼容结论——测量本身没白做，它正是撤下的依据，见 §3 末尾与 §6.7。）
 - **两个必须由人拍板、实现不代选的事项**：许可证（§2.3）与开发者身份（Apple Developer 账号，§2.1）。
-- **§10 那份 checklist 的 1–3 步已经真跑过三遍**（P8 之后一遍 571/0/1；**P12 在带 P11 改动的二进制上
-  581/0/1**；**P13 在带 P11c 改动的二进制上 579/0/1**，都是 2026-10-05）：
-  `VERSION=1.0.0 BUILD=1` 的候选产物，照片把"版本号走到界面"这条链闭合了三次
-  （§7.2、§7.3、§7.4）。**判定没变**：卡在第 4 步那四项人工决定上。
+- **§10 那份 checklist 的 1–3 步已经真跑过四遍**（P8 之后一遍 571/0/1；**P12 在带 P11 改动的二进制上
+  581/0/1**；**P13 在带 P11c 改动的二进制上 579/0/1**；**P14 在带页头合同改动的二进制上 583/0/1**，
+  都是 2026-10-05）：
+  `VERSION=1.0.0 BUILD=1` 的候选产物，照片把"版本号走到界面"这条链闭合了四次
+  （§7.2、§7.3、§7.4、§7.5）。**判定没变**：卡在第 4 步那四项人工决定上。
   P12 顺带把 §7.2 挂着的那句"含义未查"量成了事实：**那行 sandbox 警告是启动路径带来的，不是签名**（§7.3）。
   P11c 动过活动卡，**P13 就是那一遍补的账**：除了三张基础照片，还在候选产物上重拍了改名之后的
-  那张卡（§7.4 表格最后一行）。**期望值以 §1 为准**，别拿 581 当基准。
+  那张卡（§7.4 表格最后一行）。P14 动的是页头副标题，所以第四遍之外另拍了一组三档宽度的排版照片（§7.5）。
+  **期望值以 §1 为准**，别拿 581 或 579 当基准。
 
 ## 1. 本轮实测数字
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **579** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了 |
+| 测试总数 | **583** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了。**P14 再重跑：579 → 583**（+4，`GuardianHeaderContractTests`：页头副标题的段数合同，见 §7.5） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
 | 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（P12 现读 `:167`；此前写 `:173`，**漂了 6 行且没人说得清是哪一轮漂的**——这一格自 P7 起没被重读过），跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
-| 生产代码量 | **26,340 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P11c 重跑；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**） |
-| 测试代码量 | **8,984 行** | 同一条命令换成 `-path '*/Tests/*'`（P11c 重跑；P7 时 8,790，P8 时 8,846，P11 时 8,957） |
-| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11 与 P11c 两轮一个新增钩子都没加**（P11c 只改了既有 `MM_GUARDIAN_ACTIVITY_FIXTURE` 的 `rows` 档用词） |
-| 子进程启动点 | **3 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 3 行（P11c 重跑；从前是 4 处，`ActivityScanner.scanUnifiedLog` 那一处随统一日志族删除）。见 §3 |
+| 生产代码量 | **26,358 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（**P14 重跑**；P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**，P14 +18 是 `GuardianPageCopy` 那一份清单与两条注释） |
+| 测试代码量 | **9,026 行** | 同一条命令换成 `-path '*/Tests/*'`（P14 重跑；P7 时 8,790，P8 时 8,846，P11 时 8,957，P11c 时 8,984） |
+| 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11、P11c、P14 三轮一个新增钩子都没加**（P11c 只改了既有 `MM_GUARDIAN_ACTIVITY_FIXTURE` 的 `rows` 档用词；P14 的新脚本 `p14-header-capture.sh` 只组合已有钩子，且判据是"零夹具"） |
+| 子进程启动点 | **3 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 3 行（P14 现读复核仍是 3；从前是 4 处，`ActivityScanner.scanUnifiedLog` 那一处随统一日志族删除）。见 §3 |
 | 网络代码 | **0** | `grep` `URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里**无命中** |
 
-逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 **P11c** 重跑）：
+逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 **P14** 重跑）：
 MMCore 43 · MMUI 17 · MMFileScanner 116 · MMCleaner 18 · MMUninstaller 121 ·
-MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian **91** · MMOptimizer 54。
+MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian **95** · MMOptimizer 54。
+**逐包求和 = 583**，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
 
 > **P12（2026-10-05，发版核验轮）把上表八行全部现读复核了一遍**：581/0/1（逐包分布同上，MMGuardian 93）、
 > 26,428 / 8,957 行、52 个钩子名、4 处 `Process()`、网络代码零命中——**六个数一个都没漂**；
@@ -334,12 +337,13 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 | MMUninstaller（卸载） | **可发布** | 121 测试（全仓最多）。开着的是 **B1**（列表宽 268 令牌 vs 稿 300，归协调层）、**B2**（`MM_SHOW_TRASH_CONFIRM` 需与 `MM_TRASH_SCAN_HOME` 同时给的互锁没写进文档）——两条都是文档/稿侧缺口，不影响功能 |
 | MMDisk（磁盘分析） | **可发布·需标注** | 66 测试（1 跳过）。永久删除闸门见 §5。**标注内容**：treemap 需要真实扫描，大目录下扫描时间与内存都要在说明里提一句；**触达深度上限（`maxDepth = 20`）的目录只量字节不列名字**，界面上写的是「子项 未枚举」——这句要在发版说明里保留，否则用户会以为那一格坏了。**I4 已于 P8 收口**（标签回「子项」+ 封顶档说「未枚举」，见 §7.1 与 `fidelity-disk.md` §12），仍开着的是 **I3**（详情头部图标与稿不同）、**I6**（相对时间 vs 绝对日期），以及**稿侧** `04-disk.html:163` 仍写递归「文件数 42,180」 |
 | MMMonitor（监控 + 菜单栏） | **可发布** | 53 测试。SMC/IOKit 都有失败降级并在界面上说原文原因（§3 那两行）。开着 **I8**（网络速率只在菜单栏显示、页面不用——归设计稿决定） |
-| MMGuardian（守护） | **可发布·需标注** | **91 测试**（P11c 现读：`swift test --package-path Packages/MMGuardian` → `Executed 91 tests, with 0 failures`。这一格从 93 变 91：撤下日志族删掉 10 条日志单测、活动卡文案合同新增 8 条，一减一增之后就是这个数）。**标注内容**：①TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；②活动卡现在叫「密钥与自启配置的改动时间」，**只有 mtime、不报"最近访问"**，卡片底部把这句写在界面上（八档谓词测量与三条合同见 `fidelity-guardian.md` §6.7）——发版说明里不能把这一格写成"最近访问记录"；③统一日志那一档**P11c 已整族撤下**，所以这一模块不再有"起子进程读系统日志"这一项（§3 第 2 行）。从前这里挂着的那三条 `log show` 缺陷随之消失，但死锁的教训与复现件 `Scripts/p11-pipe-deadlock-repro.swift` 保留 |
+| MMGuardian（守护） | **可发布·需标注** | **95 测试**（P14 现读：`swift test --package-path Packages/MMGuardian` → `Executed 95 tests, with 0 failures`；91 → 95 是页头副标题那份合同，`GuardianHeaderContractTests` 四条，判据与**否证实验**见 `fidelity-guardian.md` §8.1）。**标注内容**：①TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；②活动卡现在叫「密钥与自启配置的改动时间」，**只有 mtime、不报"最近访问"**，卡片底部把这句写在界面上（八档谓词测量与三条合同见 `fidelity-guardian.md` §6.7）——发版说明里不能把这一格写成"最近访问记录"；③统一日志那一档**P11c 已整族撤下**，所以这一模块不再有"起子进程读系统日志"这一项（§3 第 2 行）。从前这里挂着的那三条 `log show` 缺陷随之消失，但死锁的教训与复现件 `Scripts/p11-pipe-deadlock-repro.swift` 保留；④**页头副标题是四段清单，加长它会静默变成省略号**（`MMPageHeader` 的副标题是 `.lineLimit(1)` + 中间截断），三档窗口的排版照片在 `docs/verification/p14-header/`，判据"那一行不许出现 `…`"（§7.5） |
 | MMOptimizer（优化） | **可发布·需标注** | 54 测试。开着的是**形态题**（`MMFailurePanel` 通栏条 vs 带边框卡，与 cleaner I5 同一件事，归协调层）与 `fidelity-optimizer.md` 的 #8/#10 未拍全（跨 tab 运行态、阶段枚举）。**标注内容**：重复文件删除前必须人工核对分组，PROTECTED 组永远不给删除入口 |
-| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 579 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里 |
+| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 583 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里 |
 | MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉 |
+| 对外文案 `docs/website/index.html` | **不在产物里·本轮起才进表** | 这一页**从来没有跟实现对照过**：改动前 `grep -rn website docs/analysis/` 是 **0 命中**，九张 fidelity 对照表里也没有它的位置。P11c 撤下统一日志之后，页里那句"管理登录项，**监控系统活动**"当场变成假话（我们不再读日志，占用那一格也明写"非实时监听"），**本轮只改了被证伪的这两句**（卡片正文 + 截图位说明）。仍开着的：①其余口号未核（"一键清理"、"智能扫描系统缓存、日志、临时文件"、"实时监控 CPU…"）；②截图位是四个 `screenshot-placeholder` 的 div、全页 `<img>` 为 0，**一张真图都没有**；③下载那一枚主 CTA 是死链（现读 `:387`：`<a href="#" class="cta-button">下载 MacMaster</a>`，全站 `<a>` 只有锚点与这一枚 `#`，没有任何 dmg/仓库地址）。**发版若要用这一页，得单开一轮把它过完**——它不需要代码改动，需要的是有人对着界面逐句读一遍 |
 
-## 7. 本轮收口的四处（都是"用户可达"的那一类）
+## 7. 逐轮收口与发版核验（都是"用户可达"的那一类）
 
 | 位置 | 之前 | 现在 | 证据 |
 | --- | --- | --- | --- |
@@ -449,6 +453,30 @@ P11c 把它改成「密钥与自启配置的改动时间」之后，**副标题�
 （源码里 `log show` 零命中、测试里零命中、设计稿已同步，只有这一行是"卡改名了但页头没跟"）。
 记为 `fidelity-guardian.md` 的开放项，改法是一行文案，归下一轮。
 
+### 7.5 P14：同一套三步在**带页头合同改动**的二进制上第四遍重跑，并量了"这句话放不放得下"（2026-10-05）
+
+§7.4 末尾那条 **D1** 在这一轮关闭（`fidelity-guardian.md` §8.1）：副标题改成由 `GuardianPageCopy.subtitleSegments`
+一份清单生成，段数由 `GuardianHeaderContractTests` 钉住。跑法与前三遍相同，产物 `/tmp/mm-app-p14`，
+证据 `docs/verification/p14-v1/`（三张）+ `docs/verification/p14-header/`（三张）。
+
+| 判据 | 量到的 | 出处 |
+| --- | --- | --- |
+| 第 1 步 全量测试 | **583 / 0 / 1**，逐包求和 = 583（MMGuardian 91 → **95**） | `./Scripts/run-all-tests.sh` |
+| 第 2 步 候选产物 | plist `1.0.0` / `1` / `CFBundleIconFile=AppIcon`，`flags=0x2(adhoc)`、`TeamIdentifier=not set`，`spctl` 判 `rejected` | `p14-v1/02-about.log` 的 `# plist:` / `# codesign:` / `# spctl:` |
+| 第 3 步 版本链闭合（第四遍） | 同一屏「版本 1.0.0 (1)」+ AppIcon 本体 +「尚未选择许可」+「未配置官方渠道」+「反馈问题」灰着 | `p14-v1/02-about.png` |
+| **本轮新判据**：四段副标题放不放得下 | 三档窗口（1100×700 默认 / 请求 1000×600、实际 **1000×652** 被 `minHeight` 夹 / 1400×900 控制组）**四段全在，无 `…`**；最窄档末尾距「刷新」不到三个汉字宽（照片 2× 估读） | `Scripts/p14-header-capture.sh` → `p14-header/0{1,2,3}-*.png` |
+| 合同测试的**否证实验** | 把第四段从数组里删掉 → `Executed 4 tests, with 2 failures`，两条消息分别报"4 张卡 vs 3 件事"和"最后一段不是卡自己的标题" | 同 `GuardianHeaderContractTests`，跑法 `swift test --package-path Packages/MMGuardian --filter GuardianHeaderContractTests` |
+
+**为什么要为一句副标题单开一支脚本**：`MMPageHeader` 的副标题写 `.lineLimit(1)` + `.truncationMode(.middle)`，
+所以把 3 段改成 4 段**不会**换行、**不会**溢出、**不会**让任何一条测试变红——它唯一的可见后果是画面上多一个
+省略号，而切掉的正好是"登录项管理"这种少看一眼也不觉得少了的词。**单测钉得住"段数对不对"，钉不住"这一句放不放得下"，
+所以这两件事分别用一支测试和一组照片管**（同一条口径见 `hook-ledger.md` §5 的 P14 两条）。
+
+**四遍重跑的差别只有一处**：571 → 581 → 579 → **583** 个测试，产物四遍都是 `1.0.0(1)` / adhoc / `rejected`，
+版本链四遍都闭合。**判定仍然没变**：第 4 步那三项（许可、`NSHumanReadableCopyright`、签名方式）是人的决定，
+不在代码里。改名残留这一轮扫完（`fidelity-guardian.md` §8.3 那张处置表），
+顺带照出**第三个表面**——落地页从未与实现对照过，已进 §6 表格单独一行。
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 - ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
   拼法收敛到 `CacheScanScope.selected(systemCache:appCache:logs:temp:)`（`CacheScanner.swift`），
@@ -500,7 +528,7 @@ P8 之后按 §10 出的 **v1.0.0 候选产物**也已闭合同一条链（§7.2
 ## 10. 发版前 checklist（可直接执行）
 
 ```
-# 1. 全量测试（期望 579/0/1、MMGuardian 91；数字变了要回写本文 §1）
+# 1. 全量测试（期望 583/0/1、MMGuardian 95；数字变了要回写本文 §1）
 ./Scripts/run-all-tests.sh
 
 # 2. 构建候选产物（版本单一来源；图标随仓库带着，构建前先自证一次）
@@ -510,11 +538,15 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 # 3. 三张基础照片 + 把签名/plist（含 CFBundleIconFile）/gatekeeper 结论写进日志归因头
 #    重跑要换输出目录：这一条写进 /tmp 的那份日志归因头会**盖掉上一轮的证据**。
 #    P9 第一遍写的是 docs/verification/v1.0.0/，P12 第二遍写 docs/verification/p12-v1/，
-#    P13 第三遍写 docs/verification/p13-v1/。
-./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p13-v1
+#    P13 第三遍写 docs/verification/p13-v1/，P14 第四遍写 docs/verification/p14-v1/。
+./Scripts/p7-release-check.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p14-v1
 
 # 3b.（可选，一次性的归因探针）那行 sandbox_extension 警告是路径带来的还是签名带来的（§7.3）
 ./Scripts/p12-sandbox-warning-probe.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p12-v1
+
+# 3c.（可选，只在动过任何一处 MMPageHeader 副标题时跑）页头副标题三档宽度不出现省略号（§7.5）
+#     副标题是 .lineLimit(1) + 中间截断：加长它不会报错、不会换行，只会静默切掉句子中段。
+./Scripts/p14-header-capture.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p14-header
 
 # 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
@@ -541,21 +573,30 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **P13（2026-10-05，P11c 之后）第 1–3 步第三遍重跑 579/0/1** ✅：产物 `/tmp/mm-app-p13`，
 证据 `docs/verification/p13-v1/`（四张照片 + 四份日志），逐判据见 §7.4。第 4 步仍 ⬜。
 
+**P14（2026-10-05，页头合同之后）第 1–3 步第四遍重跑 583/0/1** ✅：`make-icon.sh --check` 仍是
+`✓ 反向解出 10 档；1024 档 270169 字节`（与 P13 同一个数，图标这一轮没动）→ 产物 `/tmp/mm-app-p14` →
+证据 `docs/verification/p14-v1/`（三张照片 + 三份归因日志）；**另加 3c 那一档**：
+`docs/verification/p14-header/`（三档窗口宽度 × 三张照片 + 三份日志，判据"副标题那一行不许出现 `…`"）。
+逐判据与否证实验见 §7.5。第 4 步仍 ⬜，第 5 步不需要重跑（P14 没动签名相关的任何东西）。
+
 **P12（2026-10-05，同一天的第二遍）第 1–3 步在带 P11 改动的二进制上重跑** ✅✅✅：
 581/0/1 → `make-icon.sh --check` 过 → `/tmp/mm-app-v1`（`VERSION=1.0.0 BUILD=1`）→
 `docs/verification/p12-v1/`（三张照片 + 三份归因日志 + 两份探针日志 + 一张用户目录窗口照片），
 逐条判据见 §7.3；第 4 步 ⬜ 仍待人拍板；第 5 步不需要重跑（P11 那一份代码没再动过签名相关的东西，
 而 §3 的三条限定仍然成立）。第 2、3 与 3b 步的产物与探针目录都是**一次性的**，跑完已清掉。
 
-## 11. 「能不能发第一个稳定版本」——P12 的正面回答
+## 11. 「能不能发第一个稳定版本」——P14 的正面回答（P12 起笔，P13/P14 各补一遍核验）
 
 问的不是"还有什么没做"，而是**今天把这份代码发出去，会不会说到做不到**。分三层答：
 
-1. **作为"自己编译自己用 / 带源码的私有分发"：能发，今天就能。** §10 第 1–3 步跑过三遍（P13 是最新一遍，
-   在带 P11c 改动的二进制上），
-   §6 那十行判定全落在"可发布"或"可发布·需标注"两档（**没有一行是"不发这一屏"**）、
+1. **作为"自己编译自己用 / 带源码的私有分发"：能发，今天就能。** §10 第 1–3 步跑过**四遍**（P14 是最新一遍，
+   在带页头合同改动的二进制上），
+   §6 那十行判定（不含 P14 新加的对外文案那一格）全落在"可发布"或"可发布·需标注"两档
+   （**没有一行是"不发这一屏"**）、
    §5 那道闸门两个删除出口都过、§4 零网络代码。
    需要写的只有 §9 那四条标注 + §4 的写盘三项（其中 `trash-history.json` 会记用户文件路径，必须写）。
+   （§6 最后一行是 P14 新加的**对外文案**那一格，它不在产物里，判档是"本轮起才进表"——
+   它不影响这一条判定，但影响下面第 3 条那句"能测的都测了"。）
 2. **作为"给陌生人的 dmg"：还差三项，且三项都不是代码。** §2.1 的签名与公证（要账号）、
    §2.3 的许可（要拍板）、`NSHumanReadableCopyright` 的年份与权利人（要填名字）。
    **代价面 P11 已经量过**：走 Developer ID + 公证**不需要砍任何功能**（§3 结论 1，七行零打断）。
@@ -563,11 +604,13 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 3. **发之前不必再补的技术项**：本轮把 §3 的空白（`launchctl` 写侧）之外能测的都测了；
    §8 那五条是账、不是门（两处行号漂移本轮已改，两处死开关已明说，五处空骨架待人工决定，
    `.gitignore` 那条断链要在 README 里说明）。
+   **P14 起这一条要加一句限定**：`docs/website/index.html` 那一页**不在"能测的都测了"里**——
+   它从来没有跟实现对照过（§6 最后一行），只是它不进产物，所以不改变"能不能发"的判定。
 
 **唯一一处"能力靠肉眼而不是靠测试"**：壳层零测试目标（§6 最后一行）。这一条**不阻塞发版**，
-但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 579 条测试**没覆盖**的那一层，
-它靠的是 `docs/verification/` 下那 **42 个目录**（P13 现读 `ls -d docs/verification/*/ | wc -l`：
-40 个在 P11c 之前已入库，`p11c-activity/` 与 `p13-v1/` 是这两轮各新增一个。本文上一版写的是
+但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 583 条测试**没覆盖**的那一层，
+它靠的是 `docs/verification/` 下那 **44 个目录**（P14 现读 `ls -d docs/verification/*/ | wc -l`：
+P13 那一遍读到 42，P14 这轮新增 `p14-header/` 与 `p14-v1/` 两个。本文上一版写的是
 "37 个（P12 之后 38）"——那个数从 P10/P11 起就没跟着涨，是本文**唯一一个自己没被计数脚本罩住的数**，
 现已改成现读）。
 
@@ -578,4 +621,12 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 `fidelity-guardian.md` §6.7 的量表），所以这一卡现在只报**密钥目录与用户 LaunchAgent 的 mtime**，
 名也改成了「密钥与自启配置的改动时间」。它不再依赖签名档次，也不再依赖 Developer ID 什么时候定——
 **这一格和发版那三项决定脱钩了**。
+
+**P14（2026-10-05）把 P13 挂着的那条 D1 关掉，同时照出一个新缺口**：页头副标题从前只列三件事、
+这一屏有四张卡，现在它由 `GuardianPageCopy.subtitleSegments` 一份清单生成，段数有测试钉住、
+排得下与否有照片钉住（§7.5）。**新缺口不在代码里，在对照表之外**：这一轮为了扫改名残留而
+`grep` 全站，才发现 `docs/website/index.html` 那句"监控系统活动"从 P11c 起就是假话，
+而这份落地页**从来没有进过任何一张 fidelity 对照表**（改动前 `grep -rn website docs/analysis/` = 0 命中）。
+逐元素对照表能测"稿与实现像不像"，测不出"还有第三个表面没被看过"。已进 §6 表格单列一行，
+判档"不在产物里·本轮起才进表"，**不阻塞发版**，但发版若要用这一页就得先单开一轮把它过完。
 

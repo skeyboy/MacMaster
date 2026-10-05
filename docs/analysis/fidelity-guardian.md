@@ -19,7 +19,7 @@
 > **两边都改 0 条**。**另有 1 张实现独有卡（系统活动）完全没被设计稿覆盖**（其状态钩子已落地，见 §6.6.3）。
 > **P13 更正这两句**：那张卡已在 P11c 进稿（§6.7，S12 关闭）；"两边都改"从 0 条变 **1 条**、
 > 需归属的差异因此是 **17 项**（**高 0 / 中 3 / 低 14**）——新增的 **D1** 是页头副标题只列三件事、
-> 而这一屏有四张卡，两边同一句文案，见 §7.1。
+> 而这一屏有四张卡，两边同一句文案，见 §7.1。**（D1 已在 P14 关闭，见 §8.1。）**
 >
 > **P6.2b 更新（2026-10-03）**：实现该改从 4 条变 6 条（新增 I5 整页分隔语言、I6 定高切字），其中 **I1/I3/I5/I6 已落地**、
 > I2 归协调层；§4 里"无头拍不到"的 5 项已实拍（`docs/verification/p62b-fidelity/`），
@@ -39,13 +39,20 @@
 > 拍在 `VERSION=1.0.0 BUILD=1` 的候选产物上（§6.7 那四档是调试构建，两回事）。同一轮把本文
 > §1 的**行号引用全量现读了一遍**：11 处漂了 9 处，**没有一处指错元素**——结论有效、坐标过期，
 > 逐条已就地更正（§7.2 有对照表）。新增开放项 **D1**（§7.1）。
+>
+> **P14 更新（2026-10-05）**：**D1 关闭**（§8.1）——页头副标题改成由 `GuardianPageCopy.subtitleSegments`
+> 一份清单生成，段数由 `GuardianHeaderContractTests`（4 条）钉住，并且**做过否证实验**：删掉第四段
+> → `Executed 4 tests, with 2 failures`。同一轮量到一件改文案时不会报错的事：
+> `MMPageHeader` 的副标题是 `.lineLimit(1)` + **中间省略**，所以加长它的后果不是换行也不是溢出，
+> 而是画面上多一个 `…`、切掉的正好是句子中段。三档窗口的实机照片在 §8.2
+> （`docs/verification/p14-header/`）：四段在 1000pt 地板宽度下仍完整，余量不到三个汉字宽。
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
 | 事项 | 值 |
 | --- | --- |
 | 设计稿 | `docs/design-system/screens/mmguardian/06-guardian.html`（3 个 artboard：A 正常态首屏·四档 montage / B Mac mini 实机首屏 / C TCC 降级双卡「读不到」「查到了没有」） |
-| 渲染 | `cd docs/design-system && ./render.sh screens/mmguardian/06-guardian.html 1160 4600` → `screens/mmguardian/06-guardian.png`（稿内已出，本审计未重渲） |
+| 渲染 | **P14 重渲**：`cd docs/design-system && ./render.sh screens/mmguardian/06-guardian.html 1100 2688` → `screens/mmguardian/06-guardian.png`（2200×5376，2x）。两处要记清：① 这一格从前写的是 `1160 4600`，而**那条命令从来没有产出过入库那张图**——旧文件是 2200×5200，即 1100×2600 @2x，宽度与高度都对不上（那一格自己也写着"本审计未重渲"，所以它记的是抄来的命令，不是跑过的命令）；本轮按旧图的**同一宽度 1100** 重渲，免得画板宽度变了却没人察觉。② 高度是量出来的：先按 3000 渲一版，用 PIL 逐行找最后一条非背景行（y=5320 @2x → 2660 CSS px），再按 2688 重渲，两版尾行同为 y=5320 → **没切内容**，页底留白 55 px（2x）。旧图那一版的尾行在 y=4416，画布 5200 → 稿尾挂着 ≈392 CSS px 的纯灰底，正是 `fidelity-monitor.md` 那条"猜高度的代价"的同一个形状 |
 | 实机 | **P3 审计时无头**（该节判定全部来自代码 + HTML + tokens 比对）；**P6.2b 起本模块有实拍**：`docs/verification/p62b-fidelity/`（raw @2x PNG）。原记"全站像素锚点引用 monitor §0（侧栏 220pt）"已被本轮重测推翻——改前实机是 200pt，见 §6.3 |
 | 可用钩子 | `MM_GUARDIAN_FIXTURE`(占用档) / `MM_TCC_FIXTURE`(TCC 档) / `MM_GUARDIAN_LOGIN_FIXTURE`(登录项档) / `MM_GUARDIAN_LOAD=hold`(首帧定格) / `MM_GUARDIAN_CARDS`(卡过滤，逗号子集 `occupancy|tcc|login|activity`)。前四个均 `com.example.*` 合成、只读、不写盘；`MM_GUARDIAN_CARDS` 是显示层过滤，不改变数据流（`grep processInfo.environment Packages/MMGuardian/` → 5 命中） |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘事件；未改 `Packages/MMGuardian/` 之外文件（tokens/screen/icons/render.sh/MMCore/MMUI 均只读）；未 `git` 任何操作；未 `swift build`；未碰 `/tmp` 之外路径 |
@@ -75,7 +82,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 标题「隐私守护」 | `MMGuardian.swift:24` | ✅ | 逐字一致 | — | — |
-| 副标题「摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理」 | `:24` | ✅ | 逐字一致（与 `guardian-device-usage.md` 复核口径"非实时监听"对齐）。**但两边一起漏了一件事：这句只列了三张卡，这一屏现在有四张**——见 §7 的 D1 | — | **两边都改 D1（P13 新增）** |
+| 副标题「摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理 · 密钥与自启配置的改动时间（只读 mtime）」 | `:24` 传的是 `GuardianPageCopy.subtitle`；四段清单 `subtitleSegments` 在同文件末尾（P14 起） | ✅ | **D1 已关闭**：这句从前只列三件事，而这一屏有四张卡。现在段数有判据（`GuardianHeaderContractTests` 要求 == `GuardianCard.allCases.count`，否证实验见 §8.1），加长它的排版代价（`.lineLimit(1)` + 中间省略，三档窗口照片）量在 §8.2 | — | ~~两边都改 D1（P13 新增）~~ → **P14 关闭** |
 | 右侧「刷新」按钮 | `:25-27` `.buttonStyle(.bordered)` `.controlSize(.small)` | ✅ | 稿内 `<span class="btn sm">刷新</span>` 对应 | — | — |
 | 稿 toolbar 内「测量于 10:24:07」（A 稿有、B 稿无，稿内自不一致） | 实现把"测量于 …"放到**当前占用卡头**（`MMGuardian.swift:88-92`，P13 现读；原记 `:84` 已漂），toolbar 不放时间 | ❌ | 采样时刻位置分歧：设计画在 toolbar，实现画在占用卡头（更贴近数据，且 B 稿本就没画时间，实现反而更一致） | 低 | 设计稿该改 S5 |
 | 卡头摄像头图标恒为次级色（不表态） | `MMGuardian.swift:82-85`（`iconTint: MMColor.secondaryLabel` 在 `:85`，P13 现读；原记 `:80` 是 `occupancyCard` 声明那一行） | ✅ | 与稿 cap"卡头的摄像头图标不参与表态"一致——红色只属于"正在被使用" | — | — |
@@ -207,7 +214,7 @@
 
 **已验证的部分**（结构/语义，来自代码+HTML+tokens 逐字比对，非像素）：页头标题/副标题/刷新；占用四档文案与 tint 规则；TCC 四档状态机分离与红线边界（§1.3 重点）；auth_value 映射与"未知值"；登录项三类异常徽章+双脚注；系统活动卡为实现独有（设计稿无）。
 
-### 4.1 可注入档位映射（四个钩子逐项对照设计稿状态）
+### 4.1 可注入档位映射（六个钩子逐项对照设计稿状态；P14 现读，从前写"四个"）
 
 | 设计稿状态 | 可注入档位 | 启动方式（按 pid 抓窗） |
 | --- | --- | --- |
@@ -222,8 +229,9 @@
 | 登录项·不可核对脚注 | `MM_GUARDIAN_LOGIN_FIXTURE=indeterminate` | 同上 |
 | 登录项·读取失败横幅 | `MM_GUARDIAN_LOGIN_FIXTURE=scanerror` | 同上 |
 | 首帧骨架（测量中） | `MM_GUARDIAN_LOAD=hold` | 同上 |
-| 系统活动卡·填充态 | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=rows` | 同上（§6.6.3） |
-| 系统活动卡·空态 | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=empty` | 同上（§6.6.3） |
+| 「密钥与自启配置的改动时间」卡·填充态（P11c 前叫「系统活动」，钩子键名未改） | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=rows` | 同上（§6.6.3；**照片拍的是收口前口径**，新合同的真机档在 §8.2 与 `p11c-activity/`） |
+| 「密钥与自启配置的改动时间」卡·空态 | `MM_GUARDIAN_CARDS=activity MM_GUARDIAN_ACTIVITY_FIXTURE=empty` | 同上（§6.6.3） |
+| 页头副标题·三档窗口宽度（不注入任何夹具） | 无钩子——判据是"那一行不许出现 `…`" | `Scripts/p14-header-capture.sh`，见 §8.2 |
 
 ## 5. 提请协调者
 
@@ -568,6 +576,80 @@ P11c 删了 `ActivityScanner` 那一段之后，本文所有指向 `MMGuardian.s
 逐包求和 = 579）；生产代码 **26,340** 行、测试代码 **8,984** 行——**这两个数没漂**，
 说明 P11c 之后没有别的轮动过源码。候选产物上的照片在 `docs/verification/p13-v1/01-real-machine.png`
 （`# expect:` 五条 `stat` 读数与画面上的"46 天前 / 8 小时前 / 3·10·28 天前"逐条推得回，`.gnupg` 仍无行）。
+
+## 8. P14：D1 收口，以及"副标题加长"这件事只有照片能看出来（2026-10-05）
+
+### 8.1 D1 关闭：一句副标题现在由一份清单生成
+
+§7.1 那条 **两边都改 D1** 已关闭，两边都改的是同一份来源：
+
+| 位置 | 改法 |
+| --- | --- |
+| 实现 | `MMGuardian.swift` 页头改成 `MMPageHeader("隐私守护", subtitle: GuardianPageCopy.subtitle)`；`enum GuardianPageCopy` 把四段写成 `subtitleSegments` 数组，`subtitle` 只是它的 `" · "` 拼接 |
+| 设计稿 | `06-guardian.html` 两处 title-block（`:93` 浅色、`:305` 暗色）逐字换成四段 |
+| 判据 | `GuardianHeaderContractTests`（4 条）：段数 == `GuardianCard.allCases.count`、段段非空且互不重复、最后一段必须以 `ActivityCardCopy.title` 开头、第一段仍含"非实时监听" |
+
+**否证实验做过**（这是它和"顺手改个文案"的区别）：把第四段从数组里删掉、只跑这一支测试 →
+`Executed 4 tests, with 2 failures`，两条失败消息分别把缺口和后果说了出来：
+`这一屏有 4 张卡，副标题却列了 3 件事`（XCTAssertEqual 3≠4）与
+`副标题最后一段是「登录项管理」，而卡片自己的标题是「密钥与自启配置的改动时间」——同一个东西不许有两个说法`。
+所以这条判据不是"看着像能红"，是在 D1 当时的真实状态下量过会红。
+
+第四段刻意写成 `ActivityCardCopy.title + "（只读 mtime）"` 而不是另起一句中文说明：
+卡自己的标题改了，页头就得跟着改，否则两边又变成两个说法（`testActivityCardSegmentUsesTheCardsOwnTitle` 钉的就是这一条）。
+
+### 8.2 加长的代价不是换行，是省略号——所以必须有照片
+
+`MMPageHeader.body`（`Packages/MMUI/Sources/MMUI/MMDesign.swift`，按符号名找）给副标题写的是
+`.lineLimit(1)` + `.truncationMode(.middle)`，注释里说明这是为"副标题常带完整路径"准备的。
+于是 3 段变 4 段这件事**不会**报错、**不会**换行、**也不会**把卡片挤下去：
+它唯一的可见后果是画面上多一个 `…`，而切掉的正好是句子中段——也就是"登录项管理"这种一眼扫过去最不像缺了的词。
+单测全绿、代码 review 看不出问题，**这一条只能靠实机窗口照片判**。
+
+`Scripts/p14-header-capture.sh`（本轮新增，三档、零夹具、零合成点击）：
+
+| 档 | 窗口 | 生效尺寸（`.log` 里应用自己回读的那一行） | 副标题 |
+| --- | --- | --- | --- |
+| `01-default` | 不给 `MM_WINDOW_SIZE`，走 `.defaultSize` | 1100×700 | 四段全在，无 `…` |
+| `02-min-window` | 请求 1000×600 | **1000×652**（被 `.frame(minHeight:)` 夹，宽度这一维是真实的） | 四段全在，无 `…` |
+| `03-wide` | 请求 1400×900 | 1400×900（未被夹） | 四段全在，无 `…` |
+
+照片在 `docs/verification/p14-header/`。**最窄档的余量不大**：副标题末尾与「刷新」按钮之间
+按照片 2× 比例估约 28pt，也就是**不到三个汉字的宽度**（估读，不是量出来的数，所以不写进判据）。
+这条余量就是往后真正要守的东西：**页头副标题每加一段，必须重跑这一支脚本**——
+它不是"反正会换行"的那类文案，加到第 3 个汉字宽以上就会静默变成省略号。
+
+**设计稿在这一判据上帮不上忙**：稿是一张固定 1100 CSS px 宽的画板（§0「渲染」那一行），
+它只能表达"某一个宽度下的样子"，而这一句的风险全在**宽度往下走**的那一侧。
+所以页头副标题这一项，除了 §1.1 那句"逐字一致"还要加一句：**放不放得下由照片管，不由稿管**。
+
+### 8.3 改名残留扫尾：活引用改四处，历史引用一处不动
+
+P11c 把「系统活动」改成「密钥与自启配置的改动时间」之后，本轮把仍写着旧词的**活引用**过完：
+
+| 引用 | 处置 |
+| --- | --- |
+| `MMGuardian.swift` 里 `activityFixtureStage` 的注释 | 改成新卡名，并写明键名 `ACTIVITY` 为什么保留（改键名会让已归档照片与脚本失配） |
+| `MMGuardian.swift` 里 `loadAll()` 排序理由 | 原文"不该排在 `log show` 这类秒级子进程扫描之后"——`scanUnifiedLog` 已在 P11c 删除，改成仍然真实存在的 `launchctl list`（`LoginItemStore` 的只读快照） |
+| `docs/design-system/README.md` 钩子表 | `(empty/rows，系统活动卡)` → 新卡名 + "P11c 之前叫「系统活动」" |
+| `Scripts/p11-hardened-check.sh` 03 档 | **判据本身已经不成立**：那一档从前测的是 `/usr/bin/log show` 子进程在两种签名下通不通，日志族撤下后它永远拍不到"系统日志事件"行。改成写明"不再是 hardened runtime 的判据，只旁证这一屏在 runtime 下照样渲染"，并注明 P11c 之前那两张 `03-activity-*.png` 证明的是当时的判据 |
+| `docs/website/index.html` 两句"监控系统活动" | 见 §8.4 |
+| 稿的渲染图 `06-guardian.png` | HTML 改了、**入库那张 PNG 还是 9-30 渲的**（P11c 补的那一节与这次的第四段都不在图上）→ 按旧图同一宽度 1100 重渲，高度量出来（顺带修掉 §0「渲染」那一行：从前记的 `1160 4600` 与旧图尺寸 2200×5200 根本对不上，那条命令没跑过） |
+| 本文 §4/§6 与 `feature-roadmap.md`、`coordination-gantt.html` 里的旧卡名 | **不动**：那些是当时的记录（哪一轮拍了什么、缺什么），改成新词等于把历史改掉 |
+
+### 8.4 第三处表面：落地页
+
+`docs/website/index.html` 的隐私守护卡片从前写"管理登录项，**监控系统活动**……"。
+这一句既不是设计稿也不是实现，是**第三个表面**，而 P11c 之后它成了假话（我们不再读统一日志，
+占用那一格也明写"非实时监听"）。本轮只改了被 P11c 证伪的这两句（卡片正文 + 截图位说明）。
+
+顺带记一条**没做的**：`grep -rn "website" docs/analysis/` 在改动前是 **0 命中**——
+这份落地页从来没有跟实现对照过。页里其余口号（"一键清理"、"智能扫描系统缓存、日志、临时文件"、
+"实时监控 CPU…"）与截图位（四张 `screenshot-placeholder`，一张真图都没有）都还没核过，
+发版若要用这一页，得单开一轮。截图位是四个 `screenshot-placeholder` 的 div、
+全页 `<img>` 标签为 0（现读：`grep -c screenshot-placeholder` = 5，其中一处是 CSS 规则本身），
+也就是说这一页从来没有放过真图。已写进 `release-readiness.md` §6 的待办。
+
 
 
 

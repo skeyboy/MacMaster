@@ -91,9 +91,15 @@ fi
 if want 02 shots; then
 shot 02-login "$SETTLE" MM_OPEN_MODULE=guardian MM_GUARDIAN_CARDS=login
 fi
-# 03 系统活动：`/usr/bin/log show` 的 5 条事件。判据是"有没有出现「系统日志事件」行"，
-#    以及"两档之间有没有差"——这一格第一轮拍出来是空的，查下去是我们自己的读法问题，
-#    不是签名问题（见 `Scripts/p11-pipe-deadlock-repro.swift`）。
+# 03 「密钥与自启配置的改动时间」卡。**P11c 起这一档不再是 hardened runtime 的判据**：
+#    从前它测的是 `/usr/bin/log show` 子进程在两种签名下通不通（判据"有没有出现「系统日志事件」行"），
+#    P11c 量完谓词口径后把日志族整族撤下、`scanUnifiedLog` 已删，这一卡现在只读目录 mtime 与
+#    `~/Library/LaunchAgents` 的 .plist 清单——没有子进程，hardened runtime 拦不到它。
+#    这一档留着只为旁证：这一屏在 runtime 下照样渲染，且 mtime 那一路读得到东西。
+#    ⚠️ P11c 之前那两张 `03-activity-*.png` 拍的是已撤下的日志族，它们证明的是当时的判据，
+#    不证明今天这一格；改名后的重拍记在 `p11c-activity-capture.sh` 那一档。
+#    当初这一格第一轮拍出来是空的，查下去是我们自己的读法问题，不是签名问题
+#    （见 `Scripts/p11-pipe-deadlock-repro.swift`）。
 if want 03 shots; then
 shot 03-activity "$SETTLE" MM_OPEN_MODULE=guardian MM_GUARDIAN_CARDS=activity
 fi

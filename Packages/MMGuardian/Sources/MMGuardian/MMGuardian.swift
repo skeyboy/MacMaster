@@ -21,7 +21,7 @@ public struct GuardianView: View {
         VStack(spacing: 0) {
             // 副标题不写"实时"：这一屏是点"刷新"时测一次，不是常驻监听。
             // 卡头另有"测量于 …"标采样时刻，两处口径必须一致。
-            MMPageHeader("隐私守护", subtitle: "摄像头与麦克风的当前占用（手动测量，非实时监听）· TCC 授权只读视图 · 登录项管理") {
+            MMPageHeader("隐私守护", subtitle: GuardianPageCopy.subtitle) {
                 Button("刷新") { Task { await vm.loadAll() } }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -476,7 +476,8 @@ final class GuardianViewModel: ObservableObject {
         return result.holdInitialFrame
     }()
 
-    /// 系统活动卡夹具（fidelity-guardian G1）：只接受 `empty|rows` 单值，非法整体作废。
+    /// 「密钥与自启配置的改动时间」卡夹具（fidelity-guardian G1）：只接受 `empty|rows` 单值，非法整体作废。
+    /// 键名里的 `ACTIVITY` 是 P11c 之前那张「系统活动」卡留下的，改名没动键名——动了已归档的照片与脚本会失配。
     /// 只顶替展示数据：真扫描照样跑一次（结果丢弃），钩子不写盘、不 spawn、不读 /tmp。
     static let activityFixtureStage: GuardianActivityFixture.Stage? = {
         let result = GuardianActivityFixture.parse(ProcessInfo.processInfo.environment["MM_GUARDIAN_ACTIVITY_FIXTURE"])
@@ -504,8 +505,8 @@ final class GuardianViewModel: ObservableObject {
         // 首帧定格钩子：MM_GUARDIAN_LOAD=hold 时整轮加载直接返回，
         // 页面停在「测量中 + 骨架」的首帧，让平时抢拍不到的加载态可被截图核对。
         if Self.holdInitialFrame { return }
-        // 占用检测最先：它是进程内读数（微秒级），不该排在 `log show` 这类
-        // 秒级子进程扫描之后——"此刻有没有人用摄像头"晚一秒回答都算失真。
+        // 占用检测最先：它是进程内读数（微秒级），不该排在 `launchctl list` 这类
+        // 子进程扫描之后——"此刻有没有人用摄像头"晚一秒回答都算失真。
         await loadDeviceUsage()
         await loadTCC()
         await loadLoginItems()
@@ -785,6 +786,22 @@ enum ActivityCardCopy {
     static let title = "密钥与自启配置的改动时间"
     static let emptyText = "本机没有 ~/.ssh、~/.gnupg、~/Library/Keychains 这三个目录，用户级 LaunchAgents 目录里也没有 .plist。"
     static let footnote = "这里只有文件系统的修改时间（mtime）：目录里增删条目会改它，读取里面的文件不会。所以这一格能看出密钥目录最近有没有被写过，不能用来判断有没有人访问过你的密钥。"
+}
+
+// MARK: - 页头文案
+
+/// 页头副标题与"这一屏有几张卡"是同一份清单的两种写法：加一张卡而忘了改这句，
+/// 界面不会报错，只会少告诉用户一件已经存在的事（P13 记为 D1，那一条就是这么被照出来的）。
+/// 判据在 `GuardianHeaderContractTests`：段数必须等于 `GuardianCard.allCases.count`。
+enum GuardianPageCopy {
+    static let subtitleSegments = [
+        "摄像头与麦克风的当前占用（手动测量，非实时监听）",
+        "TCC 授权只读视图",
+        "登录项管理",
+        ActivityCardCopy.title + "（只读 mtime）",
+    ]
+
+    static var subtitle: String { subtitleSegments.joined(separator: " · ") }
 }
 
 // MARK: - Activity Scanner
