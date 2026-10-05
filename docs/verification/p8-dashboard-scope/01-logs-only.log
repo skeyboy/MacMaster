@@ -1,0 +1,7 @@
+# p8-dashboard-scope-capture.sh 01-logs-only  2026-10-05 13:43:58 +0800  app=/tmp/mm-app-p8/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=dashboard MM_WINDOW_SIZE=1400x1000
+# defaults: settings.cleaner.scanSystemCache settings.cleaner.scanAppCache settings.cleaner.scanLogFiles settings.cleaner.scanTempFiles = false false true false（脚本写入，退出时由 trap 删除）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p8/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# windowid=2921 pid=77374 settle=16s

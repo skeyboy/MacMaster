@@ -98,4 +98,16 @@ final class CacheScannerTests: XCTestCase {
         XCTAssertEqual(trash.scannedSize, 0)
         XCTAssertTrue(trash.inaccessiblePaths.isEmpty)
     }
+
+    /// 概览页与清理页现在共用 `CacheScanScope.selected(...)` 拼范围。
+    /// 这条钉的是"四个勾选 → 四个位"的映射本身：它漂了，两个页面的"可清理"就又开始分家，
+    /// 而那种分家在界面上表现为两个不同的数字，看不出哪里错了。
+    func testSelectedScopeMapsEachToggle() {
+        XCTAssertEqual(CacheScanScope.selected(systemCache: true, appCache: false, logs: false, temp: false), .systemCache)
+        XCTAssertEqual(CacheScanScope.selected(systemCache: false, appCache: true, logs: false, temp: false), .appCache)
+        XCTAssertEqual(CacheScanScope.selected(systemCache: false, appCache: false, logs: true, temp: false), .logs)
+        XCTAssertEqual(CacheScanScope.selected(systemCache: false, appCache: false, logs: false, temp: true), .temp)
+        XCTAssertEqual(CacheScanScope.selected(systemCache: true, appCache: true, logs: true, temp: true), .all)
+        XCTAssertTrue(CacheScanScope.selected(systemCache: false, appCache: false, logs: false, temp: false).isEmpty)
+    }
 }

@@ -34,7 +34,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
 ```
 
-现测（2026-10-05）：**566 个测试、0 失败、1 跳过**。不要手敲 `swift test | tail -4`——
+现测（2026-10-05）：**571 个测试、0 失败、1 跳过**。不要手敲 `swift test | tail -4`——
 SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 

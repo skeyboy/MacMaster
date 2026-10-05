@@ -61,6 +61,11 @@
   （见 §5 `Scripts/p7-empty-scope-capture.sh`）。**这一类手段的代价要写清**：
   它动的是用户机器上的真实域，脚本必须 `trap` 还原并且成对拍（异常档 + 还原档），
   否则下一轮所有人读到的都是一台"清理页什么都不扫"的机器。
+  **P8 没有新增钩子名**（2026-10-05 现跑同一条 grep = **52**，运行时钩子仍 51 个），
+  但它是第一轮**同一轮里两种注入手段并用**：概览页那一档走 `defaults`（第四种手法），
+  磁盘详情那一档走 `/tmp` 深夹具 + 既有的 `MM_DISK_SCAN`/`MM_DISK_SELECT`（第一、二种）。
+  新脚本 3 个（含夹具 `Scripts/disk-depth-fixture.sh`），**一个钩子都没加**——
+  "要拍一个新状态"未必要新钩子，一棵形状对的树就够了（这次是一棵 20 层的窄树）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -265,6 +270,8 @@
 | `Scripts/p7-empty-scope-capture.sh` | 清理页空扫描范围两档：①四个类别开关全关 ②删回默认值作对照 | **P7a 新增**。这一档**没有对应钩子**，状态来自 `defaults write com.macmaster.app`（那四个开关本来就是持久化设置，页面 `.task` 进页即扫，所以"改设置 → 起进程"就够了，不需要合成点击）。代价是这把钥匙动的是**真实域**，所以脚本 `trap restore EXIT` 保证退出必删键，并把动过哪几个键写进归因头的第三行 `# defaults:`。**这是第四种注入手法**，与前三种（env 钩子 / 夹具目录 / 真实负载）不同：它改的是用户机器上长期留下的状态，跑挂了就一直关着——所以只有"页面自己会读设置"的这一类态能用它，且必须成对拍（异常档 + 还原档） |
 | `Scripts/run-all-tests.sh` | 九包全量 `swift test`，逐包一行结论 + 总计 | **P7 新增**。它修的是**读数本身的形态错**：`swift test \| tail -4` 只剩 swift-testing 那行 `Test run with 0 tests`，于是 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；而按 `with N failures` 字面顺序解析会把有跳过项的 MMDisk 解析成 **0 个测试**（那一行实为 `with 1 test skipped and 0 failures`）。两个坑都写进脚本注释了。**只认「Test Suite 'All tests' passed/failed」后面那一行**才是包级总数，中间同名格式的行是各测试类的分项 |
 | `Scripts/p7-release-check.sh` | 发布候选产物的基础三照 + **签名/plist/Gatekeeper 结论**：①概览（不注钩子，真数据）②关于页（`MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about`，判据是打包时指定的版本号必须出现在画面上）③`MM_WINDOW_SIZE=1000x600` 下限窗口概览 | **P7b 新增**。它归因头多了三行非照片证据：`# codesign:`（`flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set`）、`# plist:`（`CFBundleShortVersionString`/`CFBundleVersion` 逐键）、`# spctl:`（`rejected`）。两个用途：① **版本号链自证**——`make-app.sh` 写的 plist 与「关于」页画出来的字符串必须在同一张图里对得上，这比读代码强；② **签名状态是有照片的结论**，发版判定（`docs/analysis/release-readiness.md` §2）不用凭记忆。注意第三档：`1000x600` 就是窗口下限（`MacMasterApp.swift` 的 `minWidth/minHeight`），**再小的请求会被夹回去**，所以它测的是"下限窗口里会不会截字"，不是"能不能更小"——本轮正是这一档抓出内存卡「交换 …」那行的截断 |
+| `Scripts/p8-dashboard-scope-capture.sh` | 概览页「可清理跟勾选走」三档：①只勾日志 ②四个全关 ③删回默认值对照 | **P8 新增**，手段同 P7a（`defaults write` + `trap restore EXIT` + 归因头第三行 `# defaults:` 逐个键点名）。判据不是"数字变小"这种要看运气的说法，而是**结构性**的：01 那一档卡里只剩日志三类，「可立即释放 41.8 MB」正好等于两个可删类之和（应用日志 34.3 + 崩溃与诊断 7.5），只读的「系统日志 101.7 MB」不计入；03 同一格是 5.38 GB。02 是**未勾选类别**，不是「未扫描」也不是「测量失败」。两处实测代价：概览扫的是真实缓存，`SETTLE` 得给到 16 秒；窗口尺寸必须脚本自己写死（`SIZE=1400x1000`）——App 会恢复上次退出的 frame，第一次实跑恢复到 1000x652pt，要拍的那一卡直接落到折叠线以下 |
+| `Scripts/p8-disk-depth-capture.sh` + `Scripts/disk-depth-fixture.sh` | 磁盘详情第四格三档：①封顶节点=**未枚举** ②正常目录=真实计数 ③文件=— | **P8 新增**。普通夹具（`disk-fixture.sh` 最深两三层）永远走不到 `depth >= maxDepth` 那一支，所以另造一棵 20 层窄树：扫 `根/L01…L20` 时 depth=20，L20 里的目录 L21 被做成 `children: []` + `deepSize` + `descendantsMeasured: false`。钩子凭据是日志那行 `MM_DISK_SELECT 已选中 …（2.2 MB）`，与画面上「占用 2.2 MB」对得上，才证明这一档拍的是"字节量到了、名字没枚举"这一对（旧代码在这里写的是 `0`）。两个坑记在这：① zsh 里累加路径的变量**不能叫 `path`**（它与 `PATH` 绑定，一赋值 `seq`/`mkdir` 就 command not found）；② 01 档会顺带触发一次单层重枚举（`openDirectory` 遇到未缓存的一层起 `doNavigate`），所以 treemap 里 L21 底下看得见内容，而右侧详情读的是原扫描树里那个封顶节点——这正是"未枚举"该有的样子：这一层没枚举过，不等于它底下是空的 |
 - **每份 `.log` 开头两行归因头**（P6.8b）：三个 p68 脚本的日志先写
   `# <脚本> <档> <时间> app=… fixture=…` 与 `# env: <本档全部注入变量>`，再接应用 stderr。
   原因是**钩子的成功路径大多不说话**（`MM_UNINSTALL_SELECT` 只在落空时写一行、

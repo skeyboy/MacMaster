@@ -8,7 +8,7 @@
 
 ## 0. 结论先行
 
-- **功能面：可以发。** 九个包全绿：`566` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
+- **功能面：可以发。** 九个包全绿：`571` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
 - **分发面：现在这份产物不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
   没有图标、没有许可证书（§2）。这三件事都不是代码问题，是**发版动作**问题，各自都有明确的补法。
@@ -20,18 +20,18 @@
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **566** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置） |
+| 测试总数 | **571** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置）。**P8 于 2026-10-05 重跑**：P7 落地时是 566，此后 +5（MMDisk 4 条 + MMFileScanner 1 条，见 §7.1） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
 | 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift:173 testMountedVolumeRootIsBlocked`，跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
-| 生产代码量 | **26,262 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l` |
-| 测试代码量 | **8,790 行** | 同一条命令换成 `-path '*/Tests/*'` |
+| 生产代码量 | **26,310 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（P8 重跑；P7 时 26,262） |
+| 测试代码量 | **8,846 行** | 同一条命令换成 `-path '*/Tests/*'`（P8 重跑；P7 时 8,790） |
 | 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫 |
 | 子进程启动点 | **4 处** | `grep -rn "Process()" Sources Packages`（非测试）命中 4 行，见 §3 |
 | 网络代码 | **0** | `grep` `URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里**无命中** |
 
-逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05）：
-MMCore 43 · MMUI 17 · MMFileScanner 115 · MMCleaner 18 · MMUninstaller 121 ·
-MMDisk 62（含 1 跳过）· MMMonitor 53 · MMGuardian 83 · MMOptimizer 54。
+逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 P8 重跑）：
+MMCore 43 · MMUI 17 · MMFileScanner 116 · MMCleaner 18 · MMUninstaller 121 ·
+MMDisk 66（含 1 跳过）· MMMonitor 53 · MMGuardian 83 · MMOptimizer 54。
 
 > **`run-all-tests.sh` 存在的理由**：`swift test | tail -4` 只剩 swift-testing 的
 > `Test run with 0 tests`，会把 MMCore 的 43 个测试在屏幕上显示成"跑了 0 个"；
@@ -157,14 +157,14 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 | 模块 | 判定 | 依据与仍开放项 |
 | --- | --- | --- |
 | MMCore（设置/删除/台账） | **可发布** | 43 测试全绿；闸门与台账见 §5。无开放项 |
-| MMFileScanner（扫描层） | **可发布** | 115 测试全绿，含快照解析两种表头形态与分类型（真机发现的 bug 已钉住）。开放项都在 UI 层不在这里 |
+| MMFileScanner（扫描层） | **可发布** | 116 测试全绿，含快照解析两种表头形态与分类型（真机发现的 bug 已钉住）；P8 起 `CacheScanScope.selected(...)` 是清理页与概览页共用的那一条拼法（逐开关映射有单测）。开放项都在 UI 层不在这里 |
 | MMCleaner（清理） | **可发布·需标注** | 18 测试。本轮 I4/I10 已收（`fidelity-cleaner.md`）。仍开着：**I5**（`MMFailurePanel` 缺"重试失败项"等补救——组件在 `c74f045` 已补，**全仓 11 个调用点（含壳层 `MainWindow.swift:244`）无一使用新 init**，`grep -rn "onRetry\|onCopyDiagnostics" Sources Packages` 除组件定义外零命中，所以统计行与页脚现在是死代码路径）、**I6b**（撤回开关只在缓存页 sheet，另两页走系统 `.alert`）、**I7**（只读分类仍带展开箭头）、**I8**（页签叫"缓存清理"、页头叫"系统清理"，两名不同源）。**标注内容**：可释放数字是扫描瞬时值，不是承诺值 |
 | MMUninstaller（卸载） | **可发布** | 121 测试（全仓最多）。开着的是 **B1**（列表宽 268 令牌 vs 稿 300，归协调层）、**B2**（`MM_SHOW_TRASH_CONFIRM` 需与 `MM_TRASH_SCAN_HOME` 同时给的互锁没写进文档）——两条都是文档/稿侧缺口，不影响功能 |
-| MMDisk（磁盘分析） | **可发布·需标注** | 62 测试（1 跳过）。永久删除闸门见 §5。**标注内容**：treemap 需要真实扫描，大目录下扫描时间与内存都要在说明里提一句；仍开着 **I3**（详情头部图标与稿不同）、**I4**（"子项"是直接子项数，稿写的是递归文件数——**这是语义差不是像素差，容易误读，v1.0 前建议改文案**）、**I6**（相对时间 vs 绝对日期） |
+| MMDisk（磁盘分析） | **可发布·需标注** | 66 测试（1 跳过）。永久删除闸门见 §5。**标注内容**：treemap 需要真实扫描，大目录下扫描时间与内存都要在说明里提一句；**触达深度上限（`maxDepth = 20`）的目录只量字节不列名字**，界面上写的是「子项 未枚举」——这句要在发版说明里保留，否则用户会以为那一格坏了。**I4 已于 P8 收口**（标签回「子项」+ 封顶档说「未枚举」，见 §7.1 与 `fidelity-disk.md` §12），仍开着的是 **I3**（详情头部图标与稿不同）、**I6**（相对时间 vs 绝对日期），以及**稿侧** `04-disk.html:163` 仍写递归「文件数 42,180」 |
 | MMMonitor（监控 + 菜单栏） | **可发布** | 53 测试。SMC/IOKit 都有失败降级并在界面上说原文原因（§3 那两行）。开着 **I8**（网络速率只在菜单栏显示、页面不用——归设计稿决定） |
 | MMGuardian（守护） | **可发布·需标注** | 83 测试。**标注内容**：TCC.db 读不到时需要用户手动授 FDA，界面对此有横幅（`guardian-tcc.md`）；统一日志那一档在非受限环境也会慢，已有超时保护 |
 | MMOptimizer（优化） | **可发布·需标注** | 54 测试。开着的是**形态题**（`MMFailurePanel` 通栏条 vs 带边框卡，与 cleaner I5 同一件事，归协调层）与 `fidelity-optimizer.md` 的 #8/#10 未拍全（跨 tab 运行态、阶段枚举）。**标注内容**：重复文件删除前必须人工核对分组，PROTECTED 组永远不给删除入口 |
-| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`，**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 566 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方** |
+| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 571 个测试**一个都不覆盖壳层**——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片 |
 | MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉 |
 
 ## 7. 本轮收口的四处（都是"用户可达"的那一类）
@@ -176,14 +176,27 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 | 概览 › 内存「交换」一行 | 默认窗宽下截成「2.1…」，像数据读坏了 | `MainWindow.swift` `gaugeRow` 的 note 加 `minimumScaleFactor(0.8)` | `p7-release-build/03-dashboard-min.png`（1000×600 下限窗口，显示完整「交换 688.6 MB / 2.15 GB」） |
 | 清理页 四开关全关 | 副标题仍报一个数 | 三档分开：`scopeEmpty` / `isPartial` / 扫描真失败 | `p7-empty-scope/`，`fidelity-cleaner.md` I4 |
 
+### 7.1 P8 追加两处（2026-10-05，同一族：标签/数值口径不一致）
+
+| 位置 | 之前 | 现在 | 证据 |
+| --- | --- | --- | --- |
+| 概览 › 可清理 | `scanAll()`，不看清理页四个勾选 → 同一个名字两个页面两种口径 | 与清理页共用 `CacheScanScope.selected(...)`；四开关全关时是**未勾选类别**（新档），不是"未扫描" | `p8-dashboard-scope/`（41.8 MB ↔ 5.38 GB 同一格随勾选变） |
+| 磁盘 › 详情第四格 | 标签「文件数」、值 `children.count`；**触达深度上限的目录显示「文件数 0」** | 标签「子项」+ 纯函数 `DiskInspectorText.childCount`；封顶节点说**未枚举** | `p8-disk-depth/`（20 层夹具，占用 2.2 MB 与「未枚举」同屏），`fidelity-disk.md` §12 |
+
+两处都是**先有单测再有照片**：MMDisk 新增 4 条（含"未枚举那一档不许含 0"）、MMFileScanner 新增 1 条
+（四个开关逐个映射到 OptionSet 位）。全仓现测 **571/0/1**（见 §1）。
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 
-- **概览页的"可清理"不看清理页那四个开关**：`DashboardModel.swift:49` 走
-  `CacheScanner().scanAll()`，而清理页走 `scope(from: settings)`（`MMCleaner.swift:85-108`，
-  四个键 `scanSystemCache/scanAppCache/scanLogFiles/scanTempFiles`）。
-  **后果是概览可能报得比清理页勾选的多**。**不构成安全问题**：概览那张按钮只做跳转
-  （`MainWindow.swift:644` `Button("开始清理") { MMNavigation.go(.cleaner) }`），
-  不在概览页删任何东西。修法两选一：概览也按 scope 扫，或把概览那一行副标题写明"未按清理页勾选范围"。
+- ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
+  拼法收敛到 `CacheScanScope.selected(systemCache:appCache:logs:temp:)`（`CacheScanner.swift`），
+  清理页 `MMCleaner.swift` 的 `scope(from:)` 与概览 `DashboardModel.measureReclaimable()` 共用它，
+  排除清单也按清理页口径合并（设置页永久排除 + 清理页逐条排除）。
+  四个全关时不再显示"未扫描"，而是新增一档 `ReclaimMeasureState.noCategorySelected`
+  →「未勾选类别」+ 一句"勾上任一个再点「重新测量」"（等下去也不会有数，这不是失败也不是没扫）。
+  取证：`docs/verification/p8-dashboard-scope/` 三档（只勾日志 **41.8 MB**，且它正好等于卡里
+  两个可删类之和 34.3 + 7.5，只读的「系统日志 101.7 MB」不计入 / 全关「未勾选类别」/ 还原全开 **5.38 GB**）。
+  **仍然成立的边界**：概览那张按钮只做跳转（`MainWindow.swift:644`），不在概览页删任何东西。
 - **"检查更新"不是死开关，但它不联网**：`SettingsView.swift:304-310` 只读本机 Info.plist，
   并在弹窗文案里明说"当前构建未配置更新服务器"。发版说明别写"自动更新"。
 - **"反馈问题"按钮是 disabled**：`SettingsView.swift:280-288`，旁边一句"未找到官方反馈渠道地址，不做虚构链接"。
@@ -199,7 +212,9 @@ LSMinimumSystemVersion=14.0  NSHighResolutionCapable=true  NSHumanReadableCopyri
 ## 9. 建议的 v1.0 范围与版本号
 
 **发**：§6 表中所有"可发布"档，即九屏全部功能；`LSMinimumSystemVersion 14.0`。
-**在发版说明里明确标注**：§6 那五条"需标注"、§4 的写盘三项、§8 的概览口径那一条。
+**在发版说明里明确标注**：§6 表里那四条"可发布·需标注"（判定列逐行数，别拿 `grep -c 需标注` 当计数——
+本文自己这段话里就含一次"需标注"）、§4 的写盘三项。（§8 那条"概览口径"已于 P8 收口，
+不再需要标注——现在概览与清理页是同一个数。）
 **不发**：Mac App Store（§3 的六行砍得太狠）；多语言（语言开关本轮已禁用，没有 UI 消费点）；
 自动更新（没有更新服务器）；helper/widget 两个空壳（§8）。
 
@@ -218,7 +233,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh
 ## 10. 发版前 checklist（可直接执行）
 
 ```
-# 1. 全量测试（期望 566/0/1；数字变了要回写本文 §1）
+# 1. 全量测试（期望 571/0/1；数字变了要回写本文 §1）
 ./Scripts/run-all-tests.sh
 
 # 2. 构建候选产物（版本单一来源）

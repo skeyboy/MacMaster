@@ -82,13 +82,13 @@ final class CleanerModel: ObservableObject {
         selectionPlan.paths
     }
 
+    /// 拼法在 `CacheScanScope.selected(...)`：概览页走的是同一条，所以两个页面的
+    /// "可清理"不会因为一处看勾选、一处全开而量出两个数。
     func scope(from settings: AppSettings) -> CacheScanScope {
-        var scope: CacheScanScope = []
-        if settings.scanSystemCache { scope.insert(.systemCache) }
-        if settings.scanAppCache { scope.insert(.appCache) }
-        if settings.scanLogFiles { scope.insert(.logs) }
-        if settings.scanTempFiles { scope.insert(.temp) }
-        return scope
+        CacheScanScope.selected(systemCache: settings.scanSystemCache,
+                                appCache: settings.scanAppCache,
+                                logs: settings.scanLogFiles,
+                                temp: settings.scanTempFiles)
     }
 
     /// 扫描真正消费的排除清单：设置页的永久排除目录 + 清理页逐条排除的持久化名单。

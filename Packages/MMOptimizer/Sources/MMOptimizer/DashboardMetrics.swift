@@ -96,6 +96,9 @@ public enum ReclaimMeasureState: Equatable {
     case measuring
     case failed(reason: String)
     case measured(totalBytes: UInt64, categoryCount: Int)
+    /// 清理页四个类别全关着。既不是"未扫描"（等下去也不会有数），
+    /// 也不是"测量失败"（什么都没失败），说清是勾选范围的问题才有出路。
+    case noCategorySelected
 
     /// 只有真实扫描结果才允许按"数字"样式展示；其余状态走灰置文案。
     public var isMeasuredValue: Bool {
@@ -263,6 +266,7 @@ public enum DashboardText {
         switch state {
         case .notMeasured: "未扫描 · 去清理"
         case .measuring: "扫描中…"
+        case .noCategorySelected: "未勾选类别"
         case .failed(let reason): "测量失败（\(reason)）"
         case .measured(let total, _): MMFormat.bytes(total)
         }
@@ -273,6 +277,7 @@ public enum DashboardText {
         switch state {
         case .notMeasured: "数字来自真实扫描，扫描前不预估。"
         case .measuring: "正在统计各类缓存、日志与临时文件…"
+        case .noCategorySelected: "清理页四个类别都关着，这一轮没东西可扫；勾上任一个再点「重新测量」。"
         case .failed(let reason): reason
         case .measured(_, let count): "来自 \(count) 个分类的真实扫描求和"
         }

@@ -792,9 +792,9 @@ public struct DiskAnalyzerView: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: MMGap.sm) {
                         MMStatItem("占用", MMFormat.bytes(node.size))
                         MMStatItem("实际占比", MMFormat.percent(totalScanned > 0 ? Double(node.size) / Double(totalScanned) : 0))
-                        // 数值口径待真机确认：children.count 是直接子项数，稿内「文件数」为递归文件数；
-                        // 当前没有逐节点递归文件数可喂，先只对齐标签文案，不新写递归统计逻辑。
-                        MMStatItem("文件数", node.isDirectory ? MMFormat.count(children.count) : "—")
+                        // 标签必须等于数值真实的口径：这里是**直接子项数**，不是稿里那个递归「文件数」。
+                        // 判定（含"深度上限处不许写 0"）抽在 `DiskInspectorText.childCount` 里，好单测。
+                        MMStatItem("子项", DiskInspectorText.childCount(of: node, enumerated: children.count))
                         // 相对时间：这一格要回答的是"多久没动过"，不是几点几分，
                         // 而且完整时间戳在这个宽度里会被截成"2026-09-30 01:…"。
                         MMStatItem("修改", MMFormat.relative(modDate(of: node.path)))
@@ -1569,6 +1569,18 @@ struct DiskTreeNode: Identifiable, Sendable {
     /// 里面有谁、叫什么都不知道。全树名称过滤据此把"判不了"和
     /// "量过、确实没命中"分开上报，绝不把前者折叠成零命中。
     var descendantsMeasured: Bool = true
+}
+
+/// 详情四宫格里「子项」那一格的文案。抽成模块级纯函数是为了能单测：
+/// 三种态必须分得很开——不是目录、量过的目录（含"确实为空"的那个 0）、
+/// 以及**根本没枚举过**的目录。最后一种以前显示成 0，那是把"没量到"说成"没有"，
+/// 而它出现在一个几 GB 的深度目录上时，用户看到的是一句彻底的假话。
+enum DiskInspectorText {
+    static func childCount(of node: DiskTreeNode, enumerated: Int) -> String {
+        guard node.isDirectory else { return "—" }
+        guard node.descendantsMeasured else { return "未枚举" }
+        return MMFormat.count(enumerated)
+    }
 }
 
 /// 完整扫描结果驻留在引用类型里：@State 只持有有界渲染窗口，

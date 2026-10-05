@@ -21,6 +21,18 @@ public struct CacheScanScope: OptionSet, Sendable {
     public static let temp = CacheScanScope(rawValue: 1 << 3)
     public static let all: CacheScanScope = [.systemCache, .appCache, .logs, .temp]
 
+    /// 由界面上那四个勾选拼出扫描范围。**清理页与概览页共用这一条**：
+    /// 概览此前走 `scanAll()`（等于永远全开），所以用户在清理页关掉类别之后，
+    /// 概览那个"可清理"照样把它们算进去——同一个名字在两个页面是两种口径。
+    public static func selected(systemCache: Bool, appCache: Bool, logs: Bool, temp: Bool) -> CacheScanScope {
+        var scope: CacheScanScope = []
+        if systemCache { scope.insert(.systemCache) }
+        if appCache { scope.insert(.appCache) }
+        if logs { scope.insert(.logs) }
+        if temp { scope.insert(.temp) }
+        return scope
+    }
+
     public func allows(_ scope: CacheScope) -> Bool {
         switch scope {
         case .systemCache: contains(.systemCache)

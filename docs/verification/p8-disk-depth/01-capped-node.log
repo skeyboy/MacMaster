@@ -1,0 +1,8 @@
+# p8-disk-depth-capture.sh 01-capped-node  2026-10-05 13:42:42 +0800  app=/tmp/mm-app-p8/MacMaster.app  fixture=/tmp/macmaster-disk-depth-fixture
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=disk MM_WINDOW_SIZE=1400x900 MM_DISK_SCAN=/tmp/macmaster-disk-depth-fixture MM_DISK_SELECT=/tmp/macmaster-disk-depth-fixture/L01/L02/L03/L04/L05/L06/L07/L08/L09/L10/L11/L12/L13/L14/L15/L16/L17/L18/L19/L20/L21
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p8/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_DISK_SELECT 已选中 /tmp/macmaster-disk-depth-fixture/L01/L02/L03/L04/L05/L06/L07/L08/L09/L10/L11/L12/L13/L14/L15/L16/L17/L18/L19/L20/L21（2.2 MB）
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# hook: MM_DISK_SELECT 已选中 /tmp/macmaster-disk-depth-fixture/L01/L02/L03/L04/L05/L06/L07/L08/L09/L10/L11/L12/L13/L14/L15/L16/L17/L18/L19/L20/L21（2.2 MB）
+# windowid=2912 pid=77166 settle=12s

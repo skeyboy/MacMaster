@@ -99,6 +99,11 @@ final class DashboardMetricsTests: XCTestCase {
         XCTAssertEqual(DashboardText.reclaimableText(measured), MMFormat.bytes(totalValue))
         XCTAssertTrue(measured.isMeasuredValue)
         XCTAssertFalse(ReclaimMeasureState.notMeasured.isMeasuredValue)
+        // 四个类别全关着：既不能说"未扫描"（等下去也不会有数），也不能说"测量失败"。
+        let noScope = DashboardText.reclaimableText(.noCategorySelected)
+        XCTAssertTrue(noScope.contains("未勾选"))
+        XCTAssertTrue(DashboardText.reclaimDetailText(.noCategorySelected).contains("清理页"))
+        XCTAssertFalse(ReclaimMeasureState.noCategorySelected.isMeasuredValue)
     }
 
     func testCPUCaliberIsStated() {

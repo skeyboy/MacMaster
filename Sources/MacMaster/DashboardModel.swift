@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 import Combine
+import MMCleaner
 import MMCore
 import MMFileScanner
 import MMMonitor
@@ -43,10 +44,12 @@ final class DashboardModel: ObservableObject {
     @Published private(set) var categories: [CacheCategory] = []
     @Published private(set) var trashBytes: UInt64?
 
-    /// 扫描结果提供者。默认用清理页同一个 CacheScanner（真实扫描，不预估）；
+    /// 扫描结果提供者。默认用清理页同一个 CacheScanner（真实扫描，不预估），
+    /// 并且**按传进来的范围与排除清单扫**——概览以前走 `scanAll()`，那等于永远全开，
+    /// 用户在清理页关掉类别之后概览照样把它们算进"可清理"。
     /// 测试注入假结果即可验证"求和与分类一致"，不碰真实用户文件。
-    var categoriesProvider: @Sendable () async -> [CacheCategory]? = {
-        await CacheScanner().scanAll()
+    var categoriesProvider: @Sendable (CacheScanScope, [String]) async -> [CacheCategory]? = { scope, exclusions in
+        await CacheScanner().scan(scope: scope, excludedFolderPaths: exclusions).categories
     }
 
     private var lastTicks: SystemSampler.CPUTicks?
@@ -126,11 +129,27 @@ final class DashboardModel: ObservableObject {
         }
     }
 
-    /// "可清理"这个数字和清理页用的是同一个扫描器，两处不会量出两个结果。
+    /// "可清理"这个数字和清理页用的是同一个扫描器、**同一套勾选与排除清单**，
+    /// 两处不会量出两个结果。范围与排除都在调用时现读：设置页刚关掉「日志」，
+    /// 点「重新测量」就该看到数字变小，而不是等重启。
     func measureReclaimable() async {
         guard reclaimState != .measuring else { return }
         reclaimState = .measuring
-        let scanned = await categoriesProvider()
+        let settings = AppSettings.shared
+        let scope = CacheScanScope.selected(systemCache: settings.scanSystemCache,
+                                            appCache: settings.scanAppCache,
+                                            logs: settings.scanLogFiles,
+                                            temp: settings.scanTempFiles)
+        guard !scope.isEmpty else {
+            // 一个类别都没勾：不是"没扫到东西"，是"没让扫"。说成未扫描会让人一直等。
+            categories = []
+            reclaimState = .noCategorySelected
+            return
+        }
+        // 排除清单也按清理页的口径合并：设置页的永久排除 + 清理页逐条排除的持久化名单。
+        var exclusions = settings.excludedFolderPaths
+        exclusions.append(contentsOf: CleanerExclusionStore().paths())
+        let scanned = await categoriesProvider(scope, Array(Set(exclusions)).sorted())
         categories = scanned ?? []
         reclaimState = DashboardReclaim.state(from: scanned)
     }
