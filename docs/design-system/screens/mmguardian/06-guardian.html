@@ -219,6 +219,49 @@
             </div>
           </section>
 
+          <section>
+            <div class="row-h" style="margin-bottom:var(--sp-2)">
+              <svg class="i" style="color:var(--c-info)"><use href="#i-eye"></use></svg>
+              <span class="section-title">密钥与自启配置的改动时间</span>
+            </div>
+            <div class="card card-flush" style="padding:0">
+              <div class="login"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-key"></use></svg>
+                <span class="stack"><span class="nm">SSH 密钥目录</span>
+                <span class="sub">/Users/dev/.ssh</span></span>
+                <span class="sub" style="flex:none">3 天前</span></div>
+              <div class="login"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-lock"></use></svg>
+                <span class="stack"><span class="nm">GPG 密钥目录</span>
+                <span class="sub">/Users/dev/.gnupg</span></span>
+                <span class="sub" style="flex:none">14 天前</span></div>
+              <div class="login"><svg class="i ic" style="color:var(--c-warning)"><use href="#i-key"></use></svg>
+                <span class="stack"><span class="nm">钥匙串</span>
+                <span class="sub">/Users/dev/Library/Keychains</span></span>
+                <span class="sub" style="flex:none">刚刚</span></div>
+              <div class="login"><svg class="i ic"><use href="#i-gear"></use></svg>
+                <span class="stack"><span class="nm">com.pnuts.jenkins</span>
+                <span class="sub">/Users/dev/Library/LaunchAgents/com.pnuts.jenkins.plist</span></span>
+                <span class="sub" style="flex:none">2 小时前</span></div>
+              <div class="login"><svg class="i ic"><use href="#i-gear"></use></svg>
+                <span class="stack"><span class="nm">sh.brew.jenkins-lts</span>
+                <span class="sub">/Users/dev/Library/LaunchAgents/sh.brew.jenkins-lts.plist</span></span>
+                <span class="sub" style="flex:none">1 天前</span></div>
+              <div class="foot-note" style="border-top:1px solid var(--c-separator)">
+                <div class="row-h" style="gap:6px;align-items:flex-start">
+                  <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+                  <span>这里只有文件系统的修改时间（mtime）：目录里增删条目会改它，读取里面的文件不会。
+                  所以这一格能看出密钥目录最近有没有被写过，不能用来判断有没有人访问过你的密钥。
+                  左侧图标：三行密钥目录用 caution 橙，LaunchAgent 行用中性灰——它只是存在，不是警报。
+                  行的第二行一律是绝对路径，右侧那一格一律是该路径的 mtime 相对说法，两者不得是同一个数说两遍。</span></div>
+                <div class="row-h" style="gap:6px;align-items:flex-start;margin-top:4px">
+                  <svg class="i" style="color:var(--c-label-tertiary);margin-top:2px"><use href="#i-info"></use></svg>
+                  <span>这一卡从前叫「系统活动」，第一族是 log show 命中行、写 time: 最近。P11c 把四种谓词都量了一遍
+                  （见 docs/analysis/fidelity-guardian.md §6.7）：正文含 login/auth 字样的谓词量到的是子串巧合，
+                  换成按进程白名单则要么 0 行、要么全是苹果内部转储，于是日志族整族撤下，
+                  标题也改成它真正读的东西。这一稿就是那次收口后的合同。</span></div>
+              </div>
+            </div>
+          </section>
+
         </div>
       </div>
     </main>

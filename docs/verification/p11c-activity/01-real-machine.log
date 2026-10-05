@@ -1,0 +1,11 @@
+# p11c-activity-capture.sh 01-real-machine  2026-10-05 16:19:19 +0800  app=/tmp/mm-app-p11c/MacMaster.app
+# codesign: flags=0x2(adhoc)
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=guardian MM_GUARDIAN_CARDS=activity 
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p11c/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# expect: 2026-08-20 14:23:55  /Users/lee/.ssh
+# expect: 2026-10-05 07:59:29  /Users/lee/Library/Keychains
+# expect: 2026-09-07 10:36:47  /Users/lee/Library/LaunchAgents/com.pnuts.jenkins.plist
+# expect: 2026-10-01 20:45:45  /Users/lee/Library/LaunchAgents/com.tencent.Lemon.trash.plist
+# expect: 2026-09-25 11:12:13  /Users/lee/Library/LaunchAgents/sh.brew.jenkins-lts.plist
+# expect: 本机 .plist 共 3 个、目录条目共 9 个

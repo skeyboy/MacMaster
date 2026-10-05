@@ -138,19 +138,17 @@ enum GuardianActivityFixture {
         return Result(stage: stage, rejected: nil)
     }
 
-    /// rows 档：覆盖三种 tone（info/caution/destructive），标题与时间一眼可辨是合成值，
-    /// 与真实 unified log / 敏感目录扫描结果区分。
+    /// rows 档：两族各一行（密钥目录 / LaunchAgent），用词与真机行同一形状
+    /// （detail 是路径、time 是相对说法、tone 只有 caution|neutral），
+    /// 但标识符全是 com.example.* 且标题带「（夹具值）」，一眼可辨。
     static func items() -> [ActivityItem] {
         [
-            ActivityItem(title: "系统日志事件（夹具值）",
-                         detail: "模拟 unified log 返回一条 login 相关事件",
-                         time: "最近", icon: "doc.text", tone: .info),
-            ActivityItem(title: "com.example.backup-agent",
-                         detail: "LaunchAgent 最近修改（夹具值）",
-                         time: "3 分钟前", icon: "gear", tone: .caution),
             ActivityItem(title: "SSH 密钥目录（夹具值）",
-                         detail: "最近访问: 刚刚（夹具值）",
-                         time: "刚刚", icon: "key.fill", tone: .destructive),
+                         detail: "/Users/example/.ssh",
+                         time: "刚刚", icon: "key.fill", tone: .caution),
+            ActivityItem(title: "com.example.backup-agent",
+                         detail: "/Users/example/Library/LaunchAgents/com.example.backup-agent.plist",
+                         time: "3 分钟前", icon: "gear", tone: .neutral),
         ]
     }
 }

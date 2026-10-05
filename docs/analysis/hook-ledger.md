@@ -128,7 +128,7 @@
 | `MM_TCC_FIXTURE` | `MMGuardian` | `GuardianViewModel.tccFixtureState` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
 | `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `GuardianViewModel.loginFixtureStage` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
 | `MM_GUARDIAN_LOAD` | `MMGuardian` | `GuardianViewModel.holdInitialFrame` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
-| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `GuardianViewModel.activityFixtureStage` | 系统活动卡注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3）。**P11b 的教训**：`rows` 档从来没证明过真实读取路径——它把待测的那条读法整条换掉了（§6.6.3 末尾） |
+| `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `GuardianViewModel.activityFixtureStage` | 活动卡（P11c 起叫「密钥与自启配置的改动时间」）注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3）。**P11b 的教训**：`rows` 档从来没证明过真实读取路径——它把待测的那条读法整条换掉了（§6.6.3 末尾）。**P11c 更新**：`rows` 档两行的用词跟着合同换了（detail 从中文说明改成绝对路径、tone 只剩 caution/neutral、不再有"系统日志事件"那一行），判据 `testFixtureRowsUseTheSameVocabularyAsRealRows`——**夹具的口径必须和真机同一套，否则无头照片在教一套真机不再产出的话** |
 | `MM_GUARDIAN_CARDS` | `MMGuardian` | `MMGuardian.swift` `GuardianCardFilter`（`GuardianFixtureHooks.swift`） | 卡显示过滤，逗号子集 `occupancy\|tcc\|login\|activity` | ✅ | 否 | **P6.2d 新增**。纯显示层过滤，不改变数据流；非法值整批拒绝并写 stderr。解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档用 `=activity` 只渲染活动卡，不再需要拉高窗口+压矮上方三卡 |
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift` | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、**caveat:unreadable:N / caveat:dataless:N（P6.6 新增，必须与 `duplicates:N` 同给，单独给则整条作废）**、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn。**P6.6 起有 `fixturePinned`**：给了夹具的 tab 会被钉住，随后落地的真实扫描结果整批丢弃。在此之前钩子是**半生效**的——三个 tab 的夹具被并发真实扫描覆盖，拍出来的照片挂着夹具文件名却是真实数据（见 §4 #2） |
@@ -277,10 +277,15 @@
 | `Scripts/p11-pipe-deadlock-repro.swift` | 不启动应用，只按同样的 API 形状跑同一条 `log show`：① 先 `waitUntilExit()` 再读 ② 读与等分占两条队列、**一超时整批丢掉** ③ 仓库实装（边读边攒、超时只杀子进程），各打印**自己的**耗时、字节数与可用事件条数；末位参数是 ③ 的轮数 | **P11 新增**。它是"这一格为什么是空的"的**独立复现件**：现测 ① 停在整 **65,536** 字节、8.01 秒到点被杀，② **0.82 秒**取回 **198,172** 字节，③ 五轮 0.83–0.90 秒正常退出、154–156 条事件行可用。有这一个文件，下一轮不必重跑整个应用、也不必信我们的叙述就能自己撞见同一个死锁 |
 | `Scripts/make-app.sh` 的 `HARDENED=1` | 额外打 `--options runtime`，并在构建末尾**自己读回** `codesign -dv` 的 flags 一行 | **P11 新增档位**。它**不是任何一种发布形态**（发布要证书 + 公证），只是这一轮的量具。签名档次必须由脚本自己读回来打印——`codesign` 加了什么标志，看构建日志比看脚本可靠 |
 | `Scripts/p12-sandbox-warning-probe.sh` | 同一份 bundle 原样拷进 `~/.mm-p12-probe/`（拷完 `codesign --verify --deep --strict` 自证），两个位置各起 7 秒，只比那一行 `sandbox_extension_issue_file_to_process` 出现的**次数** | **P12 新增**。它不为任何钩子服务，是为**还一笔旧账**：那行警告从 P7 起在每一份取证日志里都有，当时的解释是"ad-hoc 构建从 /tmp 起进程"——一句话捆了签名与路径两个变量，而两个都没单独测过。现测：`/tmp` **1 次**、用户目录 **0 次**，两档同为 `flags=0x2(adhoc)`、都活过 7 秒、界面都出真实读数 → **是路径不是签名**。探针目录跑完自删 |
+| `Scripts/p11c-activity-capture.sh` | 四档零点击照片（真机 / 夹具 rows / 夹具 empty / 夹具 rows @1000×700），每份 `.log` 带 `# codesign:` 与 `# env:` 归因头；**真机档额外写 `# expect:` 行**——脚本用 `stat` 现读那五个路径的 mtime，与代码的 `attributesOfItem` 是两条不同的读法 | **P11c 新增**。它要闭的是照片侧那一环：卡片上那五个"X 前"必须能从 expect 行**算**出来（`.ssh` 08-20 14:23 → 照片 46 天前、`Keychains` 10-05 07:59 → 8 小时前），否则照片只是好看。两条读法对上才算数，这是 P6.7b"合成值有没有真的出现在画面上"那条判据的反向用法：**真值也要出现在照片里，并且要能从另一条路推出来** |
 - **`waitUntilExit()` 之后再读管道，是一个只在"输出够大"时才发作的死锁**（P11）：`Pipe` 的内核缓冲
   只有 64 KB，子进程写满就卡在 `write`，父进程卡在 `wait`，谁也不动。这一路的输出量取决于**本机日志量**，
   所以它在开发机上可以永远不出现——`scanUnifiedLog()` 自落地起就从未返回过内容，而界面显示的是
-  **另外两个信号**，看上去完全像"这台机器近 5 分钟没有活动事件"。两个可复用的判据：
+  **另外两个信号**，看上去完全像"这台机器近 5 分钟没有活动事件"。
+  （**P11c 注**：`scanUnifiedLog()` 连同这一族已从界面撤下，见 `fidelity-guardian.md` §6.7；
+  这一条教训**不随函数消失**——`SystemSpaceReport` 那一处仍是同一个形状，而仓库里唯一做对了的
+  边读边攒实现也跟着走了。复现件 `Scripts/p11-pipe-deadlock-repro.swift` 保留，它自带三支对照，
+  不依赖任何仓库函数就能再撞一次这个死锁。）两个可复用的判据：
   ① 凡是 `Process` + `Pipe`，**读和等必须分占两条队列**（同仓 `SystemSpaceReport` 那一处是同样的形状，
   只因 tmutil 输出小才没发作——"没发作"不等于"写对了"）；② 超时保护会**把死锁伪装成空结果**，
   所以带超时的读取要配一个能报字节数的复现件（`p11-pipe-deadlock-repro.swift`），
@@ -323,6 +328,32 @@
   同一份文档里两个数并存，且**错的那两个都是被人当结论抄走的那两处**。加一轮只追加 §1 的数，
   不等于全文同步；可复用的动作是 `grep -n "个测试\|测试全绿\|测试。" docs/analysis/*.md` 把**引用**计数的句子
   也过一遍，而不是只看计数表那一格。
+- **一条读法修到能出内容之后，下一问不是"还能修什么"，是"这一族该不该在这张卡上"**（P11c）：
+  P11 把 `log show` 那一路的三处读法错全修好了，P11c 去定文案合同时量的却是**谓词命中了什么**——
+  按进程分布一摆，139 行里第一名是 sharingd 的 `authTag`（34%），第二名往后是 opendirectoryd、cloudd、
+  remotepairingd，**没有一行是"系统活动"这个词在界面上暗示的东西**。接着量了八档（窄白名单 52 行全是
+  tccd 内部转储、只留 loginwindow 0 行、切到摄像头/麦克风 24h 0 行、syspolicyd 30m 20,741 行……），
+  结论是**没有任何一档同时做到低噪、可读、切题**，于是整族撤下。可复用判据两条：
+  ① 界面上任何一族来自"外部命令的自由文本匹配"，先按**进程/来源分布**量一次它的命中集，
+  第一名不是你想报的那件事，这一族的口径就已经错了（不是"再修一轮解析"能好的）；
+  ② 撤下一族常常比修好它更省——这一族带着三处修好的缺陷活了若干轮而没人问过它该不该存在。
+- **数子进程的输出要选列数固定的格式**（P11c，本轮同一件事失败两次）：`log show` 默认的 compact 格式
+  **列数不定**（折行续行、`Activity` 类型行的列数与事件行不同），`awk '{print $8}'` 和按 7 段前缀的
+  `sed -nE` 都把正文片段数成了进程名，于是那份"分布"看起来是个数、其实是垃圾。
+  换 `--style json` 一次就对了，但注意**字段名两边不一样**：compact 里那列叫 `process`，
+  JSON 里根本没有这个键，得读 `processImagePath`。判据：**同一批数据用两种格式各读一次，
+  量到的东西要能互相对上**，对不上就是有一侧在猜列。
+- **`prefix(n)` 之后再过滤，是"恒为空"的另一种写法**（P11c）：
+  `for file in files.prefix(3) where file.hasSuffix(".plist")` 读起来像"取最近三个 LaunchAgent"，
+  实际是"取目录枚举的前三项，再看其中哪几个是 plist"。本机 `~/Library/LaunchAgents` 九项里六项是
+  改名停用的 `.disabled` 且排在最前 → 这一族在真机上**一行都没有**，而磁盘上确实有 3 个 `.plist`。
+  它和 §5 那条"超时把死锁伪装成空结果"是同一族错：**空可以是逻辑顺序造成的，不是环境造成的**。
+  判据要喂目录枚举的真实顺序（`testDisabledAgentsDoNotCrowdOutTheRealPlists`），
+  只喂"三个 plist"那种干净输入永远测不出它。
+- **界面上两个字段说同一个数，是一个信号**（P11c）：敏感目录那行从前是
+  `detail: "最近访问: 刚刚"` 配 `time: "刚刚"`——同一个数说两遍。这类重复通常说明其中一个字段
+  不知道该放什么，而这次它顺带藏着一个口径错：读的是 `.modificationDate`，写的是"访问"。
+  收口手法也一样：detail 换成路径（真的新信息）、time 留 mtime 的相对说法，两格各说一件事。
 - **每份 `.log` 开头两行归因头**（P6.8b）：三个 p68 脚本的日志先写
   `# <脚本> <档> <时间> app=… fixture=…` 与 `# env: <本档全部注入变量>`，再接应用 stderr。
   原因是**钩子的成功路径大多不说话**（`MM_UNINSTALL_SELECT` 只在落空时写一行、

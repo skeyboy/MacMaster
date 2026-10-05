@@ -40,7 +40,8 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
 ```
 
-现测（2026-10-05，P11 之后重跑）：**581 个测试、0 失败、1 跳过**。不要手敲 `swift test | tail -4`——
+现测（2026-10-05，P11c 之后重跑）：**579 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+删掉 10 条它的单测、新增 8 条活动卡文案合同单测，净 −2）。不要手敲 `swift test | tail -4`——
 SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 
@@ -57,7 +58,7 @@ SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示
 | 应用卸载 | `MMUninstaller` | 残留扫描、安装包归属、Homebrew/MAS 来源识别、废纸篓与 `/Applications` 装卸监听 |
 | 磁盘分析 | `MMDisk` | treemap 下钻 + 标记批量移除（回收 / 永久删除两条路径） |
 | 系统监控 | `MMMonitor` | 菜单栏指标 + SMC 温度/风扇 + 进程列表；IOKit 读不到时界面明说读不到 |
-| 隐私守护 | `MMGuardian` | 摄像头/麦克风占用、TCC 授权只读视图、登录项管理 |
+| 隐私守护 | `MMGuardian` | 摄像头/麦克风占用、TCC 授权只读视图、登录项管理、密钥与自启配置的改动时间（只读 mtime） |
 | 优化 | `MMOptimizer` | 重复文件（SHA-256）、浏览器缓存、开发工具占用、系统状态 |
 | 设置 | `MMCore` + 壳层 | 18 项持久化设置 + 关于页 |
 
@@ -72,9 +73,17 @@ SwiftPM 的结论行有两种形态，那样会把 MMCore 的 43 个测试显示
 **会读的**：`~/Library/Caches`、`~/Library/Logs`、`~/Library/Containers/*/Data/Library/Caches`、
 per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `/Library/Logs`、
 `~/Library/Application Support/MobileSync/Backup`（只列体积，不给删除）、`/Applications`、`~/.Trash`、
-`/var/db/receipts`（安装包收据）、Homebrew 账本、统一日志（`/usr/bin/log show`，只过 `login`/`auth` 关键字）。
+`/var/db/receipts`（安装包收据）、Homebrew 账本。
 重复文件检测会**读文件内容**算哈希（先头尾采样，命中候选才整文件读）。
 浏览器那几行只读**缓存目录**，不读 History / Cookies / 密码库。
+守护页那张「密钥与自启配置的改动时间」只对 `~/.ssh`、`~/.gnupg`、`~/Library/Keychains` 三个目录
+和用户 `~/Library/LaunchAgents` 里的 `.plist` 问一次 **mtime**（`attributesOfItem` + 列目录名），
+**不读这些目录里的任何文件内容**，也不读系统统一日志。
+
+**不再读的**（P11c，2026-10-05）：这一版**不执行 `/usr/bin/log show`**。从前守护页有一族"最近活动"
+是拿 `eventMessage contains "login" OR contains "auth"` 去过滤统一日志的，实测八档谓词没有一档能同时做到
+低噪、可读、切题（命中的头名常是别的过程的日志正文），所以整族撤下——判据与量表见
+`docs/analysis/fidelity-guardian.md` §6.7。**这也意味着发版说明里可以少写一项读取来源。**
 
 **会写的**（一共四类）：
 1. `~/Library/Preferences/com.macmaster.app` —— 设置项与清理页排除名单。
@@ -145,6 +154,14 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 这一轮顺带查出并修了三个**与签名无关**的真实缺陷（`log show` 那条读法里的管道死锁、
 列宽把事件正文吃干净、以及 `prefix(5)` 在升序输出上取到的是**最旧**的 5 条却标着「最近」）——
 细节与判据在 §3 末尾与 `hook-ledger.md` §5，方法教训在 `fidelity-guardian.md` §6.6.6。
+**P11c 把这三个缺陷所在的那一族整个撤下了**（同一篇 §6.7）：修完之后重测谓词，命中的头名不是要报的东西，
+所以界面上不再有"最近活动"，那张卡改叫「密钥与自启配置的改动时间」。教训留在文档和
+`Scripts/p11-pipe-deadlock-repro.swift` 里，代码里那一族已无残留。
+
+**P11c（2026-10-05）对发版说明的三处影响**：①"读什么"少一项（不再执行 `log show`，见上面《权限与隐私》）；
+②守护页那一卡只报 mtime，**界面上就写着这句**，所以说明里不能写成"最近访问记录"；
+③`full` 测试数从 581 变 579，§10 checklist 第 1 步的期望值随之改。发版判定本身没变：
+**功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
 "版本号从打包脚本走到关于页"）**已实跑两遍，都在 2026-10-05**：P9 那遍 571/0/1（证据

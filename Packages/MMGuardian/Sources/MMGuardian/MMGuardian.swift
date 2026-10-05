@@ -334,21 +334,22 @@ public struct GuardianView: View {
         .overlay(alignment: .top) { Divider() }
     }
 
-    // MARK: - 系统活动
+    // MARK: - 密钥与自启配置的改动时间
 
     private var activityCard: some View {
         VStack(alignment: .leading, spacing: MMGap.xs) {
             sectionHeader(systemImage: "eye",
                           iconTint: MMColor.informational,
-                          title: "系统活动") {
+                          title: ActivityCardCopy.title) {
                 EmptyView()
             }
             MMCard(padding: 0) {
                 VStack(spacing: 0) {
                     if vm.activities.isEmpty {
-                        Text("近 5 分钟没有可读到的活动事件。")
+                        Text(ActivityCardCopy.emptyText)
                             .font(.caption)
                             .foregroundStyle(MMColor.secondaryLabel)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(MMGap.md)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else {
@@ -361,8 +362,10 @@ public struct GuardianView: View {
                                 VStack(alignment: .leading, spacing: MMGap.xxs) {
                                     Text(activity.title).font(.body.weight(.medium))
                                     Text(activity.detail)
-                                        .font(.caption)
+                                        .font(.caption.monospaced())
                                         .foregroundStyle(MMColor.secondaryLabel)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
                                 }
                                 Spacer(minLength: MMGap.sm)
                                 Text(activity.time)
@@ -376,6 +379,19 @@ public struct GuardianView: View {
                             .padding(.vertical, MMGap.sm)
                         }
                     }
+                    // 口径写在卡里、两态都在：这一格最容易被人读成"有没有人动过我的密钥"。
+                    Divider()
+                    HStack(alignment: .top, spacing: MMGap.xs) {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                        Text(ActivityCardCopy.footnote)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.tertiaryLabel)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, MMGap.lg)
+                    .padding(.vertical, MMGap.sm)
                 }
             }
         }
@@ -383,9 +399,7 @@ public struct GuardianView: View {
 
     private func tint(for tone: ActivityTone) -> Color {
         switch tone {
-        case .info: MMColor.informational
         case .caution: MMColor.caution
-        case .destructive: MMColor.destructive
         case .neutral: MMColor.secondaryLabel
         }
     }
@@ -747,7 +761,7 @@ struct TCCAuthorizationRow: View {
 // MARK: - 活动模型
 
 public enum ActivityTone: Sendable {
-    case info, caution, destructive, neutral
+    case caution, neutral
 }
 
 struct ActivityItem: Identifiable, Sendable {
@@ -759,216 +773,116 @@ struct ActivityItem: Identifiable, Sendable {
     let tone: ActivityTone
 }
 
+/// 这一卡的文案合同。一句话：**只报文件系统的改动时间**，不报"活动"、不报"访问"。
+///
+/// 三条实测理由（数据在 `docs/analysis/fidelity-guardian.md` §6.7）：
+/// ① 从前这一卡的第一族是 `log show` 的命中行，而那条谓词量到的是"正文里含 login/auth 字样"，
+///    本机 5 分钟 139 行里 47 行是 sharingd 的 `authTag`、5 行是 `log` 把我们自己的谓词回声回来；
+/// ② LaunchAgent 那一族写在 `prefix(3)` 之后才过滤 `.plist`，本机 9 个条目里 6 个是 `.disabled`
+///    且排在最前，于是这一族在真机上恒为 0 行；
+/// ③ 敏感目录那一行写「最近访问」，读的是 `.modificationDate`。
+enum ActivityCardCopy {
+    static let title = "密钥与自启配置的改动时间"
+    static let emptyText = "本机没有 ~/.ssh、~/.gnupg、~/Library/Keychains 这三个目录，用户级 LaunchAgents 目录里也没有 .plist。"
+    static let footnote = "这里只有文件系统的修改时间（mtime）：目录里增删条目会改它，读取里面的文件不会。所以这一格能看出密钥目录最近有没有被写过，不能用来判断有没有人访问过你的密钥。"
+}
+
 // MARK: - Activity Scanner
 
 enum ActivityScanner {
+    /// 界面上要盯的那几个路径（静态清单，不含时间）。
+    struct WatchedPath: Equatable, Sendable {
+        let label: String
+        let path: String
+        let icon: String
+    }
+
+    /// 清单加上这一次读到的 mtime。
+    struct WatchedDirectory: Equatable, Sendable {
+        let label: String
+        let path: String
+        let icon: String
+        let modificationDate: Date
+    }
+
+    struct LaunchAgentFile: Equatable, Sendable {
+        let name: String
+        let path: String
+        let modificationDate: Date
+    }
+
     static func scan() -> [ActivityItem] {
-        var items: [ActivityItem] = []
-
-        if let logItems = scanUnifiedLog() {
-            items.append(contentsOf: logItems)
-        }
-
-        // 最近改动的用户 LaunchAgents 视作活动信号。
         let fm = FileManager.default
-        let agentsDir = "\(NSHomeDirectory())/Library/LaunchAgents"
-        if let files = try? fm.contentsOfDirectory(atPath: agentsDir) {
-            for file in files.prefix(3) where file.hasSuffix(".plist") {
-                let path = "\(agentsDir)/\(file)"
-                if let attrs = try? fm.attributesOfItem(atPath: path),
-                   let modDate = attrs[.modificationDate] as? Date {
-                    items.append(ActivityItem(
-                        title: file.replacingOccurrences(of: ".plist", with: ""),
-                        detail: "LaunchAgent 最近修改",
-                        time: relativeTime(modDate),
-                        icon: "gear",
-                        tone: .caution
-                    ))
-                }
-            }
+        let directories = watchableDirectories(home: NSHomeDirectory()).compactMap { p -> WatchedDirectory? in
+            guard let modDate = modificationDate(of: p.path, with: fm) else { return nil }
+            return WatchedDirectory(label: p.label, path: p.path, icon: p.icon, modificationDate: modDate)
         }
 
-        items.append(contentsOf: scanRecentEvents())
+        let root = "\(NSHomeDirectory())/Library/LaunchAgents"
+        let entries: [(name: String, modificationDate: Date)] = (try? fm.contentsOfDirectory(atPath: root))?.compactMap { name in
+            guard let modDate = modificationDate(of: "\(root)/\(name)", with: fm) else { return nil }
+            return (name, modDate)
+        } ?? []
+
+        return activityRows(directories: directories,
+                            launchAgents: launchAgentFiles(in: entries, root: root))
+    }
+
+    private static func modificationDate(of path: String, with fm: FileManager) -> Date? {
+        (try? fm.attributesOfItem(atPath: path))?[.modificationDate] as? Date
+    }
+
+    /// 界面上那三行密钥目录：顺序写死，不随磁盘枚举顺序变。
+    static func watchableDirectories(home: String) -> [WatchedPath] {
+        [
+            WatchedPath(label: "SSH 密钥目录", path: "\(home)/.ssh", icon: "key.fill"),
+            WatchedPath(label: "GPG 密钥目录", path: "\(home)/.gnupg", icon: "lock.fill"),
+            WatchedPath(label: "钥匙串", path: "\(home)/Library/Keychains", icon: "key.fill"),
+        ]
+    }
+
+    /// 先过滤 `.plist`、再按改动时间从新到旧取 `limit` 个。
+    ///
+    /// 旧写法是 `for file in files.prefix(3) where file.hasSuffix(".plist")`——截断发生在过滤**之前**。
+    /// 本机 `~/Library/LaunchAgents` 有 9 个条目，其中 6 个是改名停用的 `.disabled`，
+    /// 而 `contentsOfDirectory` 把它们排在了最前，于是这一族在真机上一行都不产出，
+    /// 尽管磁盘上确实躺着 3 个 `.plist`。
+    static func launchAgentFiles(in entries: [(name: String, modificationDate: Date)],
+                                 root: String, limit: Int = 3) -> [LaunchAgentFile] {
+        entries.filter { $0.name.hasSuffix(".plist") }
+            .sorted { $0.modificationDate > $1.modificationDate }
+            .prefix(limit)
+            .map { LaunchAgentFile(name: $0.name, path: "\(root)/\($0.name)", modificationDate: $0.modificationDate) }
+    }
+
+    /// 两族行拼成卡片的顺序：先密钥目录，再 LaunchAgent。
+    /// 行的 `detail` 一律是路径、`time` 一律是那个 mtime 的相对说法——
+    /// 从前 `detail` 里写「最近访问: 刚刚」，和右侧时间列是同一个数说两遍，而且说得不对。
+    static func activityRows(directories: [WatchedDirectory],
+                             launchAgents: [LaunchAgentFile]) -> [ActivityItem] {
+        var items: [ActivityItem] = []
+        for directory in directories {
+            items.append(ActivityItem(
+                title: directory.label,
+                detail: directory.path,
+                time: relativeTime(directory.modificationDate),
+                icon: directory.icon,
+                tone: .caution
+            ))
+        }
+        for agent in launchAgents {
+            items.append(ActivityItem(
+                title: agent.name.replacingOccurrences(of: ".plist", with: ""),
+                detail: agent.path,
+                time: relativeTime(agent.modificationDate),
+                icon: "gear",
+                tone: .neutral
+            ))
+        }
         return items
     }
 
-    private static func scanUnifiedLog() -> [ActivityItem]? {
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/log")
-        proc.arguments = ["show", "--last", "5m", "--predicate",
-                          "eventMessage contains \"login\" OR eventMessage contains \"auth\""]
-
-        let pipe = Pipe()
-        proc.standardOutput = pipe
-        proc.standardError = Pipe()
-        do {
-            try proc.run()
-        } catch {
-            // 只读探测失败降级为空列表（活动流本来就允许没有事件），
-            // 但不再让 try? 把"启动不了 log"和"没有事件"混成一样。
-            return nil
-        }
-
-        // 子进程超时保护：沙盒环境下 /usr/bin/log 可能挂起（sandbox_extension_issue），
-        // waitUntilExit() 会永远阻塞，所以等退出要放到别的队列上、并且有 8 秒上限。
-        //
-        // **读管道必须和等退出并行，不能等完再读**：Pipe 的内核缓冲只有 64 KB，
-        // 而这条 `log show --last 5m` 本机现测返回 199,740 字节 / 1,511 行。先 `waitUntilExit()`
-        // 再读，子进程卡在 write、父进程卡在 wait，复现脚本的 ① 就停在整 **65,536** 字节上直到 8 秒到点——
-        // 于是这个函数自落地起从未返回过内容，界面上「系统日志事件」一行都没出现过，
-        // 而卡片显示的是另外两个信号，看上去像"这台机器没有日志事件"。
-        // 复现（不启动 App，同样的 API 形状跑同一条命令）：`swift Scripts/p11-pipe-deadlock-repro.swift 5`
-        //
-        // **到点了也不能把已经读到的丢掉**：耗时取决于本机这 5 分钟里有多少日志命中谓词。
-        // 现测这一条跑得快（0.82–0.90 秒读完 198 KB），但它**在带沙盒的取证环境里整条挂住过**
-        // （`sandbox_extension_issue_file_to_process`，见 `docs/analysis/fidelity-guardian.md` §6.6.3），
-        // 而"什么时候挂住"不是我们能预测的那一类事。旧写法一超时就 `return nil`，
-        // 把"已经拿到手的真事件"和"一个字都没读到"弄成同一张脸——那是同一个静默空值的第二个来源。
-        // 现在边读边攒，超时只杀掉子进程，攒下的部分照常解析；一行都没读到时才返回 nil。
-        let finished = DispatchSemaphore(value: 0)
-        let box = UnifiedLogOutput()
-        let handle = pipe.fileHandleForReading
-        DispatchQueue.global(qos: .utility).async {
-            while let chunk = try? handle.read(upToCount: 65_536), !chunk.isEmpty {
-                box.append(chunk)
-            }
-        }
-        DispatchQueue.global(qos: .utility).async {
-            proc.waitUntilExit()
-            finished.signal()
-        }
-        if finished.wait(timeout: .now() + 8) == .timedOut {
-            proc.terminate()
-            FileHandle.standardError.write(
-                "log show 8 秒未结束，已杀掉子进程；下面解析的是它在被杀之前写完的部分（\(box.snapshot().count) 字节）\n".data(using: .utf8)!)
-        }
-
-        let data = box.snapshot()
-        guard let output = String(data: data, encoding: .utf8), !output.isEmpty else {
-            return nil
-        }
-
-        // `log show` 不带 `--style` 时第一行是列标题（"Timestamp  Thread  Type ..."），
-        // 它不是一条事件。以前 5 条名额里固定有一格是这行表头——卡片自报"修好了"之后
-        // 第一次实机照片就把它顶在了第一条。
-        let records = recentLogRecords(of: output)
-        return records.map { line in
-            ActivityItem(
-                title: "系统日志事件",
-                detail: unifiedLogRow(line),
-                time: "最近",
-                icon: "doc.text",
-                tone: .info
-            )
-        }
-    }
-
-    /// 这 5 分钟窗口里**最新**的至多 `limit` 条，最新的一条排最前。
-    /// `log show` 是升序输出的（实测末行就是"刚刚那一秒"，首行是窗口起点），
-    /// 而旧代码取的是 `prefix(5)`——那正好是最旧的 5 条，右侧却写着「最近」。
-    /// P11 的两档对照照片把这件事暴露了出来：base 那张 5 行是 15:02:13–15:02:33，
-    /// 拍照片的时刻是 15:07，也就是画面上没有一行发生在最近 4 分钟内。
-    static func recentLogRecords(of output: String, limit: Int = 5) -> [String] {
-        Array(groupLogRecords(output).suffix(limit)).reversed()
-    }
-
-    /// 把 `log show` 的输出折成"一条事件一项"。
-    /// 一条事件的正文会因长度被折行，续行不以时间戳开头——旧代码按 `\n` 直接切，
-    /// 于是实机照片里第 5 条「系统日志事件」是上一条事件的半截尾巴
-    /// （`<RBConnectionListener| clients:[`），卡片写着 5 条其实只有 4 条事件。
-    /// 整批都认不出时间戳时（别的 `log` 版本）原样留下，不静默变空。
-    static func groupLogRecords(_ output: String) -> [String] {
-        var records: [String] = []
-        for line in output.components(separatedBy: "\n") where !line.isEmpty {
-            if line.hasPrefix("Timestamp") { continue }  // 不带 --style 时第一行是列标题，不是事件
-            if isLogRecordLine(line) {
-                records.append(line)
-            } else if let last = records.indices.last {
-                records[last] += " " + line
-            } else {
-                records.append(line)
-            }
-        }
-        return records
-    }
-
-    /// 事件行以 ISO-8601 时间戳开头（`2026-10-05 15:00:03.019740+0800 …`）。
-    /// 只认"前 4 位是数字、第 5 位是 `-`"，不去数列、也不假设年份。
-    static func isLogRecordLine(_ line: String) -> Bool {
-        guard line.count >= 5 else { return false }
-        let dash = line.index(line.startIndex, offsetBy: 4)
-        return line[dash] == "-" && line[line.startIndex..<dash].allSatisfy(\.isNumber)
-    }
-
-    /// 把 `log show` 的一行定宽列拆成正文。一行形如
-    /// `2026-10-05 14:57:15.732004+0800 0x19dd  Error  0x0  709  3  sharingd: (CoreUtils) [com.apple…] 正文`，
-    /// 前 7 段是列（日期 / 时间 / 线程 / 类型 / Activity / PID / TTL），列之间是一串对齐空格。
-    /// 之前这里是 `String(line.prefix(80))`：光那 7 段列就占掉 78 个字符，
-    /// 所以修好管道死锁之后第一次实机照片里，5 条「系统日志事件」全是列宽、一条正文都没有。
-    /// 认不出 7 段列的行（换行续行、别的 `log` 版本）退回整行，宁可难看也不丢事件。
-    static func unifiedLogRow(_ line: String) -> String {
-        var rest = Substring(line)
-        var clock = ""
-        for field in 0..<7 {
-            rest = rest.drop(while: { $0 == " " || $0 == "\t" })
-            guard let space = rest.firstIndex(where: { $0 == " " || $0 == "\t" }) else {
-                return String(line.prefix(120))
-            }
-            // 第 2 段是时间（第 1 段是日期），留着当行内时间戳——卡片的 time 只有"最近"。
-            if field == 1 { clock = String(rest[..<space]) }
-            rest = rest[space...]
-        }
-        let body = rest.trimmingCharacters(in: .whitespaces)
-        if body.isEmpty { return String(line.prefix(120)) }
-        return String((clock.isEmpty ? body : "\(clock) \(body)").prefix(140))
-    }
-
-    /// 后台队列边读边攒、主调线程到点取快照，两边跨线程，所以自带一把锁。
-    /// 用类而不是值捕获：信号量只提供"退出"这一件事的可见性，输出是随时可能被读的。
-    private final class UnifiedLogOutput: @unchecked Sendable {
-        private let lock = NSLock()
-        private var storage = Data()
-
-        func append(_ chunk: Data) {
-            lock.lock()
-            storage.append(chunk)
-            lock.unlock()
-        }
-
-        func snapshot() -> Data {
-            lock.lock()
-            defer { lock.unlock() }
-            return storage
-        }
-    }
-
-    private static func scanRecentEvents() -> [ActivityItem] {
-        var events: [ActivityItem] = []
-
-        let sensitivePaths: [(String, String, String, ActivityTone)] = [
-            ("\(NSHomeDirectory())/.ssh", "SSH 密钥目录", "key.fill", .destructive),
-            ("\(NSHomeDirectory())/.gnupg", "GPG 密钥目录", "lock.fill", .destructive),
-            ("\(NSHomeDirectory())/Library/Keychains", "钥匙串", "key.fill", .caution),
-        ]
-
-        let fm = FileManager.default
-        for (path, name, icon, tone) in sensitivePaths {
-            if let attrs = try? fm.attributesOfItem(atPath: path),
-               let modDate = attrs[.modificationDate] as? Date {
-                events.append(ActivityItem(
-                    title: name,
-                    detail: "最近访问: \(relativeTime(modDate))",
-                    time: relativeTime(modDate),
-                    icon: icon,
-                    tone: tone
-                ))
-            }
-        }
-
-        return events
-    }
-
-    private static func relativeTime(_ date: Date) -> String {
+    static func relativeTime(_ date: Date) -> String {
         let interval = Date().timeIntervalSince(date)
         if interval < 60 { return "刚刚" }
         if interval < 3600 { return "\(Int(interval / 60)) 分钟前" }

@@ -25,6 +25,12 @@
 > **P6.2c 更新（2026-10-03）**：**I4 关掉**——占用行图标环的直径/描边/上色三条都改过（§6.6.1），
 > 守护页八档另出一整套深色档（`docs/verification/p62c-dark/`，§6.6.2），
 > §6.5 里"深色档没量/活动卡没拍/登录项 indeterminate 没拍"三条一并划掉。
+>
+> **P11 / P11c 更新（2026-10-05）**：上面第 11–13 行那三处缺陷里，**②③ 是同一张卡**（「系统活动」），
+> 它先被 P11 查出三处读法错（§6.6.6），再被 P11c 整卡重定——**统一日志那一族已从界面撤下，
+> 卡片改名「密钥与自启配置的改动时间」，设计稿 06 也补了这一节（S12 关闭）**。
+> 撤下它的全部实测（八档谓词、三家参考项目对照）与新的文案合同在 **§6.7**；
+> 顺带修掉一个真机上恒为 0 行的 `prefix(3)` 缺陷也在那一节。
 
 ## 0. 对照方法（先说清楚哪些是量出来的）
 
@@ -124,13 +130,18 @@
 | 写失败面板（toggle 系统域/改名文件被拒 → `MMFailurePanel`） | `MMGuardian.swift:42-48,502-510` | ✅（代码分支） | 交互结果态；**设计稿未绘** | 低 | 设计稿该改 S11（同条） |
 | 登录行 min-height 44pt（稿 `.login`） | `LoginItemRow` `frame(minHeight:)`（P6.2b 前是 `frame(height: 44/56)` **定高**） | ❌→✅ | 原判定"✅ 与 token 一致"是**错的**：稿写 min-height，实现写死 height，带异常徽章的行有第三行文字，44/56 钉死就把徽章那行齐根切掉。改后见 `p62b-fidelity/04-guardian-fixture-rows.png`（三行徽章完整） | 低 | 实现该改 I6 → **已落地** |
 
-### 1.5 系统活动卡（实现独有，设计稿 06 无此 section）
+### 1.5 密钥与自启配置的改动时间卡（P11c 定合同；设计稿 06 已补这一节）
+
+> 这一节从前记的是"实现多了一张稿上没有的卡"（旧 S12）。P11c 把那张卡的口径重定之后
+> **设计稿补了它**（`docs/design-system/screens/mmguardian/06-guardian.html` 登录项卡之后那一节），
+> 于是三行判据从"无基准"变成"有基准可比"。撤下日志族的全部实测在 §6.7。
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| （设计稿 06 完全没有「系统活动」卡） | `MMGuardian.swift` `activityCard` + `ActivityScanner`（近期 log 事件 / LaunchAgent 改动 / `~/.ssh`·`~/.gnupg`·`~/Library/Keychains` 访问时间） | ❌ | 实现多了第 4 张卡；产品规划文档 §4.5 有"最近活动"区块，但设计稿落后未补，且实现按"诚实口径"重做（不编造进程名、无「阻止」按钮）。**P11 之后这张卡的"最近"才真的是最近、正文才真的进画面，但它有一半在报应用自己——见 §6.6.6** | **中** | 设计稿该改 S12 |
-| 空态「近 5 分钟没有可读到的活动事件」 | `MMGuardian.swift` `activityCard` 的空态分支 | ⚠️ | 实现独有，无设计稿可对照；**夹具钩子 `MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已落地**（`GuardianActivityFixture.parse`），`empty` 档实机见 `p62b-fidelity/10-guardian-activity-empty.png`（§6.6.3 补记） | 中 | 提协调者 G1（钩子已落实，缺设计稿基准） |
-| 卡片几何（icon=eye、行高 44、contentBackground 药丸） | `activityCard`：行改平铺 + `Divider()`，`minHeight: rowCompact`（P6.2b） | ⚠️ | 药丸底已去掉（全站只有这一页在用，与稿 06 的平铺行冲突）；但**这张稿 06 里根本没有**，所以像素项仍无基准可比 | 低 | 记录（区块归属见 S12） |
+| 稿 06「密钥与自启配置的改动时间」卡：五行（三行密钥目录 caution 橙 + 两行 LaunchAgent 中性灰），行 = 名称 + mono 绝对路径 + 右侧相对时间，脚注一条 | `MMGuardian.swift` `activityCard` + `ActivityScanner.watchableDirectories/launchAgentFiles/activityRows` | ⚠️ | 形状与 `p11c-activity/01-real-machine.png` 一致（本机 `.gnupg` 不存在 → 照片两行目录 + 三行 agent，稿上五行是"全都有"那一档）。**稿上脚注比实现多两句**（图标配色口径、"两者不得是同一个数说两遍"），那是写给下一轮看的合同，不是界面文案 | 低 | 记录（S12 关闭） |
+| 空态「本机没有 ~/.ssh、~/.gnupg、~/Library/Keychains 这三个目录，用户级 LaunchAgents 目录里也没有 .plist。」 | `ActivityCardCopy.emptyText` | ✅ | 实现与常量同源，判据 `testCardCopyScopesTheClaimToModificationTimes`；`empty` 档照片 `p11c-activity/03-fixture-empty.png`（旧 `p62b-fidelity/10-guardian-activity-empty.png` 拍的是"近 5 分钟没有可读到的活动事件"那句，已被合同换掉，旧照片不重拍、只在此注明它记录的是收口前的口径） | — | 已收口 |
+| 卡片几何（icon=eye、行高 44、平铺行 + `Divider()`） | `activityCard`：行 `minHeight: rowCompact`（P6.2b），detail 换成 `.caption.monospaced()` + 中段省略 | ⚠️ | 路径比从前的中文说明长，窄窗（1000pt）下中段省略生效、不溢出（`p11c-activity/04-fixture-rows-min-window.png`）；脚注两行换行不切字 | 低 | 记录 |
+
 
 ## 2. 实现该改（6 条，按严重度排序；P6.2b 关掉 3 条、P6.2c 关掉 I4）
 
@@ -162,7 +173,7 @@
 
 1. **【中】S1 · 侧栏 footer 全站画错**（实机容量行+带边框设置按钮，全站 S1）：06 稿沿用 01–06 错误画法，应在 tokens/screen 层补侧栏 footer 组件，七张稿一起换。
 2. **【中】S10 · 06 主屏 artboard 1 系统级行与"系统级库读不到"警示条自相矛盾**：既画"系统级库读不到"警示条、又画"屏幕录制·系统级"行（Example Recorder），正是本项目红线禁止的"读不到也列系统级行"假通过。实现 `partial` 档已正确过滤掉系统级行。**改法**：删掉该行（保留警示条），或删掉警示条（改为 `.loaded` 全可读态）——二者只能留一。
-3. **【中】S12 · 设计稿缺「系统活动」卡**：实现按产品规划文档 §4.5"最近活动"落地了诚实版「系统活动」卡，但 06-guardian.html 未补。建议设计稿加该区块并明确范围（不编进程名、无「阻止」按钮、空态文案）。
+3. ~~**【中】S12 · 设计稿缺「系统活动」卡**~~ → **P11c 关闭**：06-guardian.html 已补这一节，但**补的不是原来那张卡**——量完四种谓词之后日志族整族撤下，卡片重定成「密钥与自启配置的改动时间」（合同与实测见 §6.7）。产品规划文档 §4.5 那句"最近活动"到此只能算"实现比规划走得远，规划该改"，不是设计稿落后。
 4. **【低】S2 · 卡片底 token 漂移**（全站 S4）：稿 `.card`=`--c-card-bg`，实现 `MMColor.cardBackground`=underPageBackgroundColor；补 `.card--under-page` 后删本地样式。
 5. **【低】S3 · 页面底对比度**（全站 S3）：稿 `--c-content-bg`(白) vs 实机 textBackgroundColor 暗档；需 `.content--window` 变体。
 6. **【低】S4 · 侧栏尾数占位**（全站 S2）：`2.4 GB`/`46` 无来源，应改实机值或留空。
@@ -209,8 +220,8 @@
 ## 5. 提请协调者
 
 1. **【重点·核对结论】"授权表读不到 ≠ 未授权"边界：设计与实现均守住，PASS。** 实现在 `TCCProbe`/`TCCViewer`/`tccCard` 把"读不到"(`.unreadable`，不画列表) 与"查到 0 行"(`.emptyRead`，明确"查到了没有") 分成两个独立 UI 态，且 `.partial` 只列读到的库；设计稿 06c 也用两张独立卡片表达。唯一瑕疵是 06 主屏 artboard 1 内"系统级库读不到"警示条旁又画了系统级行（S10，设计稿自相矛盾，实现不会这么画），请协调者让设计稿修掉该自相矛盾。
-2. **【已落实·已出片（含 empty 档）】系统活动卡夹具钩子（G1）**：`MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已在 `MMGuardian.swift:461` 落地（合成条目标"夹具值"），本审计提出的"该卡无钩子、无法无头核对"已不成立；`rows` 档明暗两档各一张 + `empty` 档一张，见 §6.6.3。**P6.2d 新增 `MM_GUARDIAN_CARDS` 卡过滤钩子**，解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档现在用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡，不再需要压矮上方三卡。
-3. **【低】活动卡读敏感目录口径（G2）**：`ActivityScanner.scanRecentEvents` 读 `~/.ssh`/`~/.gnupg`/`~/Library/Keychains` 最近访问时间并展示为"最近访问: X"——守护模块自身把敏感目录访问时间摆上界面，可能自我矛盾，且 `readError` 失败被静默跳过。请产品/协调者确认该卡范围（是否应只报"最近改动"而非"最近访问"，以及失败是否要明示）。
+2. **【已落实·已出片（含 empty 档）】系统活动卡夹具钩子（G1）**：`MM_GUARDIAN_ACTIVITY_FIXTURE=empty|rows` 已落地（调用点是 `GuardianViewModel` 的 `activityFixtureStage` 常量——按符号名找，这一轮它随卡片改动挪过位置），合成条目标"夹具值"，本审计提出的"该卡无钩子、无法无头核对"已不成立；`rows` 档明暗两档各一张 + `empty` 档一张，见 §6.6.3。**P6.2d 新增 `MM_GUARDIAN_CARDS` 卡过滤钩子**，解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档现在用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡，不再需要压矮上方三卡。**P11c 更新**：`rows` 档的两行已换成新合同用词（detail 是路径、tone 只剩 caution/neutral），旧 `p62b-fidelity/07、10` 两张照片记的是收口前的口径，不重拍、在 §1.5 注明。
+3. ~~**【低】活动卡读敏感目录口径（G2）**~~ → **P11c 关闭，而且答案是"这句本身就不能说"**：那一行读的从来不是访问时间，是 `.modificationDate`，却写着"最近访问: X"。目录 mtime 只在**增删条目**时变，读取里面的密钥文件不动它——所以这句话正好是这个卡最不该说的那件事（三家参考项目无一这么标，见 §6.7）。现在 detail 是绝对路径、右侧是 mtime 的相对说法，卡片脚注明写"读取不会留下这里显示的那个时间"。至于"失败是否要明示"：这一族的读法只剩 `attributesOfItem`，读不到目录就是不存在，空态文案直接说出缺哪三个路径，不再有被静默跳过的 `readError`。
 4. **【低】`MM_TCC_FIXTURE=unreadable` 文案格式（G3）**：夹具 detail 是单句平铺"模拟两库均读不到…"，未用真实 `TCCViewer.build` 的"用户级库读不到：…；系统级库读不到：…"逐库拼接，与设计 artboard 3 两原因排版不完全一致。建议夹具 unreadable 改为注入"用户级 ENOENT + 系统级 EPERM/rc23"两段原文以贴近设计。
 5. **【低】四档 montage 非单屏态（G4）**：06 主屏 A 稿把占用四档并排画全，但每设备仅持一态，易被当成单屏。建议设计稿标注"每态独立示意，需用 `MM_GUARDIAN_FIXTURE` 分屏核对"。
 6. **【记录】全站骨架 token 漂移（S1–S4 / I1–I2）**：侧栏 footer、侧栏宽 220、标题栏 52、卡片底 underPage、页面底对比度、侧栏尾数占位——修复在 `tokens.css`/`screen.css`/壳工程，归协调层统一处理（同 `fidelity-monitor.md` §3），非本模块能改。
@@ -434,4 +445,70 @@ hr 那张同形（parent 93561）。**根因是谓词本身**：`eventMessage co
 当初就没有一份"这张卡该显示什么"的文案合同，它同时命中了登录/授权类事件与**我们自己发起的授权查询**。
 按 pid 或命令行过滤治不了（tccd、runningboardd 是别的进程写的），所以这一条记为
 **§1.5 那张卡缺文案合同**（与 S12「设计稿没有这张卡」是同一个归属），要收口得先定"系统活动"四个字的口径。
+
+### 6.7 P11c 收口：这一卡的文案合同，日志族整族撤下（2026-10-05）
+
+§6.6.6 留的那句"要先定『系统活动』四个字的口径"，这一轮就是那份合同。**合同的内容是：这一卡不再报活动。**
+它只报一件事——几个固定路径的修改时间。理由不是"日志太吵所以少显示几行"，是量完之后
+**没有任何一档谓词能同时做到低噪、可读、切题**（下面每一行都是本机现测，`log show --style json` 读回，
+不靠肉眼数照片；列数不定的 compact 格式数进程会数成正文片段，本轮在这里错过一次，见 `hook-ledger.md` §5）：
+
+| 档 | 谓词 | 窗口 | 行数 | 量到的东西 |
+| --- | --- | --- | --- | --- |
+| 现状 | `eventMessage contains "login" OR contains "auth"` | 5m | **139** | 47 行（34%）是 sharingd 的 `### Unable to decrypt activity level with authTag`，每 7 秒一枚；另有 **5 行是 `log` 把我们自己的谓词原文回声回来**（`args: '/usr/bin/log' 'show' … 'eventMessage contains "login" OR …'`）。这一档量到的是"正文里含这几个字母组合"，不是"系统活动" |
+| 窄白名单 | `processImagePath ENDSWITH "/loginwindow" OR "/authd" OR "/authorizationhost" OR "/tccd"` | 5m | **52** | 全部来自 tccd 一家。正文形状：`AUTHREQ_ATTRIBUTION: msgID=410.180710, attribution={accessing={TCCDProcess: identifier=com.apple.spotlightknow…`、`SecTrustEvaluateIfNecessary`、`Kernel: kauth_membership_check`；中位 69 字符，2 行含 `<private>`（苹果自己把正文涂掉了）。**没有一行是用户读得懂的** |
+| 只留登录 | `processImagePath ENDSWITH "/loginwindow"` | 5m | **0** | 这台机器 5 分钟内没人登录。空是真的，但一张常年为空的卡不叫信息 |
+| 切题 A：摄像头/麦克风 | `tccd AND (Camera OR Microphone)` | 24h | **0** | 授权判定被缓存，不落这条日志。守护页真正想报的"谁用了摄像头"在这条路上一个字都没有 |
+| 切题 B：音频/摄像守护 | `camerad OR coreaudiod` | 24h | **437** | 全是 coreaudiod，正文 `UserActivityLevel: 80, Capabilities 31, DidChange: 0, OldState: FullWake, NewState: FullWake`、`IsHidden: 1` |
+| 切题 C：Gatekeeper | `processImagePath ENDSWITH "/syspolicyd"` | 30m | **20,741** | `Unable to initialize qtn_proc: 3` / `dispatch_mig_server returned 268435459` 成对刷屏 |
+| 切题 D：登录族全量 | `loginwindow OR authd OR authorizationhost OR ManagedClient OR opendirectoryd` | 60m | **3,249** | loginwindow 一家 2,763 行 = 每分钟 46 行的空闲/时间检查噪声 |
+| 对照：subsystem 等值 | `subsystem == "com.apple.loginwindow.logging" OR "com.apple.TCC.access" OR "com.apple.AuthenticationServicesCore"` | 5m | **0** | 抄 OverSight 的写法。等值匹配在这台机器上直接落空——**苹果自家 subsystem 名不是照着猜的那套**，白名单路线连门都要先摸对名字 |
+
+**三家参考项目都没有这一卡**（`docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/` 现查）：
+Mole 的 LaunchAgents 只作为清理对象与保护规则出现（`lib/clean/apps.sh:773` "NEVER add LaunchAgents…"），
+Lemon 扫 LaunchAgents 只为找卸载残留（`QMCoreFunction/…/McSoftwareFileScanner.m:334-337`），
+Pearcleaner 只展示 `kMDItemLastUsedDate` 且文案就是 "Last Used Date"（`FilesSidebarView.swift:153`）。
+唯一真消费统一日志的是 OverSight，走 Apple Log API 实时流 + 苹果自家 subsystem 白名单
+（`AVMonitor.m:232` `subsystem=='com.apple.cmio' OR …`），**没有一家用 `eventMessage contains` 自由文本**，
+它排除自身回声的方式是结构性的：只订苹果自家 subsystem，自家日志天然不在流里。
+**把 mtime 叫"最近访问"的也只有我们自己**：Mole 用的是真 atime（`cmd/analyze/scanner.go:1214-1219`
+`stat.Atimespec`）且文案保守到只在 >90 天时显示 `>3mo`/`>1yr`（`format.go:247-268`），从不写"X 天前访问"。
+
+于是合同三条，全部写进 `ActivityCardCopy`（文案常量集中一处，判据在 `ActivityCardContractTests` 8 条）：
+
+1. **日志族整族撤下**——`scanUnifiedLog()` 连同四个拆行/取尾辅助函数一并删除。
+   §6.6.6 那三条修复（死锁、列宽、取尾）不是白做的：它们把"这一路能不能用"量清楚了，
+   结论是**这一路能给用户的东西没有**；复现件 `Scripts/p11-pipe-deadlock-repro.swift` 留在仓库里，
+   因为 `SystemSpaceReport` 那处 `Process` + `Pipe` 是同一个形状（只因 tmutil 输出小才没发作）。
+2. **`detail` 一律是绝对路径、`time` 一律是那个 mtime 的相对说法**——从前敏感目录那行写
+   「最近访问: 刚刚」而右侧时间列又写一遍「刚刚」：同一个数说两遍，而且说得不对
+   （读的是 `.modificationDate`；mtime 只在目录**增删条目**时变，读取里面的密钥文件不动它）。
+   卡片脚注把这句说明白：*这一格能看出密钥目录最近有没有被写过，不能用来判断有没有人访问过你的密钥*。
+3. **标题跟着口径改**：「系统活动」→「密钥与自启配置的改动时间」；空态从前写
+   「近 5 分钟没有可读到的活动事件」，可剩下的两族**根本没有 5 分钟窗口**（目录存在就出列，mtime 可以是几年前），
+   现在空态说的是真缺的东西：三个目录都没有 + 用户级 LaunchAgents 里没有 `.plist`。
+   tone 也收口：`ActivityTone` 从四支剩两支（caution / neutral），密钥目录橙、LaunchAgent 中性灰——
+   从前那三行是 `.destructive` 红，等于天天在喊"你的密钥出事了"，而它报的只是一个 mtime。
+
+**顺带修掉一个真机恒为 0 行的缺陷**（这是量出来的第二个意外）：LaunchAgent 那一族从前写的是
+`for file in files.prefix(3) where file.hasSuffix(".plist")`——**截断发生在过滤之前**。
+本机 `~/Library/LaunchAgents` 有 9 个条目，其中 6 个是改名停用的 `.disabled`，而 `contentsOfDirectory`
+把它们排在了最前，于是这一族在真机上一行都不产出，尽管磁盘上确实躺着 3 个 `.plist`。
+现在先过滤、再按 mtime 倒序、再取 3。判据 `testDisabledAgentsDoNotCrowdOutTheRealPlists`
+喂的就是本机那 9 个条目的真实顺序；照片侧 `p11c-activity/01-real-machine.png` 三行 `.plist` 全在。
+
+**照片与交叉验证**（`docs/verification/p11c-activity/`，脚本 `Scripts/p11c-activity-capture.sh`，四档）：
+01 真机 / 02 夹具 rows / 03 夹具 empty / 04 夹具 rows @1000×700。01 那份 `.log` 里带 `# expect:` 行——
+脚本用 `stat` 现读这五个路径的 mtime（**与代码不同的读法**），照片上那五个"X 前"必须能从 expect 行推出来：
+`.ssh` 2026-08-20 14:23 → 照片 46 天前、`Keychains` 10-05 07:59 → 8 小时前、
+`com.tencent.Lemon.trash.plist` 10-01 20:45 → 3 天前、`sh.brew.jenkins-lts.plist` 09-25 11:12 → 10 天前、
+`com.pnuts.jenkins.plist` 09-07 10:36 → 28 天前。`.gnupg` 本机不存在 → 照片上确实没有那一行。
+04 那一档看的是绝对路径在窄窗下不溢出、脚注换行两行不切字。
+
+**这一轮的账**（现读，全部重量）：MMGuardian 测试 93 → **91**（删 10 条日志拆行判据、加 8 条合同判据），
+全仓 581 → **579**、0 失败、1 跳过（仍是 MMDisk 那条没有第二块挂载卷的）；
+生产代码 26,428 → **26,340** 行（−88），测试代码 8,957 → **8,984** 行；
+非测试源码里的 `Process()` 启动点 4 → **3** 处；取证钩子名仍是 **52** 个（本轮一个新钩子都没加，
+`MM_GUARDIAN_ACTIVITY_FIXTURE` 是既有的，只改了它的 rows 档用词）。
+
 
