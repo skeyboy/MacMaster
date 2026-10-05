@@ -1,0 +1,4 @@
+# p68-brew-capture.sh 06-fixture-confirm-sheet  2026-10-05 12:28:54 +0800  app=/tmp/mm-app-p68uninst/MacMaster.app  fixture=/tmp/macmaster-provenance-fixture.Aw21jb
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-provenance-fixture.Aw21jb MM_UNINSTALL_SELECT=Highball
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p68uninst/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）

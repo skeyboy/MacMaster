@@ -649,3 +649,66 @@ testRefreshKeepsMarksDeeperThanTheEnumeratedLevel
   禁止合成点击，而磁盘页没有"导航到某个祖先目录"的钩子。为一张照片加一条新钩子
   （`MM_DISK_NAVIGATE`）本轮没做——`MM_DISK_RESCAN` 走的是整根 `reattach`，覆盖不到 `refresh`。
   所以判据停在 §10.1 那两条断言上，写在这里免得下轮以为照片里有。
+
+## 11. P6.8c 追加（2026-10-05）：§8 那四张手工照片变成可重跑脚本
+
+§8 末尾留的是一段**手写命令**（`p4-sweep.sh` 加一串 `MM_*`），仓库里没有任何脚本会再拍一遍那四张。
+本轮补 `Scripts/p68-disk-capture.sh`，照片写到新目录 `docs/verification/p68-disk/`
+（4 张 png + 4 份同名 log），**`docs/verification/p5-disk-permanent/` 一字未动**。
+本轮**不改源码、不新增钩子**，风格与 `p68-{dev,brew,trash}-capture.sh` 一致（`ONLY=` 重拍单档、
+每份 log 开头两行归因头、只 kill 自己起的 pid、拿不到窗口 id 就报错不出空照片）。
+
+### 11.1 怎么跑
+
+```sh
+./Scripts/make-app.sh -o /tmp/mm-app-p68disk -s /tmp/mm-scratch-p68disk
+./Scripts/p68-disk-capture.sh /tmp/mm-app-p68disk/MacMaster.app docs/verification/p68-disk light
+# 只重拍回执条：KEEP_FIXTURE=1 ONLY=04 ./Scripts/p68-disk-capture.sh …
+```
+
+夹具默认每次重建（`Scripts/disk-fixture.sh` 开头就 `rm -rf`，幂等）；`KEEP_FIXTURE=1` 跳过重建。
+`SEL` 的顺序仍是**根写在最后**——`MM_DISK_SELECT` 按逗号逐个往下钻，把扫描根写在第一个会一路选到
+`/tmp`、`selected` 变 nil，04 那档的吐司支路整条哑掉（`hook-ledger.md` §5 末那条老教训，脚本里也写了）。
+
+### 11.2 逐档哨兵（判据是日志里那行带数的回执 + 画面上的同一个数）
+
+| 档 | 钩子 | 日志那行可核对的断言 | 画面上必须对上的 |
+|---|---|---|---|
+| 01 `trash-confirm` | `MM_DISK_SCAN` + `MM_DISK_SELECT=$SEL` + `MM_SHOW_CONFIRM=1` | `MM_DISK_SELECT 已选中 …/Downloads（50.3 MB）`、`MM_SHOW_CONFIRM 已打开确认面板（3 个标记）` | 面板标题「把 **2** 项移入废纸篓？」+ 三行（Downloads 50.3 / Movies 8.4 / `macmaster-disk-fixture` 标「就是正在扫描的目录本身」）+ 底部「已标记 **2** 项 · 58.7 MB · 1 项不能删」 |
+| 02 `perm-unacked` | 同上 + `MM_SHOW_PERMANENT=1` | `…（勾选项 **未打**），没有改动任何文件` | 红色永久删除面板、同意框空、按钮灰 |
+| 03 `perm-acked` | 同上，`MM_SHOW_PERMANENT=acked` | `…（勾选项 **已打**）…` | 同一块面板按钮变红亮 |
+| 04 `toast-permanent` | `SCAN` + `SELECT=$SEL` + `MM_SHOW_TOAST=permanent`（**不带** CONFIRM） | `MM_SHOW_TOAST=permanent 已画出「已永久删除」回执条（1 项 · 50.3 MB），没有删除任何东西` | 橙三角 + `已永久删除 50.3 MB · 共 1 项 · 无法恢复` + 倒计时、**没有撤回按钮**；右侧详情是「标记」而不是「取消标记」（这一档确实没打标记） |
+
+`已选中 …（50.3 MB）` 与面板里 Downloads 那一行的 50.3 MB 是同一个数——**日志与照片交叉核对**，
+不是各说各话。夹具大小固定（`Downloads/dmg-image.dmg` 48 MiB → 十进制 50.3 MB），
+所以这一族照片的数字是可预期的；哨兵另有其一：真机上不存在
+`/tmp/macmaster-disk-fixture/Downloads/dmg-image.dmg` 这条路径。
+
+### 11.3 与旧照片不一致 / 本轮新学到的（如实记）
+
+1. **「3 个标记」与「把 2 项移入废纸篓」不是矛盾，是同一件事的两个口径**：`marked.count` 含扫描根
+   那一条，而裁决阶段把它拦下来（它就是正在扫的那层），所以面板列 3 行、可删 2 项。
+   旧 §8 只写了"两行 + 一行 blocked"，没把这三位数字的关系说穿；脚本注释里那句
+   "面板里应当正好有这么多行"指的是**行数**等于 `marked.count`，别读成"可删项数"。
+2. **04 那一档的 `SETTLE` 不能沿用通用的 10 秒**：回执条自带 10 秒倒计时（`permanentSeconds = 10`，
+   每秒减一），第一次实跑按 10 秒等，拍到的是**「1s」**——差一秒就什么都没有了。
+   现在 04 单独用 `TOAST_SETTLE`（默认 5 秒），实跑拍到 **6s**，与旧照片那张的 7s 同一量级。
+   这是"迭代次数≠秒数"之外另一类坑：**画面里的元素自己会走时间**。
+3. **页头是 `77.8 MB · 44 个文件` 而不是夹具的 175 MB**：`Library/` 那一档被扫描层跳过
+   （`disk-fixture.sh` 头注释记过），旧照片同样如此，不是回归。
+4. **卷可用数字每次不同**（本轮 43.68 / 43.73 GB，旧照片 6.86 GB）：读的是真卷，属真机态。
+
+### 11.4 依旧拍不到的（点名，别以为脚本扩了四档就都齐了）
+
+- **「移入废纸篓」那条绿色撤回回执**（§8 表格末句"左条…真实那一拍没单独拍"）现在**仍然拍不到**，
+  而且原因这轮才查清：画它的分支在 `applySelectionHook` 里排在
+  `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1141` → `:1176`），
+  也就是说要触发它就必须开确认面板，而面板是 `.sheet`（`:120`），会把吐司整个盖住。
+  零点击到不了这一态，除非给它单开一条钩子——本轮不新增钩子，所以四档里没有它。
+- `.guarded` blocked 行、按下红色按钮之后的界面：与 §8 末尾所记相同，前者钩子进不去
+  `DeletionGuard` 的保护清单（只有单测），后者要合成点击。
+- §10.3 末条那句"这条缺陷仍然没有照片"**原样成立**：`refresh` 的跨层留痕要"回到上一层再重新扫描"，
+  磁盘页没有导航到祖先目录的钩子，`MM_DISK_RESCAN` 走的是整根 `reattach`，覆盖不到。
+
+实跑核对：`ps -eo pid,command | grep "MacMaster.app/Contents/MacOS"` 本轮跑完为空
+（注意 grep 无匹配时退出码非 0，别把它接在 `&&` 后面当断言）。

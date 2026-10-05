@@ -1,0 +1,5 @@
+# p68-dev-capture.sh 07-fixture-min-window  2026-10-05 12:28:04 +0800  app=/tmp/mm-app-p68uninst/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched MM_WINDOW_SIZE=1000x700
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p68uninst/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1000x700 请求 1000x700pt，窗口实际 1000x700pt

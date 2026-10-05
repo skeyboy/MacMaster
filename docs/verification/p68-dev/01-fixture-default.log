@@ -1,0 +1,4 @@
+# p68-dev-capture.sh 01-fixture-default  2026-10-05 12:26:51 +0800  app=/tmp/mm-app-p68uninst/MacMaster.app
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p68uninst/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）

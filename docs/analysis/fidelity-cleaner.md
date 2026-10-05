@@ -583,3 +583,79 @@ roadmap 候选 #5 落地。四张实机照片在 `docs/verification/p61-continue
    补 `p7-dev` 那批脚本仍欠着，记在这里。
 
 这一节没有代码改动，写下来是为了让下一轮不必把这四个钩子再查一遍。
+
+## 10. P6.8 追加（2026-10-04）：把 p7-dev 那 7 档变成可重跑
+
+§9 那条"有照片、没脚本"的欠账，这一轮结掉了。`Scripts/p68-dev-capture.sh` 一次跑完
+`docs/verification/p7-dev/` 那 7 张（P5.1d 手工产物）对应的钩子组合，**全程零合成点击**，
+新照片落在 `docs/verification/p68-dev/`（**没有覆盖 p7-dev 里任何一张旧图**——那是已提交证据）。
+
+跑法（照 `p61-capture.sh` 的入参口径，先隔离构建、别动共享的 `build/MacMaster.app`）：
+
+```
+./Scripts/make-app.sh -o /tmp/mm-app-p68dev -s /tmp/mm-scratch-p68dev
+./Scripts/purge-fixture.sh                       # 现成夹具，本轮不新造
+./Scripts/p68-dev-capture.sh /tmp/mm-app-p68dev/MacMaster.app docs/verification/p68-dev
+ONLY=04 ./Scripts/p68-dev-capture.sh …           # 只重拍 04 那一档
+```
+
+脚本现跑后 `grep -rn MM_DEV_CONFIRM Scripts/` 从 §9 记的 **0 命中** 变成 **3 命中**（都在这一支脚本里）。
+
+### 10.1 七档的钩子组合与"这就算生效了"的哨兵判据
+
+哨兵不是"两张 md5 不同"，而是**画面上某个真机生产不出来的值**。夹具档的凭据是
+`~/Documents/bulk-1 … bulk-12` 这 12 枚项目组——它们是 `purge-fixture.sh` §11 为 P6.1 造的
+胖根（每个带一枚 40 天旧的 `node_modules`），真机 `~/Documents` 不会平白长出 12 个同名同旧的项目。
+（`MM_PURGE_FIXTURE_HOME` 的守卫命中 `/tmp` 时**不往 stderr 打任何东西**，所以夹具是否真生效只能看画面，
+不能只看 `.log`；`.log` 里能证明的是 `MM_APPEARANCE` / `MM_WINDOW_SIZE` 这两支钩子——它们各打一行回执。）
+
+| 档 | 钩子组合 | 旧照片（p7-dev） | 新照片（p68-dev）哨兵判据 |
+|---|---|---|---|
+| 01 default | 仅 `MM_PURGE_FIXTURE_HOME`（不展开不勾选） | 折叠 14 组、已选 0 处、取消全选禁用 | 折叠列表里出现 `bulk-1…bulk-12` 组头 + 已选 0 处、主按钮禁用 |
+| 02 expanded-selected | `+ MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched` | 展开、已选 13 处 · 99.6 MB | 展开后 `bulk-N/node_modules` 带勾选框且被批量勾上（untouched 命中） |
+| 03 bottom-states | `+ MM_DEV_SCROLL=end` | 四态徽标同框 | 滚到底：`toolcache/.gradle`「目录自述为缓存」accent 左描边 + `locked/build` 体积「—」+ stale-site 两支 warn「改动过」 |
+| 04 confirm-sheet | `+ MM_DEV_CONFIRM=1` | sheet「移除 13 处」列 12 + 另有 1 | sheet 标题「移除 25 处」且清单里逐行是 `~/Documents/bulk-N/node_modules` |
+| 05 dark | 同 03，`MM_APPEARANCE=dark` | 深色最强证据行 | 深色下 accent 左描边/四态徽标仍成立（`.log` 有 `MM_APPEARANCE=dark` 回执） |
+| 06 real-machine | **不注入夹具**，`MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched` | 真机 100 项目 · 19.37 GB | **反向哨兵**：画面**不含** `bulk-N`、扫的是 `~/Desktop/MacMaster` 等真路径——证明没被夹具污染 |
+| 07 min-window | 同 02，`MM_WINDOW_SIZE=1000x700` | 窄窗 chip 省略号 | 1000×700 下 chip 内部省略号截断、"另有 N 个"不丢、主按钮标题不被截尾；`bulk-1` 仍可见 |
+
+### 10.2 哪些档重跑出来与旧照片不一致（如实记）
+
+**6 个夹具档（01/02/03/04/05/07）的画面数字全都变了**，但**不是面板语义变了**，是两件事：
+
+1. **夹具长大了**：`purge-fixture.sh` 在 P6.1（2026-10-03）加了 §11 的 12 个 bulky 项目，
+   晚于 P5.1d 拍 p7-dev（2026-10-01）。于是同一批钩子现在扫到 **26 项目 · 34 处产物 · 可回收 162.8 MB**
+   （旧照片是 14 · 22 · 103.8 MB），`MM_DEV_SELECT=untouched` 勾上 **25 处 · 158.6 MB**（旧 13 · 99.6 MB），
+   确认面板从"移除 13 处（列 12 + 另有 1）"变成"移除 25 处（列 12 + 另有 13）"。
+2. **耗时文案改过口径**：§8.4 把 `<0.05 秒` 从"0.0 秒"统一改成"不足 0.1 秒"，所以旧照片副标题里
+   那个"耗时 0.0 秒"这一轮**再也拍不出来**，新照片写"耗时 不足 0.1 秒"。
+
+**旧照片要示范的每一支状态都还在、也都还拍得到**（四态徽标、CACHEDIR.TAG 最强证据行、
+读不到的 `locked/build`「—」、受保护行、iCloud chip、pnpm-workspace chip、底部说明、窄窗省略号），
+本轮没有丢任何一条覆盖。变的只是"多了 12 行 bulk"和"耗时那三个字"。
+
+### 10.3 有没有"这一档不可重跑"
+
+**七档全部零点击重跑成功**，没有一档因"缺钩子到不了"而拍不出。§9 记的那条
+`MM_DEV_SELECT` 在 `clean()`/`undo()` 之后不重放的缺口，**卡不到这七档里的任何一张**——
+它们全是删除前的扫描态（`apply()` 首批收尾会重放 SELECT/EXPAND），不是"删完再拍"那一态。
+真要拍"删完之后的态"依旧拍不到（`clean()` 会 `scan()` 重扫、把清单换成删后新账，
+且"按下删除"这一步要合成点击、红线禁），但 p7-dev 那批本来也没有这一张，本轮不新增。
+
+### 10.4 本轮有没有加钩子
+
+**没有。** 结论就是默认答案"不改源码"：七档所需的定格能力四个既有钩子
+（`MM_DEV_EXPAND` `:240/:272`、`MM_DEV_SELECT` `:243`、`MM_DEV_SCROLL` `:705`、`MM_DEV_CONFIRM` `:407`）
+加 `MM_PURGE_FIXTURE_HOME` `:65` 已全部覆盖，`Packages/MMCleaner/**` 一行未动，
+`swift test` 无需跑（无源码改动）。这一节补的只是脚本 + 照片 + 这段说明。
+
+### 10.5 P6.8b 追加：`.log` 开头补两行归因头
+
+§10 那七份 `.log` 与卸载页那 11 份同一种毛病：**只有应用 stderr，没有一句记录本档注入了什么**，
+"这条绿"既可能是夹具生效也可能是压根没注入。脚本侧统一补了两行头
+（`# <脚本> <档> <时间> app=…` + `# env: …`），判据与实测对应关系记在
+`fidelity-uninstaller.md` §12.5。本轮仍**未动 `Packages/MMCleaner/**`**；
+`ONLY=01` 重跑一份验证过头与照片对得上：头里的时间 `18:34:54`，页头那句「扫描于 2026-10-04 18:34」
+正是同一次运行；夹具 home 在照片里是以 `~` 显示的（`~/Documents/bulk-1…bulk-12` 这 12 行是真机上
+不存在的哨兵），所以**这一档的对应关系靠时间戳成立，不靠字面路径**——写日志的人别把
+`MM_PURGE_FIXTURE_HOME=/tmp/…` 当成"照片里应当看得见 /tmp"。

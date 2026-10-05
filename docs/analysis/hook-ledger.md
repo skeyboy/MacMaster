@@ -45,6 +45,13 @@
   （见 `docs/analysis/fidelity-disk.md`）。同时这一轮把 P6.6 那道"只靠 md5"的判据换成哨兵值，
   据此确认 monitor/guardian 两个夹具是真生效的（§4 #2 的提请就此收回），
   另外查出并修了两处"日志在说谎"：`menubarOff` 解析了没人消费、孤儿夹具扫描没跑也报成功（§4 #4）。
+  **P6.8 与 P6.8b 都没有新增钩子名**（2026-10-04 再次重跑同一条 grep 仍为 **52**）。
+  P6.8 这一轮不查钩子生不生效，查的是**证据能不能重跑**：`p7-dev`/`p7-brew`/`p1.5-trash`/`p5-disk-permanent`
+  四批手工照片此前只有夹具没有脚本，本轮补 `Scripts/p68-{dev,brew,trash,disk}-capture.sh` 四个
+  （照片写新目录 `docs/verification/p68-*/`，旧证据一字未动）。它顺手抓出一处**存错文件的证据**：
+  `p7-brew/09-real-machine.jpg` 拍的是磁盘分析页，不是卸载页（§8.1 那一格的判定作废，见
+  `fidelity-uninstaller.md` §12.3）。P6.8b 再补一刀：这些 `.log` 只记应用 stderr，
+  看不出本档注入了什么——归因头两行从此由脚本自己写（见 §5 末尾）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
@@ -77,7 +84,7 @@
 | `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:109` | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots` |
 | `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:112` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数 |
 | `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:428` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件** |
-| `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:407` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService`。**P6.7 复核**：锚点原记 `:236`，现读 `:407`；它写在 `.task` 里而 `model.scan()` 上一行没 await，所以面板先于 `report` 打开（等够就不空）。**有照片 `p7-dev/04`、无脚本**（`grep -rn MM_DEV_CONFIRM Scripts/` 0 命中），详见 `fidelity-cleaner.md` §9 |
+| `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:407` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService`。**P6.7 复核**：锚点原记 `:236`，现读 `:407`；它写在 `.task` 里而 `model.scan()` 上一行没 await，所以面板先于 `report` 打开（等够就不空）。**P6.8 收口**：`Scripts/p68-dev-capture.sh` 第 04 档现在会重拍这一张（写进 `docs/verification/p68-dev/`，旧 `p7-dev/04` 未动），"有照片、无脚本"这条不成立了；详见 `fidelity-cleaner.md` §9–§10 |
 | `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数，抄字面量会骗人 |
 | `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到 |
 | `MM_DEV_AUTO_CONTINUE` | `MMCleaner` | `DevArtifactView.swift:159,175` | 全量扫完之后自动再跑最多 N 批续扫 | ✅ | 否（跑的是同一套只读扫描） | **P6.1 新增**。只认 `1…3`，其余值忽略。每批之间复查 `canContinueTruncatedRoots`，试满 2 次的根自动排除，所以不会自己循环成常驻扫描。存在的理由：②「续扫之后」与③「已试过 2 次」两档都要按一次按钮才进得去，而**合成点击会逃逸到用户的其它应用**（老规矩），点击链本身不在取证范围 |
@@ -242,6 +249,17 @@
 | `Scripts/p66-optimizer-capture.sh` | `MM_OPTIMIZER_FIXTURE` 十二档 × 明暗两套：重复文件（扫描中/有组/带告警/PROTECTED/从未扫描/扫完为空）+ 浏览器（rows/empty）+ 系统状态（allReadOnly）+ 开发工具（未装/读不进）+ 非法值整批拒绝 | **P6.6 新增**。它是"钩子写了不等于钩子生效"的唯一反证工具：第一次跑出来 `browser:rows` 与 `browser:empty` **逐字节相同**，据此查出一个从未生效的夹具（见 §4 #2）。所以脚本末尾**必须**跑 `md5 -q *.png \| sort \| uniq -d`，重复就是夹具没生效，不是"这两档长得一样"。第 01 档（扫描中）**没有 HOLD 钩子**：真实 SHA-256 本来就慢，起进程 3 秒后截图就停在骨架 |
 | `Scripts/p66-layout-measure.sh` | 四档定态截图，专供量磁盘页面包屑条高 / treemap header 高 / cleaner 分组右注长度 | **P6.6 新增**。它拍的是**待测量的载体**而不是结论，所以每档都自带 `MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_CLEANER_FILTER` 的取值说明。两个坑记在脚本头里：① `MM_DISK_SELECT` 只认绝对 /tmp 路径，写相对段名会被越界 guard 整条忽略（拍出一张根图却以为是下钻图）；② 04 档用 `MM_CLEANER_FILTER=浏览器` 把表**收短**，让最长的分组右注自己升进首屏——禁合成点击，也禁滚动 |
 | `Scripts/p67-menubar-off-capture.sh` | 监控页「菜单栏监控」开关两档：`populated` 与 `populated,menubarOff`，其余环境变量逐字相同 | **P6.7 新增**。它存在的唯一理由是**把"开关"做成画面里唯一的变量**：底座同为 `populated`，两张照片除那枚 switch 外每一个数字都该逐位相同；一旦两张一模一样，`menubarOff` 就又变回"解析了没人消费"，一旦数字也漂了，说明夹具没钉住。零合成点击（点击会逃逸到用户其它应用），只 kill 自己起的 pid |
+| `Scripts/p68-dev-capture.sh` | 「开发产物」七档：默认态 / 展开+批量勾选 / 滚到底四态徽标 / 确认面板 / 深色 / **真机** / 最小窗口 | **P6.8 新增**。把 `docs/verification/p7-dev/` 那批手工照片变成可重跑（旧目录一字未动，新照片写 `p68-dev/`）。判据是**画面上必须有真实机器生产不出的值**（`~/Documents/bulk-1…bulk-12`、「夹具值」），不是 md5 互不相同。06 是真机档：不带 `MM_PURGE_FIXTURE_HOME`、等 30 秒真实扫描 |
+| `Scripts/p68-brew-capture.sh` | 「安装来源」九档：五档来源各一张 + 确认面板 + 深色 + 最小窗口 + 真机 | **P6.8 新增**。同上，旧目录 `p7-brew/` 未动。默认每次现造一棵 `provenance-fixture.sh`（`FIX=` 可复用）：staged 链接的设备号判据依赖"链接指向的就是这棵树里的这份 bundle"，拿旧目录重跑没坏，但照片里的路径会指着一次没发生过的运行。09 真机档可 `REAL_SELECT=` 点名（本机已无 Highball，本轮用的是 `WailBrew`，见 `fidelity-uninstaller.md` §12.3） |
+| `Scripts/p68-trash-capture.sh` | 废纸篓监听两档：提示卡（夹具 + 脚本自己 `mv`）/ 无权限横幅（真机、无钩子） | **P6.8 新增**。01 的时序是全部取证脚本里最脆的一档：**基线必须晚于 `mv`**，否则拖进去的应用被当成"启动前就在"的历史条目、卡片根本不出现——所以脚本先轮询到窗口 id、再留 2 秒给 `startTrashWatching`，才动手 `mv`；`AFTER_MOVE` 默认 60 秒，因为残留扫描的合并计时器排在 MainActor 上、要等 41 个应用测完。跑前会验 `/tmp/mmstage/Foo.app` 还在，不满足就点名让人重跑夹具而不是拍出一张假态 |
+| `Scripts/p68-disk-capture.sh` | 磁盘页删除面板四档：回收/裁决面板 → 永久删除面板（未勾选）→ 同一块（已勾选）→「已永久删除」回执条 | **P6.8c 新增**。它是这一族钩子的**顺序依赖**最容易踩空的一屏：`MM_DISK_SELECT` 把扫描根写在第一个会把 `selected` 走成 nil，`MM_SHOW_TOAST=permanent` 必须不带 `MM_SHOW_CONFIRM`（它自己 return），而绿色撤回那条回执**必须**带 `MM_SHOW_CONFIRM` 才够得着、可面板是 `.sheet` 又会盖住它——所以四档里唯独没有它（判据见 `fidelity-disk.md` §11.4）。04 档另有 `TOAST_SETTLE=5`：**吐司自己带 10 秒倒计时**，按通用 10 秒去拍正好卡在 `1s` 上 |
+- **每份 `.log` 开头两行归因头**（P6.8b）：三个 p68 脚本的日志先写
+  `# <脚本> <档> <时间> app=… fixture=…` 与 `# env: <本档全部注入变量>`，再接应用 stderr。
+  原因是**钩子的成功路径大多不说话**（`MM_UNINSTALL_SELECT` 只在落空时写一行、
+  `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` 只在被拒绝时写一行），于是"这条绿"既可能是夹具生效
+  也可能是压根没注入，真机档更是事后完全对不出点名了谁。**"没注入"也要写出来**——
+  trash 02 那档的头里明写「真机档：刻意不注入任何夹具钩子」，否则它与"忘了"长得一样。
+  改的是脚本，没有为此新增钩子。
 - **查夹具生效，哨兵值优先于 md5**（P6.7）：`md5 -q *.png | sort | uniq -d` 是**必要不充分**的——
   它只能证明两张不同，不能证明手上这张是夹具。`p66-optimizer` 那对重复恰恰是运气：
   `browser:rows` 与 `devtools:notInstalled` 从第一次跑起就互相不同，而它们全是真实数据。

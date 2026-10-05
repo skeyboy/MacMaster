@@ -1,0 +1,4 @@
+# p68-trash-capture.sh 02-no-fda-banner  2026-10-05 12:31:09 +0800  app=/tmp/mm-app-p68uninst/MacMaster.app
+# env: MM_APPEARANCE=dark MM_OPEN_MODULE=uninstaller（真机档：刻意不注入任何夹具钩子）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p68uninst/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）

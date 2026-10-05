@@ -261,7 +261,7 @@
 | 确认面板「来源」行 + 橙色 brew 提醒 | `.dialog .callout` | `06`（提醒点名 `path` 与 `brew uninstall --cask highball`，末尾"MacMaster 不会代你运行 brew"） | ✅ 提醒只在 brew 两档出现，其余三档面板与 P1.5 之前一致 |
 | 深色档 | 同一套令牌 | `07` | ✅ chip/badge 的 soft 底色在深色下仍可读（截图里主按钮呈灰是**窗口非活动态**，不是配色漏档） |
 | 最小窗口（请求 900×600 → 夹到 1000 宽） | — | `08` | ✅ 「来源凭据」折成三行、「判定依据」折成两行，都不与相邻键重叠、不截尾 |
-| 真机（不注入夹具，读 `/opt/homebrew`） | — | `09`：44 个应用全部测完，Highball 一行给出设备号级凭据 + 对应命令 | ✅ 与夹具同一套代码路径，说明解析器不是只对着夹具写的 |
+| 真机（不注入夹具，读 `/opt/homebrew`） | — | ~~`09`：44 个应用全部测完，Highball 一行给出设备号级凭据 + 对应命令~~ **这一行的判定作废**：库里那张 `p7-brew/09-real-machine.jpg` 拍的是**磁盘分析页**，不是卸载页（见 §12.3 第 2 条）。本轮补上的 `p68-brew/09-real-machine.png` 才是这一格该拍的证据 | ✅ 判定改由新照片支撑：真机与夹具走同一套代码路径，解析器不是只对着夹具写的 |
 
 ### 8.2 取证这一步抓出来的两个真问题
 
@@ -369,3 +369,132 @@
 钩子值不在 /tmp 之下时 `fixtureEnvironmentValue` 会点名并返回 nil——**但没说退回之后监听的是谁的废纸篓**，
 而那是用户自己的删除记录：一张本该只含夹具的照片会悄悄变成真数据，且照片上看不出来源换了。
 现在这条退路自己说一遍（含实际目录），空值同样触发。
+
+## 12. P6.8 追加（2026-10-04，2026-10-05 整批重拍）：p7-brew 与 p1.5-trash 变成可重跑脚本
+
+§8 那 9 张与 §6 那 2 张一直是手工拍的，仓库里只有夹具没有重跑脚本。这一轮补两个脚本，
+照片改写到 `docs/verification/p68-brew/`（9 张）与 `docs/verification/p68-trash/`（2 张），
+每张旁边留同名 `.log`（stderr）。**旧目录 `p7-brew/`、`p1.5-trash/` 一字未动**。
+本轮**没有改任何源码、没有新增钩子**——§8 记的那批钩子已足够到全部档位。
+
+**2026-10-05 这一批 11 份是加了归因头（§12.5）之后整批重拍的**，不是 10-04 那批的残留：
+现读 22 份 p68 日志（brew 9 + trash 2 + dev 7 + disk 4），头两行都是
+`# <脚本> <档> <时间>` + `# env: …`，时间戳全落在 2026-10-05 12:23–12:32。
+
+### 12.1 怎么跑
+
+```sh
+./Scripts/make-app.sh -o /tmp/mm-app-p68uninst -s /tmp/mm-scratch-p68uninst   # 隔离构建，别动共享 build/
+./Scripts/p68-brew-capture.sh /tmp/mm-app-p68uninst/MacMaster.app docs/verification/p68-brew light
+./Scripts/trash-fixture.sh
+./Scripts/p68-trash-capture.sh /tmp/mm-app-p68uninst/MacMaster.app docs/verification/p68-trash dark
+```
+
+两个脚本都支持 `ONLY=04` 前缀重拍单档（风格照 p61/p62）。brew 脚本默认每次现跑
+`Scripts/provenance-fixture.sh` 造新夹具树（`FIX=` 可复用现成的）；trash 脚本会先验
+`/tmp/mmstage/Foo.app` 还在、假废纸篓里没有残留条目，不满足就点名让人重跑夹具而不是拍出假态。
+
+### 12.2 逐档哨兵（"这就算生效了"的判据，不是 md5）
+
+夹具档的哨兵都是**真实机器生产不出来的值**：假 home 路径、`com.example.*`、假 brew 账本里的 token。
+
+| 档 | 钩子组合 | 哨兵判据（画面上必须出现的） |
+|---|---|---|
+| 01 brew 强档 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME=<fix>` `MM_UNINSTALL_CONFIRM_MODE=none` `MM_UNINSTALL_SELECT=Highball` | 徽章「Homebrew cask · highball」、来源凭据 `<fix>/.homebrew/Caskroom/highball/.metadata/INSTALL_RECEIPT.json`、对应命令 `brew uninstall --cask highball` |
+| 02 疑似 brew | 同上，`SELECT=CodeEdit` | 行内橙 chip「疑似 brew」+「只有名字对上」，且**没有**「对应命令」行；凭据指 `…/Caskroom/codeedit/…` |
+| 03 歧义 | 同上，`SELECT=Firefox` | 无徽章，来源行点名「firefox、firefox-beta 两份账本把同一个 .app 摆到了这里」 |
+| 04 App Store | 同上，`SELECT=WeChat` | 徽章「App Store」+ 判定依据点名 `Contents/_MASReceipt/receipt` |
+| 05 无法判定 | 同上，`SELECT=MysteryApp` | 无徽章，「无法判定」且不写"手动安装" |
+| 06 确认面板 | 夹具 + `SELECT=Highball`，**省略** `CONFIRM_MODE`（appOnly 自动弹，`MMUninstaller.swift:72`） | 面板「来源」行 + 橙色提醒点名 `<fix>/Applications/Highball.app` 与 `brew uninstall --cask highball`、"MacMaster 不会代你运行 brew" |
+| 07 深色 | 同 01 + `MM_APPEARANCE=dark` | 同 01 哨兵在深色下可读 |
+| 08 最小窗口 | 同 01 + `MM_WINDOW_SIZE=900x600` | 日志有夹取行「请求 900x600pt，窗口实际 1000x652pt」；长账本路径折三行不重叠 |
+| 09 真机 | 不注入夹具，`MM_UNINSTALL_SELECT=$REAL_SELECT` | 真 `/opt/homebrew/Caskroom/wailbrew/.metadata/INSTALL_RECEIPT.json` + 真包名 `io.github.wickenico.wailbrew`——**这一张是真数据**，见 12.4 |
+| trash-01 提示卡 | `MM_TRASH_FIXTURE_DIR=/tmp/mmtrash` `MM_TRASH_SCAN_HOME=/tmp/mmhome` + 脚本 mv | 卡片「刚拖进废纸篓：示例应用」+ 路径 `/tmp/mmtrash/Foo.app · com.example.Foo` + 残留行全在 `/private/tmp/mmhome/…` 之下；日志里**不得**出现「改为监听真实废纸篓」（出现了这张就作废，§11） |
+| trash-02 横幅 | 不带任何钩子 | 「读不到废纸篓 / Operation not permitted（错误码 1）」——**真机档**，没有夹具哨兵，见 12.4 |
+
+### 12.3 与旧照片不一致的地方（如实记）
+
+1. **每一张 brew 档现在多了一条「~/Applications 不在这台机器上」横幅**。这是 P5.3 之后
+   新加的应用目录监听态（本机确实没有 `~/Applications`），不是回归——旧照片拍于 P5.2，
+   那时这一屏还没有监听区。
+2. **旧 `p7-brew/09-real-machine.jpg` 对不上 §8 表格**。§8.1 写的是"44 个应用全部测完，
+   Highball 一行给出设备号级凭据"，而库里那张 jpeg 拍的是**磁盘分析页正在扫描**——
+   旧证据本身就存错了文件。本轮的 `p68-brew/09-real-machine.png` 是卸载页真机档，补上了这个缺口。
+3. **Highball 已从本机卸载**（`/Applications` 里没有，只剩 Caskroom 账本——恰好是 §8.3
+   说的"悬空链"态；10-05 现查 `ls -d /Applications/Highball.app` 仍不存在）。脚本默认仍点名
+   Highball（`Scripts/p68-brew-capture.sh:106`，忠于旧档），落空时日志诚实写
+   「MM_UNINSTALL_SELECT=Highball 没有对应的应用」、照片落"未选择应用"空态——
+   **10-05 整批重拍时 09 档第一次就是这么废掉的**（头里 `REAL_SELECT` 没设，走了默认值）。
+   重拍用的是 `ONLY=09 REAL_SELECT=WailBrew`：现在 09 的头里写的是 `MM_UNINSTALL_SELECT=WailBrew`、
+   日志里**没有**那行落空，照片给出真凭据 `/opt/homebrew/Caskroom/wailbrew/.metadata/INSTALL_RECEIPT.json`。
+   改真机目录的人记得同步这个变量。
+4. **trash-01 的等待量级变了**：旧照片拍到"已测 31 · 13 个测量中"的中间态，本轮卡片要等
+   41 个应用全部测完才出现（`trash-watch-fda.md` §1.4 记过：合并计时器排在 MainActor 上，
+   批量测量期间排队）。脚本 `AFTER_MOVE` 默认 60 秒兜底，页头因此是"大小已实测"。
+   卡片内容（4 项残留、已选 2 项 · 6.3 MB）与旧照片一致。
+5. 应用总数 44→41、磁盘占用条百分比等随机器状态漂移，属真机档固有，不算不一致。
+
+### 12.4 不可重跑的档（点名，不为了凑照片改生产语义）
+
+- **trash-02「无权限横幅」依赖机器 TCC 态**：它要的就是"真 `~/.Trash` 列不动"。
+  本机构建未授予「完全磁盘访问」，本轮拍到了；哪天授权了，这一档在这台机器上**不可重跑**
+  ——不能拿假废纸篓冒充（假目录永远读得动），也不能改 `watchTarget()` 的退路语义。
+  它是真数据档，没有夹具哨兵。
+- **安装包档（`.installerPackage`）依旧没有照片**（§8.3 原样成立）：判定要读
+  `/var/db/receipts`，夹具运行刻意把 `provenanceReceiptsRootFactory` 置 nil
+  （`MMUninstaller.swift:230`），本轮没有为一张照片打开这个口子。合同文案仍由
+  `AppProvenancePresentationTests` 守。
+- 06 档的「带残留卸载」面板态（`CONFIRM_MODE=withResiduals`）钩子可达但旧照片没有这一档，
+  本轮不新增档位，只留脚本参数可拍。
+
+跑完两脚本后 `ps -eo pid,command | grep MacMaster.app/Contents/MacOS` 为空；
+`/tmp/mmtrash` 里的 `Foo.app` 是本轮 mv 进去的，重跑 `Scripts/trash-fixture.sh` 即复位。
+
+### 12.5 P6.8b 追加：`.log` 开头补两行归因头（本轮唯一的改动）
+
+§12 交出来的 11 份 `.log` 全是绿的，但**绿得没有内容**：只有应用自己的 stderr
+（`MM_APPEARANCE=… 已强制…`、`MM_WINDOW_SIZE=… 请求…实际…`），一句都没有记录
+"这一档注入了哪些变量"。这正好是 P6.7 §10 判过的那第三种形状——**成功路径不说话**：
+`MM_UNINSTALL_SELECT` 只在点名落空时写一行「没有对应的应用」，`MM_UNINSTALL_CONFIRM_FIXTURE_HOME`
+只在被拒绝时写一行「不是 /tmp 下的真实目录」，于是 §12.3 第 3 条那句"本轮实跑用了
+`REAL_SELECT=WailBrew`"只能靠人记得，照片旁边那份日志事后对不出来；夹具档也一样，
+分不清"这条绿是因为夹具生效"还是"这条绿是因为压根没注入"。
+
+改法是**脚本侧**补两行头（不碰源码，也不新增钩子——钩子的静默成功留给照片的哨兵去证）：
+
+```
+# p68-brew-capture.sh 01-fixture-homebrew-cask  2026-10-04 18:31:33 +0800  app=/tmp/…  fixture=/tmp/macmaster-provenance-fixture.WIq1Xq
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=… MM_UNINSTALL_CONFIRM_MODE=none MM_UNINSTALL_SELECT=Highball
+```
+
+两个脚本的 `shot()` 先写头再 `>>` 追加应用输出；trash 脚本两档各写自己的头，
+02 那档明写「真机档：刻意不注入任何夹具钩子」——**"没有"也要说出来**，否则它与"忘了"长得一样。
+`Scripts/p68-dev-capture.sh` 同步加上（三个 p68 脚本一套约定）。
+
+2026-10-04 先重跑三档验过头与照片对得上（`ONLY=01` brew、`ONLY=02` trash、`ONLY=01` dev）；
+**10-05 又把 22 档整批重拍了一遍**，所以现在库里每一张 p68 照片旁边的日志都带头，
+不存在"一半带头一半带头之前的"。抽查两例对应关系：
+
+- brew 01：头里 `fixture=/tmp/macmaster-provenance-fixture.Aw21jb`，照片里「来源凭据」
+  与「所在文件夹」两行的路径尾缀正是 `Aw21jb`（夹具树每次现造，`mktemp` 的后缀跟着变，
+  所以这条对应关系只有头在的时候才成立）。
+- disk 01/04：头里的 `MM_DISK_SELECT` 三个路径 ↔ 日志 `已选中 …/Downloads（50.3 MB）`
+  ↔ 照片上的同一个数（详见 `fidelity-disk.md` §11.2）。
+
+两条读头时会被绊到的地方，如实写在这里：
+
+1. **09 真机档的头里有 `fixture=`，但那一档没有注入夹具**。`$FIX` 在脚本开头就要造
+   （`Scripts/p68-brew-capture.sh:38`，八档夹具档共用），头行是无条件打印它的；
+   09 是否注入只看 `# env:` 那行——里面只有 `MM_UNINSTALL_SELECT=WailBrew`，
+   没有 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`。**"造了但没给这个进程"≠"注入了"**，
+   以后若改成按档写 fixture 字段，这里得跟着改。
+2. **07/08 的头里 `MM_APPEARANCE` 出现两次**（`MM_APPEARANCE=light … MM_APPEARANCE=dark`），
+   是 `shot()` 把公共部分和逐档尾巴拼在一行的样子，不是拍错了：`env` 取后一个值，
+   应用自己的那行也说 `MM_APPEARANCE=dark 已强制 dark 外观`（现读 `07-fixture-dark.log` 正文）。
+
+**副作用，如实记**：`provenance-fixture.sh` 每次跑都留一棵 `/tmp/macmaster-provenance-fixture.XXXXXX`
+不清理。10-05 现查是 **7 棵**——一次整批重拍留 1 棵，`ONLY=09` 单独重拍又留 1 棵
+（09 那档根本不注入夹具，但 `$FIX` 在脚本开头无条件造，所以"只拍真机档"也要造一棵），
+余下的是 10-04 及更早几轮。都在 /tmp、重启即清，不构成缺陷，但重跑取证的人别把
+"上一棵"当成"本轮那棵"来复用——`FIX=` 只该指本轮新造的那一棵。
+
