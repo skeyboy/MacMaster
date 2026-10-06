@@ -1,0 +1,47 @@
+# p17-website-capture.sh 落地页四屏夹具档实拍
+# date: 2026-10-06 08:45:02 +0800
+# command: ./Scripts/p17-website-capture.sh /tmp/mm-app-p17/MacMaster.app docs/website/assets dark 1280x800
+# app: 1.0.0 (1)
+# shape under test: 落地页 §界面预览 那四个截图位（改前是四个 .screenshot-placeholder 的 div、全页 <img> 为 0）
+# expected: 四张图都来自夹具钩子；画面上出现 /tmp 夹具路径或 com.example.*/TZZ* 合成条目，
+            不出现真实卷名占用、真实登录项、真实密钥目录 mtime
+# observed: 见下面每档的 env 行与哨兵核对结果（人工对着照片打勾，脚本只负责把注入项如实写下来）
+# restore: 本脚本不写用户任何状态；夹具目录在 /tmp，需要时用 --clean 删
+# ---- 01-cleaner ----
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1280x800 MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p17/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1280x800 请求 1280x800pt，窗口实际 1280x800pt
+# result: 01-cleaner windowid=3939 pid=60256 settle=8s file=docs/website/assets/01-cleaner.png
+# ---- 02-disk ----
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1280x800 MM_OPEN_MODULE=disk MM_DISK_SCAN=/tmp/macmaster-disk-fixture
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p17/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1280x800 请求 1280x800pt，窗口实际 1280x800pt
+# result: 02-disk windowid=3942 pid=60323 settle=12s file=docs/website/assets/02-disk.png
+# ---- 03-monitor ----
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1280x800 MM_OPEN_MODULE=monitor MM_MONITOR_FIXTURE=populated,processes,sensors
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p17/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1280x800 请求 1280x800pt，窗口实际 1280x800pt
+# result: 03-monitor windowid=3945 pid=60335 settle=8s file=docs/website/assets/03-monitor.png
+# ---- 04-guardian ----
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1280x800 MM_OPEN_MODULE=guardian MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle MM_TCC_FIXTURE=rows MM_GUARDIAN_LOGIN_FIXTURE=rows MM_GUARDIAN_ACTIVITY_FIXTURE=rows
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p17/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1280x800 请求 1280x800pt，窗口实际 1280x800pt
+# result: 04-guardian windowid=3948 pid=60385 settle=8s file=docs/website/assets/04-guardian.png
+# ---- 产出清点 ----
+# file: 01-cleaner.png 448K 2560 1600 
+# file: 02-disk.png 280K 2560 1600 
+# file: 03-monitor.png 272K 2560 1600 
+# file: 04-guardian.png 436K 2560 1600 
+# ---- 归因头修正（写这份日志之后才发现的，不改动上面每一档的实测记录）----
+# correction: 上面 `# expected:` 那句"不出现真实卷名占用"是**做不到的那一种要求**。
+#             放大照片核对时看到三处夹具顶替不了的：侧栏 `Macintosh HD 10%`（MainWindow.swift:143-168）、
+#             侧栏「系统清理 1.14 GB」（MainWindow.swift:107-111，读的是概览页那次真实扫描）、
+#             02 那张右上角「卷可用 47.28 GB」（MMDisk.swift:376）。三处都是这台机器的真实状态。
+# 处理: 不裁图（裁掉的截图就不是产品里那一屏，而裁切本身是在藏一件事），改成在落地页那句话里明说；
+#       脚本的 `# expected:` 已同步改成把这三处点名写出来，下一次跑就不会再"期望"一个做不到的事。
+# 反证: 01 画面里的 `~/Code/macmaster-web` 看着像真项目，其实是 Scripts/purge-fixture.sh:61-65 造的，
+#       所以"清单来自夹具"这半句仍然成立。

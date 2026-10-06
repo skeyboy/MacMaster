@@ -119,6 +119,9 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 
 照片与逐屏还原度判定在 `docs/verification/`（按轮次分目录）与 `docs/analysis/fidelity-*.md`。
 设计稿在 `docs/design-system/screens/`，令牌在 `docs/design-system/`。
+对外文案在 `docs/website/`：它**不进产物**，但每一句主张都对着实现核过一遍（判定表 `docs/analysis/website-audit.md`），
+那四张图是 `Scripts/p17-website-capture.sh` 的夹具档实拍——**画面上侧栏那条卷名与占用百分比、
+磁盘页的「卷可用」不在夹具覆盖范围内**，是拍摄那台机器的真实状态，页面上把这句明写了。
 
 ## 已知的坑（别再踩一遍）
 
@@ -134,6 +137,9 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 - 入库文档里每一处 `文件:行号` 引用由 `./Scripts/p16-citation-audit.sh` 逐条落盘验一遍
   （四道硬判据不过就 exit 1；第五道"符号面"只提示不当门）。跑一次约 40 秒，纯读，不改任何东西。
   改过 `docs/` 下任何 .md 之后请跑一次——引用会像代码一样漂，而且不报错。
+- 同一条脚本的扩展名清单里**有 `.html`**，所以分析文档里那种"落地页第几行"的锚点也会被验。
+  落地页是要整段重写的文件，**别用行号指它**（写成散文）：P17a 的判定表原本有四个这种锚点，
+  改完页面它们全都漂到了别的句子身上。
 - ~~概览页的"可清理"走 `scanAll()`，不看清理页那四个勾选~~ —— **P8（2026-10-05）已修**：
   两个页面现在共用 `CacheScanScope.selected(...)` 拼勾选、也共用同一份排除清单，
   四个类别全关时概览显示「未勾选类别」而不是一个来路不明的数。

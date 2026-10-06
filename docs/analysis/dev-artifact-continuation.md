@@ -287,7 +287,7 @@
 - `MM_DEV_ROOT_BUDGET_SECONDS`：覆写 `rootBudgetSeconds`。续扫的取证必须有
   "第一批真的截断"，而夹具目录太小、默认预算下永远扫得完。取 `0.05` 这类小值
   让第一批确定性地截断、第二批扫完。**只认数值，解析失败忽略**。
-- 复用 `MM_PURGE_FIXTURE_HOME`（只认 `/tmp`，`DevArtifactView.swift:45`）与
+- 复用 `MM_PURGE_FIXTURE_HOME`（只认 `/tmp`，解析点 `DevArtifactView.swift:65`；本文更早的版本记的是 `:45`，P16 的引用审计把它归进"位置存疑"那一层——守卫从 45 行搬到 65 行是在 P5.1 之后的续扫改动里发生的）与
   `Scripts/purge-fixture.sh`；夹具里造一个"父产物 + 内层嵌套产物"的配对，
   让 §4.3 的双重计数在照片里能被证伪（第一批只见父、第二批才见子）。
 - 不新增任何会落盘写真路径的钩子。
