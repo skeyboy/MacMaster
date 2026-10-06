@@ -71,10 +71,10 @@
 | --- | --- | --- | --- | --- | --- |
 | 侧栏 nav-item：概览/系统清理(2.4 GB)/应用卸载(46)/磁盘分析/系统监控/隐私守护(active)/系统优化/设置 | `MMGuardian.swift` 借壳 `MainWindow` 导航（模块 `guardian`，`moduleIcon:"lock.shield"`） | ✅ | 项与顺序一致；"隐私守护"为 active | — | — |
 | 侧栏 footer = 分隔线 + 「设置」nav-item（稿 06 画法） | 实机 = 磁盘容量行（`Macintosh HD` + 红色容量条）+ 带边框「设置」按钮（`fidelity-monitor.md` §0 已量） | ❌ | 07 稿沿用 01–06 错误画法；本模块侧栏同样缺容量行+设置按钮 | **中** | 设计稿该改 S1（全站） |
-| 侧栏宽 220pt（`--sidebar-w`，`tokens.css:32`） | `MainWindow.swift:18` `navigationSplitViewColumnWidth` | ✅（P6.2b 起） | **本轮重测**：改前分隔线在 x=401px@2x = **200pt**（比稿窄 20pt）；三个历史数字 200/216/220 量的其实是三种不同东西。现 `min:220`，实测 x=440px@2x = **220pt**。机制由两次否证实验确定，见 §6.3 | 低 | 实现该改 I1 → **已落地** |
+| 侧栏宽 220pt（`--sidebar-w`，`tokens.css:32`） | `MainWindow.swift:22` `navigationSplitViewColumnWidth` | ✅（P6.2b 起） | **本轮重测**：改前分隔线在 x=401px@2x = **200pt**（比稿窄 20pt）；三个历史数字 200/216/220 量的其实是三种不同东西。现 `min:220`，实测 x=440px@2x = **220pt**。机制由两次否证实验确定，见 §6.3（P16 现读：锚点此前记 `:18`，那一行现在是同一条 modifier 上方的注释，调用本体在 `:22`） | 低 | 实现该改 I1 → **已落地** |
 | 标题栏 38pt（`--titlebar-h`） | 实机黑线 y=52（`fidelity-monitor.md` §0） | ❌ | 实现 +14pt，每页可视高度少 14pt | 低 | 实现该改 I2（全站 I10b） |
-| 卡片底 = `--c-card-bg`（白） | `MMColor.cardBackground = Color(nsColor:.underPageBackgroundColor)`（`MMDesign.swift:19`） | ❌ | 稿内 `.card` token 与实现 underPage 档不同；本模块卡全走 underPage | 低 | 设计稿该改 S2（全站 S4） |
-| 页面底 = `--c-content-bg`（白） | 实机 `contentBackground`=textBackgroundColor 暗档（`MMDesign.swift:17`） | ❌ | 稿"白底+灰卡"对比度高于实机"灰底+更深灰卡" | 低 | 设计稿该改 S3（全站 S3） |
+| 卡片底 = `--c-card-bg`（白） | `MMColor.cardSurface = surface(lightHex: 0xFF, darkHex: 0x2A)`（`MMDesign.swift:38`，`MMCardStyle.content` 取它，`:900/:906`；本模块四张 `MMCard(padding: 0)` 都走默认 `.content` 档：`MMGuardian.swift:95,160,263,346`） | ⚠️ | **本行原文已过期并更正**：它写的是 `MMColor.cardBackground = Color(nsColor: .underPageBackgroundColor)`，并引在 `MMDesign` 第 19 行——那个符号**已不存在**（全站令牌化时改名，`:41` 的注释就写着"名字刻意不叫 card"，并且值也从系统色换成按稿钉死的十六进制对）。现在实现侧的浅色档正是稿的白，深色档 #2A2A2A 是否与稿一致要截图逐点量才算，所以判定从 ❌ 降为 ⚠️待实机复核，不再断言"本模块卡全走 underPage" | 低 | 设计稿该改 S2（全站 S4）→ 待复核 |
+| 页面底 = `--c-content-bg`（白） | 实机 `contentBackground`=textBackgroundColor 暗档（`MMDesign.swift:18`） | ❌ | 稿"白底+灰卡"对比度高于实机"灰底+更深灰卡" | 低 | 设计稿该改 S3（全站 S3） |
 | 侧栏尾数「2.4 GB」「46」 | 本模块无来源 | ❌ | 纯占位，与实机不一致 | 低 | 设计稿该改 S4（全站 S2） |
 
 ### 1.1 页头（MMPageHeader）
@@ -482,7 +482,7 @@ hr 那张同形（parent 93561）。**根因是谓词本身**：`eventMessage co
 
 **三家参考项目都没有这一卡**（`docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/` 现查）：
 Mole 的 LaunchAgents 只作为清理对象与保护规则出现（`lib/clean/apps.sh:773` "NEVER add LaunchAgents…"），
-Lemon 扫 LaunchAgents 只为找卸载残留（`QMCoreFunction/…/McSoftwareFileScanner.m:334-337`），
+Lemon 扫 LaunchAgents 只为找卸载残留（`localPod/QMCoreFunction/QMCoreFunction/Classes/McUninstaller/McSoftwareFileScanner.m:334-337`，`searchLauchDaemons` 那五个目录），
 Pearcleaner 只展示 `kMDItemLastUsedDate` 且文案就是 "Last Used Date"（`FilesSidebarView.swift:153`）。
 唯一真消费统一日志的是 OverSight，走 Apple Log API 实时流 + 苹果自家 subsystem 白名单
 （`AVMonitor.m:232` `subsystem=='com.apple.cmio' OR …`），**没有一家用 `eventMessage contains` 自由文本**，

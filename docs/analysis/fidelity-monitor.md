@@ -63,10 +63,10 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「系统监控」 | `MMMonitor.swift:27`；模块名 `:7` | ✅ | 实机逐字一致 | — | — |
-| 副标题「上次采样 2026-09-30 03:16 · 实时更新」 | `MMMonitor.swift:27` + `MMFormat.dateTime` | ✅ | 实机格式 `yyyy-MM-dd HH:mm` 一致；分钟粒度不刷新时看起来"停在旧值"是设计选择，稿内已注明 | 低 | 记录 |
-| C/D 稿 frame-0 副标题「上次采样 **0001-01-01 08:05** · 实时更新」 | `MetricTypes.swift` `MetricSnapshot.empty.sampledAt = .distantPast`，经 `MMMonitor.swift:27` 渲染 | ❌ | 首帧（`enable()` 之前）把"还不知道上次采样时间"渲染成**公元 1 年的具体时刻**；`nil → "—"` 的约定只加在数值上，没加在时间上 | **高** | ~~实现该改 I1~~ **已改** |
-| 右侧「菜单栏监控」+ switch，标签在左 | `MMMonitor.swift:28-32` `.toggleStyle(.switch)` | ✅ | 实机标签在左、开关在右，位置一致 | — | — |
+| 标题「系统监控」 | `MMMonitor.swift:44`；模块名 `:8` | ✅ | 实机逐字一致（P16 现读：本文此前两处都记 27 行/模块名 7 行，是页头之上加了 `headerSubtitle` 之后漂的） | — | — |
+| 副标题「上次采样 2026-09-30 03:16 · 实时更新」 | `MMMonitor.swift:39` + `MMFormat.dateTime` | ✅ | 实机格式 `yyyy-MM-dd HH:mm` 一致；分钟粒度不刷新时看起来"停在旧值"是设计选择，稿内已注明 | 低 | 记录 |
+| C/D 稿 frame-0 副标题「上次采样 **0001-01-01 08:05** · 实时更新」 | `MetricTypes.swift` `MetricSnapshot.empty.sampledAt = .distantPast`，经 `MMMonitor.swift:37-39` 渲染 | ❌ | 首帧（`enable()` 之前）把"还不知道上次采样时间"渲染成**公元 1 年的具体时刻**；`nil → "—"` 的约定只加在数值上，没加在时间上 | **高** | ~~实现该改 I1~~ **已改**（`:38` 现读：`hasSampled` 为假时改口「尚未完成首次采样」） |
+| 右侧「菜单栏监控」+ switch，标签在左 | `MMMonitor.swift:45-49` `.toggleStyle(.switch)` | ✅ | 实机标签在左、开关在右，位置一致 | — | — |
 | 关闭态（switch off） | `menuBar.disable()` → 采样循环被 cancel | ⚠️ 未画 | 关了就停采样，页面会**冻在最后一帧**而不是变空；稿内没有这一档，实机也无法验证（见 §4） | 低 | 设计稿该改 S5b |
 
 ### 1.2 顶部读数条（MMStatItem × 4）

@@ -1,0 +1,37 @@
+# p16 否证（符号面）：故意往入库文档里种两处"行号没问题、符号已经不存在"的引用
+# date: 2026-10-06 08:15（临时行加在 docs/analysis/hook-ledger.md:471-472，跑完即 Edit 还原；还原后该文件 469 行）
+# command: ./Scripts/p16-citation-audit.sh
+# shape under test: 第五道判据的两层。种的两处都**过得了四道硬判据**——路径真实、行号在范围内、
+#   那一行不空——这正是它和前三道的区别：空白面问"这段有没有字"，符号面问"那几行上有没有
+#   文档主张的那个成员"。
+#     临时行 A：`MMOptimizer.deleteSelected` 位于 Packages/MMUI/Sources/MMUI/MMDesign.swift:38
+#       （`deleteSelected` 已随 P2 改成走 FileTrashService，仓里查不到这个名字）
+#     临时行 B：`colorForSize` 位于 Packages/MMFileScanner/Sources/MMFileScanner/MMFileScanner.swift:1
+#       （`colorForSize` 已随 f3fa1fe「方块图改多层嵌套 + 色相/斜纹双通道」删掉）
+# expected: 两条都落进 符号面·死符号；硬失败仍为 0、退出码仍为 0（这一层按设计不当门——
+#   若把它当门，`onDisappear`/`IOBlockStorageDriver` 这类苹果 API 与内核名会天天误伤）。
+# observed: 退出码 0、硬失败 0、死符号 2，明细逐条点名到文档行：
+#   #   死符号 Packages/MMUI/Sources/MMUI/MMDesign.swift:38 ← 引于 docs/analysis/hook-ledger.md:471；找不到：MMOptimizer.deleteSelected*
+#   #   死符号 Packages/MMFileScanner/Sources/MMFileScanner/MMFileScanner.swift:1 ← 引于 docs/analysis/hook-ledger.md:472；找不到：colorForSize*
+#   同一次跑里 符号面·位置存疑 = 96（那两条没落这一层，说明两层是分得开的）。
+#
+# 这一跑真正的收获是**否证之前那个"死符号 0"是假的**：抽取器原来的标识符正则
+# `^[A-Za-z_][A-Za-z0-9_]*$` 不接受点号，所以 `` `MMOptimizer.deleteSelected` `` 这种写法
+# 根本不会被当成符号主张；而本轮手工核对抓出的四类漂恰好全是带点的或 lowerCamelCase 成员。
+# 拿同两行分别过一遍新旧抽取：
+#   === 旧抽取（符号不许带点）===
+#   colorForSize;
+#   === 新抽取（允许 类型.成员，末段按扩展名黑名单挡）===
+#   MMOptimizer.deleteSelected;colorForSize;
+# 旧的只认出 1 个，新的认出 2 个——**判据改了，"0"才第一次变成"跑过并且都过"**。
+# 顺带定了一条：末段不能拿"含大写"当筛子（`TreemapView.compute` 这种小写成员正是要查的那一种），
+# 改成按扩展名黑名单挡（swift/go/md/sh…），否则连改名主张都看不见。
+#
+# 还查出一处自指，也在这份否证里跑出来的：词汇表 = 全部跟踪源文件的原文 token，
+# 而本脚本自己的注释按设计就要列举死符号（上面那两个名字就在注释里）。脚本一进 git，
+# 这些名字会因为"审计脚本的注释提到了它"重新变成活符号。所以词汇表构建排除本脚本自身，
+# 报告里加 `# vocab:` 行自报 token 条数（本轮 7267）。同类弱处还有一处无法廉价修掉：
+# 注释与字符串也算 token，`cardBackground` 因 `MMDesign.swift:41` 那句"上一版它叫 cardBackground"
+# 仍然活在词汇表里——这条记在脚本第 1 步①，不改判据。
+# restore: 两行临时行已用 Edit 删除；还原后重跑 ./Scripts/p16-citation-audit.sh
+#   → 死符号 0、位置存疑 96、硬失败 0、退出码 0（正式跑的结果在 audit.log）。

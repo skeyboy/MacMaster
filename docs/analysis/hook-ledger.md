@@ -87,20 +87,20 @@
 | `MM_WINDOW_SIZE` | 壳 | `LaunchBehavior.swift:116` | `=宽x高`（如 `900x600`）改主窗口内容区尺寸 | ✅ | 否 | **P4 新增**。下限 320×200，解析失败/找不到主窗口都写 stderr；`DispatchQueue.main.async` 等窗口上屏。**凭据回读夹取后的真实窗口尺寸**（`asyncAfter 0.3s`）：窗口有 `.frame(minWidth:)` 地板，请求 900 会被夹到 1000，只回显请求值会产出"看着真、来源错"的最小窗口证据 |
 | `MM_SETTINGS_TAB` | 壳 | `SettingsView.swift:12` | 设置 sheet 默认选中 tab | ✅ | 否 | 非法值回落 `.general` |
 | `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:34` | cleaner 页默认 tab（cache/folders/system/**dev**） | ✅ | 否 | 非法值回落 `.cache`。**P5.1 新增 `dev`（开发产物子页）** |
-| `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:280` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | — |
-| `MM_EXPAND_CATEGORIES` | `MMCleaner` | `MMCleaner.swift:148` | 展开分类 | ✅ | 否 | — |
+| `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:311` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | **P16 现读**：原记 `:280` 已漂 |
+| `MM_EXPAND_CATEGORIES` | `MMCleaner` | `MMCleaner.swift:138` | 展开分类 | ✅ | 否 | **P16 现读**：原记 `:148` 已漂 |
 | `MM_AUTO_SCAN` | `MMCleaner` | `UserFolderCleanView.swift:112` `SystemAnalysisView.swift:78` | 进场即触发扫描 | ✅ | 否（只读扫描） | 仅枚举文件系统，不写不删 |
 | `MM_SHOW_CONFIRM` | `MMCleaner` | `MMCleaner.swift:390` `UserFolderCleanView.swift:116,384` | 弹出删除确认面板 | ✅ | 否（弹面板，删在按钮里） | 实际删除需用户点「确认」，过 `DeletionGuard`。锚点于 2026-10-04 现读重定（原记 `:359` 已漂） |
 | `MM_INSTALLER_FIXTURE_DIR` | `MMCleaner` | `UserFolderCleanView.swift:120,366` | 注入安装器残留夹具目录 | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
-| `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:365` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel` |
+| `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:396` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel`。**P16 现读**：原记 `:365` 已漂；`MMCleaner.swift:923` 是那段回执的注释锚 |
 | `MM_SNAPSHOT_FIXTURE` | `MMCleaner` | `MMCleaner.swift` `applySnapshotFixture` | 把"磁盘空间只读报告"里的**快照那一块**换成样例文本（`mixed`/`overflow`/`updateonly`/`none`/`broken`） | ✅ | 否 | 只替换解析器的输入字符串，卷容量仍是真读的；不起命令、不碰盘。未知取值整块忽略 |
-| `MM_PURGE_FIXTURE_HOME` | `MMCleaner` | `DevArtifactView.swift:45` | 把「开发产物」页的扫描根换成假 home | ✅ | 否 | **P5.1 新增。只认 `/tmp`**：`realpath` 解析后**再复核一次前缀**，越界整块忽略。这一屏的终点是删除按钮，所以钩子绝不能把用户的真项目变成可以整片勾选的夹具。配合 `Scripts/purge-fixture.sh` |
-| `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:109` | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots` |
-| `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:112` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数 |
-| `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:428` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件** |
+| `MM_PURGE_FIXTURE_HOME` | `MMCleaner` | `DevArtifactView.swift:65` | 把「开发产物」页的扫描根换成假 home | ✅ | 否 | **P5.1 新增。只认 `/tmp`**：`realpath` 解析后**再复核一次前缀**，越界整块忽略。这一屏的终点是删除按钮，所以钩子绝不能把用户的真项目变成可以整片勾选的夹具。配合 `Scripts/purge-fixture.sh`。**P16 现读**：原记 `:45` 已漂 |
+| `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:240`（首扫后）与 `:272`（续扫合并后） | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots`。两处是两条路径各读一次，**只改一处会让"续扫之后"那一档拍不到展开态**。**P16 现读**：原记 `:109` 已漂 |
+| `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:243` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数。**P16 现读**：原记 `:112` 已漂 |
+| `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:705` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件**。**P16 现读**：原记 `:428` 已漂 |
 | `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:407` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService`。**P6.7 复核**：锚点原记 `:236`，现读 `:407`；它写在 `.task` 里而 `model.scan()` 上一行没 await，所以面板先于 `report` 打开（等够就不空）。**P6.8 收口**：`Scripts/p68-dev-capture.sh` 第 04 档现在会重拍这一张（写进 `docs/verification/p68-dev/`，旧 `p7-dev/04` 未动），"有照片、无脚本"这条不成立了；详见 `fidelity-cleaner.md` §9–§10 |
-| `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数，抄字面量会骗人 |
-| `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:138,146` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到 |
+| `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:149-154` | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`（`:154`）——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数，抄字面量会骗人。**P16 现读**：本行此前记 `:138,146`，两个键现在同在一行 `:149` 的三元表达式里 |
+| `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:149-154` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到 |
 | `MM_DEV_AUTO_CONTINUE` | `MMCleaner` | `DevArtifactView.swift:159,175` | 全量扫完之后自动再跑最多 N 批续扫 | ✅ | 否（跑的是同一套只读扫描） | **P6.1 新增**。只认 `1…3`，其余值忽略。每批之间复查 `canContinueTruncatedRoots`，试满 2 次的根自动排除，所以不会自己循环成常驻扫描。存在的理由：②「续扫之后」与③「已试过 2 次」两档都要按一次按钮才进得去，而**合成点击会逃逸到用户的其它应用**（老规矩），点击链本身不在取证范围 |
 | `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:63` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps` |
 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除 |

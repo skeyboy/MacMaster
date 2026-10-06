@@ -7,13 +7,14 @@
 ## 现状盘点（历史基线）
 
 下表是路线图最初写作时的缺口快照，不代表当前代码状态。当前模块顺序、完成项与验收结果见 [模块优先级](module-priority.md)。
+"复核"列里的行号是**写作当时**的位置，会随重构漂走；本轮（P16）逐条现读了一遍，凡已失效的都补了现址。
 
 | 模块 | 现状 | 复核 |
 |---|---|---|
-| `Packages/MMHelper`、`MMMenuBar`、`MMWidget` | **空目录，无 Package.swift**，是死引用 | 已复核（`find` 返回 0 文件） |
-| `MMFileScanner/DuplicateScanner` | 只哈希前 10MB 且用非确定性 `Swift.Hasher`；**读取失败返回 `""`，全部不可读文件会被归为同一组"重复文件"** | 已复核 `MMFileScanner.swift:211-224` |
-| `MMOptimizer.runOptimization` | **空操作**：只把状态改成 `.optimized`、detail 写"已完成"，不执行任何系统动作 | 已复核 `MMOptimizer.swift:105-110` |
-| `MMOptimizer.deleteSelected` | 用 `try? FileManager.default.trashItem`，**绕过 `FileTrashService`**（无撤回、无历史、错误被 `try?` 吞掉） | 已复核 `MMOptimizer.swift:318-320` |
+| `Packages/MMHelper`、`MMMenuBar`、`MMWidget` | **空目录，无 Package.swift**，是死引用 | 已复核（这三个目录现已整体不存在：`[[ -e Packages/MMHelper ]]` 等三查全 no such file；P16 现读） |
+| `MMFileScanner/DuplicateScanner` | 只哈希前 10MB 且用非确定性 `Swift.Hasher`；**读取失败返回 `""`，全部不可读文件会被归为同一组"重复文件"** | 写作时复核的是当时那份 `MMFileScanner.swift` 里的 14 行——**那个位置已不存在**（重写过：本仓库那份文件只剩 168 行，不足 211）。那份实现在 2026-09-29「重复文件检测改为可验证的安全实现」中整体移出成独立文件。现址逐条现读，全在 `DuplicateScanner.swift`：SHA256 `:244`；读失败一律 `.failure` 并计入 `unreadablePaths`（`:238-240`、字段 `:55`）；采样是**首尾各 4 MB**而非前 10 MB（`sampleSize` 默认 `:100`，分支 `:246-251`）。这一行描述的三个缺陷在当前代码里都不成立，只作为缺口快照的历史保留 |
+| `MMOptimizer.runOptimization` | **空操作**：只把状态改成 `.optimized`、detail 写"已完成"，不执行任何系统动作 | 写作时复核的是 `MMOptimizer.swift` 里当时的那 6 行；**该符号已不存在**（P16 现读：全仓 `grep -rn runOptimization` 零命中，那几个行号现在是失败面板的夹具赋值）。P0 §0.3 那条按"移除假动作"收口 |
+| `MMOptimizer.deleteSelected` | 用 `try? FileManager.default.trashItem`，**绕过 `FileTrashService`**（无撤回、无历史、错误被 `try?` 吞掉） | 写作时复核的是 `MMOptimizer.swift` 里当时的那 3 行；**该符号已不存在**，那几个行号现在是扫描中文案。优化页删除现走 `FileTrashService`（P16 现读：`MMOptimizer.swift:433`、`:456`（撤回）、`:684`） |
 | `MMUninstaller.findResiduals` | 只探测 11 个固定候选路径，无 Containers / Group Containers / LaunchAgents / receipts / Spotlight | 已复核（本轮重写前的实现） |
 | `MMGuardian` | 有 LaunchAgents/Daemons plist 扫描；对 `/Library` 域写 `Disabled` 键在无 root 时会静默失败；**完全没有摄像头/麦克风占用监控、没有 TCC 权限视图** | 部分复核（行号来自子代理，未逐行验证） |
 | `MMMonitor` | 菜单栏 CPU/内存/网络 + 阈值通知；无每核、无磁盘 IO、无电池/温度/风扇 | 部分复核 |

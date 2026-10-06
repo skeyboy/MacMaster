@@ -47,6 +47,7 @@
 | 取证钩子 | **52 个名字**（运行时 51） | `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' \| sort -u \| wc -l`；多出来的一个是 `MM_TRASH_FIXTURE_PROBE`，只在测试里探 `/tmp` 守卫。**P11、P11c、P14、P15 四轮一个新增钩子都没加**（P11c 只改了既有 `MM_GUARDIAN_ACTIVITY_FIXTURE` 的 `rows` 档用词；P14 的 `p14-header-capture.sh`、P15 的 `p15-pipe-capture.sh` 都只组合已有钩子，且判据是"零夹具"） |
 | 子进程启动点 | **1 处** | `grep -rn "Process()" Sources Packages`（非测试）现读只命中 `Packages/MMCore/Sources/MMCore/CommandRunner.swift:51` 一行；**含测试目录也是 1**（本轮现读复核过）。这一格从前写 3（P11c 前是 4）：`scanUnifiedLog` 那一处随统一日志族删除（4→3），P15 把剩下的三处——`SystemSpaceReport` 的 tmutil、`LoginItemStore` 的 launchctl **读**（列表）与**写**（停用）——并进那一个文件（3→1）。**形状只有一个 owning 文件，判据在 `CommandRunnerPipeTests`**，见 §7.6 |
 | 网络代码 | **0** | `grep` `URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里**无命中** |
+| 入库文档里的位置引用 | **645 条次 / 545 条唯一引用；硬失败 0** | `./Scripts/p16-citation-audit.sh`（**P16 新增，2026-10-06 收口那一跑**，逐字结果在 `docs/verification/p16-citations/audit.log`）。命本仓库 487 / 命参考仓库 57 / 命苹果 SDK 头文件 1 / 两头都不到 0；越界 0、整段空白 0、同后缀歧义 0。31 份入库 .md **全部被读到**（报告里 `# docs scanned:` 自报"31 个真抽了 / 31 个入库"，两个数不等就是有文件静默没进判据——这一条本轮真发生过一次）。**这两个总数不是常数**：把那 12 处改完之后是 643/544，回写本文时又新加了两条引用，于是收口那一跑是 645/545。逐条见 §8 与 §7.7 |
 
 逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-05 **P15** 重跑，日志留在 `/tmp/macmaster-tests/`）：
 MMCore **48** · MMUI 17 · MMFileScanner **117** · MMCleaner 18 · MMUninstaller 121 ·
@@ -516,6 +517,56 @@ P15 去量了那两个"小"到底多小（tmutil 21–22 字节 / launchctl 18,5
 版本链五遍都闭合。**判定仍然没变**：第 4 步那三项（许可、`NSHumanReadableCopyright`、签名方式）是人的决定，
 不在代码里。
 
+### 7.7 P16：文档里的位置引用第一次逐条落盘验过（2026-10-06）
+
+P15 之后代码一行没动，这一轮验的是**另一类会烂的东西**：入库文档里那 545 处 `文件:行号` 引用
+（收口那一跑的数；改前那一跑只认出 541——差的 3 条是抽取器静默漏掉的两份文档里的，见下面第 1 条）。
+动手的理由是 §8 挂了三轮的那条账——`.gitignore` 排掉了参考仓库目录，
+"别人 clone 之后那些引用是断链"——这句话一直是**散文**，没人把它变成数。
+现在它是 `./Scripts/p16-citation-audit.sh` 的报告，跑一次 40 秒，退出码当门。
+
+| 判据 | 抓什么 | 改前那一跑抓到 | 现在 |
+| --- | --- | --- | --- |
+| 命中面 | 引用路径按后缀能不能定位到真实文件（本仓库/参考仓库/SDK/都不到） | 都不到 **0**（上一轮已修 4 处写错目录的） | 0 |
+| 唯一面 | 同一条路径在本仓库命中两个文件 = 引用不自证是哪一篇 | **0**（判据来自 Pearcleaner 那份有两件 `main.swift` 的仓库） | 0 |
+| 行号面 | 区间结束行超过文件末尾 | **1**（引用写的是第 211–224 行，那份 `MMFileScanner.swift` 现 168 行）← 引于 `docs/analysis/feature-roadmap.md` 第 14 行 | 0 |
+| 空白面 | 引用的那一段整段只有空白 | **11** | 0 |
+| 符号面（**只提示，不进退出码**） | 那一行上到底有没有文档主张的那个成员 | 手工核对时抓出 **4 类**（`colorForSize`/`cardBackground`/`runOptimization`/`UninstallerModel.headerSubtitle` 全都不存在了） | 死符号 **0** / 位置存疑 96 |
+
+**这一轮真正的产出不是那 12 处改对了的引用，是"0"这个数差点是假的**。三件只有跑过才知道的事：
+
+1. **抽取器自己会漏文件**。`git ls-files` 默认 `core.quotePath=true` 把非 ASCII 路径包成
+   `"docs/technical-analysis/01-\347\253\236…"`，于是那两份中文名文档既进不了索引、
+   又在抽取阶段被 `[[ -f $md ]]` 静默跳过——**报告照样打"31 个入库 .md"**，实际抽了 29 个。
+   代价是可量的：改完之后唯一引用从 541 条涨到 544 条，**漏的不是 2 份文档，是那 3 条从没被验过的引用**。
+   暴露方式是否证原型在别处崩了 `awk: can't open file`。修法：四处调用全部加
+   `-c core.quotePath=off`，并让报告自报 `# docs scanned: 31 个真抽了 / 31 个入库 .md`（两个数不等就是有文件没被读到）。
+2. **符号面第一版看不见 `类型.成员`**。标识符正则 `^[A-Za-z_][A-Za-z0-9_]*$` 不接受点号，
+   所以写成 `` `MMOptimizer.deleteSelected` `` 的那类主张**根本不会进判据**——而改名之后的旧写法
+   恰恰最爱这么写。否证跑（`negative-control-symbols.log`）拿同两行新旧对照：旧抽取只认出 1 个符号、
+   改后认出 2 个，所以改前报的"死符号 0"里有一半是**没在看**。
+   顺带定了一条：末段不能拿"含大写"当筛子（`TreemapView.compute` 这种小写成员正是要查的那一种），
+   改成按扩展名黑名单挡。
+3. **判据会被自己的说明书喂活**。词汇表 = 全部跟踪源文件的原文 token，而这份脚本的注释按设计就要
+   列举死符号；脚本一进 git，`colorForSize` 这些名字就会因为"审计脚本提到了它"重新变成活符号。
+   所以词汇表构建显式排除本脚本自身，报告里 `# vocab: 7267 个 token` 自报条数。
+   同类弱处还留了一条无法廉价修掉的：注释与字符串也算 token，`cardBackground` 因为
+   `MMDesign.swift:41` 那句"上一版它叫 cardBackground"仍然活在词汇表里——记在脚本第 1 步①，不改判据。
+
+**还有一条得写进所有后续文档的写法约束**：抽取器是机械匹配 `路径.ext:NN(-NN)?(,NN)*` 的，
+所以**连"这个位置已经失效"这种说明文字也会被抓一次**——本轮改文档时自己踩到一次
+（写了"本文此前记 MMDesign 那份的第 350 行"这种句子时，句子里带上了文件名、冒号和行号——
+那正是被打回的第 2 条）。要记一个死掉的锚点，就写成散文（"记在某份的第 350 行"），
+**别让文件名、冒号、行号连成一串**：抽取器不读语义，它只看形状，
+一句"这个位置已经没了"在它眼里和一条真引用完全等价（这一段的上一稿自己就触发了两道判据）。
+
+证据：`docs/verification/p16-citations/audit.log`（本轮正式跑，硬失败 0、退出码 0）
++ `negative-control.log`（四道硬判据各种一处坏引用）
++ `negative-control-symbols.log`（符号面两层 + 新旧抽取对照）。
+参考仓库那一档的可达性写在新增的 `docs/analysis/reference-repos.md`：七个仓库各记 URL + 本轮钉住的
+commit + `git ls-files` 条数，读的人一条 clone 就能把那 57 条引用变成可打开的（`docs/Mole` 那份是
+**只有 .git 没有工作树**的空壳，tracked=0，报告里逐字自报，不混进"可补"那一档）。
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 - ~~**概览页的"可清理"不看清理页那四个开关**~~ —— **P8 已修（2026-10-05），走"按 scope 扫"这一支**：
   拼法收敛到 `CacheScanScope.selected(systemCache:appCache:logs:temp:)`（`CacheScanner.swift`），
@@ -536,9 +587,17 @@ P15 去量了那两个"小"到底多小（tmutil 21–22 字节 / launchctl 18,5
   说它们"空"是指**零个文件**——`find MacMaster -type f` 返回 0，而 `MacMaster/` 这个目录本身不是空的，
   里面套着 `MacMaster/Sources/MacMaster` 这一层空路径（git 不跟踪空目录，所以 `git status` 里看不见）。
   前两处像是没落地的 helper/widget 骨架。要么补内容要么删掉，别让下一个人以为有个 helper 靶子。
-- **`.gitignore` 把参考仓库排除了**（`docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/`），
-  而多份分析文档正文按那些路径引了源码位置。**别人 clone 之后那些引用是断链**。
-  发版文档要么把引用改成"项目名 + 文件路径"这种可自证的写法，要么在 README 里说明这些目录需自行 clone。
+- ~~**`.gitignore` 把参考仓库排除了**（`docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/`），
+  而多份分析文档正文按那些路径引了源码位置——**别人 clone 之后那些引用是断链**~~
+  —— **P16 已把这句话变成数并收口（2026-10-06）**：`./Scripts/p16-citation-audit.sh` 把每一处引用
+  逐条落盘验过（总数与分档只记 §1 那一格与 `docs/verification/p16-citations/audit.log`，这里不重抄）：
+  命参考仓库 **57** / 命苹果 SDK 头文件 **1** / **两头都不到 0**。
+  两条决定：① 断链按代价分档，不混成一个数——引**本仓库**的漂了就是错（改文档，本轮改了 12 处）；
+  引**参考仓库**的 clone 后一律不到，但**可补**（URL + 钉住的 commit 进 `docs/analysis/reference-repos.md`，
+  读的人一条命令把那 57 条变成可打开的）。② 不为了"引用都指入库文件"而把参考仓库纳入版本——
+  它们是 GPL / Apache-2.0+Commons Clause 的第三方仓库，只读不转发，纳入版本就把许可问题变成真问题。
+  SDK 那一类单列一档（1 条 `AVCaptureDevice.h:323`）：本机可验，别人 clone 一样打不开，
+  报告里自报 SDK 版本 27.0，换 Xcode 要重跑。README 那一行指针也补了（§10 第 3e 步）。
 
 ## 9. 建议的 v1.0 范围与版本号
 
@@ -591,6 +650,11 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-v1 -s /tmp/mm-scratch
 # 3d.（可选，只在动过任何一处子进程调用时跑）launchctl / tmutil 两屏的真读数与照片逐字对得上（§7.6）
 #     零夹具、零合成点击；expect 行是另一条独立读法（plutil + launchctl），不与被测代码共用解析。
 ./Scripts/p15-pipe-capture.sh /tmp/mm-app-v1/MacMaster.app docs/verification/p15-pipe
+
+# 3e.（每轮都跑，改过任何一份 docs/ 里的 .md 之后必跑）入库文档的位置引用逐条落盘验一遍（§7.7）
+#     四道硬判据（命中面/唯一面/行号面/空白面）不过就 exit 1；第五道符号面只提示、不进退出码。
+#     报告里的三个自报数不等就是判据没跑全：docs scanned 两个数、行号判据实跑条数、vocab 条数。
+./Scripts/p16-citation-audit.sh docs/verification/p16-citations   # 期望：硬失败 0、退出码 0
 
 # 4. 人工确认：许可已定（补 LICENSE 文件 + 改回两处那一格）/
 #    NSHumanReadableCopyright 有年份和权利人 / 签名方式选定（§2.1 三选一）
@@ -654,14 +718,16 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
    所以这三项是**决定**，不是工作量。
 3. **发之前不必再补的技术项**：本轮把 §3 的空白（`launchctl` 写侧）之外能测的都测了；
    §8 那五条是账、不是门（两处行号漂移本轮已改，两处死开关已明说，五处空骨架待人工决定，
-   `.gitignore` 那条断链要在 README 里说明）。
+   `.gitignore` 那条断链 **P16 已变成数并收口**——每一处引用都逐条落盘验过（总数只记在 §1 那一格，
+   不在这里重抄第二遍），两头都不到 0，
+   参考仓库那 57 条的取法写进了 `docs/analysis/reference-repos.md`）。
    **P14 起这一条要加一句限定**：`docs/website/index.html` 那一页**不在"能测的都测了"里**——
    它从来没有跟实现对照过（§6 最后一行），只是它不进产物，所以不改变"能不能发"的判定。
 
 **唯一一处"能力靠肉眼而不是靠测试"**：壳层零测试目标（§6 最后一行）。这一条**不阻塞发版**，
 但发版说明里不该假装九屏都有回归保护——九屏的壳层部分是 590 条测试**没覆盖**的那一层，
-它靠的是 `docs/verification/` 下那 **46 个目录**（P15 现读 `ls -d docs/verification/*/ | wc -l`：
-P14 那一遍读到 44，P15 这轮新增 `p15-pipe/` 与 `p15-v1/` 两个。本文更早的版本写的是
+它靠的是 `docs/verification/` 下那 **47 个目录**（P16 现读 `ls -d docs/verification/*/ | wc -l`：
+P14 那一遍读到 44，P15 那轮新增 `p15-pipe/` 与 `p15-v1/` 两个，P16 新增 `p16-citations/` 一个。本文更早的版本写的是
 "37 个（P12 之后 38）"——那个数从 P10/P11 起就没跟着涨，是本文**唯一一个自己没被计数脚本罩住的数**，
 现已改成现读）。
 
@@ -688,4 +754,14 @@ P14 那一遍读到 44，P15 这轮新增 `p15-pipe/` 与 `p15-v1/` 两个。本
 五遍核验的版本链、签名档次、Gatekeeper 结论逐字相同。它影响的是另一件事：
 **下一轮再加系统命令时，只有一个人人可用的入口、和一个"报字节数而不是报安心"的口径**（`hook-ledger.md` §5）。
 §3 那条空白（`launchctl` 写侧）仍然没测，P15 特意**没有**为了好看去测它——真点一下就会改这台机器的自启状态。
+
+**P16（2026-10-06）对"能不能发"的判定同样没有影响，它改的是"这话有没有人验过"**：
+代码一行没动，动的是 31 份入库文档里的每一处位置引用（总数只记 §1 那一格，见 §7.7）。
+它给发版前 checklist 加了第 **3e** 步，从此"文档里的行号还是不是那一行"是一条**跑得出退出码**的判据，
+而不是某一轮手工核对时顺带看一眼。
+**这一轮最值得留下的不是那 12 处改对的引用，是那三个"0 差点是假的"**：抽取器静默漏掉两份中文名文档、
+符号面看不见 `类型.成员`、判据会被脚本自己的注释喂活——三条都是否证跑出来的，
+和 P11 那条"没发作不等于写对了"是同一族：**一个数的 0，只有在其判据被证明能亮的时候才是结论**。
+文档层的空白也照出来了：`docs/website/index.html` 仍然没进过任何对照表（§6 最后一行、§11 第 3 条那句限定），
+P16 的脚本只看 `路径:行号` 这种锚点，**量不出"这句话对着实现是不是真的"**。
 

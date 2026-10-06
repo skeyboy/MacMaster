@@ -10,7 +10,7 @@
 `FileTrashService.moveToTrash(paths:)` 是 9 个模块（清理 / 卸载 / 磁盘 / 优化 / 残留 / 孤儿 …）
 共用的删除出口，改动前它对路径**一个字都不检查**：给什么就 `trashItem` 什么。
 各扫描器各自有一份"危险目录"名单，但那份名单的用途是**上色**——
-`MMDisk.swift:971` 的 `protectedRoots` 只把 `/System`、`~/Documents` 之类标成
+`MMDisk.swift:1061` 的 `protectedRoots`（在 `risk(of:)` 里，`:1060-1066`）只把 `/System`、`~/Documents` 之类标成
 `.readOnly` 徽标，标完照样能把路径交给 `moveToTrash`。标签和闸门是两回事，
 之前只有标签。
 

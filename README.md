@@ -38,6 +38,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 
 ```bash
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
+./Scripts/p16-citation-audit.sh  # 入库文档里每处 `文件:行号` 落盘验一遍（纯读，约 40 秒）
 ```
 
 现测（2026-10-05，P15 之后重跑）：**590 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
@@ -126,7 +127,13 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
   `docs/verification/mmguardian/`、`docs/verification/shell/`。前两个是**没落地的 helper/widget 骨架**，
   现在没有任何代码在里面。
 - `docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/` 在 `.gitignore` 里（各自带独立 `.git` 与许可）。
-  多份分析文档按这些路径引了第三方源码位置，**clone 之后那些引用是断链**，需要自行 clone 对应项目。
+  多份分析文档按这些路径引了第三方源码位置，**clone 之后那些引用是断链**。
+  取法写在 `docs/analysis/reference-repos.md`（七个仓库的 URL + 本轮钉住的 commit + 各自 `git ls-files` 条数），
+  照它 clone 一次，那 57 条引用就都能打开。为什么这些目录**故意不入库**：它们是 GPL /
+  Apache-2.0+Commons Clause 的第三方仓库，本项目只读、不转发。
+- 入库文档里每一处 `文件:行号` 引用由 `./Scripts/p16-citation-audit.sh` 逐条落盘验一遍
+  （四道硬判据不过就 exit 1；第五道"符号面"只提示不当门）。跑一次约 40 秒，纯读，不改任何东西。
+  改过 `docs/` 下任何 .md 之后请跑一次——引用会像代码一样漂，而且不报错。
 - ~~概览页的"可清理"走 `scanAll()`，不看清理页那四个勾选~~ —— **P8（2026-10-05）已修**：
   两个页面现在共用 `CacheScanScope.selected(...)` 拼勾选、也共用同一份排除清单，
   四个类别全关时概览显示「未勾选类别」而不是一个来路不明的数。

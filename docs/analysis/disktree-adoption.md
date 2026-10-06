@@ -2,7 +2,7 @@
 
 > 参考源：`docs/github-references/disktree`（tobi/disktree，Rust + GPUI，MIT）。
 > 本文所有 MacMaster 侧行号均经人工复核；disktree 侧行号来自逐文件阅读。
-> 复核日期：2026-09-29。
+> 复核日期：2026-09-29。**P16（2026-10-06）把 MacMaster 侧引用逐条重开对过一次**，凡已漂或已随落地而失效的都在原句里注明现址；disktree 侧引用未动（那份仓库不在 git 里，取法与钉住的 commit 见 [reference-repos.md](reference-repos.md)）。
 
 ## 一句话结论
 
@@ -14,9 +14,9 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 - 大小口径：单次 `lstat` 取 `st_size`（**表观大小**），目录大小由子节点求和；**无 st_blocks、无硬链去重**；跳过隐藏项；深度兜底再走 3 层。
 - 权限：`prepareAccessiblePaths` 用 security-scoped resource 探测敏感目录；不可读目录被静默跳过、不留痕（用户分不清"没东西"和"读不到"）。
 - 取消：`performScan` 一次性返回完整树，`DiskScanner` 侧无 `Task.isCancelled` 检查点（只有 `FileTreeWalker` 有）。
-- Treemap：`Packages/MMUI/Sources/MMUI/TreemapView.swift:33` `compute(items:in:)` 只排单层——`TreemapItem.children`（同文件 :8）声明了却从不参与布局；无 header 带；无 min-tile/Others 合并语义（合并在数据层做，渲染窗口 200 项）；标签仅在 ≥40pt 时绘制（:146）。
-- 配色：`MMDisk.swift:281` `colorForSize` 按 GB 分 red/orange/yellow/blue/gray——表达"多大"而不是"是什么"。
-- 导航：`MMDisk.swift:307` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory` 重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
+- Treemap：`Packages/MMUI/Sources/MMUI/TreemapView.swift:132` `compute(items:in:)`。**"只排单层、children 声明了却不参与布局"是写作当时的状态**——P16 现读：`TreemapItem.children` 在 `:19`，递归布局在 `place(items:in:depth:options:into:)` `:140`，`header`/`depth`/`isOthers` 三个字段 `:45-48`，每层子块上限 `childCap(at:)` `:126-127`，小于 `options.minTile` 的块直接跳过 `:144`。本文 §"多层嵌套 + header band"那条采纳已经落地。
+- 配色：写作当时的 `colorForSize`（按 GB 分 red/orange/yellow/blue/gray）**已不存在**，全仓 `grep -rn colorForSize` 只命中构建中间产物。现在的两通道判定在 `DiskClassify.swift`：色相回答"这是什么"（`NodeCategory.color` `:28-38`，七档十六进制取自设计稿图例），斜纹回答"这份能不能清"（`reclaimReason(ofName:isDirectory:…)` `:120`），文件头 `:4-7` 就写着为什么要拆成两条链。
+- 导航：`MMDisk.swift:1411` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1420`）重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
 - 删除：MMDisk **无任何删除入口**。`MMFileScanner/SystemAnalyzer.swift` 的四级安全分级与 `MMCore/FileTrashService.swift` 的废纸篓+撤回机制已经存在，只是没接到磁盘树上。
 
 ## 逐维度分析

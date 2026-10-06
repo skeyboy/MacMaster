@@ -32,7 +32,7 @@
 | 设计渲染 | 复用**已入库**的 `02-cleaner.png`、`02b-cleaner-installers.png`（浅色 2x）。**本次未重新渲染**（无头环境，不跑 `render.sh`，不产新图） |
 | 实机 | **本次未启动、未截图**（硬约束：禁跑 App / 禁截图）。唯一引用的实机图是既有 `docs/verification/p1.7-deletion-guard/cleaner-refusal-panel.jpg`（深色，`MM_FAILURE_FIXTURE=protected` 预演 + 权限横幅 + 分类表），它是上一阶段入库的证据，不代表本次测量 |
 | 像素取证 | **无**。本文不含任何 CoreGraphics 取色数字；凡"实机宽度/高度/颜色"一律 `⚠️待真机测量`，只给代码可推导的 token 值 |
-| 可用钩子（README §2，已 `grep` 核对全部命中） | `MM_OPEN_TAB`(`CleanerContainerView.swift:32`)、`MM_CLEANER_FILTER`(`MMCleaner.swift:280`)、`MM_EXPAND_CATEGORIES`(`MMCleaner.swift:148`)、`MM_AUTO_SCAN`(`UserFolderCleanView.swift:112`/`SystemAnalysisView.swift:78`)、`MM_SHOW_CONFIRM`(`MMCleaner.swift:359`/`UserFolderCleanView.swift:116,384`/`SystemAnalysisView.swift:82`)、`MM_INSTALLER_FIXTURE_DIR`(`UserFolderCleanView.swift:120,366`)、`MM_FAILURE_FIXTURE`(`MMCleaner.swift:365`)。**七条全部存在**，故 monitor 那种"13 项完全无法构造"的困境 cleaner 没有 |
+| 可用钩子（README §2，**P16 重新 `grep` 核对全部命中，并逐条现读行号**） | `MM_OPEN_TAB`(`CleanerContainerView.swift:34`)、`MM_CLEANER_FILTER`(`MMCleaner.swift:311`)、`MM_EXPAND_CATEGORIES`(`MMCleaner.swift:138`)、`MM_AUTO_SCAN`(`UserFolderCleanView.swift:112`/`SystemAnalysisView.swift:78`)、`MM_SHOW_CONFIRM`(`MMCleaner.swift:390`/`UserFolderCleanView.swift:116,384`/`SystemAnalysisView.swift:82`)、`MM_INSTALLER_FIXTURE_DIR`(`UserFolderCleanView.swift:120,366`)、`MM_FAILURE_FIXTURE`(`MMCleaner.swift:396`)。**七条全部存在**，故 monitor 那种"13 项完全无法构造"的困境 cleaner 没有。（本文此前记的 `:32`/`:280`/`:148`/`:359`/`:365` 五处都是写作当时的位置，已漂 2–36 行；`MM_OPEN_TAB` 在磁盘页 `MMDisk.swift:44` 与优化页 `MMOptimizer.swift:42` 也各有一个同名钩子，不属于本模块这一行） |
 | 硬约束 | 全程未 `git`、未跑 `swift build`/`make-app.sh`、未发合成鼠标/滚轮/键盘事件、未改 `Sources/`·`Packages/`·共享层；本次只写本文档一个文件 |
 
 代码层锚点（本文所有"结构成立"判定的依据，单位 CSS px == pt）：
@@ -249,8 +249,8 @@
    统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 10 个调用点无一使用新 init**
    （`grep -n 'MMFailurePanel(' Packages/*/Sources` 现读：本模块四处 `MMCleaner.swift:369`、
    `SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、`DevArtifactView.swift:393`，
-   另六处 `MMOptimizer.swift:160`/`:234`、`MMUninstaller.swift:197`/`:203`、`MMGuardian.swift:45`、
-   `MMDisk.swift:112`）——十处走的全是旧的那一个。所以这条从"组件缺功能"变成了
+   另六处 `MMOptimizer.swift:162`/`:236`、`MMUninstaller.swift:197`/`:203`、`MMGuardian.swift:45`、
+   `MMDisk.swift:112`）——十处走的全是旧的那一个。（**P16 现读**：上面这十个位置是 2026-10-04 复核时抄的，本轮重跑同一条 grep，只有优化页两处漂了 2 行；`grep -rn "stats:"` 在调用侧仍零命中，所以"组件有功能没人接"这一句到今天仍然成立）所以这条从"组件缺功能"变成了
    **"组件有功能没人接"**，统计行与页脚现在是死代码路径。剩下的活是四个调用点各自决定
    `planned/succeeded/skipped` 从哪来（`TrashResult` 里有 `files` 与 `failures`，`planned` 需要调用方自己记），
    属协调层 + 本模块各一半。
@@ -355,7 +355,7 @@
 | 2 | 空态 | `MM_AUTO_SCAN` 触发后取消 / 或在第一类前取消 | 无头；且取消点不可控 | 一个"扫完返回空"的夹具，或"取消在第一类前"的定格钩子（当前无） |
 | 3 | 加载态（skeleton × 5 + 取消） | 扫描瞬间 | 骨架帧易被覆盖 | 定格首帧钩子（当前无，类似 `MM_GUARDIAN_LOAD=hold`） |
 | 4 | 无权限降级横幅 | 真实 TCC 未授权即出现（图上已有 294 位置） | 无头 | 复用既有 `cleaner-refusal-panel.jpg` 已覆盖；如需单屏再拍 |
-| 5 | **被闸门拒绝（`MM_FAILURE_FIXTURE=protected`）** | `MMCleaner.swift:365` | 无头 | 已有入库图 `p1.7-deletion-guard/cleaner-refusal-panel.jpg`；但它覆盖的是**回执排版**，**不覆盖"点击→拒绝→回执"交互链**（那条需要合成点击，本项目禁止） |
+| 5 | **被闸门拒绝（`MM_FAILURE_FIXTURE=protected`）** | `MMCleaner.swift:396` | 无头 | 已有入库图 `p1.7-deletion-guard/cleaner-refusal-panel.jpg`；但它覆盖的是**回执排版**，**不覆盖"点击→拒绝→回执"交互链**（那条需要合成点击，本项目禁止） |
 | 6 | 分组展开明细 / 子项展开 | `MM_EXPAND_CATEGORIES`；子项点 chevron | 无头 | 内容钩子已够，重跑截图即可 |
 | 7 | 确认面板（缓存页 sheet / 文件夹页 alert） | `MM_SHOW_CONFIRM` | 无头 | 同上 |
 | 8 | 安装包残留夹具态 | `MM_INSTALLER_FIXTURE_DIR=/tmp/...`（硬性只认 `/tmp`） | 无头；且本次不造 `/tmp` 夹具 | 造一个 `/tmp` 夹具目录 + 钩子，再抓窗 |

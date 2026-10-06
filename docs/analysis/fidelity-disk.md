@@ -185,13 +185,13 @@
    **所以原清单"唯一破口"这句要撤回**：当时确实是磁盘独有的破口，今天磁盘反而是**覆盖最全的一页**
    （三个钩子四个判据）。判高没有判错，只是修它的人没回写这里。
 2. **【低】I2 · 详情徽章文案「安全」≠ 稿「可安全清理」**
-   `MMBadge(risk:)`(`MMDesign.swift:219-221`) 取 `risk.label`（`Risk.swift:14`="安全"），稿 `.badge.safe` 文本为「可安全清理」（= `risk.groupTitle`）。
+   `MMBadge(risk:)`(`MMDesign.swift:255-256`) 取 `risk.label`（`Risk.swift:14-16`，`.safe`="安全"），稿 `.badge.safe` 文本为「可安全清理」（= `risk.groupTitle`）。
    → 建议：徽章改取 `risk.groupTitle`，或 04 稿改文案为「安全」。两者择一。
    **✅ 本页已落地（`5e1dfe3`），但组件默认值没动，问题升级成站级的**：
    详情徽章现为 `MMBadge(risk.groupTitle, tint: risk.color, systemImage: risk == .readOnly ? "lock" : nil)`
    （`MMDisk.swift:776`）。可共享的 `MMBadge.init(risk:)`（现 `MMDesign.swift:255-256`）**仍取 `risk.label`**，
-   今天还有四个调用点在用「安全」这一套：`MMDesign.swift:860`（`MMItemRow` 的行内徽章）、
-   `MMUninstaller.swift:1617`、`MMOptimizer.swift:513` 与 `:843`。
+   今天还有四个调用点在用「安全」这一套（P16 现读 `grep -rn "MMBadge(risk:"`，全仓恰好四处）：`MMDesign.swift:860`（`MMItemRow` 的行内徽章）、
+   `MMUninstaller.swift:1629`、`MMOptimizer.swift:527` 与 `:866`。
    → 这不是漏改，是一个**没写下来的站级约定**：行内徽章用短标签（列宽只有 44–92pt，「可安全清理」放不下），
    分组/详情徽章用长说法（`risk.groupTitle` 本来就是分组标题）。建议按这个口径把约定写进 MMUI 注释并划掉本条，
    **而不是**统一成一种——统一成 `groupTitle` 会把三页的行内徽章撑破。归协调层。
@@ -298,8 +298,8 @@
     实现 28pt == 令牌 28px 已经是代码级事实（`MMDesign.swift:111` ↔ `tokens.css:36`），
     量出来只会再确认一遍，而该改的是稿里那三行内联。留作**改稿后的一次复核**，不算取证欠账。
 11. **【低】I11 · 面包屑栏 34pt vs 稿 26px**
-    `MMDisk.swift:291` `.frame(height: 34)`；稿 `.crumbs` 26px。⚠️待真机测量。
-    **❌ 仍未做**：现在是 `MMDisk.swift:379` `.frame(height: 34)`（锚点从 :291 漂到 :379，值没变）；
+    `.frame(height: 34)`（写作当时引的 291 行现已漂成别的内容，P16 现读全文件**只有这一处** `.frame(height: 34)`，在 `MMDisk.swift:379`）；稿 `.crumbs` 26px。⚠️待真机测量。
+    **❌ 仍未做**：锚点 `MMDisk.swift:379`，值没变；
     稿侧 `screen.css:126` `.crumbs{… height: 26px}`。差 8pt，方向是实现更厚——这一条**先量再改**：
     34pt 是 P4 最小窗口核对（task #55）之后仍在的值，压到 26 要看面包屑里的徽章与
     「这些路径这次没扫到」提示（`:362-368`）会不会挤。量一次磁盘页即可同时结掉 I9/I10/I11 三个 `⚠️待真机测量`

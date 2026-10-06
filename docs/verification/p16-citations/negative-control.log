@@ -1,0 +1,53 @@
+# p16 否证：故意把四处引用写坏，看这一跑会不会被抓住
+# date: 2026-10-06（临时行加在 docs/analysis/apps-watch.md:46，跑完即 Edit 还原）
+# command: ./Scripts/p16-citation-audit.sh
+# shape under test: 四道判据各一处——
+#   行号越界   `AVMonitor.m:99999`（OverSight 那份 2,002 行）
+#   路径都不到 `nosuchfile.swift:1`
+#   不自证的歧义 `README.md:1`（本仓库有 README.md 与 docs/design-system/README.md 两份）
+#   整段空白   `DeepLink.swift:147`（那一份的第 147 行是空行）
+# expected: 四处都出现在明细里，退出码 1
+# observed: 见下——退出码 1，越界 2（一处是临时行 + 一处是这一跑真查出来的漂了的引用），
+#   整段空白 12（临时行 1 + 真查出的 11），歧义 1，都不到 1。
+#   另：第一版把"起始行为空"当判据时报了 25 条，其中 13 条是区间起始行恰好为空行的正常写法，
+#   判据放宽成"整段空白"之后剩下的才是上面这些。**否证顺带把判据校准了一次。**
+#   这一跑还抓出脚本自身的缺陷：中间文件用 `print -r` 写，"\t" 没被解释成制表符，
+#   于是越界/空白两档统计恒为 0——是"根本没统计到"而不是"都过了"。改 printf 之后四处才亮。
+# restore: 临时行已用 Edit 删除；还原后重跑 ./Scripts/p16-citation-audit.sh 退出码 0、都不到 0、
+#   歧义 0、越界/整段空白只剩下面这些真缺陷（逐个改完后为 0）。
+
+# ---- 汇总 ----
+# 引用条次（同一处再引一次也计）: 640
+# 唯一「路径+行段」: 545
+#   命本仓库: 484
+#   命参考仓库: 59
+#     Mole: 17
+#     OverSight: 3
+#     Pearcleaner: 28
+#     disktree: 6
+#     lemon-cleaner: 3
+#     stats: 2
+#   命苹果 SDK 头文件: 1
+#   两头都不到: 1
+#   定位不到文件因而没试行号判据的（参考仓库没克隆时走这一支）: 1
+# 本仓库里同一条路径命中两个文件（引用不自证是哪一篇）: 1
+# 行号越界: 2
+# 整段空白的引用: 12
+# 行号判据实际跑过: 544 条（另 1 条定位不到文件，没跑）
+# ---- 明细：本仓库引用漂了（必须改文档）----
+#   歧义 README.md::1 同后缀命中 README.md 与 docs/design-system/README.md（引于 docs/analysis/apps-watch.md:46）
+#   越界 docs/github-references/OverSight/Application/Application/AVMonitor.m:99999（共 2002 行）← 引于 docs/analysis/apps-watch.md:46
+#   越界 Packages/MMFileScanner/Sources/MMFileScanner/MMFileScanner.swift:211-224（共 168 行）← 引于 docs/analysis/feature-roadmap.md:14
+#   整段空白 docs/github-references/Pearcleaner/Pearcleaner/Logic/DeepLink.swift:147（共 305 行）← 引于 docs/analysis/apps-watch.md:46
+#   整段空白 Packages/MMDisk/Sources/MMDisk/MMDisk.swift:971（共 2045 行）← 引于 docs/analysis/deletion-guard.md:13
+#   整段空白 Packages/MMDisk/Sources/MMDisk/MMDisk.swift:307（共 2045 行）← 引于 docs/analysis/disktree-adoption.md:19
+#   整段空白 Packages/MMCleaner/Sources/MMCleaner/CleanerContainerView.swift:32（共 67 行）← 引于 docs/analysis/fidelity-cleaner.md:35
+#   整段空白 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:365（共 957 行）← 引于 docs/analysis/fidelity-cleaner.md:35
+#   整段空白 Packages/MMOptimizer/Sources/MMOptimizer/MMOptimizer.swift:160（共 882 行）← 引于 docs/analysis/fidelity-cleaner.md:252
+#   整段空白 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1617（共 1741 行）← 引于 docs/analysis/fidelity-disk.md:194
+#   整段空白 Packages/MMDisk/Sources/MMDisk/MMDisk.swift:291（共 2045 行）← 引于 docs/analysis/fidelity-disk.md:301
+#   整段空白 Packages/MMUI/Sources/MMUI/MMDesign.swift:17（共 1089 行）← 引于 docs/analysis/fidelity-guardian.md:77
+#   整段空白 Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:27（共 453 行）← 引于 docs/analysis/fidelity-monitor.md:66
+#   整段空白 Packages/MMUI/Sources/MMUI/MMDesign.swift:350（共 1089 行）← 引于 docs/analysis/fidelity-uninstaller.md:66
+#   整段空白 Packages/MMCleaner/Sources/MMCleaner/DevArtifactView.swift:146（共 1037 行）← 引于 docs/analysis/hook-ledger.md:102
+# ---- 明细：两头都不到（路径写错了，或者引的根本不是文件）----

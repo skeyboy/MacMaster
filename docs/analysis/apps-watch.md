@@ -30,11 +30,22 @@ P1.5 的 `TrashWatcher` 监听 `~/.Trash`，能抓住"用户把 `.app` 拖进废
 | Pearcleaner 常驻哨兵 | plist `PearcleanerSentinel/com.alienator88.PearcleanerSentinel.plist:9-12`（`RunAtLoad`+`KeepAlive`）；注册见 `Pearcleaner/Logic/Logic.swift:1367,1379`（`SMAppService.register`） | **不采纳常驻**（见 §4.1） |
 | 它的事件源 | `PearcleanerSentinel/FileWatcher.swift:2,84-94`：FSEvents，`latency: 0`，flags `.useCFTypes`+`.fileEvents` | 采纳"改动即重扫目录再对账"的思路，机制换成我们已有的 kqueue |
 | 它监听哪里 | `PearcleanerSentinel/main.swift:17`：只有 `~/.Trash` | **它也没监听 `/Applications`** —— 我们要补的正是这个 |
-| 从废纸篓跳到 GUI | `main.swift:58` 自定义 scheme `pear://openApp?path=…`；落地端 `Pearcleaner/Views/DeepLink.swift:143-146` 先 `FileManager.fileExists` 再信这条路径 | 采纳"事件带来的路径要重新验证存在性"；我们不做 scheme（同进程不需要绕） |
-| 自我删除保护 | `main.swift:54-55` 比对 `bundleID`，哨兵不处理自己；`Pearcleaner/Views/Files/FilesView.swift:224-225,300-301` 卸载自己前先 `stop()` 再 `start()` | 采纳同一类问题的解法，但我们的形态是"自己刚删的那条不报"（§5） |
-| "在废纸篓"还是"没了" | `FilesView.swift:271` 用 `.Trash` 子串判定 | 采纳：同一个判据决定我们报哪一种提示 |
-| "应用不见了"的答案 | `Pearcleaner/Logic/ZombieScanner/ReversePathsFetch.swift:36` 收集 `currentPaths`、`:47` 收集 `currentBundleIds`，`:215` 比对残留路径、`:226` 还有 `count >= 5` 的下限 | 这是**重扫对账**而非事件；我们的消失提示需要事件，因为要当场说"刚刚" |
-| Mole | `Mole/AGENTS.md:29` 明文禁止后台常驻与监控 | 它全程没有 watcher；`lib/clean/apps.sh:151` `cache_age_seconds=300`，靠 5 分钟过期的安装清单再列举 |
+| 从废纸篓跳到 GUI | `PearcleanerSentinel/main.swift:58` 自定义 scheme `pear://openApp?path=…`；落地端 `Pearcleaner/Logic/DeepLink.swift:143-146` 先 `FileManager.fileExists` 再信这条路径 | 采纳"事件带来的路径要重新验证存在性"；我们不做 scheme（同进程不需要绕） |
+| 自我删除保护 | `PearcleanerSentinel/main.swift:54-55` 比对 `bundleID`，哨兵不处理自己；`Pearcleaner/Views/FilesView/FilesView.swift:224-225,300-301` 卸载自己前先 `sendStopNotificationFW()` 再 `sendStartNotificationFW()` | 采纳同一类问题的解法，但我们的形态是"自己刚删的那条不报"（§5） |
+| "在废纸篓"还是"没了" | `Pearcleaner/Views/FilesView/FilesView.swift:271` 用 `.Trash` 子串判定 | 采纳：同一个判据决定我们报哪一种提示 |
+| "应用不见了"的答案 | `Pearcleaner/Logic/ReversePathsFetch.swift:36-47` 先把在装应用的 bundleId/应用名做成一张表（`cachedAppIdentifiers`），`:63` 枚举 `locations.reverse.paths` 那批系统目录，`:218` 用 `!isRelatedToInstalledApp(...)` 把"还在装的 app 的残留"排掉，`:230-232` 还有标识长度 `count >= 5` 的下限 | 这是**重扫对账**而非事件；我们的消失提示需要事件，因为要当场说"刚刚" |
+| Mole | `docs/github-references/Mole/AGENTS.md:29` 明文禁止后台常驻与监控 | 它全程没有 watcher；`lib/clean/apps.sh:151` `cache_age_seconds=300`，靠 5 分钟过期的安装清单再列举 |
+
+**这一表的证据列在 P16 之前有三处路径写错、一处标识符不存在**（`./Scripts/p16-citation-audit.sh` 逐条落到文件里验出来的）：
+DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而不是 `Views/Files/`；
+`ReversePathsFetch.swift` 不在 `Logic/ZombieScanner/` 这一层；而原文引的 `currentPaths`/`currentBundleIds`
+两个标识符在整个 Pearcleaner 仓库里 grep 不到（`grep -rn currentBundleIds` → 0 命中），
+`count >= 5` 那条是真的但在 `:232` 而不是 `:226`。上表按复核后的位置与写法重写，
+结论一列没动—— Pearcleaner 确实是"重扫对账"，只是原来的行号说不出这件事。
+另外这一表原来写裸文件名 `main.swift:58`：Pearcleaner 里**有两个 `main.swift`**
+（`PearcleanerSentinel/` 与 `PearcleanerHelper/`），按后缀找文件时随便落到一个上，
+本轮就落到了 Helper 那一份——而那一行恰好也是非空行，**光验"行号在不在文件里"抓不出这种错**，
+所以这一族的引用现在一律带目录前缀（`PearcleanerSentinel/main.swift`）。
 
 **结论：参考仓库里没有任何一个监听 `/Applications`。** 两条路线（Pearcleaner 重扫对账、Mole 缓存重扫）
 都只在"用户主动执行清理"时回答"某个应用还在不在"，都不能在应用刚消失的那一刻说话。
