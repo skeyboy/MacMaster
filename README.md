@@ -28,6 +28,11 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 **版本号只有一个真源**：上面那条 `VERSION=/BUILD=`。设置页「关于」读的是 bundle 的
 `Info.plist`，而那份 plist 是 `make-app.sh` 写的——不要去脚本里改字面量。
 
+**产物自带出处**（P19 起）：`make-app.sh` 往同一份 plist 写 `MMGitCommit`（工作区不干净时后缀 `-dirty`）。
+四轮发版核验的产物版本号逐字相同（都是 `1.0.0(1)` + adhoc），没这一键就分不出哪一份出自哪一次改动；
+取证日志里的 `# repo:` 是**跑脚本的那棵树**，`# app-repo:` 才是**被测二进制那棵树**，两行不一样是常态
+（改完脚本重跑旧产物时必然不一样）。
+
 **应用图标是画出来的**，不是一张来路不明的 png：`./Scripts/make-icon.sh` 跑
 `Scripts/make-icon.swift` 生成十档 iconset → `iconutil` 打成 `Resources/AppIcon.icns`，
 然后**反向解一次**核对十档齐全（少一档时 Dock 缩到 16pt 会拿大图硬缩，而 plist 与签名一切正常、

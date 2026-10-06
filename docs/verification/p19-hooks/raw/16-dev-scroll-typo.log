@@ -1,0 +1,3 @@
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-v1/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_DEV_SCROLL 含非法取值（nedd），只接受 end，钩子已忽略
