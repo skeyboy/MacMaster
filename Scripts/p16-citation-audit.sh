@@ -70,7 +70,14 @@ git -c core.quotePath=off ls-files -z '*.swift' '*.m' '*.mm' '*.h' '*.go' '*.rs'
 
 : > "$TMP/idx-ref"
 : > "$TMP/ref-manifest"
-for d in docs/github-references/* docs/Mole docs/lemon-cleaner; do
+# `(N)` 不是风格问题。这三个目录都在 .gitignore 里（各自带独立 .git 与许可证，见
+# docs/analysis/reference-repos.md 开头），所以**干净克隆里一个都没有**；而 zsh 默认
+# NOMATCH——glob 抽不到东西时是**整条 for 语句报错**，`set -e` 直接把脚本打死，
+# 下一行的 `[[ -d ]] || continue` 根本没机会跑。P20 在克隆树里第一次撞上：
+# 报的是 `no matches found: docs/github-references/*`，一行报告都没有——
+# 也就是说这份"发版前门禁"只在作者机器上跑得起来，而它早就知道自己会在别人机器上
+# 少一个索引（"定位不到文件因而没试行号判据的"那一支就是为此写的），却从没走到过那一支。
+for d in docs/github-references/*(N) docs/Mole docs/lemon-cleaner; do
   [[ -d $d ]] || continue
   if [[ -e $d/.git ]]; then
     head=$(git -C "$d" rev-parse --short HEAD 2>/dev/null || true)
@@ -85,6 +92,14 @@ for d in docs/github-references/* docs/Mole docs/lemon-cleaner; do
     print -r -- "# ref: $d head=非git仓库 tracked=n/a remote=n/a" >> "$TMP/ref-manifest"
   fi
 done
+
+# 一份参考仓库都没有时，报告里要**看得见这件事**。不然"命参考仓库 0"这一格会被读成
+# "文档没引参考仓库"，而真实情况是"没取到"——两者是完全不同的结论，而这一份报告是发版门禁。
+if [[ ! -s $TMP/idx-ref ]]; then
+  print -r -- "# ref: 一个参考仓库都不在（这些目录被 .gitignore 排掉了，干净克隆里本来就是空的）" >> "$TMP/ref-manifest"
+  print -r -- "# ref: 取法 ./Scripts/clone-references.sh；钉住的 commit 见 docs/analysis/reference-repos.md §2" >> "$TMP/ref-manifest"
+  print -r -- "# ref: 这一跑没跑任何参考仓库判据，那些引用全落进下面「定位不到文件」那一支" >> "$TMP/ref-manifest"
+fi
 
 # 苹果 SDK 头文件也建一份索引：`docs/analysis/guardian-device-usage.md` 引的是
 # `AVCaptureDevice.h:323` 这一类**既不在本仓库也不在参考仓库**的位置。这类引用在本机

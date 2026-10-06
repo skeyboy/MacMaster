@@ -59,7 +59,15 @@ git clone --depth 1 https://github.com/tw93/Mole.git docs/github-references/Mole
 cd docs/github-references/Mole && git fetch --unshallow origin && git checkout f32fa0c6b082ed76705cbc45f2c42169a09e2503
 ```
 
-其余六个照这一条换 URL 与 commit。这些目录**只在分析参考实现时临时存在**，
+其余六个照这一条换 URL 与 commit。
+
+**P20 起这一段有脚本了，别再手工换七次**：`./Scripts/clone-references.sh`（默认 `--check` 只报状态，
+加 `--fetch` 才联网）。它**逐行现读上面这张表**——URL 取第二列、40 位 commit 取第三列、本地路径取第四列，
+**脚本里不另存一份 commit**（同一份事实存两处就一定先漂一处，本项目为这类事已经记过好几笔）。
+表形一改（列序变了、抽出的行数少于 6）它会大声退出而不是静默少抽一行。
+`--fetch` 走的是 `git fetch --depth 1 origin <那个 commit>`，比上面那段样板**少一次 `--unshallow`**：
+引用审计只要那一份文件树，不要全部历史（七个仓库浅取 159 MB）。
+两边取法不同不影响结论一致：P20 实测作者树七份 HEAD 与表里逐字相同、克隆树取齐之后引用门禁六个数与作者树逐位相同。这些目录**只在分析参考实现时临时存在**，
 不进版本控制，也不随产物分发——所以它们的 GPL/Apache/Commons Clause 义务没有被触发：
 本项目没有复制它们的代码（各份 `docs/analysis/*.md` 的结论都写的是"实现独立"），
 分发时也没有附带它们。若将来真的引了某一段源代码，这张表要连同许可证义务一起重看。

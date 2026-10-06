@@ -246,11 +246,24 @@
    面板形态也由"带边框圆角卡"变成"琥珀底通栏条"。这是共享组件，见 §5。
    **复核 2026-10-04：⚠️ 组件侧做完了、调用侧一处没用 = 页面上仍然看不到**（`c74f045` 给组件加了
    `Stats` 结构体 + 带 `stats:`/`onRetry:`/`onCopyDiagnostics:` 的新 init（`MMDesign.swift:676-708`）、
-   统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 10 个调用点无一使用新 init**
-   （`grep -n 'MMFailurePanel(' Packages/*/Sources` 现读：本模块四处 `MMCleaner.swift:369`、
-   `SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、`DevArtifactView.swift:393`，
-   另六处 `MMOptimizer.swift:162`/`:236`、`MMUninstaller.swift:197`/`:203`、`MMGuardian.swift:45`、
-   `MMDisk.swift:112`）——十处走的全是旧的那一个。（**P16 现读**：上面这十个位置是 2026-10-04 复核时抄的，本轮重跑同一条 grep，只有优化页两处漂了 2 行；`grep -rn "stats:"` 在调用侧仍零命中，所以"组件有功能没人接"这一句到今天仍然成立）所以这条从"组件缺功能"变成了
+   统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 11 个调用点无一使用新 init**
+   （**P20 现读重跑，判据换成能罩住壳层的那一条**：
+   `grep -rn 'MMFailurePanel(' --include='*.swift' Packages Sources | grep -v 'struct MMFailurePanel' | wc -l` = 11，
+   逐个位置是 `MMCleaner.swift:376`、`SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、
+   `DevArtifactView.swift:423`、`MMDisk.swift:106`、`MMGuardian.swift:45`、`MMOptimizer.swift:161`、
+   `MMOptimizer.swift:235`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
+   `Sources/MacMaster/MainWindow.swift:241`。
+   **原来这一格写的是"10 个"，少的那一个不是漏看而是命令本身罩不住**——旧命令
+   `grep -n 'MMFailurePanel(' Packages/*/Sources` 的 glob 只展开 `Packages/<模块>/Sources`，
+   壳层 `Sources/MacMaster` 在仓库根，永远不在它的搜索范围里。而 `release-readiness.md` §6
+   那一格写的是 11（它另有一条含壳层的判据）——**同一个事实两份文档各写一个数，差的那一个恰好是"命令看不见"的那个**，
+   这就是为什么判据要写成可以整条复制去跑的命令，而不是"我数了一下"）。
+   另：旧列表里那十个**位置**本身也漂了（`MMCleaner` 369→376、`DevArtifactView` 393→423、
+   `MMDisk` 112→106、`MMUninstaller` 197/203→202/208，P18 那轮改动搬的），
+   而**引用门禁四道硬判据一条都没响**——漂到的那些行仍然在文件里、仍然非空白。
+   这一条是 §7.7 那句"路径存在、说法不成立"的最新样本，也是"十一处走的全是旧的那一个"
+   （**P16 现读**：`grep -rn "stats:"` 在调用侧仍零命中，所以"组件有功能没人接"这一句到 P20 仍然成立）
+   所以这条从"组件缺功能"变成了
    **"组件有功能没人接"**，统计行与页脚现在是死代码路径。剩下的活是四个调用点各自决定
    `planned/succeeded/skipped` 从哪来（`TrashResult` 里有 `files` 与 `failures`，`planned` 需要调用方自己记），
    属协调层 + 本模块各一半。

@@ -43,14 +43,16 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 
 ```bash
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
+./Scripts/clone-references.sh  # 参考仓库在不在、HEAD 对不对得上钉住的 commit（只读；--fetch 才联网）
 ./Scripts/p16-citation-audit.sh  # 入库文档里每处 `文件:行号` 落盘验一遍（纯读，约 40 秒）
 ```
 
-现测（2026-10-06，P18 之后重跑）：**612 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（2026-10-06，P18 之后重跑；P20 在一次干净克隆上复现）：**612 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
-**P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612。
-**逐包求和 = 612**，这一条自 P11c 起每轮都当自证用）。不要手敲 `swift test | tail -4`——
+**P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612）。
+**逐包求和 = 612**，这一条自 P11c 起每轮都当自证用；**P20 那遍是在一次干净 `git clone` 出来的树上跑的，
+九个包逐包数一个不差**（70 / 17 / 117 / 18 / 121 / 66 / 53 / 96 / 54）。不要手敲 `swift test | tail -4`——
 SwiftPM 的结论行有两种形态，那样会把 MMCore 的 70 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 
@@ -150,6 +152,14 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
   **但它只扫 `git ls-files`**：一份还没 `git add` 的新文档在这道门上等于不存在，报告里的
   `# docs scanned:` 两个数会一起变小，而不是打Warning（P18 前半段就是这样跑过一整轮 32/32，
   而实际入库文档已是 33 份）。所以顺序是**先 add 再跑**。
+- **这道门在干净克隆里跑不过，而且不该跑得过**（P20，2026-10-06）：那 57 条指向参考仓库的引用
+  在 `.gitignore` 排掉的目录里，clone 之后它们不存在，脚本判"两头都不到"→ exit 1。
+  取回它们一条命令：`./Scripts/clone-references.sh --fetch`（默认不带 `--fetch` 只报状态，联网才发生）。
+  这一支脚本**不另存一份 commit 清单**，它逐行现读 `docs/analysis/reference-repos.md` §2 那张表——
+  钉住的 commit 一旦有两份，就会有一份先漂。P20 之前更糟：干净克隆里它连报告都没有，
+  直接在 `for d in docs/github-references/*` 上撞死（zsh 默认 glob 抽不到东西是**报错**而不是空，
+  而 `set -e` 让整条脚本当场退出）——**"参考仓库没克隆时走这一支"那段降级逻辑因此从没被跑到过**。
+  修好之后降级路径实测有效：命参考仓库 0、定位不到 57、报告里明写"那是没取到，不是文档没引"。
 - 同一条脚本的扩展名清单里**有 `.html`**，所以分析文档里那种"落地页第几行"的锚点也会被验。
   落地页是要整段重写的文件，**别用行号指它**（写成散文）：P17a 的判定表原本有四个这种锚点，
   改完页面它们全都漂到了别的句子身上。
@@ -173,12 +183,15 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 Gatekeeper 判 `rejected`；许可未定。自己编译自用不受影响，发给别人则要先补这两项。
 图标已补（`Resources/AppIcon.icns` + `CFBundleIconFile`，来历与取舍见
 `docs/analysis/release-readiness.md` §2.2）。
-逐模块判定、hardened runtime / 沙盒会打断哪七条现有能力、以及 v1.0 建议范围与
+逐模块判定、hardened runtime / 沙盒会打断哪几条现有能力（**当前二进制是六条**——P11 实测那一张表
+是七行，第七行那一族 P11c 已从界面撤下，§3 结论 4 明确写了"发版说明里现在写六行才对得上当前二进制"，
+README 从前写的是七条，P20 改过来）、以及 v1.0 建议范围与
 发版前 checklist：**`docs/analysis/release-readiness.md`**。
 
 **hardened runtime 那一栏 P11 已经从"预测"变成"实测"**（2026-10-05，§3）：同一份二进制打两种签名
 （`adhoc` / `adhoc,runtime`），七行能力逐个拍对照照片，**本机零行被打断**——所以"走 Developer ID + 公证
-要不要先砍功能"这个问题现在有答案了：不用砍。沙盒那一档仍是不砍七行不能上，且这一轮**没有**实测沙盒。
+要不要先砍功能"这个问题现在有答案了：不用砍。沙盒那一档仍是要把那张表整排砍掉才能上
+（**那张表七行、当前二进制六行**，理由同上一段），且这一轮**没有**实测沙盒。
 复跑：
 
 ```bash
@@ -201,13 +214,19 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）**已实跑五遍，都在 2026-10-05**：P9 那遍 571/0/1（证据
+"版本号从打包脚本走到关于页"）**已实跑七遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
 `docs/verification/v1.0.0/`），P12 那遍在带 P11 改动的二进制上重跑 581/0/1（证据
 `docs/verification/p12-v1/`），**P13 那遍在带 P11c 改动的二进制上重跑 579/0/1**（证据
 `docs/verification/p13-v1/`，判据逐条见 §7.4；这一遍还多拍一张——改名之后的活动卡，
 拍在**发版候选产物**上而不是调试构建上），**P14 那遍在带页头合同的二进制上重跑 583/0/1**（证据
 `docs/verification/p14-v1/`，见 §7.5），**P15 那遍在带 `CommandRunner` 的二进制上重跑 590/0/1**（证据
-`docs/verification/p15-v1/` + `docs/verification/p15-pipe/`，见 §7.6）。第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
+`docs/verification/p15-v1/` + `docs/verification/p15-pipe/`，见 §7.6）；
+后两遍在 2026-10-06：**P19 那遍 612/0/1**，跑在带 P18 钩子留痕改动的候选产物上，
+同一份产物再过一次钩子门禁（证据 `docs/verification/p19-v1/` + `docs/verification/p19-hooks/`，见 §7.10）；
+**P20 那遍 612/0/1，但整遍是在一次干净的 `git clone` 出来的树上跑的**——不借作者工作树里任何一样
+没进版本控制的东西，证据 `docs/verification/p20-clone/`（见 §7.11）。这一遍的意义不在又一个 612，
+而在它把"发版前门禁只有作者机器跑得动"这一类问题逐个撞了出来，详见 §7.11。
+第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
 
 **P14（2026-10-05）改的是守护页页头那一句副标题**：它从前只列三件事，而那一屏有四张卡
 （P11c 给第四张卡改名之后这个缺口才看得见）。现在副标题由一份四段清单生成，段数有单测钉住，
