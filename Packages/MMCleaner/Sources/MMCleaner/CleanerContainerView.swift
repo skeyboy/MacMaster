@@ -5,7 +5,7 @@ import MMUI
 /// 系统清理模块的四页容器：缓存清理 / 用户文件夹 / 系统分析 / 开发产物。
 /// 只有当前选中的页会被实例化，其余页不会触发扫描。
 struct CleanerContainerView: View {
-    enum Tab: String, CaseIterable, Identifiable {
+    enum Tab: String, CaseIterable, Identifiable, MMHookKeyed {
         case cache = "缓存清理"
         case userFolders = "用户文件夹"
         case system = "系统分析"
@@ -23,15 +23,11 @@ struct CleanerContainerView: View {
             case .dev: "dev"
             }
         }
-
-        init?(hookKey: String) {
-            guard let match = Self.allCases.first(where: { $0.hookKey == hookKey }) else { return nil }
-            self = match
-        }
     }
 
-    @State private var tab: Tab =
-        Tab(hookKey: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .cache
+    /// 值写错时由 `MMHookValue` 落回默认档并往 stderr 写一行——
+    /// 不然那张照片会被登记成"system 档已核对"，而它其实是缓存页。
+    @State private var tab: Tab = MMHookValue.selected(key: "MM_OPEN_TAB", fallback: .cache)
 
     var body: some View {
         VStack(spacing: 0) {

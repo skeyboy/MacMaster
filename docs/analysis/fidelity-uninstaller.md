@@ -405,7 +405,7 @@
 | 03 歧义 | 同上，`SELECT=Firefox` | 无徽章，来源行点名「firefox、firefox-beta 两份账本把同一个 .app 摆到了这里」 |
 | 04 App Store | 同上，`SELECT=WeChat` | 徽章「App Store」+ 判定依据点名 `Contents/_MASReceipt/receipt` |
 | 05 无法判定 | 同上，`SELECT=MysteryApp` | 无徽章，「无法判定」且不写"手动安装" |
-| 06 确认面板 | 夹具 + `SELECT=Highball`，**省略** `CONFIRM_MODE`（appOnly 自动弹，`MMUninstaller.swift:72`） | 面板「来源」行 + 橙色提醒点名 `<fix>/Applications/Highball.app` 与 `brew uninstall --cask highball`、"MacMaster 不会代你运行 brew" |
+| 06 确认面板 | 夹具 + `SELECT=Highball`，**省略** `CONFIRM_MODE`（appOnly 自动弹，`MMUninstaller.swift:78`） | 面板「来源」行 + 橙色提醒点名 `<fix>/Applications/Highball.app` 与 `brew uninstall --cask highball`、"MacMaster 不会代你运行 brew" |
 | 07 深色 | 同 01 + `MM_APPEARANCE=dark` | 同 01 哨兵在深色下可读 |
 | 08 最小窗口 | 同 01 + `MM_WINDOW_SIZE=900x600` | 日志有夹取行「请求 900x600pt，窗口实际 1000x652pt」；长账本路径折三行不重叠 |
 | 09 真机 | 不注入夹具，`MM_UNINSTALL_SELECT=$REAL_SELECT` | 真 `/opt/homebrew/Caskroom/wailbrew/.metadata/INSTALL_RECEIPT.json` + 真包名 `io.github.wickenico.wailbrew`——**这一张是真数据**，见 12.4 |

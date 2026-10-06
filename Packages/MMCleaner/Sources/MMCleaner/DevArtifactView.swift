@@ -61,15 +61,30 @@ final class DevArtifactModel: ObservableObject {
 
     /// 截图预演用的假 home。规矩沿用 `MM_ORPHAN_FIXTURE_HOME`：只认 /tmp 之下，
     /// 因为这一屏的终点是删除按钮——钩子绝不能把用户的真项目变成可以整片勾选的夹具。
-    static var fixtureHome: String? {
-        guard let raw = ProcessInfo.processInfo.environment["MM_PURGE_FIXTURE_HOME"],
-              raw.hasPrefix("/tmp/") || raw.hasPrefix("/private/tmp/"),
-              let resolved = realpath(raw, nil) else { return nil }
+    ///
+    /// 三种失效（不在 /tmp 前缀、realpath 失败、解引用后跳出 /tmp）都要写 stderr：
+    /// 回落的是 `NSHomeDirectory()`，静默回落等于把"夹具档实拍"换成"用户真实项目实拍"，
+    /// 而那画面里每一条都是可勾选、可删的——这是全部钩子里最贵的一种假通过。
+    /// 用 `static let`：`scanHome` 会在 body 求值里被读到多次，留痕只能落一次。
+    static let fixtureHome: String? = {
+        let raw = ProcessInfo.processInfo.environment["MM_PURGE_FIXTURE_HOME"] ?? ""
+        guard !raw.isEmpty else { return nil }
+        guard raw.hasPrefix("/tmp/") || raw.hasPrefix("/private/tmp/") else {
+            MMHookValue.emit("MM_PURGE_FIXTURE_HOME=\(raw) 不在 /tmp 之下，钩子已忽略，扫描根将是真实 home")
+            return nil
+        }
+        guard let resolved = realpath(raw, nil) else {
+            MMHookValue.emit("MM_PURGE_FIXTURE_HOME=\(raw) realpath 失败（目录不存在？），钩子已忽略，扫描根将是真实 home")
+            return nil
+        }
         defer { free(resolved) }
         let home = String(cString: resolved)
-        guard home.hasPrefix("/tmp/") || home.hasPrefix("/private/tmp/") else { return nil }
+        guard home.hasPrefix("/tmp/") || home.hasPrefix("/private/tmp/") else {
+            MMHookValue.emit("MM_PURGE_FIXTURE_HOME=\(raw) 解引用后落在 /tmp 之外（\(home)），钩子已忽略，扫描根将是真实 home")
+            return nil
+        }
         return home
-    }
+    }()
 
     var scanHome: String { Self.fixtureHome ?? NSHomeDirectory() }
 
@@ -138,16 +153,31 @@ final class DevArtifactModel: ObservableObject {
     /// 为什么要两个键：同一个极小预算下，第 1 批截断的根在第 2 批必然同样截断，
     /// 「本轮扫完」那一档就永远拍不到。全量批次与续扫批次各自独立，
     /// 才能同时定格"首批必截断"与"续扫扫得完"。
-    private static func budgetOverride(_ key: String) -> Double? {
-        guard let raw = ProcessInfo.processInfo.environment[key],
-              let value = Double(raw), value > 0 else { return nil }
+    ///
+    /// 解析结果存成 `static let`：`rootBudgetSeconds`（上面那个给"每次 X 秒"那格读的）
+    /// 是每次视图刷新都会走的计算属性，就地 emit 会让留痕变成刷屏——
+    /// 同一个坑 `fixtureHome` 先踩过一次。
+    private static let rootBudgetOverride: Double? = parseBudgetOverride(key: "MM_DEV_ROOT_BUDGET_SECONDS")
+    private static let continueBudgetOverride: Double? = parseBudgetOverride(key: "MM_DEV_CONTINUE_BUDGET_SECONDS")
+
+    private static func parseBudgetOverride(key: String) -> Double? {
+        let raw = ProcessInfo.processInfo.environment[key] ?? ""
+        let token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.isEmpty else { return nil }
+        // `Double("nan")` 是能解析的，而 `nan > 0` 是假的：改前这一支静默回落，
+        // 拍出来的"预算 15 秒"照片跟钩子没有任何关系，日志上却一行都不留。
+        guard let value = Double(token), value > 0 else {
+            MMHookValue.emit("\(key) 含非法取值（\(raw)），只接受大于 0 的秒数，"
+                                + "钩子已忽略，这一轮按默认预算")
+            return nil
+        }
         return value
     }
 
     private func rules(forContinuation: Bool) -> ProjectArtifactRules {
         var rules = ProjectArtifactRules.default(home: scanHome)
-        let key = forContinuation ? "MM_DEV_CONTINUE_BUDGET_SECONDS" : "MM_DEV_ROOT_BUDGET_SECONDS"
-        if let override = Self.budgetOverride(key) {
+        let override = forContinuation ? Self.continueBudgetOverride : Self.rootBudgetOverride
+        if let override {
             rules.rootBudgetSeconds = override
             // 总预算跟着抬：只改每根预算而总时限仍写死 60 秒的话，钩子写 120
             // 实际拿到的是 60——"这一根给了多少"就跟钩子说的不是一回事了。
@@ -159,10 +189,9 @@ final class DevArtifactModel: ObservableObject {
     /// 取证钩子：全量扫完之后自动再跑最多 N 批续扫（只认 1…3）。
     /// 有了它，「续扫之后」与「已试过 2 次」两档都不需要点一次按钮才能进——
     /// 禁合成点击这条老规矩下，按钮的点击链本身不在取证范围。
-    private static var autoContinueCount: Int? {
-        guard let raw = ProcessInfo.processInfo.environment["MM_DEV_AUTO_CONTINUE"],
-              let value = Int(raw), (1...3).contains(value) else { return nil }
-        return value
+    /// 0 = 未设置或写错（写错时 `MMHookValue.int` 自己会留一行）。
+    private static var autoContinueCount: Int {
+        MMHookValue.int(key: "MM_DEV_AUTO_CONTINUE", fallback: 0, bounds: 1...3)
     }
 
     func scan() {
@@ -175,7 +204,8 @@ final class DevArtifactModel: ObservableObject {
                 .scan()
             guard !Task.isCancelled else { return }
             self.apply(report)
-            if let batches = Self.autoContinueCount {
+            let batches = Self.autoContinueCount
+            if batches > 0 {
                 self.runContinuations(remaining: batches)
             }
         }
@@ -240,7 +270,7 @@ final class DevArtifactModel: ObservableObject {
         if ProcessInfo.processInfo.environment["MM_DEV_EXPAND"] != nil {
             expandedRoots = Set(report.groups.map(\.id))
         }
-        if ProcessInfo.processInfo.environment["MM_DEV_SELECT"] == "untouched" {
+        if MMHookValue.flag(key: "MM_DEV_SELECT", token: "untouched") {
             selectUntouched()
         }
     }
@@ -702,7 +732,7 @@ struct DevArtifactView: View {
                 // （CACHEDIR.TAG 最强档、读不到的行、嵌套行）默认进不了画面，
                 // 而合成滚动事件会逃逸到用户的其它应用——只能让 app 自己滚。
                 .task(id: model.groups.count) {
-                    guard ProcessInfo.processInfo.environment["MM_DEV_SCROLL"] == "end",
+                    guard MMHookValue.flag(key: "MM_DEV_SCROLL", token: "end"),
                           !model.groups.isEmpty else { return }
                     try? await Task.sleep(for: .milliseconds(400))
                     scroller.scrollTo("footnote", anchor: .bottom)

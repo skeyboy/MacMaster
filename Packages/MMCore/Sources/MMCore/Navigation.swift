@@ -6,7 +6,7 @@ import Foundation
 // 模块只说"我要去 disk"，由根视图决定怎么切。这样诊断项可以直接把用户送到能处理问题的页面，
 // 而不是留一个点了没反应的按钮。
 
-public enum MMDestination: String, Sendable {
+public enum MMDestination: String, CaseIterable, Sendable {
     case dashboard
     case cleaner
     case uninstaller
@@ -14,6 +14,11 @@ public enum MMDestination: String, Sendable {
     case monitor
     case guardian
     case optimizer
+}
+
+/// `MM_OPEN_MODULE` 的档位表：可接受集合由这里现算，所以加一个模块不会让文档与实现分家。
+extension MMDestination: MMHookKeyed {
+    public var hookKey: String { rawValue }
 }
 
 public enum MMNavigation {

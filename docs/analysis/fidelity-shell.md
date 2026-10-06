@@ -40,7 +40,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 卡标题「存储」+ 低空间徽章「可用空间偏低」 | `MainWindow.swift:298,301` `MMBadge(..., tint: destructive)` | ✅ | 仅低空间时出现，口径一致 | — | — |
 | 「28.1 GB 可用 · 共 494.4 GB」 | `MainWindow.swift:305` | ✅ | 动态值，文案格式一致 | — | — |
-| 堆叠条 9 段 + 图例 | `MainWindow.swift:314,315` `MMStackedBar`/`MMLegend` ← `StorageBreakdown.segments` | ⚠️待量 | 稿子画了 9 段固定占比（应用/开发者/系统/缓存/媒体/文档/可清理/废纸篓/可用）；实机段集与配色由 `StorageBreakdown.segments(total:available:reclaimable:trash:)` 决定，**段数/宽度/配色需逐段真机核对** | 中 | 待真机测量 |
+| 堆叠条 9 段 + 图例 | `MainWindow.swift:317,318` `MMStackedBar`/`MMLegend` ← `StorageBreakdown.segments` | ⚠️待量 | 稿子画了 9 段固定占比（应用/开发者/系统/缓存/媒体/文档/可清理/废纸篓/可用）；实机段集与配色由 `StorageBreakdown.segments(total:available:reclaimable:trash:)` 决定，**段数/宽度/配色需逐段真机核对** | 中 | 待真机测量 |
 | 「可立即释放 3.5 GB（缓存 2.4 + 废纸篓 1.1）」 | `MainWindow.swift:369-390` `releaseText`/`releaseDetail` | ❌ | 稿子写死 3.5/2.4/1.1；实机 = `reclaimState` 实测 + 废纸篓实测，没扫到显示"尚未测量"占位（不编数字） | 低 | 设计稿该改 S2 |
 | 「查看占用排行」「清理 X GB」按钮 | `MainWindow.swift:328-331` | ✅ | 一致 | — | — |
 
@@ -140,9 +140,9 @@
    `min: 220, ideal: 220, max: 280` 这一行的**窄端在代码层就结掉了**——`min` 同时是 AppKit 给分隔线的下界，
    拖不过 220，所以"用户拖窄到 220 以下会怎样"是个不可能状态，不需要照片（详见 `fidelity-guardian.md` §6.6.5 第 1 条）。
    **宽端 `max:280` 则根本没有采集通路**：壳层六个启动钩子
-   （`MM_OPEN_MODULE` `MainWindow.swift:49`、`MM_SHOW_SETTINGS` `:46`、`MM_SETTINGS_TAB` `SettingsView.swift:12`、
-   `MM_WINDOW_SIZE` `LaunchBehavior.swift:116`、`MM_APPEARANCE` `:81`、`MM_PROBE_WINDOW` `WindowProbe.swift:12`）
-   没有一个能移动分隔线；`MM_WINDOW_SIZE` 走 `window.setContentSize`（`LaunchBehavior.swift:126`），
+   （`MM_OPEN_MODULE` `MainWindow.swift:51`、`MM_SHOW_SETTINGS` `:46`、`MM_SETTINGS_TAB` `SettingsView.swift:11`、
+   `MM_WINDOW_SIZE` `LaunchBehavior.swift:111`、`MM_APPEARANCE` `:81`、`MM_PROBE_WINDOW` `WindowProbe.swift:12`）
+   没有一个能移动分隔线；`MM_WINDOW_SIZE` 走 `window.setContentSize`（`LaunchBehavior.swift:120`），
    加宽的部分归 detail 面板、侧栏仍停在 `min`；写 `NSSplitView Subview Frames…` 已被
    `fidelity-guardian.md` §6.3 实验 B 否证；剩下的唯一办法是**拖分隔线=合成操作，红线禁止**。
    → 要量 280 就得先立项一个设列宽的启动钩子（如 `MM_SIDEBAR_WIDTH`），那属新增钩子、要走 hook-ledger 流程；

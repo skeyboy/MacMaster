@@ -30,15 +30,10 @@ public struct UninstallerView: View {
 
     /// 两屏共用敏感度与废纸篓服务，但看的是相反的方向：
     /// 「已装应用」问"这个应用的文件在哪"，「卸载后遗症」问"这些文件是谁的"。
-    private enum Pane: String, CaseIterable {
+    private enum Pane: String, CaseIterable, MMHookKeyed {
         case apps, orphans
         var title: String { self == .apps ? "已装应用" : "卸载后遗症" }
-
-        init?(hookValue: String) {
-            let match = Pane.allCases.first { $0.rawValue == hookValue }
-            guard let match else { return nil }
-            self = match
-        }
+        var hookKey: String { rawValue }
     }
 
     /// 仅供无头截图验证：把反向扫描的 home 换成夹具目录。
@@ -67,13 +62,24 @@ public struct UninstallerView: View {
         return home
     }
 
+    /// `MM_UNINSTALL_CONFIRM_MODE` 的三档。档位名一律小写（`MMHookValue` 比较前把 env 的值转小写），
+    /// 所以 `withResiduals` 与 `withresiduals` 是同一档：改前这是个 case-sensitive 的 switch，
+    /// 大小写写错不会说话，只会静默变成 appOnly——面板弹出来是另一档的样子。
+    private enum ConfirmHookMode: String, CaseIterable, MMHookKeyed {
+        case appOnly = "apponly"
+        case withResiduals = "withresiduals"
+        case noPanel = "none"
+
+        var hookKey: String { rawValue }
+    }
+
     /// 自动打开确认面板时选哪一档；`none` = 只拍页面不拍面板（面板会盖住列表与详情）。
     /// 省略沿用旧口径 `appOnly`，那批 P1.5 截图的跑法不变。
     private static var confirmationModeToOpen: ConfirmationMode? {
-        switch ProcessInfo.processInfo.environment["MM_UNINSTALL_CONFIRM_MODE"] {
-        case "none": nil
-        case "withResiduals": .withResiduals
-        default: .appOnly
+        switch MMHookValue.selected(key: "MM_UNINSTALL_CONFIRM_MODE", fallback: ConfirmHookMode.appOnly) {
+        case .noPanel: nil
+        case .withResiduals: .withResiduals
+        case .appOnly: .appOnly
         }
     }
 
@@ -84,7 +90,7 @@ public struct UninstallerView: View {
         guard TrashWatcher.fixtureEnvironmentValue(key: "MM_APPS_WATCH_FIXTURE_DIR") != nil else {
             return false
         }
-        return ProcessInfo.processInfo.environment["MM_APPS_WATCH_AUTO_SCAN"] == "1"
+        return MMHookValue.flag(key: "MM_APPS_WATCH_AUTO_SCAN", token: "1")
     }
 
     /// 自动执行一次「仅卸载应用」，用来拍 §5 那两种自我回声文案
@@ -94,7 +100,7 @@ public struct UninstallerView: View {
     /// 只有确认夹具成立时才允许（它会把那个应用真的移进废纸篓）。
     private static var autoUninstallForSelfEcho: Bool {
         guard confirmationFixtureHome != nil else { return false }
-        return ProcessInfo.processInfo.environment["MM_UNINSTALL_SELF_ECHO"] == "1"
+        return MMHookValue.flag(key: "MM_UNINSTALL_SELF_ECHO", token: "1")
     }
 
     /// `.task` 里要选中的那一行：`MM_UNINSTALL_SELECT` 点名优先（拍"某一档来源"用），
@@ -133,8 +139,7 @@ public struct UninstallerView: View {
     /// 废纸篓清单变化被重新算好几次。
     @State private var didAutoRunDepartureScan = false
     @State private var toastSeconds = 0
-    @State private var pane: Pane =
-        Pane(hookValue: ProcessInfo.processInfo.environment["MM_UNINSTALL_PANE"] ?? "") ?? .apps
+    @State private var pane: Pane = MMHookValue.selected(key: "MM_UNINSTALL_PANE", fallback: .apps)
 
     public init() {}
 
@@ -737,7 +742,7 @@ public struct UninstallerView: View {
     /// 而那必须只在夹具目录成立时才允许。
     private static var trashConfirmHook: Bool {
         guard TrashWatcher.fixtureScanHome() != nil else { return false }
-        return ProcessInfo.processInfo.environment["MM_SHOW_TRASH_CONFIRM"] == "1"
+        return MMHookValue.flag(key: "MM_SHOW_TRASH_CONFIRM", token: "1")
     }
 
     private func startTrashWatching() {

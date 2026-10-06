@@ -249,7 +249,14 @@ final class CleanerModel: ObservableObject {
     /// 解析是纯函数：不碰磁盘、不起命令，未知取值整块忽略走真实结果。
     static func applySnapshotFixture(_ readout: SystemSpaceReadout) -> SystemSpaceReadout {
         guard let name = ProcessInfo.processInfo.environment["MM_SNAPSHOT_FIXTURE"],
-              let text = snapshotFixtureText[name] else { return readout }
+              name.isEmpty == false else { return readout }
+        guard let text = snapshotFixtureText[name] else {
+            // 可接受集合由夹具表自己算，免得加了档而文案还是旧的。
+            MMHookValue.emit("MM_SNAPSHOT_FIXTURE 含非法取值（\(name)），只接受 "
+                                + snapshotFixtureText.keys.sorted().joined(separator: "|")
+                                + "，快照整块按真实读取结果显示")
+            return readout
+        }
         return SystemSpaceReadout(
             purgeable: readout.purgeable,
             snapshots: LocalSnapshotReader.parse(text, fallbackVolume: "/"),
@@ -393,7 +400,7 @@ public struct CleanerView: View {
             // 无头截图核对拒绝文案的排版用（MM_FAILURE_FIXTURE=protected）。
             // 这条路只往展示状态里写记录，不调 `moveToTrash`，所以一个文件都不会被动：
             // 真正的 PROTECTED 回执只有在按下删除后才有，而按下删除需要合成点击 —— 本项目禁止。
-            if ProcessInfo.processInfo.environment["MM_FAILURE_FIXTURE"] == "protected",
+            if MMHookValue.flag(key: "MM_FAILURE_FIXTURE", token: "protected"),
                model.failures.isEmpty {
                 model.failures = Self.refusalPreview()
             }

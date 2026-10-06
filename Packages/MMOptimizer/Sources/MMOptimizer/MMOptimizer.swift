@@ -38,8 +38,7 @@ final class CancelFlag: @unchecked Sendable {
 public struct OptimizerView: View {
     /// MM_OPEN_TAB=duplicates|browser|status|devtools：只用于逐屏截图核对设计稿，
     /// 正常启动不会带这个变量。
-    @State private var tab: OptimizerTab =
-        OptimizerTab(rawValue: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .duplicates
+    @State private var tab: OptimizerTab = MMHookValue.selected(key: "MM_OPEN_TAB", fallback: .duplicates)
     @StateObject private var duplicates = DuplicateScanModel()
     @StateObject private var diagnostics = SystemDiagnosticsModel()
     @StateObject private var browser = BrowserCacheModel()
@@ -262,9 +261,10 @@ public struct OptimizerView: View {
     }
 }
 
-enum OptimizerTab: String, CaseIterable, Identifiable {
+enum OptimizerTab: String, CaseIterable, Identifiable, MMHookKeyed {
     case duplicates, browser, status, devtools
     var id: String { rawValue }
+    var hookKey: String { rawValue }
     var label: String {
         switch self {
         case .duplicates: "重复文件"

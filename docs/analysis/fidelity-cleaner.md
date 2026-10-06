@@ -32,7 +32,7 @@
 | 设计渲染 | 复用**已入库**的 `02-cleaner.png`、`02b-cleaner-installers.png`（浅色 2x）。**本次未重新渲染**（无头环境，不跑 `render.sh`，不产新图） |
 | 实机 | **本次未启动、未截图**（硬约束：禁跑 App / 禁截图）。唯一引用的实机图是既有 `docs/verification/p1.7-deletion-guard/cleaner-refusal-panel.jpg`（深色，`MM_FAILURE_FIXTURE=protected` 预演 + 权限横幅 + 分类表），它是上一阶段入库的证据，不代表本次测量 |
 | 像素取证 | **无**。本文不含任何 CoreGraphics 取色数字；凡"实机宽度/高度/颜色"一律 `⚠️待真机测量`，只给代码可推导的 token 值 |
-| 可用钩子（README §2，**P16 重新 `grep` 核对全部命中，并逐条现读行号**） | `MM_OPEN_TAB`(`CleanerContainerView.swift:34`)、`MM_CLEANER_FILTER`(`MMCleaner.swift:311`)、`MM_EXPAND_CATEGORIES`(`MMCleaner.swift:138`)、`MM_AUTO_SCAN`(`UserFolderCleanView.swift:112`/`SystemAnalysisView.swift:78`)、`MM_SHOW_CONFIRM`(`MMCleaner.swift:390`/`UserFolderCleanView.swift:116,384`/`SystemAnalysisView.swift:82`)、`MM_INSTALLER_FIXTURE_DIR`(`UserFolderCleanView.swift:120,366`)、`MM_FAILURE_FIXTURE`(`MMCleaner.swift:396`)。**七条全部存在**，故 monitor 那种"13 项完全无法构造"的困境 cleaner 没有。（本文此前记的 `:32`/`:280`/`:148`/`:359`/`:365` 五处都是写作当时的位置，已漂 2–36 行；`MM_OPEN_TAB` 在磁盘页 `MMDisk.swift:44` 与优化页 `MMOptimizer.swift:42` 也各有一个同名钩子，不属于本模块这一行） |
+| 可用钩子（README §2，**P16 重新 `grep` 核对全部命中，并逐条现读行号；P18 再逐条现读一次**） | `MM_OPEN_TAB`(`CleanerContainerView.swift:30`)、`MM_CLEANER_FILTER`(`MMCleaner.swift:318`)、`MM_EXPAND_CATEGORIES`(`MMCleaner.swift:138`)、`MM_AUTO_SCAN`(`UserFolderCleanView.swift:112`/`SystemAnalysisView.swift:78`)、`MM_SHOW_CONFIRM`(`MMCleaner.swift:397`/`UserFolderCleanView.swift:116,384`/`SystemAnalysisView.swift:82`)、`MM_INSTALLER_FIXTURE_DIR`(`UserFolderCleanView.swift:120,366`)、`MM_FAILURE_FIXTURE`(`MMCleaner.swift:403`)。**七条全部存在**，故 monitor 那种"13 项完全无法构造"的困境 cleaner 没有。（本文此前记的 `:32`/`:280`/`:148`/`:359`/`:365` 五处都是写作当时的位置，已漂 2–36 行；P18 把 `MM_OPEN_TAB`/`MM_FAILURE_FIXTURE` 接进 `MMHookValue` 后行号又往后漂了 4–6 行；`MM_OPEN_TAB` 在磁盘页 `MMDisk.swift:38` 与优化页 `MMOptimizer.swift:41` 也各有一个同名钩子，不属于本模块这一行） |
 | 硬约束 | 全程未 `git`、未跑 `swift build`/`make-app.sh`、未发合成鼠标/滚轮/键盘事件、未改 `Sources/`·`Packages/`·共享层；本次只写本文档一个文件 |
 
 代码层锚点（本文所有"结构成立"判定的依据，单位 CSS px == pt）：
@@ -89,7 +89,7 @@
 | 行内图标配色：安全档 `--c-warning`（橙）/ 谨慎档 secondary（灰）/ 只读 tertiary | `MMItemRow` 用 `risk?.color`（安全=绿 `systemGreen`、谨慎=橙、只读=secondary） | ❌ | 安全档图标实现是**绿**、稿内是**橙**；谨慎档实现是**橙**、稿内是**灰**。且稿内"安全徽章绿 + 图标橙"自身不一致 | 低 | 设计稿该改 S7 |
 | 只读行：虚线禁用复选框（`.chk.off-allowed`）+ 锁图标 + 「只读」徽章 | `categoryRows` `MMCleaner.swift:522-546` 传 `isSelectable: category.risk.allowsDeletion` → 只读档 **不渲染 Toggle** | ❌ | 实现**整列删掉复选框**（`MMItemRow` 里 `if isSelectable { Toggle }`），不是画虚线禁用框；后果是只读行的图标列相对可勾选行**左移、列不对齐** | **中** | 实现该改 I2 |
 | 只读行操作列 = info 图标 | `categoryRows` 仍按 `subItems` 非空给 `chevron.down/up` + `folder` | ❌ | 只读分类只要 `subItems` 非空就仍带**展开箭头**，稿内只给 info | 低 | 实现该改 I7 |
-| 「沙盒容器缓存」大小占位「·」 | `MMCleaner.swift:527` `scannedSize > 0 ? bytes : "—"` | ❌ | 稿内未测用「·」，实现用「—」；且实现把"扫到 0 字节"也画成「—」（与"未测"同形） | 低 | 设计稿该改 S7 |
+| 「沙盒容器缓存」大小占位「·」 | `MMCleaner.swift:572` `scannedSize > 0 ? bytes : "—"` | ❌ | 稿内未测用「·」，实现用「—」；且实现把"扫到 0 字节"也画成「—」（与"未测"同形） | 低 | 设计稿该改 S7 |
 | 行高 44 / 表头 26 / 分组头 30 / 卡圆角 8 | `MMMetric.rowRegular` 44、`:478` 26、`:518` 30、`MMRadius.card` 8 | ✅ | 与稿内 `.crow min-height:44`、`.hdr 26`、`.gtitle 30`、`--r-md 8` **数值一致**（代码层；实机像素 `⚠️待真机测量`） | — | — |
 | 底部注脚「所有删除一律先移入废纸篓…不会静默跳过。」 | `MMCleaner.swift:436-446` | ✅ | 文案逐字一致 | — | — |
 | hover 才显现的文件夹按钮 | `MMRowAction`（`MMCleaner.swift:898-917`）图标**常显**，仅 hover 时出底 | ❌ | 稿内 `.crow .op{opacity:0}` 整枚按钮 hover 才现；实现图标一直在 | 低 | 设计稿该改 S7 |
@@ -112,7 +112,7 @@
 | 正文「共 N 项，约 X。选中的内容将移入废纸篓（可撤回），不会永久删除。」 | 同上 | ✅ | 文案一致（02b 稿与实现逐字对上） | — | — |
 | 按钮「取消」/「移入废纸篓」 | `.keyboardShortcut(.cancelAction/.defaultAction)`，destructive tint | ✅ | 一致 | — | — |
 | 面板承载方式 | 缓存页走 `VStack` `.sheet`（宽 420）；用户文件夹页走系统 `.alert` | ⚠️ | 02b 稿画的是**自定义 alert 版式**（400pt 圆角卡 + 44pt warn 图标）；实现用户文件夹页用的是**系统 `NSAlert`**，与稿内版式不同 | 低 | 设计稿该改 S5b |
-| 稿内额外的「清理后 15 秒内可一键撤回」开关 | `MMCleaner.swift:707`，仅缓存页 sheet 有 | ⚠️ | 用户文件夹页/系统分析页的 `.alert` **没有**这个开关 | 低 | 实现该改 I6b |
+| 稿内额外的「清理后 15 秒内可一键撤回」开关 | `MMCleaner.swift:753`，仅缓存页 sheet 有 | ⚠️ | 用户文件夹页/系统分析页的 `.alert` **没有**这个开关 | 低 | 实现该改 I6b |
 
 ### 1.7 失败 / 被闸门拒绝回执（MMFailurePanel）
 
@@ -257,7 +257,7 @@
 6. **【低】I6 · 表头缺「操作」列名**（`MMCleaner.swift:473` `Text("").frame(width: 52)`）——
    稿内 `.hdr` 有「操作」。顺带：实现 `风险 44 / 操作 52` vs 稿 `风险 92 / 操作 60`，**`⚠️待真机测量`**。
    **I6b**：用户文件夹页/系统分析页的确认用系统 `.alert`，没有缓存页 sheet 里的
-   「清理后 15 秒内可一键撤回」开关（`MMCleaner.swift:707`）。
+   「清理后 15 秒内可一键撤回」开关（`MMCleaner.swift:753`）。
    **复核 2026-10-04：⚠️ 主项已落地、两个顺带项没动**——表头 `MMCleaner.swift:504` 现在是
    `Text("操作").frame(width: 52)`（`e84066a`）；列宽仍是 44/52（稿 92/60，**这条的 `⚠️待真机测量` 至今没人量**）；
    I6b 的撤回开关仍只在缓存页 sheet（`:739`），另两页还是系统 `.alert`。
@@ -280,7 +280,7 @@
    （@2x，1100pt 宽窗口）。拍法上有一步是这条的关键：**首屏那张（`03`）根本量不到它**——
    最长那句属于「需谨慎」分组，而清理页首屏只有「可安全清理」的 12 字短注，要往下滚才看得见，
    而滚动是合成事件、红线禁。用 `MM_CLEANER_FILTER=浏览器` 把列表收到只剩谨慎档那一组，
-   分组头自己就顶到首屏了（`MM_CLEANER_FILTER` 早就有，是搜索框的初值，`MMCleaner.swift:311`）。
+   分组头自己就顶到首屏了（`MM_CLEANER_FILTER` 早就有，是搜索框的初值，`MMCleaner.swift:318`）。
    量到的事实：那句「可能包含登录态或未同步数据，默认不勾选」**逐字完整显示，没有 "…"**，
    文字实宽 x=1766..2140 = 375px ≈ **187pt**，而封顶是 280pt——**余量 93pt**。
    所以这不是"这次窗口够宽所以没截"，而是**最长的这句本身就装得下**
@@ -355,7 +355,7 @@
 | 2 | 空态 | `MM_AUTO_SCAN` 触发后取消 / 或在第一类前取消 | 无头；且取消点不可控 | 一个"扫完返回空"的夹具，或"取消在第一类前"的定格钩子（当前无） |
 | 3 | 加载态（skeleton × 5 + 取消） | 扫描瞬间 | 骨架帧易被覆盖 | 定格首帧钩子（当前无，类似 `MM_GUARDIAN_LOAD=hold`） |
 | 4 | 无权限降级横幅 | 真实 TCC 未授权即出现（图上已有 294 位置） | 无头 | 复用既有 `cleaner-refusal-panel.jpg` 已覆盖；如需单屏再拍 |
-| 5 | **被闸门拒绝（`MM_FAILURE_FIXTURE=protected`）** | `MMCleaner.swift:396` | 无头 | 已有入库图 `p1.7-deletion-guard/cleaner-refusal-panel.jpg`；但它覆盖的是**回执排版**，**不覆盖"点击→拒绝→回执"交互链**（那条需要合成点击，本项目禁止） |
+| 5 | **被闸门拒绝（`MM_FAILURE_FIXTURE=protected`）** | `MMCleaner.swift:403` | 无头 | 已有入库图 `p1.7-deletion-guard/cleaner-refusal-panel.jpg`；但它覆盖的是**回执排版**，**不覆盖"点击→拒绝→回执"交互链**（那条需要合成点击，本项目禁止） |
 | 6 | 分组展开明细 / 子项展开 | `MM_EXPAND_CATEGORIES`；子项点 chevron | 无头 | 内容钩子已够，重跑截图即可 |
 | 7 | 确认面板（缓存页 sheet / 文件夹页 alert） | `MM_SHOW_CONFIRM` | 无头 | 同上 |
 | 8 | 安装包残留夹具态 | `MM_INSTALLER_FIXTURE_DIR=/tmp/...`（硬性只认 `/tmp`） | 无头；且本次不造 `/tmp` 夹具 | 造一个 `/tmp` 夹具目录 + 钩子，再抓窗 |

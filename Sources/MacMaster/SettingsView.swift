@@ -8,8 +8,7 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @StateObject private var localization = Localization.shared
     @StateObject private var loginItem = LoginItemManager.shared
-    @State private var selectedTab: SettingsTab =
-        SettingsTab(hookKey: ProcessInfo.processInfo.environment["MM_SETTINGS_TAB"] ?? "") ?? .general
+    @State private var selectedTab: SettingsTab = MMHookValue.selected(key: "MM_SETTINGS_TAB", fallback: .general)
     @State private var showUpdateAlert = false
     @State private var updateResultText = ""
     @State private var confirmClearHistory = false
@@ -325,10 +324,11 @@ struct SettingsView: View {
     }
 }
 
-enum SettingsTab {
+enum SettingsTab: CaseIterable, MMHookKeyed {
     case general, monitor, cleaner, about
 
     /// 只用于无头截图核对设计稿：MM_SETTINGS_TAB=monitor 之类。
+    /// 解析与"写错值就留痕"都在 MMCore 的 `MMHookValue`（有单测），这里只给档位名。
     var hookKey: String {
         switch self {
         case .general: "general"
@@ -336,12 +336,6 @@ enum SettingsTab {
         case .cleaner: "cleaner"
         case .about: "about"
         }
-    }
-
-    init?(hookKey: String) {
-        let all: [SettingsTab] = [.general, .monitor, .cleaner, .about]
-        guard let match = all.first(where: { $0.hookKey == hookKey }) else { return nil }
-        self = match
     }
 }
 

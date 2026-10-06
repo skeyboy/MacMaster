@@ -58,7 +58,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「系统优化」 | `MMOptimizer.swift:52` | ✅ | — | — | — |
+| 标题「系统优化」 | `MMOptimizer.swift:51` | ✅ | — | — | — |
 | 副标题绑定 `diagnostics.updatedAt`，默认首屏只有标题一行 | `:52` `SystemDiagnosticsModel.updatedAt` 初始 nil，仅 status `.task` 后赋值（`:218,:661`） | ✅ | 08 稿注"默认首屏无副标题，不是漏画"——代码逻辑一致；⚠️ 默认首屏是否真无副标题需真机 | 低 | ⚠️待真机测量 |
 | 分段页签（重复文件/浏览器缓存/系统状态/开发工具），maxWidth 340 居中 | `:54-61` `.frame(maxWidth:340)` `.padding(.horizontal, .lg)` | ✅ | 居中几何 ⚠️ 像素级未测 | 低 | ⚠️待真机测量 |
 | 默认 tab=duplicates；`MM_OPEN_TAB` 可切 | `:41-42` | ✅ | — | — | — |

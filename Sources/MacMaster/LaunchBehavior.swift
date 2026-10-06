@@ -79,26 +79,21 @@ enum LaunchMinimizeHandler {
 enum LaunchAppearanceOverride {
     static func applyIfNeeded(_ env: [String: String] = ProcessInfo.processInfo.environment) {
         guard let raw = env["MM_APPEARANCE"] else { return }
-        guard let name = Self.name(for: raw) else { return }
-        NSApplication.shared.appearance = NSAppearance(named: name)
-        note("MM_APPEARANCE=\(raw) 已强制 \(raw) 外观（仅本进程，不改系统设置）")
-    }
-
-    private static func name(for raw: String) -> NSAppearance.Name? {
-        switch raw.lowercased() {
-        case "light", "aqua": return .aqua
-        case "dark", "darkaqua": return .darkAqua
-        default:
+        guard let scheme = MMLaunchHook.resolveAppearance(raw: raw) else {
             // 写错值会静默沿用系统外观，而截图看上去照样"是真的"——必须留痕
-            note("MM_APPEARANCE=\(raw) 不是 light/dark，沿用系统外观")
-            return nil
+            MMHookValue.emit("MM_APPEARANCE=\(raw) 不是 light/dark，沿用系统外观")
+            return
         }
+        NSApplication.shared.appearance = NSAppearance(named: Self.name(for: scheme))
+        MMHookValue.emit("MM_APPEARANCE=\(raw) 已强制 \(raw) 外观（仅本进程，不改系统设置）")
     }
 
-    /// 取证标记：截图的人要能在启动日志里看到这一档到底生效了没有。
-    static func note(_ text: String) {
-        if let data = (text + "\n").data(using: .utf8) {
-            FileHandle.standardError.write(data)
+    /// 唯一的 AppKit 触点：色档到 `NSAppearance.Name` 的映射。
+    /// 接受哪些写法、写错怎么办都在 `MMLaunchHook.resolveAppearance`（MMCore，有单测）。
+    private static func name(for scheme: MMColorScheme) -> NSAppearance.Name {
+        switch scheme {
+        case .light: .aqua
+        case .dark: .darkAqua
         }
     }
 }
@@ -114,12 +109,11 @@ enum LaunchWindowSizeOverride {
         guard !didApply else { return }
         didApply = true
         guard let raw = env["MM_WINDOW_SIZE"] else { return }
-        let parts = raw.lowercased().split(separator: "x")
-        guard parts.count == 2, let width = Double(parts[0]), let height = Double(parts[1]),
-              width >= 320, height >= 200 else {
-            LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 解析失败（要写成 900x600），沿用默认尺寸")
+        guard let request = MMLaunchHook.resolveWindowSize(raw: raw) else {
+            MMHookValue.emit("MM_WINDOW_SIZE=\(raw) 解析失败（要写成 900x600），沿用默认尺寸")
             return
         }
+        let width = request.width, height = request.height
         // 与 LaunchMinimizeHandler 同理：onAppear 时窗口尚未完成上屏。
         DispatchQueue.main.async {
             for window in NSApp.windows where Self.isMainWindow(window) {
@@ -133,13 +127,13 @@ enum LaunchWindowSizeOverride {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     let size = window.frame.size
                     let clamped = Int(size.width) != Int(width) || Int(size.height) != Int(height)
-                    LaunchAppearanceOverride.note(
+                    MMHookValue.emit(
                         "MM_WINDOW_SIZE=\(raw) 请求 \(Int(width))x\(Int(height))pt，窗口实际 \(Int(size.width))x\(Int(size.height))pt"
                             + (clamped ? "（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）" : ""))
                 }
                 return
             }
-            LaunchAppearanceOverride.note("MM_WINDOW_SIZE=\(raw) 没找到主窗口，尺寸未改")
+            MMHookValue.emit("MM_WINDOW_SIZE=\(raw) 没找到主窗口，尺寸未改")
         }
     }
 

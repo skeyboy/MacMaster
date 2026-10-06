@@ -18,7 +18,7 @@ public struct DiskModule: ModuleRegistrable {
 }
 
 public struct DiskAnalyzerView: View {
-    enum ViewMode: String, CaseIterable, Identifiable {
+    enum ViewMode: String, CaseIterable, Identifiable, MMHookKeyed {
         case treemap = "Treemap"
         case list = "列表"
         case large = "大文件"
@@ -33,15 +33,9 @@ public struct DiskAnalyzerView: View {
             case .large: "large"
             }
         }
-
-        init?(hookKey: String) {
-            guard let match = Self.allCases.first(where: { $0.hookKey == hookKey }) else { return nil }
-            self = match
-        }
     }
 
-    @State private var mode: ViewMode =
-        ViewMode(hookKey: ProcessInfo.processInfo.environment["MM_OPEN_TAB"] ?? "") ?? .treemap
+    @State private var mode: ViewMode = MMHookValue.selected(key: "MM_OPEN_TAB", fallback: .treemap)
     @State private var selected: DiskTreeNode?
     @State private var scanResult: DiskScanResult?
     @State private var isScanning = false
@@ -156,9 +150,7 @@ public struct DiskAnalyzerView: View {
         .task {
             // 仅用于无头截图验证：NSOpenPanel 没法自动点，用环境变量把扫描根传进来。
             let env = ProcessInfo.processInfo.environment
-            if let raw = env["MM_DISK_DEPTH"], let depth = Int(raw), (1...4).contains(depth) {
-                drawDepth = depth
-            }
+            drawDepth = MMHookValue.int(key: "MM_DISK_DEPTH", env: env, fallback: drawDepth, bounds: 1...4)
             // 截图验证过滤态：没有真键盘可用时，用变量把名称过滤预置进输入框。
             if let filter = env["MM_DISK_FILTER"], !filter.isEmpty {
                 nameFilter = filter

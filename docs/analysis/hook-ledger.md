@@ -66,13 +66,24 @@
   磁盘详情那一档走 `/tmp` 深夹具 + 既有的 `MM_DISK_SCAN`/`MM_DISK_SELECT`（第一、二种）。
   新脚本 3 个（含夹具 `Scripts/disk-depth-fixture.sh`），**一个钩子都没加**——
   "要拍一个新状态"未必要新钩子，一棵形状对的树就够了（这次是一棵 20 层的窄树）。
+  **P18 没有新增钩子名**（2026-10-06 现跑同一条
+  `grep -rhoE 'MM_[A-Z_0-9]+' Packages Sources --include='*.swift' | sort -u | wc -l` = **52**，
+  运行时钩子仍 51 个），但它改的是**每一个钩子失效时的表现**：16 个原本"写错值就静默停在另一档"的键
+  现在一律回落默认档 **+ 写一行 stderr**（文案点名原文、可接受值、实际落在哪），
+  判定逻辑下沉到 `MMCore.MMHookValue` / `MMLaunchHook` 并补了 **22 条单测**（MMCore 48→70），
+  壳层那个"executable target 零测试"的洞因此第一次有了可测的判定层。
+  其中一条是**安全洞**而不是取证洞：`MM_PURGE_FIXTURE_HOME` 的三条越界分支改前全部静默
+  `return nil`，而 nil 回落的是 `NSHomeDirectory()`——写错一个字母就把"拍夹具"变成
+  "拍用户真实项目、每行还能整片勾选去删"。现在三条各留一行并点名"扫描根将是真实 home"。
+  全量分类（A/B/C/D）、逐键的"改前失效方式 / 改后回落 / 实机档号"与**故意没动**的 C 类清单
+  在 `docs/analysis/hook-typo-audit.md`；门禁是 `Scripts/p18-hook-typo-proof.sh`（23 档，全绿）。
 - **除 `MM_UNINSTALL_SELF_ECHO` 一条外全部只读**：那个钩子会让应用真的把**夹具里**的那个 app 移进废纸篓
   （这是 §5 那两种回声文案唯一的产生路径），所以它被两道锁钉住：夹具 home 必须是 `/tmp` 下的假 home、
   目标必须用 `MM_UNINSTALL_SELECT` 点名点到；跑完取证脚本会按 bundle 标识清掉那一条。
   其余钩子只负责"把页面定格在某个状态便于截图"，不碰真实文件。
 - **破坏性流程的唯一入口是用户在 UI 里点「确认」按钮**，由 `MMCore.DeletionGuard` + `FileTrashService` 双重闸门拦截。
 - 需要特别留意的"看似会动"的钩子：
-  - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。`MM_PURGE_FIXTURE_HOME` 同理——它只换扫描根，扫的仍是 `/tmp` 下的假项目。
+  - `MM_AUTO_SCAN` / `MM_DISK_SCAN`：触发**只读扫描**（枚举文件系统、不写），不会删除。`MM_PURGE_FIXTURE_HOME` 同理——它只换扫描根，扫的仍是 `/tmp` 下的假项目；**但"钩子被忽略"不等于"扫的是假项目"**：忽略之后回落的是真实 home，所以 P18 起这一条必然留一行（这是本轮唯一的洞被补上的地方）。
   - `MM_SHOW_CONFIRM` / `MM_SHOW_TRASH_CONFIRM` / `MM_DEV_CONFIRM` / `MM_SHOW_TOAST` / `MM_SHOW_PERMANENT`：只**弹出**确认面板/吐司，**真正的删除发生在用户点面板里的「确认」**，不在钩子里。`MM_SHOW_TOAST=permanent` 摆的是"已永久删除"回执，它**没有撤回按钮**、也不会删任何东西（数字借自选中标项）；`MM_SHOW_PERMANENT` 只是把确认面板换成永久删除那块，一个字节都不动。
 - `README §2` 矩阵**已过期**：漏了 `MM_GUARDIAN_LOGIN_FIXTURE`、`MM_GUARDIAN_LOAD`（代码已落地，矩阵未同步）。
   → 已在本轮补正（见文末「提请协调者」）。
@@ -81,56 +92,56 @@
 
 | 钩子 | 归属模块 | 文件:行 | 用途 | 只读? | 破坏性流程? | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `MM_OPEN_MODULE` | 壳 `Sources/MacMaster` | `MainWindow.swift:43` | 启动后直接跳到指定模块页 | ✅ | 否 | 非法值写 stderr 并停在概览；只认 `MMDestination.rawValue` |
-| `MM_SHOW_SETTINGS` | 壳 | `MainWindow.swift:40` | 启动即打开设置 sheet | ✅ | 否 | — |
-| `MM_APPEARANCE` | 壳 | `LaunchBehavior.swift:81` | 强制本进程 `NSApp.appearance` 为 `light`/`dark`（别名 `aqua`/`darkAqua`） | ✅ | 否 | **P4 新增**。只改本进程，不动用户系统外观；值写错会沿用系统档并写 stderr 留痕。生效凭据打在启动日志里，`p4-sweep.sh` 会 grep 回控制台 |
-| `MM_WINDOW_SIZE` | 壳 | `LaunchBehavior.swift:116` | `=宽x高`（如 `900x600`）改主窗口内容区尺寸 | ✅ | 否 | **P4 新增**。下限 320×200，解析失败/找不到主窗口都写 stderr；`DispatchQueue.main.async` 等窗口上屏。**凭据回读夹取后的真实窗口尺寸**（`asyncAfter 0.3s`）：窗口有 `.frame(minWidth:)` 地板，请求 900 会被夹到 1000，只回显请求值会产出"看着真、来源错"的最小窗口证据 |
-| `MM_SETTINGS_TAB` | 壳 | `SettingsView.swift:12` | 设置 sheet 默认选中 tab | ✅ | 否 | 非法值回落 `.general` |
-| `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:34` | cleaner 页默认 tab（cache/folders/system/**dev**） | ✅ | 否 | 非法值回落 `.cache`。**P5.1 新增 `dev`（开发产物子页）** |
-| `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:311` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | **P16 现读**：原记 `:280` 已漂 |
-| `MM_EXPAND_CATEGORIES` | `MMCleaner` | `MMCleaner.swift:138` | 展开分类 | ✅ | 否 | **P16 现读**：原记 `:148` 已漂 |
-| `MM_AUTO_SCAN` | `MMCleaner` | `UserFolderCleanView.swift:112` `SystemAnalysisView.swift:78` | 进场即触发扫描 | ✅ | 否（只读扫描） | 仅枚举文件系统，不写不删 |
-| `MM_SHOW_CONFIRM` | `MMCleaner` | `MMCleaner.swift:390` `UserFolderCleanView.swift:116,384` | 弹出删除确认面板 | ✅ | 否（弹面板，删在按钮里） | 实际删除需用户点「确认」，过 `DeletionGuard`。锚点于 2026-10-04 现读重定（原记 `:359` 已漂） |
-| `MM_INSTALLER_FIXTURE_DIR` | `MMCleaner` | `UserFolderCleanView.swift:120,366` | 注入安装器残留夹具目录 | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
-| `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:396` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel`。**P16 现读**：原记 `:365` 已漂；`MMCleaner.swift:923` 是那段回执的注释锚 |
-| `MM_SNAPSHOT_FIXTURE` | `MMCleaner` | `MMCleaner.swift` `applySnapshotFixture` | 把"磁盘空间只读报告"里的**快照那一块**换成样例文本（`mixed`/`overflow`/`updateonly`/`none`/`broken`） | ✅ | 否 | 只替换解析器的输入字符串，卷容量仍是真读的；不起命令、不碰盘。未知取值整块忽略 |
-| `MM_PURGE_FIXTURE_HOME` | `MMCleaner` | `DevArtifactView.swift:65` | 把「开发产物」页的扫描根换成假 home | ✅ | 否 | **P5.1 新增。只认 `/tmp`**：`realpath` 解析后**再复核一次前缀**，越界整块忽略。这一屏的终点是删除按钮，所以钩子绝不能把用户的真项目变成可以整片勾选的夹具。配合 `Scripts/purge-fixture.sh`。**P16 现读**：原记 `:45` 已漂 |
-| `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:240`（首扫后）与 `:272`（续扫合并后） | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots`。两处是两条路径各读一次，**只改一处会让"续扫之后"那一档拍不到展开态**。**P16 现读**：原记 `:109` 已漂 |
-| `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:243` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数。**P16 现读**：原记 `:112` 已漂 |
-| `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:705` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件**。**P16 现读**：原记 `:428` 已漂 |
-| `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:407` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService`。**P6.7 复核**：锚点原记 `:236`，现读 `:407`；它写在 `.task` 里而 `model.scan()` 上一行没 await，所以面板先于 `report` 打开（等够就不空）。**P6.8 收口**：`Scripts/p68-dev-capture.sh` 第 04 档现在会重拍这一张（写进 `docs/verification/p68-dev/`，旧 `p7-dev/04` 未动），"有照片、无脚本"这条不成立了；详见 `fidelity-cleaner.md` §9–§10 |
-| `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:149-154` | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`（`:154`）——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数，抄字面量会骗人。**P16 现读**：本行此前记 `:138,146`，两个键现在同在一行 `:149` 的三元表达式里 |
-| `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:149-154` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到 |
-| `MM_DEV_AUTO_CONTINUE` | `MMCleaner` | `DevArtifactView.swift:159,175` | 全量扫完之后自动再跑最多 N 批续扫 | ✅ | 否（跑的是同一套只读扫描） | **P6.1 新增**。只认 `1…3`，其余值忽略。每批之间复查 `canContinueTruncatedRoots`，试满 2 次的根自动排除，所以不会自己循环成常驻扫描。存在的理由：②「续扫之后」与③「已试过 2 次」两档都要按一次按钮才进得去，而**合成点击会逃逸到用户的其它应用**（老规矩），点击链本身不在取证范围 |
-| `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:63` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps` |
-| `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除 |
-| `MM_UNINSTALL_CONFIRM_MODE` | `MMUninstaller` | `MMUninstaller.swift:73` | 夹具确认模式 `appOnly` / `withResiduals` / `none` | ✅ | 否 | 仅在上行有效时读取；省略则为 `appOnly`。**P5.2 新增 `none`**：只选行不弹面板，面板会盖住列表的行内徽章与详情的来源三行 |
-| `MM_UNINSTALL_SELECT` | `MMUninstaller` | `MMUninstaller.swift:84` | 按 `bundleName` 点名要选中的那一行 | ✅ | 否 | **P5.2 新增**。只写 `selectedAppID`，不点任何按钮。点不到时写 stderr 并**什么都不选**——宁可拍出一张空态，也不悄悄换成别的应用。真机上不需要夹具目录就能用（选中态是内存里的），夹具截图下与 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` 配合 |
-| `MM_ORPHAN_FIXTURE_HOME` | `MMUninstaller` | `MMUninstaller.swift:44` | 注入孤儿扫描夹具 home | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
-| `MM_TRASH_FIXTURE_DIR` | `MMUninstaller` | `TrashWatcher.swift:94` | 注入废纸篓夹具目录 | ✅ | 否 | 同上，只认 `/tmp` |
-| `MM_TRASH_SCAN_HOME` | `MMUninstaller` | `TrashWatcher.swift:100` | 注入废纸篓扫描 home | ✅ | 否 | 同上，只认 `/tmp` |
-| `MM_SHOW_TRASH_CONFIRM` | `MMUninstaller` | `MMUninstaller.swift:535` | 弹出废纸篓确认面板 | ✅ | 否（弹面板，删在按钮里） | 删除走 `FileTrashService`，过闸门 |
+| `MM_OPEN_MODULE` | 壳 `Sources/MacMaster` | `MainWindow.swift:51` | 启动后直接跳到指定模块页 | ✅ | 否 | 非法值写 stderr 并停在概览；只认 `MMDestination.rawValue`。**P18：解析下沉到 `MMCore.MMHookValue.selected`**（壳层是 executable target，本来零测试；现在这段判定由 MMCore 的 22 个新单测钉住） |
+| `MM_SHOW_SETTINGS` | 壳 | `MainWindow.swift:46` | 启动即打开设置 sheet | ✅ | 否 | C 类（非空即生效，`!= nil`），P18 未改，见 §5 |
+| `MM_APPEARANCE` | 壳 | `LaunchBehavior.swift:82` | 强制本进程 `NSApp.appearance` 为 `light`/`dark`（别名 `aqua`/`darkAqua`） | ✅ | 否 | **P4 新增**。只改本进程，不动用户系统外观；值写错会沿用系统档并写 stderr 留痕。生效凭据打在启动日志里，`p4-sweep.sh` 会 grep 回控制台。**P18：判定树换成 `MMLaunchHook.resolveAppearance`（MMCore，`light|aqua|dark|darkaqua` 四写法带单测）**，留痕文案逐字未改 |
+| `MM_WINDOW_SIZE` | 壳 | `LaunchBehavior.swift:112` | `=宽x高`（如 `900x600`）改主窗口内容区尺寸 | ✅ | 否 | **P4 新增**。下限 320×200，解析失败/找不到主窗口都写 stderr；`DispatchQueue.main.async` 等窗口上屏。**凭据回读夹取后的真实窗口尺寸**（`asyncAfter 0.3s`）：窗口有 `.frame(minWidth:)` 地板，请求 900 会被夹到 1000，只回显请求值会产出"看着真、来源错"的最小窗口证据。**P18：解析换成 `MMLaunchHook.resolveWindowSize`（MMCore，带单测）** |
+| `MM_SETTINGS_TAB` | 壳 | `SettingsView.swift:11` | 设置 sheet 默认选中 tab | ✅ | 否 | 非法值回落 `.general`。**P18：改走 `MMHookValue.selected`**（此前写错值一声不出，照片停在「通用」却被登记成某一 tab 已核对） |
+| `MM_OPEN_TAB` | `MMCleaner` | `CleanerContainerView.swift:30` | cleaner 页默认 tab（cache/folders/system/**dev**） | ✅ | 否 | 非法值回落 `.cache`。**P5.1 新增 `dev`（开发产物子页）**。**P18：改走 `MMHookValue.selected`**，`accepts` 由 tab 表现算，写错必留一行 |
+| `MM_CLEANER_FILTER` | `MMCleaner` | `MMCleaner.swift:318` | 搜索框初值（等价于用户手动输入） | ✅ | 否 | **P16 现读**：原记 `:280` 已漂。任意串都合法（就是搜索词），没有"写错"这一态 |
+| `MM_EXPAND_CATEGORIES` | `MMCleaner` | `MMCleaner.swift:138` | 展开分类 | ✅ | 否 | **P16 现读**：原记 `:148` 已漂。C 类，P18 未改（见 §5） |
+| `MM_AUTO_SCAN` | `MMCleaner` | `UserFolderCleanView.swift:112` `SystemAnalysisView.swift:78` | 进场即触发扫描 | ✅ | 否（只读扫描） | 仅枚举文件系统，不写不删。C 类，P18 未改 |
+| `MM_SHOW_CONFIRM` | `MMCleaner` | `MMCleaner.swift:397` `UserFolderCleanView.swift:116,384` | 弹出删除确认面板 | ✅ | 否（弹面板，删在按钮里） | 实际删除需用户点「确认」，过 `DeletionGuard`。锚点于 2026-10-04 现读重定（原记 `:359` 已漂）；**P18 后再漂 7 行**。C 类 |
+| `MM_INSTALLER_FIXTURE_DIR` | `MMCleaner` | `UserFolderCleanView.swift:120,366` | 注入安装器残留夹具目录 | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr（守卫在 `:15`） |
+| `MM_FAILURE_FIXTURE` | `MMCleaner` | `MMCleaner.swift:403` | 渲染拒绝回执（=protected） | ✅ | 否 | 仅展示，复用 `MMUI.MMFailurePanel`。**P16 现读**：原记 `:365` 已漂；`MMCleaner.swift:930` 是那段回执的注释锚。**P18：改走 `MMHookValue.flag(token:"protected")`**——改前只有 `== "protected"` 一种写法能用，写成 `Protect` 就静默什么都不画 |
+| `MM_SNAPSHOT_FIXTURE` | `MMCleaner` | `MMCleaner.swift:250` `applySnapshotFixture` | 把"磁盘空间只读报告"里的**快照那一块**换成样例文本（`mixed`/`overflow`/`updateonly`/`none`/`broken`） | ✅ | 否 | 只替换解析器的输入字符串，卷容量仍是真读的；不起命令、不碰盘。**P18：未知取值从"整块静默忽略"改成留一行**（`含非法取值（…），只接受 broken|mixed|none|overflow|updateonly`），五个档名逐字列出来 |
+| `MM_PURGE_FIXTURE_HOME` | `MMCleaner` | `DevArtifactView.swift:69` `fixtureHome` | 把「开发产物」页的扫描根换成假 home | ✅ | 否 | **P5.1 新增。只认 `/tmp`**：`realpath` 解析后**再复核一次前缀**，越界整块忽略。这一屏的终点是删除按钮，所以钩子绝不能把用户的真项目变成可以整片勾选的夹具。配合 `Scripts/purge-fixture.sh`。**P16 现读**：原记 `:45` 已漂。**P18 补的安全洞**：改前三条失效分支（非 /tmp 前缀、`realpath` 失败、解引用后跳出 /tmp）**全是静默 return nil**，而 nil 回落的是 `NSHomeDirectory()`——写错一个字母就把"拍夹具"换成"拍用户真实项目，且每行可勾选可删"。现在三条各留一行 stderr（文案点名"扫描根将是真实 home"），且 `static var`→`static let`（`scanHome` 在 `body` 里被多帧读到，计算属性会把留痕刷成刷屏）。**这三条故意不拍照**（见 `hook-typo-audit.md` §3）：画面内容取决于回落时用户的真 home，取证不该把真 home 拍进仓库 |
+| `MM_DEV_EXPAND` | `MMCleaner` | `DevArtifactView.swift:270`（首扫后）与 `:302`（续扫合并后） | 扫描回来后把所有项目分组一次性展开 | ✅ | 否 | **P5.1 新增**。非空即生效，只改内存里的 `expandedRoots`。两处是两条路径各读一次，**只改一处会让"续扫之后"那一档拍不到展开态**。**P16 现读**：原记 `:109` 已漂。C 类，P18 未改 |
+| `MM_DEV_SELECT` | `MMCleaner` | `DevArtifactView.swift:273` | `=untouched` 时勾选全部"判定可回收且体积已量到"的行 | ✅ | 否 | **P5.1 新增**。只写内存 `Set<String>`；受保护、嵌套已计入、体积为 nil 的行**选不中**（`isSelectable`），所以这一拍里的勾选数就是删除按钮将来真正会数的数。**P16 现读**：原记 `:112` 已漂。**P18：改走 `MMHookValue.flag(token:"untouched")`**——改前写成 `untouch` 会静默不勾，照片上删除按钮是灰的，看上去却像"勾选态已核对" |
+| `MM_DEV_SCROLL` | `MMCleaner` | `DevArtifactView.swift:735` | `=end` 时列表自滚到底 | ✅ | 否 | **P5.1 新增**。窗口高度被屏幕钳住，底部合计条和操作条在首屏外；用 `ScrollViewReader` 自滚**代替合成滚轮事件**。**P16 现读**：原记 `:428` 已漂。**P18：改走 `MMHookValue.flag(token:"end")`** |
+| `MM_DEV_CONFIRM` | `MMCleaner` | `DevArtifactView.swift:437` | 弹出开发产物删除确认面板 | ✅ | 否（弹面板，删在按钮里） | **P5.1 新增**。链路同 §3 三关：确认按钮 → `DeletionGuard` → `FileTrashService`。**P6.7 复核**：锚点原记 `:236`，当时现读 `:407`；它写在 `.task` 里而 `model.scan()` 上一行没 await，所以面板先于 `report` 打开（等够就不空）。**P6.8 收口**：`Scripts/p68-dev-capture.sh` 第 04 档现在会重拍这一张（写进 `docs/verification/p68-dev/`，旧 `p7-dev/04` 未动），"有照片、无脚本"这条不成立了；详见 `fidelity-cleaner.md` §9–§10。**P18 现读**：`:437`。C 类 |
+| `MM_DEV_ROOT_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:160`（读）＋ `:181-184`（写进 `rules`） | 覆盖**全量扫描**的每根预算（`ProjectArtifactRules.rootBudgetSeconds`） | ✅ | 否（只读扫描，只是提前收尾） | **P6.1 新增**。必须 `>0` 才生效，真机不设就是原口径 15 秒。同时把 `totalBudgetSeconds` 抬到 `max(总, 覆盖值)`（`:184`）——只改每根预算而总时限仍写死 60 秒的话，钩子写 120 实际拿到的是 60。点名条里"每次 X 秒"读的就是这个数（`:124` → `:614`），抄字面量会骗人。**P16 现读**：本行此前记 `:138,146`。**P18 补的洞**：改前 `Double(token)` 失败或 `<=0` 都静默回落，而 **`Double("nan")` 是能解析的、`nan > 0` 是假的**——写成 `15s`/`nan` 拍出来的"预算 15 秒"照片跟钩子一个字节关系都没有，日志也一行不留。现在走 `parseBudgetOverride`，非 `>0` 一律点名（结果存 `static let`，理由同 `fixtureHome`：这条是 `body` 可达的） |
+| `MM_DEV_CONTINUE_BUDGET_SECONDS` | `MMCleaner` | `DevArtifactView.swift:161`（读）＋ `:181-184` | 覆盖**续扫批次**的每根预算 | ✅ | 否 | **P6.1 新增**。为什么必须两个键：同一个极小预算下，首批截断的根在第二批必然同样截断，「本轮扫完」（绿 chip + 「第 N 批补全」）那一档就永远拍不到。留痕逻辑与上行共用 `parseBudgetOverride(key:)`（`:163-175`） |
+| `MM_DEV_AUTO_CONTINUE` | `MMCleaner` | `DevArtifactView.swift:194`（读）与 `:209`（消费） | 全量扫完之后自动再跑最多 N 批续扫 | ✅ | 否（跑的是同一套只读扫描） | **P6.1 新增**。只认 `1…3`，其余值忽略。每批之间复查 `canContinueTruncatedRoots`，试满 2 次的根自动排除，所以不会自己循环成常驻扫描。存在的理由：②「续扫之后」与③「已试过 2 次」两档都要按一次按钮才进得去，而**合成点击会逃逸到用户的其它应用**（老规矩），点击链本身不在取证范围。**P18：改走 `MMHookValue.int(bounds:1...3, fallback:0)`**，写成 `3s`/`0`/`9` 现在都会留一行并回落 0（=不自动续扫） |
+| `MM_UNINSTALL_PANE` | `MMUninstaller` | `MMUninstaller.swift:142` | 卸载页默认 pane | ✅ | 否 | 非法值回落 `.apps`。**P18：改走 `MMHookValue.selected`**（`Pane` 实现了 `MMHookKeyed`，`accepts` 就是 `apps|orphans`） |
+| `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` | `MMUninstaller` | `UninstallFixtureHooks.swift` | 仅加载 `/tmp` 假应用并打开卸载确认面板 | ✅ | 否 | 解析符号链接后仍须位于 `/tmp`；配合 `Scripts/uninstall-fixture.sh`，绝不自动点击删除。失效写 stderr（`忽略该钩子`），P18 保留原写法（A 类，见 §5） |
+| `MM_UNINSTALL_CONFIRM_MODE` | `MMUninstaller` | `MMUninstaller.swift:79` | 夹具确认模式 `apponly` / `withresiduals` / `none` | ✅ | 否 | 仅在上行有效时读取；省略则为 `appOnly`。**P5.2 新增 `none`**：只选行不弹面板，面板会盖住列表的行内徽章与详情的来源三行。**P18 补的洞**：改前是 **case-sensitive 的 `switch` 字符串**——写成 `WithResiduals` 或 `withresidual` 都掉进 `default` 静默变 `appOnly`，拍出来的面板少一栏却被登记成"带残留档已核对"。现在经 `ConfirmHookKeyed` 三档 + `MMHookValue.selected`（先 trim+小写，写错留一行）。实机档号 23 |
+| `MM_UNINSTALL_SELECT` | `MMUninstaller` | `MMUninstaller.swift:110` | 按 `bundleName` 点名要选中的那一行 | ✅ | 否 | **P5.2 新增**。只写 `selectedAppID`，不点任何按钮。点不到时写 stderr 并**什么都不选**——宁可拍出一张空态，也不悄悄换成别的应用。真机上不需要夹具目录就能用（选中态是内存里的），夹具截图下与 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` 配合 |
+| `MM_ORPHAN_FIXTURE_HOME` | `MMUninstaller` | `MMUninstaller.swift:42` | 注入孤儿扫描夹具 home | ✅ | 否 | **只认 `/tmp` 之下**，越界忽略并写 stderr |
+| `MM_TRASH_FIXTURE_DIR` | `MMUninstaller` | `TrashWatcher.swift:106` | 注入废纸篓夹具目录 | ✅ | 否 | 同上，只认 `/tmp`。**P6.7 起被拒还会点名"改为监听真实废纸篓"**（`:110-113`） |
+| `MM_TRASH_SCAN_HOME` | `MMUninstaller` | `TrashWatcher.swift:123` | 注入废纸篓扫描 home | ✅ | 否 | 同上，只认 `/tmp` |
+| `MM_SHOW_TRASH_CONFIRM` | `MMUninstaller` | `MMUninstaller.swift:745` | 弹出废纸篓确认面板 | ✅ | 否（弹面板，删在按钮里） | 删除走 `FileTrashService`，过闸门。**P18：改走 `MMHookValue.flag(token:"1")`**——这一族三个 `=="1"` 开关（另两个见下两行）改前 `=0` 也算开，写 `=1 ` 之外的一切都是静默关闭 |
 | `MM_APPS_WATCH_FIXTURE_DIR` | `MMUninstaller` | `AppFolderWatcher.swift:117` | 把「应用目录监听」的根换成夹具目录 | ✅ | 否 | **P5.3 新增。只认 `/tmp`**（复用 `TrashWatcher.fixtureEnvironmentValue`）。只改监听根，不写盘；配合 `Scripts/apps-watch-fixture.sh` |
-| `MM_APPS_WATCH_AUTO_SCAN` | `MMUninstaller` | `MMUninstaller.swift:84-87` | 启动后自动走一次消失卡的「重新载入并扫描」 | ✅ | 否（扫描只读，删在按钮里） | **P5.3 新增**。**必须 `MM_APPS_WATCH_FIXTURE_DIR` 成立才生效**，否则忽略。合成点击进不了原生按钮，而这张卡的终点不跑一次就拍不到 |
-| `MM_UNINSTALL_SELF_ECHO` | `MMUninstaller` | `MMUninstaller.swift:95-98` | 自动执行一次「仅卸载应用」，用来拍自我回声文案与回声抑制 | ⚠️ 会动文件 | **是**：把夹具里那个 app 真的移进废纸篓 | **P5.3 新增**。**必须 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`（/tmp 假 home）成立才生效**；`MM_UNINSTALL_SELECT` 点名，取不到就不动。跑完 `Scripts/apps-watch-run.sh` 会按 bundle 标识（不认名字）清掉本次进废纸篓的夹具应用 |
+| `MM_APPS_WATCH_AUTO_SCAN` | `MMUninstaller` | `MMUninstaller.swift:93` | 启动后自动走一次消失卡的「重新载入并扫描」 | ✅ | 否（扫描只读，删在按钮里） | **P5.3 新增**。**必须 `MM_APPS_WATCH_FIXTURE_DIR` 成立才生效**，否则忽略。合成点击进不了原生按钮，而这张卡的终点不跑一次就拍不到。**P18：`flag(token:"1")`** |
+| `MM_UNINSTALL_SELF_ECHO` | `MMUninstaller` | `MMUninstaller.swift:103` | 自动执行一次「仅卸载应用」，用来拍自我回声文案与回声抑制 | ⚠️ 会动文件 | **是**：把夹具里那个 app 真的移进废纸篓 | **P5.3 新增**。**必须 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`（/tmp 假 home）成立才生效**；`MM_UNINSTALL_SELECT` 点名，取不到就不动。跑完 `Scripts/apps-watch-run.sh` 会按 bundle 标识（不认名字）清掉本次进废纸篓的夹具应用。**P18：`flag(token:"1")`**——这个钩子是唯一会动文件的，把它从"非 `1` 即静默关闭"改成"非 `1` 点名 + 关闭"，等于给这条唯一的破坏性入口多加了一道会说话的门槛 |
 | `MM_PROBE_WINDOW` | 壳 `Sources/MacMaster` | `WindowProbe.swift:12` | 按 0.2…16s 若干时间点把每个真实窗口的 AppKit 帧写到 stderr | ✅ | 否 | **P5.3 新增**（取证工具，不是界面钩子）。只读 `frame/bounds/contentLayoutRect/subviews`，不改任何帧；没有这个变量时 `start()` 直接返回。量的是"宿主视图有没有比窗口高"，见 `apps-watch.md` §7 |
-| `MM_OPEN_TAB` | `MMDisk` | `MMDisk.swift:44` | disk 页默认 tab（tree/list/large） | ✅ | 否 | 非法值回落 `.treemap` |
-| `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:128` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略 |
-| `MM_DISK_FILTER` | `MMDisk` | `MMDisk.swift:132` | 过滤串 | ✅ | 否 | — |
-| `MM_DISK_SCAN` | `MMDisk` | `MMDisk.swift:135` | 对指定根路径触发扫描 | ✅ | 否（只读扫描） | 仅枚举，不写。**本轮补 /tmp 守卫**：非 `/tmp`/`/private/tmp` 前缀写 stderr 并忽略 |
-| `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:1094`（选中落在 `:1113`） | 预选路径并展开 | ✅ | 否 | 仅展示选中态。**本轮补 /tmp 守卫**：任一目标非 /tmp 前缀则整体忽略。**P6.2a 起只重放一次**（`selectionHookApplied`）：它代表"用户动手标记过一次"，每次扫描都重放会把该丢弃的标记重新加回来。**P6.7 起选中成功/失败各写一行**（成功带 `MMFormat.bytes`，失败点名「这一层不在已展开的树里」）——`openDirectory` 遇未缓存的一层会起 `Task { doNavigate }`，这一路是有窗口的，不写日志就分不出「钩子没跑」与「这一层还没到」 |
-| `MM_DISK_RESCAN` | `MMDisk` | `MMDisk.swift:191` | 首扫落地后**自动再扫一次**指定根（P6.2a 新增） | ✅ | 否（只读扫描） | 值同样只认 `/tmp`/`/private/tmp` 前缀，越界写 stderr 并忽略。给同一个根=拍"标记跨重扫还在"，给另一个根=拍"挂不回去的丢弃并点名" |
-| `MM_DISK_HOLD` | `MMDisk` | `MMDisk.swift`（本轮新增） | `=hold` 冻结在"正在分析磁盘结构"首帧，不触发扫描 | ✅ | 否 | 见 `fidelity-disk.md` §提请协调者 #4 |
-| `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1141` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked。**P6.7 起这行开面板时写一条带 `marked.count` 的日志**，找不到的目标逐个点名（旧写法悄悄跳过，面板行数就成了自报） |
-| `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1165` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘 |
-| `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1129,1176` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法恢复"那一支（橙色三角、**无撤回按钮**），数字借自当前选中项，不移动任何文件 |
+| `MM_OPEN_TAB` | `MMDisk` | `MMDisk.swift:38` | disk 页默认 tab（tree/list/large） | ✅ | 否 | 非法值回落 `.treemap`。**P18：改走 `MMHookValue.selected`，写错留一行并列出 `tree|list|large`**。这一行是本轮最典型的一个坑：页面上那个 tab 的标题写着 **Treemap**，而钩子只认 **`tree`**（`hookKey` 与 `rawValue` 不同源，见 `:29-35`）——改前写 `treemap` 会静默停在 treemap 上，**照片和"钩子生效"完全同一张**，人照着界面写字必然中招。现在日志会指出"只接受 tree|list|large" |
+| `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:153` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略。**P18：改走 `MMHookValue.int(bounds:1...4)`**——改前 `depth=abc` 与 `depth=9` 都是静默按默认，日志上分不出"钩子没写"和"钩子写错了" |
+| `MM_DISK_FILTER` | `MMDisk` | `MMDisk.swift:155` | 过滤串 | ✅ | 否 | 任意串都合法（就是过滤词），没有"写错"这一态 |
+| `MM_DISK_SCAN` | `MMDisk` | `MMDisk.swift:171` | 对指定根路径触发扫描 | ✅ | 否（只读扫描） | 仅枚举，不写。**本轮补 /tmp 守卫**：非 `/tmp`/`/private/tmp` 前缀写 stderr 并忽略 |
+| `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:1077`（重放闸门 `:1084`，置位 `:1099`） | 预选路径并展开 | ✅ | 否 | 仅展示选中态。**本轮补 /tmp 守卫**：任一目标非 /tmp 前缀则整体忽略。**P6.2a 起只重放一次**（`selectionHookApplied`）：它代表"用户动手标记过一次"，每次扫描都重放会把该丢弃的标记重新加回来。**P6.7 起选中成功/失败各写一行**（成功带 `MMFormat.bytes`，失败点名「这一层不在已展开的树里」）——`openDirectory` 遇未缓存的一层会起 `Task { doNavigate }`，这一路是有窗口的，不写日志就分不出「钩子没跑」与「这一层还没到」 |
+| `MM_DISK_RESCAN` | `MMDisk` | `MMDisk.swift:183` | 首扫落地后**自动再扫一次**指定根（P6.2a 新增） | ✅ | 否（只读扫描） | 值同样只认 `/tmp`/`/private/tmp` 前缀，越界写 stderr 并忽略。给同一个根=拍"标记跨重扫还在"，给另一个根=拍"挂不回去的丢弃并点名" |
+| `MM_DISK_HOLD` | `MMDisk` | `MMDisk.swift:160` | `=hold` 冻结在"正在分析磁盘结构"首帧，不触发扫描 | ✅ | 否 | 见 `fidelity-disk.md` §提请协调者 #4。**P18：`hold` 之外取值写 stderr 并忽略**（`:168`）。这一行原本是 `!raw.isEmpty` 的 C 类形态，但它是"**不扫描**"的开关——写成 `hold=1` 静默失效就等于拍一张正在扫的图却登记成"首帧已核对"，所以升格成点名 |
+| `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1133` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `DeletionGuard`；面板里闸口拒绝项已提前为 `.guarded` blocked。**P6.7 起这行开面板时写一条带 `marked.count` 的日志**（`:1153`），找不到的目标逐个点名（旧写法悄悄跳过，面板行数就成了自报）。C 类，P18 未改 |
+| `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1157` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkConfirm=false` / `showPermanentConfirm=true`，不删） | 值 `acked` 时代码里把确认勾选打上，截图才能拍到"按钮点亮"那一态；勾选本身不落盘。**P18 现读**：原记 `:1165` 已漂 |
+| `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1121,1168` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法恢复"那一支（橙色三角、**无撤回按钮**），数字借自当前选中项，不移动任何文件。**P18 归为 D 类**（写错不会停在另一档还看不出来）：两条分支各自 `MM_SHOW_TOAST 已画出「…」回执条`（`:1129`、`:1173`）自报画的是哪一支，照片与日志互相印证 |
 | `MM_GUARDIAN_FIXTURE` | `MMGuardian` | `MMGuardian.swift` `GuardianViewModel.fixtureOverrides` | 注入守护规则夹具行 | ✅ | 否 | 合成 `com.example.*`，不碰真实登录项。**这一族五个钩子的读取点全在 `GuardianViewModel` 的静态属性上**（原来是 `:410/:424/:438/:450/:461` 这种行号，P11b 一律换成符号名——它们已经漂过两次，每次改这一页都要重量） |
 | `MM_TCC_FIXTURE` | `MMGuardian` | `GuardianViewModel.tccFixtureState` | 注入 TCC 授权表行 | ✅ | 否 | 支持 `rows/unreadable/empty/partial` |
 | `MM_GUARDIAN_LOGIN_FIXTURE` | `MMGuardian` | `GuardianViewModel.loginFixtureStage` | 注入登录项夹具（rows/empty/indeterminate/scanerror） | ✅ | 否 | **README §2 漏列，本轮补正** |
 | `MM_GUARDIAN_LOAD` | `MMGuardian` | `GuardianViewModel.holdInitialFrame` | `=hold` 时整页冻结首帧（测量中+骨架） | ✅ | 否 | **README §2 漏列，本轮补正** |
 | `MM_GUARDIAN_ACTIVITY_FIXTURE` | `MMGuardian` | `GuardianViewModel.activityFixtureStage` | 活动卡（P11c 起叫「密钥与自启配置的改动时间」）注入 `empty/rows` | ✅ | 否 | 见 `fidelity-guardian.md` §5 G1（该条已标已落实）；合成条目标"夹具值"。**P6.2d 起用 `MM_GUARDIAN_CARDS=activity` 只渲染活动卡出片**（§6.6.3）。**P11b 的教训**：`rows` 档从来没证明过真实读取路径——它把待测的那条读法整条换掉了（§6.6.3 末尾）。**P11c 更新**：`rows` 档两行的用词跟着合同换了（detail 从中文说明改成绝对路径、tone 只剩 caution/neutral、不再有"系统日志事件"那一行），判据 `testFixtureRowsUseTheSameVocabularyAsRealRows`——**夹具的口径必须和真机同一套，否则无头照片在教一套真机不再产出的话** |
 | `MM_GUARDIAN_CARDS` | `MMGuardian` | `MMGuardian.swift` `GuardianCardFilter`（`GuardianFixtureHooks.swift`） | 卡显示过滤，逗号子集 `occupancy\|tcc\|login\|activity` | ✅ | 否 | **P6.2d 新增**。纯显示层过滤，不改变数据流；非法值整批拒绝并写 stderr。解决活动卡排在第 4 位永远在折叠线以下的问题——07/10 两档用 `=activity` 只渲染活动卡，不再需要拉高窗口+压矮上方三卡 |
-| `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:42` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates` |
+| `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:41` | optimizer 页默认 tab（duplicates/browser/status/devtools） | ✅ | 否 | 非法值回落 `.duplicates`。**P18：改走 `MMHookValue.selected`**——`duplicate`（少一个 s）此前静默停在重复文件 tab，与"生效"同一张图 |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift` | 四 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、**caveat:unreadable:N / caveat:dataless:N（P6.6 新增，必须与 `duplicates:N` 同给，单独给则整条作废）**、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn。**P6.6 起有 `fixturePinned`**：给了夹具的 tab 会被钉住，随后落地的真实扫描结果整批丢弃。在此之前钩子是**半生效**的——三个 tab 的夹具被并发真实扫描覆盖，拍出来的照片挂着夹具文件名却是真实数据（见 §4 #2） |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
 | `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档，P6.5 加 `swapZero`） | 注入确定快照（populated/memoryNil/swapOff/**swapZero**/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡）；**`menubarOff` 自 P6.7 起才真的被消费**（`menuBar.disable()`，此前只解析不用）。**`swapZero` 与 `swapOff` 只差 `swapAvailable` 一位**（前者"读到 0"、后者"读不到"），这一位就是 I9 那两句话的分界；`populated` 底座的 swap 从 0/0 改成真实的 800 MiB / 2 GiB，否则这两档拍出来是同一张 |
@@ -286,6 +297,14 @@
 | `Scripts/p14-header-capture.sh` | 三种窗口宽度各拍一张守护页整页（默认 1100×700 / 请求 1000×600、实际被 `minHeight` 夹成 1000×652 / 1400×900 作控制组），**零夹具**；唯一判据是"页头副标题那一行不许出现 `…`" | **P14 新增**。它管的是 D1（页头副标题补第四段，`fidelity-guardian.md` §8.1）改完之后**新引入**的风险：`MMPageHeader` 的副标题写的是 `.lineLimit(1)` + `.truncationMode(.middle)`，所以 3 段变 4 段既不换行也不报错，只会**静默切掉句子中段**，而切掉的恰好是"登录项管理"这种少看一眼也不觉得少了的词。`GuardianHeaderContractTests` 钉得住"段数对不对"，钉不住"画面上放不放得下"。三档实测四段全在；最窄档末尾距「刷新」不到三个汉字宽（照片 2× 估读，所以没写进判据）。**往后页头副标题每加一段都要重跑这一支** |
 | `Scripts/p15-pipe-capture.sh` | 两档零夹具照片：`01-login`（`MM_GUARDIAN_CARDS=login` 只渲染登录项卡）+ `02-space`（清理页缓存 tab × 邮件过滤，读的是 tmutil 那一处）；每份 `.log` 带 `# codesign:` / `# env:` / `# pid:` 归因头与 `# expect:` 行 | **P15 新增**。它证的是"三处子进程调用并成一个已测执行器之后，界面这句话还是这台机器上的真话"。判据两次改过才立住：① 第一版拿登录项卡**脚注**（"launchd 里还挂着 N 个非苹果标签"）当判据，拍回来才发现 17 行列表下那条线**在折线以下**，画面里没有它——于是换成两条**一定在框内**的读法：`login-item-files=N`（对列表行数）与 `not-loaded-labels=N …`（对「已加载/未加载」那一列）。② 顺序上必须**先拍照再写 expect 行**：脚本开着 `set -e`，注解里任何一个语法错（本轮真撞过一个 `${(j:、)…}` 的 "error in flags"）会把已经起好的实例丢在屏幕上没人收，留过一个 pid 活到下一轮。两条 expect 用 `plutil`/`launchctl` 各自**独立**重算，与 `LaunchctlListParser` 是两条读法——本轮对上是 3 个孤儿标签 / 17 行 / 2 个未加载 |
 | `Scripts/p17-website-capture.sh` | 落地页 §界面预览 那四张图，四档夹具实拍：清理（**dev tab**）/ 磁盘 / 监控 / 守护，全部 1280×800pt 暗档，产物直接写 `docs/website/assets/`（不是 `docs/verification/`），另落一份 `docs/verification/p17-website/capture.log` | **P17c 新增**。它与 `p68-*` 那一族的差别在**去向**：那批是验收证据，这批是要给陌生人看的宣传图，所以判据不是"这一档拍到了没"，而是**画面上不许出现只有这台机器才有的东西**。两条现读出来的覆盖面边界（都写进 `website-audit.md` §3）：① `MM_PURGE_FIXTURE_HOME` 只换「开发产物」那一页的扫描根，缓存 tab 进页即 `model.scan()` 扫真机（`MMCleaner.swift:382-385`），所以 01 只能拍 dev tab，卡片标题写「清理 · 开发产物」不是措辞选择而是被钩子决定的；② 侧栏 `volumeFooter`（`MainWindow.swift:143-168` ← `DashboardModel.swift:71`）、侧栏"系统清理"后面那格可回收体积（`MainWindow.swift:107-111`，读概览页那次真实扫描）与磁盘页 `卷可用` badge（`MMDisk.swift:376`）**没有任何钩子能碰**，整窗截图必然带上真实卷名、占用与可回收量——本轮的做法是**在页面上明说**而不是裁掉，理由同时写进了 `index.html` 那条 img 规则的注释里。零合成点击，只 kill 自己起的 pid；`ONLY` / `KEEP_FIXTURE` / `SETTLE` / `DISK_SETTLE` / `SIZE` 可改档重拍 |
+| `Scripts/p18-hook-typo-proof.sh` | 23 档"把钩子写错一个字母"的实机核对：每档注入一个**故意写错**的取值，判据不是画面而是 **stderr 里必须出现那一行留痕**（`expect=` 逐档钉住文案片段），负向档（`expect=-`）反过来要求"这一档一条留痕都不许有" | **P18 新增**。这一族的判据天生不在照片上——照片对"钩子写错"毫无反应（静默停在默认档的画面与生效的画面是同一张），所以它是全仓唯一一个**以 stderr 为主证据、照片为佐证**的取证脚本。三条自己踩过的坑写进脚本头：① `ONLY` 曾写成 `1[348]` 这种字符类，zsh 里 `[[ $name == ${ONLY}* ]]` 不把它当模式读 → **一档没跑却打印"全部 0 档符合预期"并 exit 0**（绿色空跑，门禁工具最坏的失效）；现在改成逗号前缀列表 + `checked==0 → exit 2`。② `ONLY` 重跑曾把整个证据目录 `rm` 掉，剩下两份证据说不同的话；现在局部重跑写 `capture-partial.log`，一个字都不碰既有照片与既有 `capture.log`。③ 23 档要的卸载确认夹具是 `mktemp` 随机名、没法复用，脚本每次现造现删（`trap rm -rf EXIT`）。**五档（10/11/13/21/22）用 `-n` 只收日志不拍照**：它们的失效分支回落的是用户真 home 或真实扫描根，画面内容取决于机器现状，取证不该把真 home 拍进仓库（详见 `hook-typo-audit.md` §3、§6） |
+- **钩子写错值不会让界面报错，只会让照片安静地停在另一档**（P18）：这是取证里最贵的一类错误——**假通过**。
+  所以这一轮把"能不能发现写错"从人的记忆挪到两处：**判定下沉**（`MMCore.MMHookValue` / `MMLaunchHook`，
+  22 条单测钉住文案，含一条 `dup`/`dup2` 到 fd 2 的"留痕真的落在 stderr"测试）与**门禁自证**
+  （`p18-hook-typo-proof.sh` 的 23 档每一档都拿错值去撞，撞不出那行话就是红）。
+  四类失效里只有 B 类（静默换档）需要修，本轮 16 个键全关掉；A 类本来就会说话，只统一文案；
+  C 类（非空即生效的 7 键 / 13 处）**故意不动**并写清理由（见 `hook-typo-audit.md` §5）；
+  D 类（`MM_SHOW_TOAST`）由自报文案背书。**判据不是"有多少钩子"，是"写错时日志里有没有一行"**。
 - **`waitUntilExit()` 之后再读管道，是一个只在"输出够大"时才发作的死锁**（P11）：`Pipe` 的内核缓冲
   只有 64 KB，子进程写满就卡在 `write`，父进程卡在 `wait`，谁也不动。这一路的输出量取决于**本机日志量**，
   所以它在开发机上可以永远不出现——`scanUnifiedLog()` 自落地起就从未返回过内容，而界面显示的是

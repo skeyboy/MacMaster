@@ -41,15 +41,20 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p16-citation-audit.sh  # 入库文档里每处 `文件:行号` 落盘验一遍（纯读，约 40 秒）
 ```
 
-现测（2026-10-05，P15 之后重跑）：**590 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（2026-10-06，P18 之后重跑）：**612 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
-P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590。
-**逐包求和 = 590**，这一条自 P11c 起每轮都当自证用）。不要手敲 `swift test | tail -4`——
-SwiftPM 的结论行有两种形态，那样会把 MMCore 的 48 个测试显示成"跑了 0 个"
+P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
+**P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612。
+**逐包求和 = 612**，这一条自 P11c 起每轮都当自证用）。不要手敲 `swift test | tail -4`——
+SwiftPM 的结论行有两种形态，那样会把 MMCore 的 70 个测试显示成"跑了 0 个"
 （原因与解析规则写在脚本头部注释里）。
 
 **壳层 `Sources/MacMaster` 没有测试目标**（根 `Package.swift` 只有一个 `.executableTarget`），
 所以导航、窗口、设置页绑定这三件事目前只有实机照片兜，没有单测。
+**P18 补的是这一格的另一半**：钩子取值"写错了算哪一档"这类判定本来也住在壳里（`MM_OPEN_MODULE`
+的目的地、`MM_APPEARANCE`、`MM_WINDOW_SIZE`），现在解析与留痕文案全在 `Packages/MMCore`
+（`HookValues.swift`，`HookValueTests` + `LaunchHookTests` 共 22 条），壳层只剩"把结果交给 AppKit"。
+**能单测的那一半下沉了，"零测试目标"这四个字没变**——窗口有没有真被改大，仍然只有照片知道。
 
 ## 七个页面与九个包
 
@@ -137,9 +142,21 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 - 入库文档里每一处 `文件:行号` 引用由 `./Scripts/p16-citation-audit.sh` 逐条落盘验一遍
   （四道硬判据不过就 exit 1；第五道"符号面"只提示不当门）。跑一次约 40 秒，纯读，不改任何东西。
   改过 `docs/` 下任何 .md 之后请跑一次——引用会像代码一样漂，而且不报错。
+  **但它只扫 `git ls-files`**：一份还没 `git add` 的新文档在这道门上等于不存在，报告里的
+  `# docs scanned:` 两个数会一起变小，而不是打Warning（P18 前半段就是这样跑过一整轮 32/32，
+  而实际入库文档已是 33 份）。所以顺序是**先 add 再跑**。
 - 同一条脚本的扩展名清单里**有 `.html`**，所以分析文档里那种"落地页第几行"的锚点也会被验。
   落地页是要整段重写的文件，**别用行号指它**（写成散文）：P17a 的判定表原本有四个这种锚点，
   改完页面它们全都漂到了别的句子身上。
+- **钩子写错值不会让界面报错，只会让照片停在另一档**（P18，2026-10-06）：这是取证里最贵的一类错误，
+  因为那张"看上去没问题"的截图会被登记成"某一档已核对"。现在 19 个键的判定住在
+  `Packages/MMCore/Sources/MMCore/HookValues.swift`（写错 = 回落默认档 + **stderr 一行**，
+  文案点名原文、可接受值、实际落在哪），`Scripts/p18-hook-typo-proof.sh` 拿 23 档错值去撞它、
+  以 stderr 为判据。**新增钩子时照它走**：不要手写 `env["X"].map { ... }` 那套 guard-else-静默，
+  用 `MMHookValue.selected/int/flag`；`accepts` 由档位表现算，所以文档不可能和实现各说一套。
+  两条附带教训：**留痕的读取点要是 `static let`**（`body` 每帧都会读，计算属性能把一行话刷成刷屏），
+  以及 **`Double("nan")` 是能解析的而 `nan > 0` 是假的**（预算钩子曾在这一支静默回落，
+  拍出的照片与钩子毫无关系而日志一行不留）。分类台账见 `docs/analysis/hook-typo-audit.md`。
 - ~~概览页的"可清理"走 `scanAll()`，不看清理页那四个勾选~~ —— **P8（2026-10-05）已修**：
   两个页面现在共用 `CacheScanScope.selected(...)` 拼勾选、也共用同一份排除清单，
   四个类别全关时概览显示「未勾选类别」而不是一个来路不明的数。

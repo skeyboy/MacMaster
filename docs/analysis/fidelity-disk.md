@@ -235,8 +235,8 @@
    → 建议：稿明确"占当前层"，或实现在根层用 `scannedSize` 作分母并改标签。
    **✅ 已落地（`5e1dfe3`），走"改实现"这一支**：详情现为
    `MMStatItem("实际占比", MMFormat.percent(totalScanned > 0 ? Double(node.size) / Double(totalScanned) : 0))`
-   （`MMDisk.swift:794`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:765`）——分母不再随下钻漂移，
-   标签与算法终于同一口径。**"占当前层"没有丢**：列表行仍按 `levelTotal` 算占比（`:682`），
+   （`MMDisk.swift:786`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:757`）——分母不再随下钻漂移，
+   标签与算法终于同一口径。**"占当前层"没有丢**：列表行仍按 `levelTotal` 算占比（`:674`），
    那里"这一层里谁大"才是有用信息。两处分别对应两个问题，是对的。
 6. **【低】I6 · 修改时间绝对 vs 相对**
    `MMDisk.swift:707` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。

@@ -1,0 +1,127 @@
+# p18-hook-typo-proof.sh 钩子写错值留痕核验
+# date: 2026-10-06 09:48:56 +0800
+# command: ./Scripts/p18-hook-typo-proof.sh /tmp/mm-app-p18/MacMaster.app docs/verification/p18-hooks
+# app: 1.0.0 (1)
+# shape under test: 档位选择与夹具路径钩子在取值写错时的行为（改前：静默回落，日志一行没有）
+# expected: 正向档的 stderr 里必须有该行给出的 expect 子串；负向档（expect=-）里
+            一条留痕都不许出现。照片用来人眼核对'确实落在文案说的那一档'。
+# observed: 见下面每档的 result 行；原始 stderr 逐档存在 raw/<档名>.log
+# restore: 本脚本不写用户任何状态；夹具目录在 /tmp，需要时用 purge-fixture.sh --clean / disk-fixture.sh --clean 删
+# ---- 01-module-typo ----
+# env: MM_OPEN_MODULE=cleanner
+# expect: MM_OPEN_MODULE 含非法取值（cleanner）
+# windowid: 4147  pid: 6056  settle: 7s  照片: docs/verification/p18-hooks/01-module-typo.png
+# result: ✅ 留痕命中：MM_OPEN_MODULE 含非法取值（cleanner），只接受 dashboard|cleaner|uninstaller|disk|monitor|guardian|optimizer，已回落 dashboard 档
+# ---- 02-module-ok ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=cache
+# expect: -
+# windowid: 4150  pid: 6069  settle: 7s  照片: docs/verification/p18-hooks/02-module-ok.png
+# result: ✅ 无留痕（如预期）
+# ---- 03-tab-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=systeme
+# expect: MM_OPEN_TAB 含非法取值（systeme）
+# windowid: 4153  pid: 6119  settle: 7s  照片: docs/verification/p18-hooks/03-tab-typo.png
+# result: ✅ 留痕命中：MM_OPEN_TAB 含非法取值（systeme），只接受 cache|folders|system|dev，已回落 cache 档
+# ---- 04-disk-tab-alias ----
+# env: MM_OPEN_MODULE=disk MM_OPEN_TAB=treemap
+# expect: MM_OPEN_TAB 含非法取值（treemap）
+# windowid: 4156  pid: 6134  settle: 7s  照片: docs/verification/p18-hooks/04-disk-tab-alias.png
+# result: ✅ 留痕命中：MM_OPEN_TAB 含非法取值（treemap），只接受 tree|list|large，已回落 tree 档
+# ---- 05-disk-tab-ok ----
+# env: MM_OPEN_MODULE=disk MM_OPEN_TAB=list
+# expect: -
+# windowid: 4159  pid: 6181  settle: 7s  照片: docs/verification/p18-hooks/05-disk-tab-ok.png
+# result: ✅ 无留痕（如预期）
+# ---- 06-settings-tab-typo ----
+# env: MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=abotu
+# expect: MM_SETTINGS_TAB 含非法取值（abotu）
+# windowid: 4163  pid: 6192  settle: 7s  照片: docs/verification/p18-hooks/06-settings-tab-typo.png
+# result: ✅ 留痕命中：MM_SETTINGS_TAB 含非法取值（abotu），只接受 general|monitor|cleaner|about，已回落 general 档
+# ---- 07-pane-typo ----
+# env: MM_OPEN_MODULE=uninstaller MM_UNINSTALL_PANE=oran
+# expect: MM_UNINSTALL_PANE 含非法取值（oran）
+# windowid: 4166  pid: 6203  settle: 7s  照片: docs/verification/p18-hooks/07-pane-typo.png
+# result: ✅ 留痕命中：MM_UNINSTALL_PANE 含非法取值（oran），只接受 apps|orphans，已回落 apps 档
+# ---- 08-depth-typo ----
+# env: MM_OPEN_MODULE=disk MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_DISK_DEPTH=9
+# expect: MM_DISK_DEPTH 含非法取值（9）
+# windowid: 4169  pid: 6214  settle: 12s  照片: docs/verification/p18-hooks/08-depth-typo.png
+# result: ✅ 留痕命中：MM_DISK_DEPTH 含非法取值（9），只接受 1~4，已回落 3
+# ---- 09-optimizer-tab-typo ----
+# env: MM_OPEN_MODULE=optimizer MM_OPEN_TAB=duplicate
+# expect: MM_OPEN_TAB 含非法取值（duplicate）
+# windowid: 4172  pid: 6260  settle: 7s  照片: docs/verification/p18-hooks/09-optimizer-tab-typo.png
+# result: ✅ 留痕命中：MM_OPEN_TAB 含非法取值（duplicate），只接受 duplicates|browser|status|devtools，已回落 duplicates 档
+# ---- 10-purge-fixture-missing ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-does-not-exist
+# expect: MM_PURGE_FIXTURE_HOME=/tmp/macmaster-does-not-exist realpath 失败
+# windowid: 4175  pid: 6271  settle: 7s  照片: 按 -n 跳过（钩子被拒后画面是真实主目录）
+# result: ✅ 留痕命中：MM_PURGE_FIXTURE_HOME=/tmp/macmaster-does-not-exist realpath 失败（目录不存在？），钩子已忽略，扫描根将是真实 home
+# ---- 11-purge-fixture-outside-tmp ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/Users
+# expect: MM_PURGE_FIXTURE_HOME=/Users 不在 /tmp 之下
+# windowid: 4176  pid: 6282  settle: 7s  照片: 按 -n 跳过（钩子被拒后画面是真实主目录）
+# result: ✅ 留痕命中：MM_PURGE_FIXTURE_HOME=/Users 不在 /tmp 之下，钩子已忽略，扫描根将是真实 home
+# ---- 12-purge-fixture-ok ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture
+# expect: -
+# windowid: 4177  pid: 6295  settle: 7s  照片: docs/verification/p18-hooks/12-purge-fixture-ok.png
+# result: ✅ 无留痕（如预期）
+# ---- 13-disk-scan-outside-tmp ----
+# env: MM_OPEN_MODULE=disk MM_DISK_SCAN=/Users
+# expect: MM_DISK_SCAN=/Users 不在 /tmp 之下，忽略该钩子
+# windowid: 4180  pid: 6338  settle: 7s  照片: 按 -n 跳过（钩子被拒后画面是真实主目录）
+# result: ✅ 留痕命中：MM_DISK_SCAN=/Users 不在 /tmp 之下，忽略该钩子
+# ---- 14-disk-hold-typo ----
+# env: MM_OPEN_MODULE=disk MM_DISK_HOLD=holddd
+# expect: MM_DISK_HOLD 含非法取值（holddd），只接受 hold，钩子已忽略
+# windowid: 4181  pid: 6350  settle: 7s  照片: docs/verification/p18-hooks/14-disk-hold-typo.png
+# result: ✅ 留痕命中：MM_DISK_HOLD 含非法取值（holddd），只接受 hold，钩子已忽略
+# ---- 15-dev-select-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_SELECT=untouchd
+# expect: MM_DEV_SELECT 含非法取值（untouchd），只接受 untouched
+# windowid: 4184  pid: 6361  settle: 7s  照片: docs/verification/p18-hooks/15-dev-select-typo.png
+# result: ✅ 留痕命中：MM_DEV_SELECT 含非法取值（untouchd），只接受 untouched，钩子已忽略
+# ---- 16-dev-scroll-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_SCROLL=nedd
+# expect: MM_DEV_SCROLL 含非法取值（nedd），只接受 end
+# windowid: 4187  pid: 6373  settle: 7s  照片: docs/verification/p18-hooks/16-dev-scroll-typo.png
+# result: ✅ 留痕命中：MM_DEV_SCROLL 含非法取值（nedd），只接受 end，钩子已忽略
+# ---- 17-failure-fixture-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_FAILURE_FIXTURE=protectd
+# expect: MM_FAILURE_FIXTURE 含非法取值（protectd），只接受 protected
+# windowid: 4190  pid: 6384  settle: 7s  照片: docs/verification/p18-hooks/17-failure-fixture-typo.png
+# result: ✅ 留痕命中：MM_FAILURE_FIXTURE 含非法取值（protectd），只接受 protected，钩子已忽略
+# ---- 18-snapshot-fixture-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_SNAPSHOT_FIXTURE=mixd
+# expect: MM_SNAPSHOT_FIXTURE 含非法取值（mixd），只接受 broken|mixed|none|overflow|updateonly
+# windowid: 4193  pid: 6427  settle: 7s  照片: docs/verification/p18-hooks/18-snapshot-fixture-typo.png
+# result: ✅ 留痕命中：MM_SNAPSHOT_FIXTURE 含非法取值（mixd），只接受 broken|mixed|none|overflow|updateonly，快照整块按真实读取结果显示
+# ---- 19-appearance-typo ----
+# env: MM_APPEARANCE=pink
+# expect: MM_APPEARANCE=pink 不是 light/dark，沿用系统外观
+# windowid: 4196  pid: 6440  settle: 7s  照片: docs/verification/p18-hooks/19-appearance-typo.png
+# result: ✅ 留痕命中：MM_APPEARANCE=pink 不是 light/dark，沿用系统外观
+# ---- 20-window-size-typo ----
+# env: MM_WINDOW_SIZE=900
+# expect: MM_WINDOW_SIZE=900 解析失败
+# windowid: 4199  pid: 6454  settle: 7s  照片: docs/verification/p18-hooks/20-window-size-typo.png
+# result: ✅ 留痕命中：MM_WINDOW_SIZE=900 解析失败（要写成 900x600），沿用默认尺寸
+# ---- 21-auto-continue-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_AUTO_CONTINUE=3s
+# expect: MM_DEV_AUTO_CONTINUE 含非法取值（3s），只接受 1~3，已回落 0
+# windowid: 4202  pid: 6465  settle: 7s  照片: 按 -n 跳过（钩子被拒后画面是真实主目录）
+# result: ✅ 留痕命中：MM_DEV_AUTO_CONTINUE 含非法取值（3s），只接受 1~3，已回落 0
+# ---- 22-budget-typo ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev MM_PURGE_FIXTURE_HOME=/tmp/macmaster-purge-fixture MM_DEV_ROOT_BUDGET_SECONDS=15s
+# expect: MM_DEV_ROOT_BUDGET_SECONDS 含非法取值（15s），只接受大于 0 的秒数，钩子已忽略，这一轮按默认预算
+# windowid: 4203  pid: 6479  settle: 7s  照片: 按 -n 跳过（钩子被拒后画面是真实主目录）
+# result: ✅ 留痕命中：MM_DEV_ROOT_BUDGET_SECONDS 含非法取值（15s），只接受大于 0 的秒数，钩子已忽略，这一轮按默认预算
+# ---- 23-confirm-mode-typo ----
+# env: MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-provenance-fixture.eFU8lC MM_UNINSTALL_CONFIRM_MODE=withresidual
+# expect: MM_UNINSTALL_CONFIRM_MODE 含非法取值（withresidual），只接受 apponly|withresiduals|none，已回落 apponly 档
+# windowid: 4205  pid: 6489  settle: 7s  照片: docs/verification/p18-hooks/23-confirm-mode-typo.png
+# result: ✅ 留痕命中：MM_UNINSTALL_CONFIRM_MODE 含非法取值（withresidual），只接受 apponly|withresiduals|none，已回落 apponly 档
+# ---- 结论 ----
+# 核对 23 档，失败 0 档
+# 照片 18 张，原始 stderr 在 docs/verification/p18-hooks/raw/
