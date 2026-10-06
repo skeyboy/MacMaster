@@ -1,0 +1,6 @@
+# p22-disk-skip-capture.sh 02-skip-subroot  2026-10-06 12:38:03 +0800  app=/tmp/mm-app-v1/MacMaster.app
+# repo: 0e36f97-dirty   # app-repo: 0e36f97-dirty
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=disk MM_DISK_SCAN=/tmp/macmaster-disk-protected-fixture/Documents 
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-v1/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# 期望徽章：见脚本头「判据」一节（夹具里三处受保护目录分别在第 1/2/3 层）

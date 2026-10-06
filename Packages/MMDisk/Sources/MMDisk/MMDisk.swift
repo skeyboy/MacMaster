@@ -323,12 +323,12 @@ public struct DiskAnalyzerView: View {
 
             Spacer(minLength: MMGap.md)
 
-            // 扫描层会整目录跳过 Library / .Trash 这类受保护项。不写出来的话，
-            // "图上没有这块"会被读成"这里真的是空的"，而它其实是"这里我们没看"。
+            // 扫描层会在**每一层**整目录跳过 Library / Photos Library.photoslibrary 这类受保护项。
+            // 不写出来的话，"图上没有这块"会被读成"这里真的是空的"，而它其实是"这里我们没看"。
             if let skipped = scanResult?.skippedProtected, !skipped.isEmpty {
                 MMBadge("未纳入 \(skipped.count) 个受保护目录",
                         tint: MMColor.secondaryLabel, systemImage: "lock")
-                    .help("这些目录在扫描时被整体跳过（\(skipped.joined(separator: "、"))），不计面积也不计总量")
+                    .help("这些目录在扫描时被整体跳过（\(skippedDisclosure(skipped))），不计面积也不计总量")
             }
 
             // 没扫到深度的目录：判不了是否命中。既不画进布局（面积编不出来），
@@ -1532,6 +1532,14 @@ public struct DiskAnalyzerView: View {
             self.isScanning = false
         }
     }
+
+    /// 计数说的是整棵树里被跳过的目录，一条 help 浮层列不下几十条相对路径，
+    /// 而全列出也没人读：列前 8 处，剩下的用总数兜住，数字仍然是完整的。
+    private func skippedDisclosure(_ skipped: [String]) -> String {
+        let cap = 8
+        guard skipped.count > cap else { return skipped.joined(separator: "、") }
+        return "\(skipped.prefix(cap).joined(separator: "、")) 等 \(skipped.count) 处"
+    }
 }
 
 struct DiskTreeNode: Identifiable, Sendable {
@@ -1664,7 +1672,8 @@ struct DiskScanResult {
     /// 被扫描那棵树自己的占用，和"卷总容量"是两回事，页面上不能混用。
     let scannedSize: UInt64
     let fileCount: Int
-    /// 根目录下未纳入统计的受保护子目录名（Library、Photos Library.photoslibrary 等）。
+    /// 整棵被扫树里未纳入统计的受保护目录，路径相对被扫的根（Library、
+    /// Pictures/Photos Library.photoslibrary 等，任何一层都会计进来）。
     var skippedProtected: [String] = []
 }
 
@@ -1677,7 +1686,7 @@ enum DiskScanner {
         let topItems: [DiskTreeNode]
         let largeFilesList: [DiskTreeNode]
         let fileCount: Int
-        /// 根目录下被 protectedNames 挡掉、没进统计的那几个名字。
+        /// 整棵树里被 protectedNames 挡掉、没进统计的那些目录，路径相对被扫的根。
         /// 统计口径必须能自证：不报出来的话，"~/Library 一片空白"会被读成"它真的是空的"。
         let skippedProtected: [String]
     }
@@ -1709,6 +1718,31 @@ enum DiskScanner {
             return lock.withLock { claimed.insert(Key(dev: dev, ino: ino)).inserted }
         }
     }
+    /// 扫描在**每一层**都会按名字跳过下面那份名单，所以跳过要逐处记账。
+    /// 只列根目录那一层的话，`~/Pictures/Photos Library.photoslibrary` 这种第二层
+    /// 才出现的跳过完全不进披露，页面上那句"未纳入 N 个受保护目录"就是在少报。
+    /// 和 HardlinkLedger 同一个理由用锁：记跳过发生在同步的枚举循环里，
+    /// 而顶层往下有三层并发。
+    final class ProtectedSkipLedger: @unchecked Sendable {
+        private let lock = NSLock()
+        private var paths: Set<String> = []
+
+        func record(_ path: String) {
+            lock.withLock { _ = paths.insert(path) }
+        }
+
+        /// 相对被扫根的路径，排序去重。根目录的直接子项退化成名字本身（"Library"），
+        /// 更深的带上前缀（"Pictures/Photos Library.photoslibrary"），
+        /// 否则两处同名跳过在页面上会被读成同一处。
+        func relativePaths(rootPath: String) -> [String] {
+            let prefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
+            return lock.withLock {
+                paths.map { $0.hasPrefix(prefix) ? String($0.dropFirst(prefix.count)) : $0 }
+                    .sorted()
+            }
+        }
+    }
+
     private static let protectedNames: Set<String> = [
         "Photos Library.photoslibrary",
         "Mobile Documents",
@@ -1728,9 +1762,11 @@ enum DiskScanner {
     ) async -> ScanOutput {
         // 账本贯穿整棵树，跨目录的硬链接也只算一次。
         let ledger = HardlinkLedger()
+        // 跳过的目录同样贯穿整棵树记账，见 ProtectedSkipLedger。
+        let skips = ProtectedSkipLedger()
         let children = await scanChildren(
-            path: rootPath, depth: 0,
-            accessiblePaths: accessiblePaths, tracker: tracker, ledger: ledger
+            path: rootPath, depth: 0, accessiblePaths: accessiblePaths,
+            tracker: tracker, ledger: ledger, skips: skips
         )
         let rootContext = DiskClassify.context(forPath: rootPath)
         let topItems = DiskClassify.classify(
@@ -1746,17 +1782,8 @@ enum DiskScanner {
             topItems: topItems,
             largeFilesList: largeFiles,
             fileCount: fileCount,
-            skippedProtected: Self.skippedProtectedNames(rootPath: rootPath)
+            skippedProtected: skips.relativePaths(rootPath: rootPath)
         )
-    }
-
-    /// 根目录里被扫描层挡掉的受保护目录名。单独列一次根目录（不递归），
-    /// 是为了能在页面上说清楚"这块没算进去"，而不是让用户自己猜。
-    private static func skippedProtectedNames(rootPath: String) -> [String] {
-        readEntries(path: rootPath, ledger: nil)
-            .filter { $0.isDirectory && protectedNames.contains($0.name) }
-            .map(\.name)
-            .sorted()
     }
 
     static func childrenOfDirectory(
@@ -1767,9 +1794,11 @@ enum DiskScanner {
     ) async -> [DiskTreeNode] {
         // 单独下钻时只能拿到这一子树的账本；与兄弟子树重复计数的
         // 硬链接会各算一次，这是重新枚举单层的固有代价，不谎报为全局去重。
+        // 跳过这里传 nil：披露那句说的是"这次扫描"，而全盘扫描走过同一棵子树时
+        // 已经把每一处按名字的跳过记进去了，下钻再记一遍会把同一处数成两处。
         let nodes = await scanChildren(
             path: path, depth: 0, accessiblePaths: nil, tracker: tracker,
-            ledger: HardlinkLedger()
+            ledger: HardlinkLedger(), skips: nil
         )
         return DiskClassify.classify(
             nodes, inheritedCategory: inheritedCategory, inheritedReclaim: inheritedReclaim
@@ -1778,9 +1807,10 @@ enum DiskScanner {
 
     /// 目录大小直接由子节点求和得出，避免对同一目录重复枚举。
     private static func scanNode(
-        entry: FileEntry, depth: Int, tracker: ScanProgressTracker?, ledger: HardlinkLedger?
+        entry: FileEntry, depth: Int, tracker: ScanProgressTracker?,
+        ledger: HardlinkLedger?, skips: ProtectedSkipLedger?
     ) async -> DiskTreeNode {
-        let children = await scanChildren(path: entry.path, depth: depth, accessiblePaths: nil, tracker: tracker, ledger: ledger)
+        let children = await scanChildren(path: entry.path, depth: depth, accessiblePaths: nil, tracker: tracker, ledger: ledger, skips: skips)
         let size = children.reduce(UInt64(0)) { $0 + $1.size }
         return DiskTreeNode(
             id: entry.path, name: entry.name, path: entry.path,
@@ -1794,7 +1824,8 @@ enum DiskScanner {
         depth: Int,
         accessiblePaths: Set<String>?,
         tracker: ScanProgressTracker?,
-        ledger: HardlinkLedger?
+        ledger: HardlinkLedger?,
+        skips: ProtectedSkipLedger?
     ) async -> [DiskTreeNode] {
         let entries = readEntries(path: path, ledger: ledger)
         guard !entries.isEmpty else { return [] }
@@ -1804,7 +1835,10 @@ enum DiskScanner {
         var directories: [FileEntry] = []
 
         for entry in entries {
-            if protectedNames.contains(entry.name) { continue }
+            if protectedNames.contains(entry.name) {
+                if entry.isDirectory { skips?.record(entry.path) }
+                continue
+            }
 
             if depth == 0, let accessible = accessiblePaths,
                !accessible.contains(entry.path),
@@ -1831,7 +1865,7 @@ enum DiskScanner {
             for dir in directories {
                 result.append(DiskTreeNode(
                     id: dir.path, name: dir.name, path: dir.path,
-                    size: deepSize(path: dir.path, remainingDepth: 3, ledger: ledger),
+                    size: deepSize(path: dir.path, remainingDepth: 3, ledger: ledger, skips: skips),
                     isDirectory: true, children: [],
                     modificationDate: dir.modificationDate,
                     // 触达深度上限：字节量到了，名字没枚举过。
@@ -1847,20 +1881,20 @@ enum DiskScanner {
                 while next < min(workerLimit, directories.count) {
                     let dir = directories[next]
                     next += 1
-                    group.addTask { await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger) }
+                    group.addTask { await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger, skips: skips) }
                 }
                 while let node = await group.next() {
                     result.append(node)
                     if next < directories.count {
                         let dir = directories[next]
                         next += 1
-                        group.addTask { await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger) }
+                        group.addTask { await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger, skips: skips) }
                     }
                 }
             }
         } else {
             for dir in directories {
-                result.append(await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger))
+                result.append(await scanNode(entry: dir, depth: depth + 1, tracker: tracker, ledger: ledger, skips: skips))
             }
         }
 
@@ -1911,13 +1945,21 @@ enum DiskScanner {
     }
 
     /// 触达深度上限时的兜底统计，不再构建节点。
-    private static func deepSize(path: String, remainingDepth: Int, ledger: HardlinkLedger?) -> UInt64 {
+    /// 这里的跳过也要记账：深度截断那一档同样是"整目录没看"，漏报的话
+    /// "未纳入 N 个受保护目录"会说少。
+    private static func deepSize(
+        path: String, remainingDepth: Int, ledger: HardlinkLedger?, skips: ProtectedSkipLedger?
+    ) -> UInt64 {
         guard remainingDepth > 0 else { return 0 }
         var total: UInt64 = 0
         for entry in readEntries(path: path, ledger: ledger) {
-            if protectedNames.contains(entry.name) { continue }
+            if protectedNames.contains(entry.name) {
+                if entry.isDirectory { skips?.record(entry.path) }
+                continue
+            }
             total += entry.isDirectory
-                ? deepSize(path: entry.path, remainingDepth: remainingDepth - 1, ledger: ledger)
+                ? deepSize(path: entry.path, remainingDepth: remainingDepth - 1,
+                           ledger: ledger, skips: skips)
                 : entry.size
         }
         return total

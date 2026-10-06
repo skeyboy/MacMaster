@@ -86,7 +86,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 7 类色块：开发者/应用数据/媒体/文档/缓存/日志/其他 | `DiskClassify.swift:12-39` + `TreemapView` 布局 | ✅ | 色相与顺序逐字一致 | — | — |
-| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1874-1911` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
+| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1908-1945` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
 | 选中块：2px accent 描边 | `TreemapView.swift:527-528` `stroke(accent, lineWidth: 2)` | ✅ | 与稿 `.sel { outline: 2px #0A84FF }` 一致 | — | — |
 | 标记块：斜纹 + 右下勾标 | `TreemapView.swift:478-525` 白纹 + 勾标 | ⚠️ 部分 | 稿对 Xcode 同时画 **暗纹(reclaimable) + 勾标(marked)**；实现**标记后暗纹让位给白纹**。取舍不同，视觉略异 | 低 | 实现该改 I12 |
 | 可清理斜纹（hatch） | `TreemapView.swift:472-475` 暗纹 0.20 | ✅（语义） | 与稿斜纹语义一致（色相=种类、斜纹=可清） | — | — |
@@ -505,6 +505,10 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
    面包屑条挂 `🔒 未纳入 N 个受保护目录` 徽标，hover 列名字。
    判据：`DiskScannerHierarchyTests.testProtectedDirectorySkipIsReported` /
    `testNothingSkippedLeavesEmptyDisclosure`。
+   **P22 把这一处口径改宽了**：那句"只列一层，不递归"当时是真的，也当时就是错的——
+   扫描的跳过判定在**每一层**都做，披露却只数根目录那一层，于是 N 少报。
+   现在 `skippedProtected` 是"整棵树里每一处跳过的目录，路径相对被扫的根"，
+   `skippedProtectedNames(rootPath:)` 已删，记账换成 `ProtectedSkipLedger`（见 §13）。
    **没改扫描语义**：跳过 `Library` 是既定行为，删除安全另有 `DiskRemoval` + `DeletionGuard` 两道闸
    （见 `deletion-guard.md`、提请协调者 #6），这里补的只是可见性。
 
@@ -752,8 +756,8 @@ I4 收口那一轮（§2 第 4 条 ✅）留下的不是一句"改回子项就�
 
 ### 12.1 为什么必须新造一棵树
 
-`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1838`）那一支写下，
-而 `maxDepth = 20`（`MMDisk.swift:1695`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
+`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1872`）那一支写下，
+而 `maxDepth = 20`（`MMDisk.swift:1704`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
 所以这一档此前不是"没拍"，是**没有任何夹具能拍到**。新夹具
 `Scripts/disk-depth-fixture.sh` 造的是一棵 20 层窄树（每层一个 64k 实心文件 + 一个子目录），
 层数按扫描器口径推：`scanChildren(path: 根, depth: 0)` 枚举根的子女，扫 `根/L01…L0k` 时 depth = k，
@@ -813,4 +817,61 @@ I4 收口那一轮（§2 第 4 条 ✅）留下的不是一句"改回子项就�
 **下一轮改稿时的处理**：这些引用一律换成**符号名**（`readEntries` / `legend(filtered:)` / `doNavigate` /
 钩子名本身），行号只在"这一处只有行号能定位"时保留，并且跟着写"现 `:NNNN`"标明它是快照值。
 理由就是本仓库自己那条建议——按符号名找，别按行号找。
+
+## 13. P22 追加（2026-10-06）：徽章那句"未纳入 N 个"数的是整棵树，不再只是根目录
+
+§5 第 2 条那次补的披露有一个当时没看见的形状：扫描的跳过判定按名字做在**每一层**
+（`scanChildren` 与 `deepSize` 各有一处 `protectedNames.contains(entry.name)`），
+而披露走的是 `skippedProtectedNames(rootPath:)`——**只列根目录的直接子项**。
+两处读的是同一份名单，数的范围却不一样，于是 N 是少报的。
+
+真机上最先撞上的是 `~/Pictures/Photos Library.photoslibrary`：它在第二层，
+扫描整目录跳过、一个字节都不算，徽章却一个都不提。画面上 `Pictures` 那一块
+根本不出现（0 体积不进 treemap：子层那一档由 `rawChildItems` 的 `.filter { $0.size > 0 }` 挡下，
+顶层这一格本轮没单独查它走的是哪一行），于是它就被读成"这里真的是空的"，
+而 §5 那次修的正是这一类读法——修得不完全。
+
+**改法**：删掉 `skippedProtectedNames(rootPath:)`，换成 `ProtectedSkipLedger`
+（`MMDisk.swift`，与 `HardlinkLedger` 同一条理由用 `NSLock`：记跳过在同步枚举里，
+而顶层往下有三层并发），跟着遍历一路记到 `deepSize` 那一支（深度截断档同样是"整目录没看"）。
+`skippedProtected` 的形态从"名字"换成"**相对被扫根**的路径"——两处同名跳过
+（`Library` 和 `Documents/Work/Library`）只给名字就分不出是谁。
+根目录那一层退化成名字本身，所以旧的那条判据 `XCTAssertEqual(output.skippedProtected, ["Library"])` 不用改。
+浮层文案加了一道截断（`skippedDisclosure(_:)`，前 8 处 + "等 N 处"）：整盘扫描时
+`/System/…/Library` 这类能到几十上百处，全列出没人读，但**数字始终是完整的**。
+
+**判据**：`DiskScannerHierarchyTests.testNestedProtectedSkipIsDisclosed`——
+夹具在第二层放 `Pictures/Photos Library.photoslibrary`、第三层放 `dir0/dir1/Library`，
+断言两处的相对路径都在、且被跳过的那块字节不进父目录面积（`Pictures.size == 0`）。
+**先跑过一遍失败**：改代码之前它报的是 `("[]") is not equal to ("[Pictures/Photos Library.photoslibrary, dir0/dir1/Library]")`，
+也就是"两处都不报"，而不是"少报一处"——这条失败信息本身就是这一轮的病根。
+
+**取证**（`docs/verification/p22-disk-skip/`，`./Scripts/p22-disk-skip-capture.sh`，两档零点击）：
+新夹具 `Scripts/disk-protected-fixture.sh` 把受保护目录放在第 1/2/3 层各一处。
+`01-skip-badge` 扫夹具根 → 徽章 `未纳入 3 个受保护目录`；
+`02-skip-subroot` 换根到 `…/Documents` → `未纳入 1 个受保护目录`（只有 `Work/Library`，
+上一档那两处不在这棵树里，不该跟着换根跑过来）。
+**为什么这一族要新夹具**：哨兵夹具 `disk-fixture.sh` 只在根目录放了一个 `Library`，
+旧口径和新口径在它上面都报"未纳入 1 个"，照片逐像素一样——这一族的 bug 用哨兵夹具拍不出来。
+反过来这也是它继续当哨兵的理由：本轮它的字节数、`已选中 …（50.3 MB）`、`确认面板（3 个标记）`
+那些回执**一个字都没动**（被跳过的目录本来就不进统计），所以 p68-disk / p21-disk 两族旧照片仍然可比。
+
+**照片证不到的两处，别当成证到了**：
+① 浮层里那三条相对路径是原生 tooltip，不进截图——字符串形态的证据只有那条单测；
+② "改之前报 1、改之后报 3"这一对比没有旧产物的同夹具照片，凭据是上面那条单测的失败输出。
+
+**仍然开着的**：
+- 下钻（`childrenOfDirectory`）这一趟**不写披露**（`skips: nil`）。理由写在调用点的注释里：
+  全盘扫描走过同一棵子树时已经把每一处记进去了，下钻再记一遍会把同一处数成两处。
+  但"重新扫描之后树上多了新的受保护目录"这一档确实不进 N，本轮没改。
+- `protectedNames` 里 `.Trash` / `.Spotlight-V100` / `.fseventsd` / `.TemporaryItems` / `.PKISyncStore`
+  这五条**永远匹配不上**：`readEntries` 在更早的地方就把 `.` 开头的名字整条跳过（同一个函数里，
+  本轮现读 `:1914`，快照值）。它们实际是被"隐藏文件"那条规则挡掉的，不是被这份名单挡掉的——
+  结果一样（都不进统计），但"名单里有它"这句话对这几项起不了任何作用，
+  而徽章的浮层也就永远不会列出它们。
+- 真机用户目录（受保护项不止 `Library` 一个）下这枚徽章的宽度、窄窗溢出：仍未测。
+  §2 I11 那一条在 P6.6 量过的是**夹具根**（面包屑里一枚「卷可用 …」药丸），
+  而本轮之后同一栏可能同时挂「未纳入 30 处 …」这种长浮层入口——**徽章变多宽会不会把面包屑挤出去，
+  现在没有任何一张照片知道**（夹具最多 3 处）。
+
 

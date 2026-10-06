@@ -1,0 +1,8 @@
+# p68-disk-capture.sh 03-perm-acked  2026-10-06 12:38:35 +0800  app=/tmp/mm-app-v1/MacMaster.app  fixture=/tmp/macmaster-disk-fixture
+# repo: 0e36f97-dirty   # app-repo: 0e36f97-dirty
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=disk MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_DISK_SELECT=/tmp/macmaster-disk-fixture/Downloads,/tmp/macmaster-disk-fixture/Movies,/tmp/macmaster-disk-fixture MM_SHOW_CONFIRM=1 MM_SHOW_PERMANENT=acked
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-v1/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_DISK_SELECT 已选中 /tmp/macmaster-disk-fixture/Downloads（50.3 MB）
+MM_SHOW_CONFIRM 已打开确认面板（3 个标记）
+MM_SHOW_PERMANENT=acked 已把镜头换到永久删除面板（勾选项 已打），没有改动任何文件

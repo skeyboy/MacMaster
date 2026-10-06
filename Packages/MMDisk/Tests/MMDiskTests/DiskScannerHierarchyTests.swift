@@ -66,6 +66,28 @@ final class DiskScannerHierarchyTests: XCTestCase {
                        "Library 既被跳过就不该出现在顶层块里")
     }
 
+    /// 跳过发生在**每一层**，披露也就必须覆盖每一层：`~/Pictures/Photos Library.photoslibrary`
+    /// 在第二层，只数根目录那一层的"未纳入 N 个受保护目录"会一个都不报，页面上那块空白
+    /// 就会被读成"这里真的是空的"。这条钉住披露范围与真实跳过范围一致。
+    func testNestedProtectedSkipIsDisclosed() async throws {
+        let photos = root + "/Pictures/Photos Library.photoslibrary/originals"
+        try FileManager.default.createDirectory(atPath: photos, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: photos + "/clip.mov",
+                                       contents: Data(repeating: 0x33, count: 70_000))
+        let deep = root + "/dir0/dir1/Library/Caches"
+        try FileManager.default.createDirectory(atPath: deep, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: deep + "/leaf.bin",
+                                       contents: Data(repeating: 0x44, count: 20_000))
+
+        let output = await DiskScanner.performScan(rootPath: root)
+        XCTAssertEqual(Set(output.skippedProtected),
+                       Set(["Pictures/Photos Library.photoslibrary", "dir0/dir1/Library"]),
+                       "两处不同深度的跳过都要报，且要能分清是哪一处")
+        // 被跳过的那块字节不进面积：Pictures 只剩一个被跳过的孩子，算出来就是 0。
+        let pictures = output.topItems.first { $0.name == "Pictures" }
+        XCTAssertEqual(pictures?.size, 0, "跳过的子树不该算进父目录面积")
+    }
+
     /// 根目录干净时不要凭空造一句"未纳入受保护目录"。
     func testNothingSkippedLeavesEmptyDisclosure() async throws {
         let clean = root + "/solo"

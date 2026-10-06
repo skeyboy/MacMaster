@@ -1,0 +1,20 @@
+# run-all-tests.sh  P22 第九遍发版核验·第 1 步  2026-10-06 12:40:11 +0800（结论行完成时刻）
+# repo: 0e36f97-dirty branch=main
+# 说明：P22 起这一格的结论行入库。前八遍它只留在 /tmp（P21 那一份是 /tmp/mm-p21b-tests.log），
+#       于是 §1 那一格引用的是别人 clone 之后不存在的路径。逐包原始输出仍在 /tmp/macmaster-tests/，
+#       那一份不入库（它是 swift test 的全文，体积大且每轮重生成）。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=18   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=73   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：622 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
+# 13:01:08 在文档回写全部落定之后又跑了一遍，逐包数字与上面一行不差；
+# `find Sources Packages -name '*.swift' -newermt '2026-10-06 12:40:11'` 为空——
+# 也就是这一格的 622 覆盖的就是本轮提交的那份源码，不是它之后或之前的某一版。
