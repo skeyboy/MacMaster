@@ -230,7 +230,7 @@ done < "$TMP/class.tsv"
 report() {
   print -r -- "# p16 citation audit"
   print -r -- "# date: $(date '+%Y-%m-%d %H:%M:%S')"
-  print -r -- "# repo: $(git rev-parse --short HEAD) branch=$(git rev-parse --abbrev-ref HEAD)"
+  print -r -- "# repo: $(git rev-parse --short HEAD)$( [[ -n $(git status --porcelain -uno) ]] && echo -dirty ) branch=$(git rev-parse --abbrev-ref HEAD)"
   print -r -- "# docs scanned: $docsScanned 个真抽了 / $(git -c core.quotePath=off ls-files '*.md' | wc -l | tr -d ' ') 个入库 .md（两个数不等就是有文件没被读到）"
   print -r -- "# index: 本仓库 $(wc -l < "$TMP/idx-self" | tr -d ' ') 个跟踪文件 / 参考仓库 $(wc -l < "$TMP/idx-ref" | tr -d ' ') 个 / SDK 头文件 $(wc -l < "$TMP/idx-sdk" | tr -d ' ') 个"
   # 词汇表条数也自报：符号面两层的 0 只有在"词汇表非空"时才是结论。

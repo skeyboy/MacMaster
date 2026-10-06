@@ -14,6 +14,10 @@
 set -e
 
 cd "$(dirname "$0")/.."
+# 归因头要能说出自己是哪棵树：这一支脚本每轮换一个新证据目录（v1.0.0 / p12-v1 / p13-v1 …），
+# 只有日期的话没人能对得上"这三张照片出自哪一次改动"。-uno：本轮自己写的未跟踪文件不算脏活。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
 APP=${1:?需要 .app 路径}
 OUT=${2:?需要输出目录}
 APPEARANCE=${APPEARANCE:-light}
@@ -27,6 +31,10 @@ ver=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
       | sed -nE 's/.*"CFBundleShortVersionString" => "(.*)".*/\1/p')
 bld=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
       | sed -nE 's/.*"CFBundleVersion" => "(.*)".*/\1/p')
+# 被测二进制自己是哪棵树构建的（make-app.sh 打进 plist）。这一行和上面那行 `# repo:`
+# 是两件事：`# repo:` 是**跑这条检查的脚本树**，`MMGitCommit` 是**被签名的那份产物**。
+gitc=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
+      | sed -nE 's/.*"MMGitCommit" => "(.*)".*/\1/p')
 # 图标键也收进同一行：缺 CFBundleIconFile 时 Dock 是通用白纸，而 plist 别处一切正常，
 # 事后没人想得起来"这次构建到底带没带图标"。
 icon=$(plutil -p "$APP/Contents/Info.plist" 2>/dev/null \
@@ -42,8 +50,9 @@ shot() {
   {
     print -r -- "# p7-release-check.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP"
     print -r -- "# env: MM_APPEARANCE=$APPEARANCE ${(j: :)@}"
+    print -r -- "# repo: $repoTag branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 未知)"
     print -r -- "# codesign: $sig"
-    print -r -- "# plist: CFBundleShortVersionString=$ver CFBundleVersion=$bld CFBundleIconFile=${icon:-（无）}"
+    print -r -- "# plist: CFBundleShortVersionString=$ver CFBundleVersion=$bld CFBundleIconFile=${icon:-（无）} MMGitCommit=${gitc:-（无这一键）}"
     print -r -- "# spctl: $assess"
   } >"$log"
   env MM_APPEARANCE="$APPEARANCE" "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &

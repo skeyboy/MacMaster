@@ -31,6 +31,9 @@
 set -e
 
 cd "$(dirname "$0")/.."
+# 归因头要能说出自己是哪棵树（-uno：证据目录里自己写出的未跟踪文件不算脏活）。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
 APP=${1:?需要 .app 路径}
 OUT=${2:?需要输出目录}
 APPEARANCE=${3:-dark}
@@ -60,10 +63,14 @@ mkdir -p "$OUT" "$EVIDENCE"
   print -r -- "# p17-website-capture.sh 落地页四屏夹具档实拍"
   print -r -- "# date: $(date '+%Y-%m-%d %H:%M:%S %z')"
   print -r -- "# command: ./Scripts/p17-website-capture.sh $APP $OUT $APPEARANCE $SIZE"
-  local ver bld
+  print -r -- "# repo: $repoTag branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 未知)"
+  local ver bld gcommit
   ver=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
   bld=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
+  gcommit=$(/usr/libexec/PlistBuddy -c 'Print :MMGitCommit' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
   print -r -- "# app: $ver ($bld)"
+  # `# repo:` 是跑这条脚本的那棵树，`# app-repo:` 是被拍的那份二进制打包时的那棵树，改脚本重跑旧产物时两者不同。
+  print -r -- "# app-repo: $gcommit"
   print -r -- "# shape under test: 落地页 §界面预览 那四个截图位（改前是四个 .screenshot-placeholder 的 div、全页 <img> 为 0）"
   print -r -- "# expected: 四张图的清单与读数来自夹具钩子；画面上出现 /tmp 夹具路径或 com.example.*/TZZ* 合成条目，"
   print -r -- "            不出现真实登录项、真实密钥目录 mtime。**但有三个值夹具顶替不了，必然带真机状态**："

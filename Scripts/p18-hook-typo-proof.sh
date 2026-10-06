@@ -28,6 +28,12 @@
 set -e
 
 cd "$(dirname "$0")/.."
+# 归因头要能说出自己是哪棵树：同一道门禁重跑到另一个证据目录，两份日志只差日期的话，
+# 没人能对上"这 18 张照片出自哪一次改动"。工作区不干净时后缀 -dirty——
+# 只看 commit 会把"未提交的树"读成"已入库的树"（P18 那一跑正是 83aaf86-dirty）。
+# 用 -uno：本脚本自己正在往证据目录里写未跟踪的日志与照片，算进脏活就永远是 -dirty 了。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
 APP=${1:?需要 .app 路径}
 EVIDENCE=${2:-docs/verification/p18-hooks}
 RAW="$EVIDENCE/raw"
@@ -71,10 +77,15 @@ TRACE='含非法取值|沿用系统外观|解析失败|钩子已忽略|不在 /t
   print -r -- "# p18-hook-typo-proof.sh 钩子写错值留痕核验"
   print -r -- "# date: $(date '+%Y-%m-%d %H:%M:%S %z')"
   print -r -- "# command: ./Scripts/p18-hook-typo-proof.sh $APP $EVIDENCE"
-  local ver bld
+  print -r -- "# repo: $repoTag branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 未知)"
+  local ver bld gcommit
   ver=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
   bld=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
+  gcommit=$(/usr/libexec/PlistBuddy -c 'Print :MMGitCommit' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
   print -r -- "# app: $ver ($bld)"
+  # 两个 repo 行是分开的两件事：`# repo:` 是跑这条脚本的那棵树，`# app-repo:` 是被测二进制
+  # 打包时的那棵树。改完取证脚本重跑旧产物时它们就不一样，只有一个行的话会指错。
+  print -r -- "# app-repo: $gcommit"
   print -r -- "# shape under test: 档位选择与夹具路径钩子在取值写错时的行为（改前：静默回落，日志一行没有）"
   print -r -- "# expected: 正向档的 stderr 里必须有该行给出的 expect 子串；负向档（expect=-）里"
   print -r -- "            一条留痕都不许出现。照片用来人眼核对'确实落在文案说的那一档'。"

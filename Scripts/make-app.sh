@@ -39,6 +39,14 @@ APP="$APP_DIR/$BIN_NAME.app"
 VERSION=${VERSION:-1.0.0}
 BUILD=${BUILD:-1}
 
+# 候选产物要能自证它是哪棵树构建的：P12/P13/P15/P19 四轮核验的产物版本号全是 1.0.0(1)，逐字相同，
+# 只看 bundle 分不出"带某一轮改动的那一份"和"没带的那一份"——而取证日志的归因头记的是
+# **脚本那棵树**，不是**被测二进制那棵树**，这两件事在"改完取证脚本再跑一遍旧产物"时会分开。
+# 所以把 commit 打进 plist（自定义键，系统忽略）。-uno：打包时工作区里全是本轮新写的
+# 未跟踪证据文件，算进脏活就永远 -dirty（同一个理由见 p7-release-check.sh 的归因头）。
+GIT_COMMIT=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git -C "$ROOT" status --porcelain -uno 2>/dev/null) ]]; then GIT_COMMIT="$GIT_COMMIT-dirty"; fi
+
 mkdir -p "$APP_DIR"
 swift build "${BUILD_ARGS[@]}"
 
@@ -82,6 +90,8 @@ ${ICON_KEY}
     <string>$VERSION</string>
     <key>CFBundleVersion</key>
     <string>$BUILD</string>
+    <key>MMGitCommit</key>
+    <string>$GIT_COMMIT</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
