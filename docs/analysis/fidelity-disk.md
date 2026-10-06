@@ -16,7 +16,7 @@
 >    违反本项目"扫描类钩子只认 /tmp、越界即忽略"的明线纪律（README §5），
 >    一旦被设成真实用户目录会去枚举真实磁盘树，当时判 **实现该改 · 高**（I1）。
 >    **现在两个钩子都有守卫**：`MMDisk.swift:171-176`（`MM_DISK_SCAN`，越界写 stderr「不在 /tmp 之下，
->    忽略该钩子」后 `return`）与 `MMDisk.swift:1086-1094`（`MM_DISK_SELECT`，含非 /tmp 路径则整钩子忽略）。
+>    忽略该钩子」后 `return`）与 `MMDisk.swift:1075-1083`（`MM_DISK_SELECT`，含非 /tmp 路径则整钩子忽略）。
 >    这一条留在原文里是因为它是本项目"文档比代码老"最典型的一例：
 >    **四道硬判据抓不到它**（改前那条锚点指过去的行存在、非空白、不歧义，只是那一行已经不是那件事了），
 >    能抓它的只有"去源码里读一眼"——见 `release-readiness.md` §7.7 那条"路径存在、说法不成立"的盲区。
@@ -86,7 +86,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 7 类色块：开发者/应用数据/媒体/文档/缓存/日志/其他 | `DiskClassify.swift:12-39` + `TreemapView` 布局 | ✅ | 色相与顺序逐字一致 | — | — |
-| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1585-1626` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
+| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1874-1911` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
 | 选中块：2px accent 描边 | `TreemapView.swift:527-528` `stroke(accent, lineWidth: 2)` | ✅ | 与稿 `.sel { outline: 2px #0A84FF }` 一致 | — | — |
 | 标记块：斜纹 + 右下勾标 | `TreemapView.swift:478-525` 白纹 + 勾标 | ⚠️ 部分 | 稿对 Xcode 同时画 **暗纹(reclaimable) + 勾标(marked)**；实现**标记后暗纹让位给白纹**。取舍不同，视觉略异 | 低 | 实现该改 I12 |
 | 可清理斜纹（hatch） | `TreemapView.swift:472-475` 暗纹 0.20 | ✅（语义） | 与稿斜纹语义一致（色相=种类、斜纹=可清） | — | — |
@@ -459,7 +459,7 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
    本模块当时是唯一破了"扫描类钩子只认 /tmp"红线的地方（改前那两条锚点指到扫描入口与选中钩子，
    都没有前缀校验）。按硬约束 #4「优先提请协调者」，当时请协调者确认：是否在 `MMDisk/Sources` 内照
    `GuardianFixtureHooks.swift` 口径补 `/tmp` 守卫（越界写 stderr 并 `return`）。
-   **现在的实现正是这个口径**：`MMDisk.swift:171-176` 与 `MMDisk.swift:1086-1094`，
+   **现在的实现正是这个口径**：`MMDisk.swift:171-176` 与 `MMDisk.swift:1075-1083`，
    且两处的拒绝文案都被 `Scripts/p18-hook-typo-proof.sh` 的负向档实拍钉住（`hook-typo-audit.md` §5
    把 `MM_DISK_SCAN` 归在 A 类"改前就会说话"，说的就是这一条已经会自己开口）。
    **本审计当时未改此代码**，等协调者拍板——这一句保留原文，因为它是"提请协调者"这一类条目的样板：
@@ -626,8 +626,8 @@ if let fresh = find(path: path, in: items) { … } else { dropped.append(path) }
 ```
 
 `isUnder` 是**任意深度**的包含判断，而 `find` 递归找的是 `items` 那几棵子树——
-问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1411`，
-取孩子在 `:1420`，**只取一层**），拿到的孩子**不带孙子**。于是挂在 `scope` 下两层的标记既找不到也无处递归，
+问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1392`，
+取孩子在 `:1401`，**只取一层**），拿到的孩子**不带孙子**。于是挂在 `scope` 下两层的标记既找不到也无处递归，
 被丢进 `dropped`，UI 上据此画出「重扫后 N 个标记已经不在了 · 已移除」（`MMDisk.swift:363`）。
 
 **这不是取证缺陷，是用户可达的假话**，路径很日常：
@@ -733,7 +733,7 @@ testRefreshKeepsMarksDeeperThanTheEnumeratedLevel
 
 - **「移入废纸篓」那条绿色撤回回执**（§8 表格末句"左条…真实那一拍没单独拍"）现在**仍然拍不到**，
   而且原因这轮才查清：画它的分支在 `applySelectionHook` 里排在
-  `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1141` → `:1176`），
+  `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1122` → `:1157`），
   也就是说要触发它就必须开确认面板，而面板是 `.sheet`（`:120`），会把吐司整个盖住。
   零点击到不了这一态，除非给它单开一条钩子——本轮不新增钩子，所以四档里没有它。
 - `.guarded` blocked 行、按下红色按钮之后的界面：与 §8 末尾所记相同，前者钩子进不去
@@ -752,8 +752,8 @@ I4 收口那一轮（§2 第 4 条 ✅）留下的不是一句"改回子项就�
 
 ### 12.1 为什么必须新造一棵树
 
-`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1849`）那一支写下，
-而 `maxDepth = 20`（`:1714`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
+`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1838`）那一支写下，
+而 `maxDepth = 20`（`MMDisk.swift:1695`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
 所以这一档此前不是"没拍"，是**没有任何夹具能拍到**。新夹具
 `Scripts/disk-depth-fixture.sh` 造的是一棵 20 层窄树（每层一个 64k 实心文件 + 一个子目录），
 层数按扫描器口径推：`scanChildren(path: 根, depth: 0)` 枚举根的子女，扫 `根/L01…L0k` 时 depth = k，

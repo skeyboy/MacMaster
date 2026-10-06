@@ -16,16 +16,18 @@
 
 ## 关键事实链
 
-1. `trashMarked(plan:)` 只取 `plan.targets`（`MMDisk.swift:1146`），被 `DiskRemoval` 拦下的
+1. `trashMarked(plan:)` 只取 `plan.targets`（`MMDisk.swift:1328`），被 `DiskRemoval` 拦下的
    `blocked` 项**根本进不了删除清单**——第一层已经挡掉"整卷根/系统树/主目录/消失项"。
-2. `targets` 仍会**再**走 `FileTrashService.shared.moveToTrash`（`:1155`），
+2. `targets` 仍会**再**走 `FileTrashService.shared.moveToTrash`（`MMDisk.swift:1336`），
    其内部对每条路径调 `DeletionGuard.rejection(for:)`（`FileTrashService.swift:43`），
    命中即拒绝并进 `failures`。这是第二道、也是最后一道闸。
 3. 两层的判据集合有重叠但不矛盾：
    - `DiskRemoval.systemFirstComponents`（`System/usr/bin/sbin/private/dev/Library`）用于
-     **展示侧**标"系统目录树"——它比 `DeletionGuard.systemRoots` 更宽（多含 `dev`、`private`），
-     但宽的那部分即便漏过第一层，也会在 `DeletionGuard` 的 `systemRoots`（含 `/usr /bin /sbin /Library /System`）
-     或 `physicalPath` 符号链接解析那一道被兜住。
+     **展示侧**标"系统目录树"——写作当时它比 `DeletionGuard.systemRoots` 更宽（多含 `dev`、`private`）。
+     **P21 把这两条补进了闸门**（`DeletionGuard.swift:32`，理由见 `deletion-guard.md` §7.1），
+     两边现在在这三条上口径一致；剩下的差异只在"宽严方向"上：第一层按**名字**匹配根目录的子女，
+     第二层按**整棵子树 + 符号链接解析**判，后者仍多得多（凭证子树、六目录本身、`/var/db` 等）。
+     漏过第一层的路径一律由 `DeletionGuard` 兜住。
    - `DeletionGuard` 独有的凭证子树（`.ssh/.gnupg/.aws/Keychains/…`）与"六目录本身挡、内容放"
      是 `DiskRemoval` 没有的维度——这是**刻意的分工**：disk 的扫描根通常是用户主动选的目录，
      不该由模块自己再硬编码一套凭证清单；真正的拒绝权收敛在 MMCore 唯一出口。
@@ -40,6 +42,9 @@
 
 ## 遗留（不属本次范围）
 
-- `DeletionGuard.systemRoots` 未显式收 `/dev`、`/private` 作为独立前缀（`/private` 经
-  `privateAliases` 归一、`/dev` 靠 `physicalPath` 兜底）——若未来要更严格，可在 MMCore 补，
-  与 disk 无关。
+- ~~`DeletionGuard.systemRoots` 未显式收 `/dev`、`/private` 作为独立前缀（`/private` 经
+  `privateAliases` 归一、`/dev` 靠 `physicalPath` 兜底）~~ —— **P21 已收**（`DeletionGuard.swift:32`）。
+  顺带把这一条当时说错的地方记下来：`physicalPath` 只是把符号链接解析成物理路径，
+  它**不会**给清单增加任何条目，所以"`/dev` 靠 `physicalPath` 兜底"不成立 ——
+  `/dev` 不是链接，`/dev/null` 在两遍口径下都落在当时的清单之外，第一道（`DiskRemoval` 按名字）
+  之外确实没有人挡。写文档时把"解析"当成"保护"，是这一类缺口最容易的来法。

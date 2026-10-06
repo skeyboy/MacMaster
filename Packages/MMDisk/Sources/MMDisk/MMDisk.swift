@@ -1048,20 +1048,9 @@ public struct DiskAnalyzerView: View {
     }
 
     /// 风险判定与清理页共用 MMRisk：同一个路径在两处给出同一个结论。
-    /// 按路径组件判断，避免 "/build" 这类前缀误伤 "rebuild" 之类的目录名。
+    /// 判定本身在 `DiskRisk` 里（P21 提出去的那一步是为了让它有测试——它此前一行测试都没有）。
     private func risk(of path: String) -> MMRisk {
-        let protectedRoots = ["/System", "/Library", "/usr", "/bin", "/sbin", "/private/etc"]
-        if protectedRoots.contains(where: { path.hasPrefix($0) }) { return .readOnly }
-        let home = NSHomeDirectory()
-        let userData = ["Documents", "Desktop", "Downloads", "Pictures", "Music", "Movies"]
-            .map { home + "/" + $0 }
-        if userData.contains(where: { path.hasPrefix($0) }) { return .readOnly }
-        let rebuildable: Set<String> = ["Caches", "DerivedData", "node_modules", "Logs",
-                                       ".Trash", ".cache", "Build", "build", "CoreSimulator"]
-        if path.split(separator: "/").contains(where: { rebuildable.contains(String($0)) }) {
-            return .safe
-        }
-        return .caution
+        DiskRisk.risk(of: path)
     }
 
     private func toggleMark(_ node: DiskTreeNode) {

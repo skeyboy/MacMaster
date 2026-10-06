@@ -18,7 +18,9 @@ let package = Package(
         ),
         .testTarget(
             name: "MMDiskTests",
-            dependencies: ["MMDisk"],
+            // MMCore 是给 DiskRiskTests 用的：那份测试要直接点名 `DeletionGuard`，
+            // 才能证明"标签与闸门同源"这句话不是注释里说说。
+            dependencies: ["MMDisk", "MMCore"],
             path: "Tests/MMDiskTests"
         ),
     ]

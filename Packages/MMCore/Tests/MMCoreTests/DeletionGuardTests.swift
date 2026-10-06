@@ -41,6 +41,41 @@ final class DeletionGuardTests: XCTestCase {
         assertProtected("/private/var/db/receipts/com.example.bom")
     }
 
+    /// P21 补的两条根。`/dev` 从来没有别名可剥；`/private` 剥完 `etc`/`var`/`tmp` 之后
+    /// 还剩 `tftpboot`、`wireless` 这一类，磁盘页早就把它们对外说成"系统树"，闸门这边此前反而没有。
+    func testDevAndRemainingPrivateTreeAreProtected() {
+        assertProtected("/dev")
+        assertProtected("/dev/null")
+        assertProtected("/dev/disk0s1")
+        assertProtected("/DEV/random", "大小写变体")
+        assertProtected("/private")
+        assertProtected("/private/tftpboot")
+        assertProtected("/private/wireless/x")
+        // 归一化把 `..` 也算进来：绕一圈仍然落在 /dev 上。
+        assertProtected("/System/../dev/null")
+    }
+
+    /// 补根不能顺手把清理功能的靶子挡掉：临时目录在 `/private/var/folders/…` 下，
+    /// 归一之后是 `/var/folders/…`，与 `/private` 那条根无关。
+    func testTempAndDevToolTargetsStayAllowed() {
+        assertAllowed(FileManager.default.temporaryDirectory.path + "mm-guard-sub")
+        assertAllowed("/private/var/folders/aa/bb16/C/com.apple.cache_displacement")
+        assertAllowed("/opt/homebrew/Cellar/foo/1.0/bin/foo")
+    }
+
+    /// 界面那一问（`literalRejection`）少了符号链接那一遍，别的判据必须完全一致，
+    /// 否则"标签与闸门同源"这句话只在这一半路径上成立。
+    func testLiteralPassAgreesWithFullPassOnPlainPaths() {
+        let home = NSHomeDirectory()
+        for path in ["/", "/etc/hosts", "/private/var/db/receipts/x", "/dev/null", "/private/tftpboot",
+                     "/LibraryFoo/x", home, "\(home)/Documents", "\(home)/Documents/a.txt",
+                     "\(home)/.ssh/id_ed25519", "\(home)/Library/Caches/com.example.app", "  "] {
+            XCTAssertEqual(DeletionGuard.literalRejection(for: path)?.reason,
+                           DeletionGuard.rejection(for: path)?.reason,
+                           "两遍口径在 \(path) 上给了不同结论")
+        }
+    }
+
     /// APFS 默认大小写不敏感，`/system` 与 `/System` 是同一个 inode。
     /// 区分大小写的前缀匹配等于漏判 —— 这是参考项目的真实回归之一。
     func testCaseVariantsOfSystemRootsAreProtected() {

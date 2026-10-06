@@ -1,0 +1,54 @@
+# p21-disk-risk-probe.sh  2026-10-06 11:52:45 +0800
+# repo: 95866d9-dirty  branch=main
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 参与编译的真源文件: Packages/MMCore/Sources/MMCore/{Risk,DeletionGuard}.swift
+#   + Packages/MMDisk/Sources/MMDisk/DiskRisk.swift（37 行，唯一机械改动是去掉它那行
+#   import MMCore → 36 行）+ Scripts/p21-disk-risk-probe.swift
+# 表格里每一格都是 DiskRisk.risk(of:) / DeletionGuard.literalRejection(...) / DeletionGuard.rejection(...)
+# 的原样返回值；闸门理由也是原文，没有手填文案。
+
+# 逐路径判定表：每一格都是 DiskRisk.risk(of:) 与 DeletionGuard 两个真函数的返回值
+# home=/Users/lee
+# 链接夹具目录=/tmp/mm-p21-risk-probe-links（现场造 3 条，跑完即删）
+
+路径                                                            标签        字面闸门        闸门        说明 / 理由
+------------------------------------------------------------------------------------------------------------------------------------------------------
+/                                                             只读        拒绝          拒绝        根目录本身 ｜闸门原话：这是系统根目录本身，不是里面的某个文件。
+/etc                                                          只读        拒绝          拒绝        别名归一后的系统根 ｜闸门原话：位于系统目录 /etc 之下，本应用不删系统域内容。
+/etc/hosts                                                    只读        拒绝          拒绝        标签清单从前只写 /private/etc ｜闸门原话：位于系统目录 /etc 之下，本应用不删系统域内容。
+/var/db                                                       只读        拒绝          拒绝        安装包收据那一层 ｜闸门原话：位于系统目录 /var/db 之下，本应用不删系统域内容。
+/var/root/.ssh                                                只读        拒绝          拒绝        另一个用户的凭证 ｜闸门原话：位于系统目录 /var/root 之下，本应用不删系统域内容。
+/tmp                                                          谨慎        放行          放行        清理主战场，必须放行
+/tmp/x/y                                                      谨慎        放行          放行        夹具路径的普通形态
+/System                                                       只读        拒绝          拒绝        系统域 ｜闸门原话：位于系统目录 /System 之下，本应用不删系统域内容。
+/system                                                       只读        拒绝          拒绝        大小写变体：APFS 上它就是 /System ｜闸门原话：位于系统目录 /System 之下，本应用不删系统域内容。
+/Library                                                      只读        拒绝          拒绝        系统域 ｜闸门原话：位于系统目录 /Library 之下，本应用不删系统域内容。
+/LibraryFoo/x                                                 只读        放行          放行        组件边界：不该被 /Library 吞掉
+/usr                                                          只读        拒绝          拒绝        系统域 ｜闸门原话：位于系统目录 /usr 之下，本应用不删系统域内容。
+/bin                                                          只读        拒绝          拒绝        系统域 ｜闸门原话：位于系统目录 /bin 之下，本应用不删系统域内容。
+/sbin                                                         只读        拒绝          拒绝        系统域 ｜闸门原话：位于系统目录 /sbin 之下，本应用不删系统域内容。
+/private                                                      只读        拒绝          拒绝        P21 新收的那条 ｜闸门原话：位于系统目录 /private 之下，本应用不删系统域内容。
+/private/etc/passwd                                           只读        拒绝          拒绝        别名前缀 ｜闸门原话：位于系统目录 /etc 之下，本应用不删系统域内容。
+/private/var/folders/aa/bb16/C/com.apple.x                    谨慎        放行          放行        系统临时目录的真实形态
+/dev                                                          只读        拒绝          拒绝        P21 新收的那条 ｜闸门原话：位于系统目录 /dev 之下，本应用不删系统域内容。
+/dev/null                                                     只读        拒绝          拒绝        以前只靠 DiskRemoval 第一层挡 ｜闸门原话：位于系统目录 /dev 之下，本应用不删系统域内容。
+/opt/homebrew/Cellar/foo/1.0/bin/foo                          谨慎        放行          放行        第三方前缀，不该误挡
+/Users/lee                                                    只读        拒绝          拒绝        主目录本身 ｜闸门原话：这是你的主目录本身。
+/Users/lee/Documents                                          只读        拒绝          拒绝        六目录：本身挡 ｜闸门原话：这是 Documents 目录本身。逐项选择里面的内容可以移入废纸篓，整个目录不行——它可能正被 iCloud 同步或当作图库根目录。
+/Users/lee/Documents/报告.docx                                  只读        放行          放行        六目录：闸门放行内容，标签仍按子树严
+/Users/lee/Desktop                                            只读        拒绝          拒绝        六目录：本身挡 ｜闸门原话：这是 Desktop 目录本身。逐项选择里面的内容可以移入废纸篓，整个目录不行——它可能正被 iCloud 同步或当作图库根目录。
+/Users/lee/Downloads/x.dmg                                    只读        放行          放行        闸门放行、标签按子树严
+/Users/lee/.gnupg/private-keys-v1.d/key.key                   只读        拒绝          拒绝        凭证子树 ｜闸门原话：属于主目录下的凭证或活数据（.gnupg），不在可清理范围内。
+/Users/lee/Library/Keychains/login.keychain-db                只读        拒绝          拒绝        钥匙串 ｜闸门原话：属于主目录下的凭证或活数据（Library/Keychains），不在可清理范围内。
+/Users/lee/Library/Mail/V10/MailData                          只读        拒绝          拒绝        不是缓存，是邮件本体 ｜闸门原话：属于主目录下的凭证或活数据（Library/Mail），不在可清理范围内。
+/Users/lee/Library/Application Support/MobileSync/Backup/abc  只读        拒绝          拒绝        设备备份 ｜闸门原话：属于主目录下的凭证或活数据（Library/Application Support/MobileSync），不在可清理范围内。
+/Users/lee/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw只读        拒绝          拒绝        虚拟磁盘镜像 ｜闸门原话：属于主目录下的凭证或活数据（Library/Containers/com.docker.docker/Data/vms），不在可清理范围内。
+/Users/lee/Library/Containers/com.docker.docker/Data/Library/Caches安全        放行          放行        容器缓存：正常清理目标
+/tmp/mm-p21-risk-probe-links/into-system                      谨慎        放行          拒绝        链接指向系统域：字面那遍看不出，realpath 看得出 ｜闸门原话：位于系统目录 /System 之下，本应用不删系统域内容。
+/tmp/mm-p21-risk-probe-links/into-documents                   谨慎        放行          拒绝        链接指向六目录本身 ｜闸门原话：这是 Documents 目录本身。逐项选择里面的内容可以移入废纸篓，整个目录不行——它可能正被 iCloud 同步或当作图库根目录。
+/tmp/mm-p21-risk-probe-links/dangling                         谨慎        放行          放行        断链：realpath 解析不出来，只能按链接自身位置判
+
+样本 34 条（固定 31 + 链接 3）：闸门（含解析）拒 25 条。
+合同 1（标签给按钮 && 字面闸门拒绝）违例：0 条 —— 必须为 0。
+合同 2（标签给按钮 && 只有 realpath 那遍才拒）残余：2 条 —— 这一类界面上确实还给按钮，但它进不了删除清单：DiskRemoval 先在确认面板里列成「被拦下」行（.guarded），删除那一步是第二道。
+✅ 没有一行标签承诺了字面闸门做不到的事

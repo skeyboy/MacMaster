@@ -35,6 +35,13 @@ APP=${1:?需要 .app 路径}
 OUT=${2:?需要输出目录}
 APPEARANCE=${3:-light}
 SIZE=${4:-}
+# 归因头（P18/P19 立的规矩，这一族之前漏了）：日志得说自己跑在哪棵树上、被测产物出自哪棵树。
+# 用 -uno：本脚本正往证据目录里写未跟踪的 .log/.png，算进脏活就永远是 -dirty。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
+# 产物那棵树由 `make-app.sh` 打进 Info.plist（P19a）；读不到就写"无"——
+# 旧产物没这一格，硬编一个 commit 上去等于伪造出处。
+appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
 FIXTURE=/tmp/macmaster-disk-fixture
 SETTLE=${SETTLE:-10}
 # 04 那一档单独用更短的等待：回执条自带 10 秒倒计时（`permanentSeconds = 10`，每秒减一），
@@ -64,6 +71,7 @@ shot() {
   # 归因头：日志得自己说清这张是拿哪些变量拍的。这一族的钩子有先后牵制
   # （TOAST=permanent 会自己 return，永远走不到 CONFIRM），没这一行事后只能靠猜。
   print -r -- "# p68-disk-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP  fixture=$FIXTURE" >"$log"
+  print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
   print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=disk ${SIZE:+MM_WINDOW_SIZE=$SIZE }$*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=disk \
       ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &

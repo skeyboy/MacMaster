@@ -25,6 +25,11 @@ public enum DeletionGuard {
     private static let systemRoots: [String] = [
         "/System", "/usr", "/bin", "/sbin", "/Library",
         "/etc", "/var/db", "/var/root",
+        // `/dev` 与 `/private` 是补上来的那两条。别名剥前缀只认 `etc`/`var`/`tmp` 三个名字，
+        // 所以 `/private/tftpboot` 这类归一之后仍然带着 `/private`，而 `/dev` 根本没有别名；
+        // 磁盘页的 `DiskRemoval.systemFirstComponents` 早就把这两个名字对外说成"系统树"了，
+        // 闸门这一侧此前反而没有对应的条目。
+        "/dev", "/private",
     ]
 
     /// home 之下永不删的相对路径，**整棵子树**都要挡。
@@ -61,16 +66,26 @@ public enum DeletionGuard {
     private static let trashDirectory = ".Trash"
 
     public static func rejection(for path: String) -> Rejection? {
+        // 两个口径都要过：逻辑路径挡"写出来就很危险"，物理路径挡"符号链接绕进去"。
+        // 只查其一会漏 —— ~/Downloads/link → /System 这种，逻辑上无害、物理上致命。
+        if let literal = literalRejection(for: path) { return literal }
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolved = physicalPath(trimmed)
+        guard resolved != trimmed else { return nil }
+        return check(resolved, original: path)
+    }
+
+    /// 只按**字面路径**判，不调 `realpath`。
+    ///
+    /// 给界面用：treemap 每一行都要问一次"这个能不能标"，而视图 body 里做系统调用
+    /// 不划算（一次重排几十上百行）。执行那一层照旧走 `rejection(for:)` 的两遍口径，
+    /// 所以这里少掉的只是"链接指向受保护目录"那一类，界面上标得出、执行时仍会被挡。
+    public static func literalRejection(for path: String) -> Rejection? {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else {
             return Rejection(path: path, reason: "空路径：没有任何东西会被移走。")
         }
-        // 两个口径都要过：逻辑路径挡"写出来就很危险"，物理路径挡"符号链接绕进去"。
-        // 只查其一会漏 —— ~/Downloads/link → /System 这种，逻辑上无害、物理上致命。
-        for candidate in [trimmed, physicalPath(trimmed)] {
-            if let rejection = check(candidate, original: path) { return rejection }
-        }
-        return nil
+        return check(trimmed, original: path)
     }
 
     private static func check(_ path: String, original: String) -> Rejection? {

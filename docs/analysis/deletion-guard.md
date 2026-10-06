@@ -3,14 +3,17 @@
 对应实现：`Packages/MMCore/Sources/MMCore/DeletionGuard.swift`、
 `Packages/MMCore/Sources/MMCore/FileTrashService.swift`（唯一接入点）、
 判据测试 `Packages/MMCore/Tests/MMCoreTests/DeletionGuardTests.swift`、
-出口测试 `Packages/MMCore/Tests/MMCoreTests/FileTrashServiceGuardTests.swift`。
+出口测试 `Packages/MMCore/Tests/MMCoreTests/FileTrashServiceGuardTests.swift`、
+界面侧同源判定 `Packages/MMDisk/Sources/MMDisk/DiskRisk.swift`（P21 提出去的那一份）及其
+`Packages/MMDisk/Tests/MMDiskTests/DiskRiskTests.swift`。
 
 ## 1. 缺口是怎么来的
 
 `FileTrashService.moveToTrash(paths:)` 是 9 个模块（清理 / 卸载 / 磁盘 / 优化 / 残留 / 孤儿 …）
 共用的删除出口，改动前它对路径**一个字都不检查**：给什么就 `trashItem` 什么。
 各扫描器各自有一份"危险目录"名单，但那份名单的用途是**上色**——
-`MMDisk.swift:1061` 的 `protectedRoots`（在 `risk(of:)` 里，`:1060-1066`）只把 `/System`、`~/Documents` 之类标成
+`DiskRisk.swift:15` 的 `protectedRoots`（判定函数 `risk(of:)` 在 `:27-36`；P1.7 当时它还内联在
+`MMDisk.swift` 的视图里，P21 才提出去，见 §7）只把 `/System`、`~/Documents` 之类标成
 `.readOnly` 徽标，标完照样能把路径交给 `moveToTrash`。标签和闸门是两回事，
 之前只有标签。
 
@@ -45,7 +48,7 @@
 
 | 层 | 内容 | 口径 | 理由 |
 | --- | --- | --- | --- |
-| 系统域 | `/System` `/usr` `/bin` `/sbin` `/Library` `/etc` `/var/db` `/var/root` | 子树 | 本应用没有权限也不该有权限动系统域。以前删它们会拿到 EPERM，现在拿到一句人话 |
+| 系统域 | `/System` `/usr` `/bin` `/sbin` `/Library` `/etc` `/var/db` `/var/root` **`/dev`、`/private`**（这两条 P21 补，见 §7.1） | 子树 | 本应用没有权限也不该有权限动系统域。以前删它们会拿到 EPERM，现在拿到一句人话 |
 | 凭证与活数据 | `.ssh` `.gnupg` `.aws` `.azure` `.config/gh` `Library/Keychains` `Library/CloudStorage` `Library/Mail` `Library/Calendars` `MobileSync` `CallHistory*` `Containers/*/Data/vms` | 子树 | 删了不可再生。`~/.npm`、`~/.cargo` **故意不收**：里面的缓存正是清理模块的合法目标 |
 | 六个用户目录 | `Documents` `Desktop` `Downloads` `Pictures` `Music` `Movies` | **仅目录本身** | 见下 |
 
@@ -69,14 +72,20 @@
   那是清单在骗人。现在只列真正的缓存路径，名字改成"邮件缓存"。
 - `/Library/Caches`、`/var/log` 那两种类别本来就标 `.readOnly` 且"不给删除入口"，
   闸门只是把这句承诺从界面约定变成执行约束。
-- `MMDisk` 的风险标签**保持原样**，没有改成读闸门清单：treemap 要表达"这块地方贵"，
-  和"这个删除请求被拒绝"是两个问题，合并会让上色逻辑丢掉粒度。
+- `MMDisk` 的风险标签**原本是独立的一份清单**，P1.7 那一句"不改它"讲的是一个方向的问题
+  （treemap 要表达"这块地方贵"，和"这个删除请求被拒绝"是两个问题）。P21 把它改成
+  半同源：标签自己那几档照旧，但**闸门按字面路径就会拒绝的，界面不再说"可以标"**。
+  完整理由与那条 `literalRejection` 为什么不调 `realpath`，见 §7.2。
 
 ## 6. 验证
 
-- **判据**：`DeletionGuardTests` 15 条 —— 系统域、大小写变体、组件边界
+- **判据**：`DeletionGuardTests` 18 条（P1.7 是 15 条，P21 加 3 条）—— 系统域、大小写变体、组件边界
   （`/LibraryFoo` 不算 `/Library`）、别名归一、凭证子树、六个目录的"本身挡/内容放"、
-  `.Trash` 本身与其中条目、空路径、指向 `/System` 与 `~/Documents` 的符号链接、断链的真实行为。
+  `.Trash` 本身与其中条目、空路径、指向 `/System` 与 `~/Documents` 的符号链接、断链的真实行为；
+  P21 那 3 条分别锁 `/dev` 与 `/private` 子树（含 `/DEV/random`、`/System/../dev/null` 这种绕法）、
+  锁"临时目录与 `/opt/homebrew` 不被误挡"、锁字面那一遍与完整那一遍在普通路径上给出**同一个理由**。
+- **界面侧**：`DiskRiskTests` 6 条（P21 新增）—— 见 §7.2，核心是那条 31 个路径的抽样，
+  断言"闸门拒绝 && 界面说可以标"这个组合一次都不许出现。
 - **出口**：`FileTrashServiceGuardTests` 6 条 —— 保护路径得到 `PROTECTED` 且
   `successCount == 0`、空路径同样被挡、普通路径仍走到文件系统层（失败码不是 `PROTECTED`）、
   `~/Documents` 下的单项仍能走到文件系统层（证明功能没被堵死）、混合批次逐条记账、
@@ -91,4 +100,73 @@
 - **诚实缺口**：没有"真按下删除后拿到 PROTECTED"的实机照片。要走到那一步需要合成点击，
   本项目的验证红线禁止（合成事件会逃逸到用户当时的前台应用）。上面那张预演图覆盖的是
   排版与文案来源，不覆盖"点击 → 拒绝 → 回执"这条交互链。
-- 全量：9 个包 300+ 条测试通过（`swift test --package-path Packages/<X>`）。
+- 全量：9 个包 **621 条测试、0 失败、1 跳过**（入口是 `./Scripts/run-all-tests.sh`，
+  仓库根直接 `swift test` 会报"no tests found"。P21 那一跑逐包
+  73/17/117/18/121/72/53/96/54，2026-10-06。这份文档 P1.7 写的"300+ 条"是老读数。）
+
+## 7. P21：清单补两条根，以及"标签不许承诺闸门做不到的事"
+
+### 7.1 `/dev` 与 `/private`
+
+P20 收口时留在 §8 账上的两条。判据不是"看着像系统目录"，而是**这两条早就被别人对外说出去了**：
+磁盘页的 `DiskRemoval.systemFirstComponents` 把 `dev`、`private` 当成"系统树"来拦第一层，
+`DeletionGuard` 这一侧反而没有对应条目 —— 一个对外承诺比内部实现更宽的缺口。
+补完之后 `/dev/null`、`/dev/disk0s1`、`/private/tftpboot` 这些以前靠 EPERM 兜的，
+现在拿到的是人话；`/System/../dev/null` 这种绕法由 `canonicalize` 的 `..` 规则处理，另有测试锁。
+
+补这两条不改变任何现有功能：全仓没有任何扫描器产出 `/dev` 或裸 `/private` 路径，
+而清理主战场（`/var/folders/**` 的临时目录、`/tmp` 夹具、`/opt/homebrew/**`）
+在归一之后仍然落在清单外 —— 这三处各有一条"不许误挡"的测试。
+
+### 7.2 标签与闸门同源（只在一个方向上）
+
+`risk(of:)` 决定 treemap 某一行给不给"标进回收清单"这个按钮，`DeletionGuard` 决定这次删除
+放不放行。P1.7 之后它们各存一份系统目录清单，靠人肉对齐，结果是一批路径在界面上显示成
+"可标记"，用户标了、确认了，最后由闸门在最后一刻拒绝 —— **界面给出的是一个做不到的承诺**。
+这一轮把那条线定成一句可测的合同：**闸门按字面路径拒绝的，界面就不许说可以标**
+（`DiskRisk.swift:33` 那一问）。
+
+反方向**不要求同源**，而且故意留着更严的那几档：六个用户目录**里面的内容**（闸门放行、标签仍上
+只读，因为磁盘页不是逐项清理用户文件的地方，那一页有专门的「用户文件夹清理」），
+以及 `hasPrefix` 造成的 `/LibraryFoo` 那种误伤。少给一个按钮不是假话，多给一个才是。
+
+判定本身从 `DiskAnalyzerView` 的私有方法提成了 `DiskRisk`（`Packages/MMDisk/Sources/MMDisk/DiskRisk.swift:27`），
+理由很朴素：它此前**一行测试都没有**，而它是那批假承诺的产地。`MMDiskTests` 因此新增对
+`MMCore` 的依赖（`Packages/MMDisk/Package.swift`）—— 性质测试要同时问两边，不然就只是自说自话。
+
+同源那一问走的是 `DeletionGuard.literalRejection(for:)`（`DeletionGuard.swift:83`），
+**不是** `rejection(for:)`：后者会先做一遍 `realpath`，而 `risk(of:)` 是在 SwiftUI 的 body 里
+按可见行逐行调用的 —— 每行一次系统调用、每次布局重算都再来一遍，把符号链接解析塞进渲染路径
+换不来任何保护（真删除仍然走 `rejection(for:)` 的两遍口径）。所以闸门公开两个入口，
+判据测试里另有一条锁住"普通路径上两遍给出同一个理由"。
+
+### 7.3 这一轮拍不到照片的东西
+
+新判成只读的那些行**没有实机截图**，原因和 P1.7 那条"没有真按下删除后的 PROTECTED 照片"是同一个，
+而且这轮更硬：磁盘页的 `MM_DISK_SCAN` / `MM_DISK_SELECT` 按红线只认 `/tmp` 下的夹具路径
+（`MMDisk.swift:171-176`、`:1080-1085`），越界直接忽略钩子 —— 也就是说
+**没有任何钩子能把 `/etc/hosts` 或 `~/.ssh` 摆到那一行上去拍**。这一档的证据换成两处：
+
+- `DiskRiskTests` 那 6 条（判据）。
+- `./Scripts/p21-disk-risk-probe.sh` 打的逐路径判定表
+  （`docs/verification/p21-disk-risk/risk-labels.log`，34 行 × 四列：路径 / 标签 / 字面闸门 / 闸门，
+  闸门理由取原文）。这条脚本不抄逻辑 —— 它把 `Risk.swift`、`DeletionGuard.swift`、`DiskRisk.swift`
+  三个真源文件连同探针**一起编译**再调那两个真函数（唯一的机械改动是去掉 `DiskRisk.swift` 那行
+  `import MMCore`，四个文件合成一个模块才有内部可见性；行数核对与这条声明都写在日志头部）。
+  表里那 3 条符号链接是**现场造在 `/tmp` 下、跑完即删**的：没有真链接，`realpath` 那一遍就是空转，
+  而"残余缺口"那一栏会永远显示 0 —— 那是最容易被假装成通过的一格。
+
+表末两个计数就是这一轮的合同：
+**合同 1**（标签给按钮 && 字面闸门要拒）= **0 违例**，脚本以此决定退出码，可以当门禁跑；
+**合同 2**（标签给按钮 && 只有 `realpath` 那遍才拒）= **2 条残余**，都是指向受保护目标的符号链接。
+这一格**不修**，理由是修它的代价比它本身大：标签是在 SwiftUI body 里逐行算的，
+把 `realpath` 放进去等于每行每次布局一趟系统调用。而且它不是假承诺 —— 被标上的链接进不了删除清单，
+`DiskRemoval.swift:98` 会先在确认面板里把它列成"被拦下"那一档（`.guarded`）并带上闸门原话，
+用户在**点确认之前**就看到这条不动。
+
+夹具侧"没把正常东西挡掉"的证据是 `docs/verification/p21-disk/` 那四档实拍
+（`./Scripts/p68-disk-capture.sh <app> docs/verification/p21-disk`，和 P6.8c 同一棵 `/tmp` 树、
+同一组固定体积）：日志里那四行带数字的回执与 `docs/verification/p68-disk/` **逐字节相同**
+（`已选中 …/Downloads（50.3 MB）`、`确认面板（3 个标记）`、面板里"把 2 项移入废纸篓 · 回收 58.7 MB"
++ 1 项"就是正在扫描的目录本身"被列成不能删）。数字没变就是功能没变的证据 —— 这一族的哨兵体积
+是夹具脚本写死的，真机上不会出现第二个。

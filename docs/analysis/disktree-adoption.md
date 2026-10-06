@@ -16,7 +16,7 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 - 取消：`performScan` 一次性返回完整树，`DiskScanner` 侧无 `Task.isCancelled` 检查点（只有 `FileTreeWalker` 有）。
 - Treemap：`Packages/MMUI/Sources/MMUI/TreemapView.swift:132` `compute(items:in:)`。**"只排单层、children 声明了却不参与布局"是写作当时的状态**——P16 现读：`TreemapItem.children` 在 `:19`，递归布局在 `place(items:in:depth:options:into:)` `:140`，`header`/`depth`/`isOthers` 三个字段 `:45-48`，每层子块上限 `childCap(at:)` `:126-127`，小于 `options.minTile` 的块直接跳过 `:144`。本文 §"多层嵌套 + header band"那条采纳已经落地。
 - 配色：写作当时的 `colorForSize`（按 GB 分 red/orange/yellow/blue/gray）**已不存在**，全仓 `grep -rn colorForSize` 只命中构建中间产物。现在的两通道判定在 `DiskClassify.swift`：色相回答"这是什么"（`NodeCategory.color` `:28-38`，七档十六进制取自设计稿图例），斜纹回答"这份能不能清"（`reclaimReason(ofName:isDirectory:…)` `:120`），文件头 `:4-7` 就写着为什么要拆成两条链。
-- 导航：`MMDisk.swift:1411` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1420`）重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
+- 导航：`MMDisk.swift:1392` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1401`）重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
 - 删除：MMDisk **无任何删除入口**。`MMFileScanner/SystemAnalyzer.swift` 的四级安全分级与 `MMCore/FileTrashService.swift` 的废纸篓+撤回机制已经存在，只是没接到磁盘树上。
 
 ## 逐维度分析
