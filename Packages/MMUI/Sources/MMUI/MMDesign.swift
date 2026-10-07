@@ -198,6 +198,19 @@ public enum MMFormat {
         return dateTime.string(from: date)
     }
 
+    private static let monthDayTime: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "MM-dd HH:mm"
+        return f
+    }()
+
+    /// 给宽度受限的单行副标题用：中间截断只保头尾，年份是那一格里最没用的五个字符。
+    public static func monthDayTime(_ date: Date?) -> String {
+        guard let date else { return "—" }
+        return monthDayTime.string(from: date)
+    }
+
     private static let relative: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short

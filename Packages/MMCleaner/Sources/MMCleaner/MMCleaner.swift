@@ -964,8 +964,9 @@ struct MMRowAction: View {
 ///
 /// 所以那两段"合起来才是能删多少"的（可释放 / 另有 N 只读）排在**最后**。P25 之前时间戳在它们后面，
 /// 1000 pt 宽的窗口一掐，藏起来的正是"另有 N"那个数字——而它单独存在的理由就是
-/// "只读档混进可释放里就是一个偏大的假数字"。时间挪到中段：它不改变这一屏的任何决定，
-/// 而页底的删除历史里本来就有同一个时刻。**要加一段就按这个优先级想位置，别往末尾追加。**
+/// "只读档混进可释放里就是一个偏大的假数字"。时间挪到中段，并且不带年份（`monthDayTime`）：
+/// 它不改变这一屏的任何决定，可整句一旦超出可用宽度，被吃掉的还是尾部那两段的**标签**。
+/// **要加一段就先想位置，再想它值不值得占那几个字符，别往末尾追加。**
 enum CleanerHeaderCopy {
     static func subtitleSegments(
         isScanning: Bool,
@@ -983,7 +984,7 @@ enum CleanerHeaderCopy {
         }
         var segments = ["已扫描 \(categoryCount) 类"]
         if isPartial { segments.append("未完成") }
-        if let scannedAt { segments.append(MMFormat.dateTime(scannedAt)) }
+        if let scannedAt { segments.append(MMFormat.monthDayTime(scannedAt)) }
         segments.append("可释放 \(MMFormat.bytes(measuredTotal))")
         if readOnlyTotal > 0 {
             // 只读档没有删除入口，混进"可释放"里就是一个假数字，单独报。
