@@ -42,6 +42,15 @@ if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-d
 # 产物那棵树由 `make-app.sh` 打进 Info.plist（P19a）；读不到就写"无"——
 # 旧产物没这一格，硬编一个 commit 上去等于伪造出处。
 appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+# 上面那两行只说明"两个 commit 短sha 一样"，而 P22 证明这不成立为"同源"：同一个 `-dirty`
+# 底下可以是两份不同的源码。所以再比一次**内容**指纹，不等就一张都不出（配方见 mm-provenance.sh）。
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先 ./Scripts/make-app.sh 重新构建再取证（这一族是回归对照，拍在旧产物上就没有对照可言）。"
+  exit 4
+fi
 FIXTURE=/tmp/macmaster-disk-fixture
 SETTLE=${SETTLE:-10}
 # 04 那一档单独用更短的等待：回执条自带 10 秒倒计时（`permanentSeconds = 10`，每秒减一），
@@ -72,6 +81,7 @@ shot() {
   # （TOAST=permanent 会自己 return，永远走不到 CONFIRM），没这一行事后只能靠猜。
   print -r -- "# p68-disk-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP  fixture=$FIXTURE" >"$log"
   print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
   print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=disk ${SIZE:+MM_WINDOW_SIZE=$SIZE }$*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=disk \
       ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &

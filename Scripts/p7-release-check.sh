@@ -23,6 +23,18 @@ OUT=${2:?需要输出目录}
 APPEARANCE=${APPEARANCE:-light}
 SETTLE=${SETTLE:-6}
 
+# 出片之前先当场核一遍"这份产物就是当前这棵源码树构建的"。P22 的教训：`# repo:` 与
+# `MMGitCommit` 两行**逐字相同**也证明不了这件事——同一个 `-dirty` 底下可以是两份不同的源码，
+# 而那三张照片正是拍在"搬完辅助函数、还没重新构建"的那一份上。配方见 mm-provenance.sh。
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先 ./Scripts/make-app.sh 重新构建，再跑这一支。改完源码没重建就取证，"
+  print -u2 -- "  照片看上去一切正常，而它对发版判定什么都不能说明。"
+  exit 4
+fi
+
 mkdir -p "$OUT"
 
 sig=$(codesign -dv --verbose=4 "$APP" 2>&1 \
@@ -51,6 +63,7 @@ shot() {
     print -r -- "# p7-release-check.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP"
     print -r -- "# env: MM_APPEARANCE=$APPEARANCE ${(j: :)@}"
     print -r -- "# repo: $repoTag branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 未知)"
+    mm_provenance_line
     print -r -- "# codesign: $sig"
     print -r -- "# plist: CFBundleShortVersionString=$ver CFBundleVersion=$bld CFBundleIconFile=${icon:-（无）} MMGitCommit=${gitc:-（无这一键）}"
     print -r -- "# spctl: $assess"

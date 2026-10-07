@@ -39,6 +39,14 @@ SIZE=${4:-}
 repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
 if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
 appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+# 同 p68-disk-capture.sh：commit 短sha 一样不等于同源，比内容指纹（见 mm-provenance.sh）。
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  这一族的凭证只有照片（MM_DISK_SCAN 成功时不打印任何东西），拍错产物等于什么都没有。"
+  exit 4
+fi
 
 FIXTURE=/tmp/macmaster-disk-protected-fixture
 SETTLE=${SETTLE:-10}
@@ -61,6 +69,7 @@ shot() {
   local log="$OUT/$name.log"
   print -r -- "# p22-disk-skip-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP" >"$log"
   print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
   print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=disk MM_DISK_SCAN=$scan ${SIZE:+MM_WINDOW_SIZE=$SIZE }$*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=disk MM_DISK_SCAN="$scan" \
       ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &

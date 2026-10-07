@@ -29,9 +29,17 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 `Info.plist`，而那份 plist 是 `make-app.sh` 写的——不要去脚本里改字面量。
 
 **产物自带出处**（P19 起）：`make-app.sh` 往同一份 plist 写 `MMGitCommit`（工作区不干净时后缀 `-dirty`）。
-四轮发版核验的产物版本号逐字相同（都是 `1.0.0(1)` + adhoc），没这一键就分不出哪一份出自哪一次改动；
+**P23 起还写 `MMSourceDigest`**——那 92 个编译输入（`Sources` / 九个包的 `Sources` 与 `Package.swift` /
+根 `Package.swift` / `Resources/AppIcon.icns`，**不含测试源码**）的**内容**哈希，前缀拼 HEAD 短 sha。
+为什么要它：`-dirty` 只说"工作区有改动"，不说改了哪个文件哪一行，
+而 P22 撞的那一次（搬动一个私有辅助函数的位置）恰好是 commit、脏净态与画面**三条线都看不见**的改动。
+取证脚本（`p7-release-check` 与那四支 capture）起跑前先比这个指纹，**不同源就 exit 4、一张都不出**，
+配方一份在 `Scripts/mm-provenance.sh`，构建侧与取证侧共用（两边各算一遍等于没门禁）。
+十遍发版核验的产物版本号逐字相同（**现读 33 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
+一个写法**：`grep -rl "CFBundleShortVersionString=1.0.0 CFBundleVersion=1" docs/verification --include='*.log' | wc -l`），
+没这两键就分不出哪一份出自哪一次改动；
 取证日志里的 `# repo:` 是**跑脚本的那棵树**，`# app-repo:` 才是**被测二进制那棵树**，两行不一样是常态
-（改完脚本重跑旧产物时必然不一样）。
+（改完脚本重跑旧产物时必然不一样），`# digest:` 那一行则是**内容**层面的对账（`tree=` 与 `app=`）。
 
 **应用图标是画出来的**，不是一张来路不明的 png：`./Scripts/make-icon.sh` 跑
 `Scripts/make-icon.swift` 生成十档 iconset → `iconutil` 打成 `Resources/AppIcon.icns`，
@@ -222,14 +230,14 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）**已实跑九遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
+"版本号从打包脚本走到关于页"）**已实跑十遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
 `docs/verification/v1.0.0/`），P12 那遍在带 P11 改动的二进制上重跑 581/0/1（证据
 `docs/verification/p12-v1/`），**P13 那遍在带 P11c 改动的二进制上重跑 579/0/1**（证据
 `docs/verification/p13-v1/`，判据逐条见 §7.4；这一遍还多拍一张——改名之后的活动卡，
 拍在**发版候选产物**上而不是调试构建上），**P14 那遍在带页头合同的二进制上重跑 583/0/1**（证据
 `docs/verification/p14-v1/`，见 §7.5），**P15 那遍在带 `CommandRunner` 的二进制上重跑 590/0/1**（证据
 `docs/verification/p15-v1/` + `docs/verification/p15-pipe/`，见 §7.6）；
-后四遍在 2026-10-06：**P19 那遍 612/0/1**，跑在带 P18 钩子留痕改动的候选产物上，
+后五遍在 2026-10-06：**P19 那遍 612/0/1**，跑在带 P18 钩子留痕改动的候选产物上，
 同一份产物再过一次钩子门禁（证据 `docs/verification/p19-v1/` + `docs/verification/p19-hooks/`，见 §7.10）；
 **P20 那遍 612/0/1，但整遍是在一次干净的 `git clone` 出来的树上跑的**——不借作者工作树里任何一样
 没进版本控制的东西，证据 `docs/verification/p20-clone/`（见 §7.11）。这一遍的意义不在又一个 612，
@@ -241,6 +249,12 @@ checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产�
 （证据 `docs/verification/p22-v1/`，见 §7.13）；它同样动了业务源码，所以也带了一组回归——
 `p68-disk-capture.sh` 在 P22 的二进制上重跑成 `docs/verification/p22-disk/`，
 **四行回执与 `p21-disk/` 逐字相同**（改的只是"没算进去的那些"怎么披露，被跳过的字节本来就不进统计）。
+**P23 那遍还是 622/0/1**，因为这一轮**一行编译输入都没动**——它改的是取证工具链：
+产物从此带一份**内容**指纹（`MMSourceDigest`），取证脚本起跑前先比一遍，
+**照片跑的若不是当前那棵树构建的产物就 exit 4、一张都不出**（证据 `docs/verification/p23-v1/`，
+否证五档 `docs/verification/p23-provenance/probe.log`，见 §7.14）。
+磁盘那一族本轮只重拍两档（`p23-disk-skip/`），画面里会动的只有真机那两格
+（卷可用 45.54 → 45.18 GB、可清理 1.87 → 2.15 GB），新事实全在日志头那一行 `# digest:`。
 第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
 
 **P14（2026-10-05）改的是守护页页头那一句副标题**：它从前只列三件事，而那一屏有四张卡

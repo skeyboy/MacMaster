@@ -1,0 +1,26 @@
+# run-all-tests.sh  P23 第十遍发版核验·第 1 步  2026-10-07 19:43:54 +0800（结论行完成时刻）
+# repo: df71638-dirty branch=main
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P22 那一格见
+#       docs/verification/p22-citations/run-all-tests.log。逐包原始输出仍在 /tmp/macmaster-tests/，
+#       那一份不入库（它是 swift test 的全文，体积大且每轮重生成）。
+#       工作树是 dirty 的：本轮改的全是文档与 Scripts/，编译输入一个没动（见下面最后一行）。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=18   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=73   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：622 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
+# 这一格的 622 与前九遍逐字相同，本轮**没有新增任何单测**——P23 的两支新脚本都在 `Scripts/`，
+# 而壳层没有测试 target（这条空白记在 §11 已知空白，不在这里）。
+# 与 P22 那一格多出来的一件事：`source Scripts/mm-provenance.sh; mm_source_digest "$PWD"` 现读
+# 仍是 df71638+e3b0c442（与 p23-v1/ 那三张照片、与 /tmp/mm-app-p23/MacMaster.app 的
+# MMSourceDigest 同一个值）。**这一格跑完之后的 `find Sources Packages -name '*.swift' -newermt`
+# 计数为 0**，所以"这一串数字量的就是本轮提交的那 92 个编译输入"这句话，
+# P22 靠的是时间戳对差，本轮靠的是内容指纹——前者事后会被 `git checkout` 重写 mtime 而失效，
+# 后者不会。这条区别就是 §7.14 那一节存在的全部理由。

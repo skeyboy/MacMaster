@@ -1,0 +1,35 @@
+# p23-provenance-probe.sh  2026-10-06 16:25:40 +0800
+# repo: df71638-dirty branch=main
+# digest: tree=df71638+e3b0c442 app=df71638+e3b0c442
+# 门禁期望：① 拒 ② 不变 ③ 拒 ④ 放行。任一条不成立这一支就打出 ✗。
+
+① 多一个进编译的未跟踪源文件（commit 两行都不变）
+  基线指纹 df71638+e3b0c442 → 加探针之后 df71638+fc2e517b
+  ✓ 指纹变了（而 MMGitCommit 那两行不变——这正是旧归因看不见的那一类）
+  01-p7-refuse：exit=4 产出=0 张
+      digest: tree=df71638+fc2e517b app=df71638+e3b0c442
+  ✓ 拒了，且目录里什么都没有
+  01-disk-skip-refuse：exit=4 产出=0 张
+      digest: tree=df71638+fc2e517b app=df71638+e3b0c442
+  ✓ 拒了，且目录里什么都没有
+
+② 只加测试源码（不进编译输入集合）
+  基线指纹 df71638+e3b0c442 → 加测试文件之后 df71638+e3b0c442
+  ✓ 指纹不变：改判据不该拦截图
+
+③ 产物不带 MMSourceDigest 键
+  旧产物：/tmp/mm-app-v1/MacMaster.app
+  exit=1（期望 1）
+# digest: tree=df71638+e3b0c442 app=（产物无 MMSourceDigest 键）
+  ✓ 无键当不同源处理
+
+④ 当前树 + 当前产物必须放行（ONLY 挡掉所有档名，只跑检查）
+  ✓ 同源，检查通过
+
+⑤ 接了门禁的脚本，在同源产物上一档都不拍也要能正常退出
+  05-p68-disk：exit=0 产出=0 张
+  ✓ 放行
+  05-disk-skip：exit=0 产出=0 张
+  ✓ 放行
+
+五档全部符合预期（✗ 计数 0）

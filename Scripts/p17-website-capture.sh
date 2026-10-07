@@ -40,6 +40,14 @@ APPEARANCE=${3:-dark}
 SIZE=${4:-1280x800}
 EVIDENCE=${EVIDENCE:-docs/verification/p17-website}
 PURGE_FIXTURE=/tmp/macmaster-purge-fixture
+# 同源检查（P22 之后立的规矩，配方见 mm-provenance.sh）：落地页那四张是要发出去的，
+# 拍在一份"界面上还没有那一屏"的产物上，比修没修好那一屏更难查。
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，四张都不出："
+  mm_provenance_line >&2
+  exit 4
+fi
 DISK_FIXTURE=/tmp/macmaster-disk-fixture
 LOG="$EVIDENCE/capture.log"
 # 8 秒是 p68-dev 对夹具档实测过的落位时间（夹具扫描是毫秒级，全花在 SwiftUI 排版上）；
@@ -71,6 +79,7 @@ mkdir -p "$OUT" "$EVIDENCE"
   print -r -- "# app: $ver ($bld)"
   # `# repo:` 是跑这条脚本的那棵树，`# app-repo:` 是被拍的那份二进制打包时的那棵树，改脚本重跑旧产物时两者不同。
   print -r -- "# app-repo: $gcommit"
+  mm_provenance_line
   print -r -- "# shape under test: 落地页 §界面预览 那四个截图位（改前是四个 .screenshot-placeholder 的 div、全页 <img> 为 0）"
   print -r -- "# expected: 四张图的清单与读数来自夹具钩子；画面上出现 /tmp 夹具路径或 com.example.*/TZZ* 合成条目，"
   print -r -- "            不出现真实登录项、真实密钥目录 mtime。**但有三个值夹具顶替不了，必然带真机状态**："

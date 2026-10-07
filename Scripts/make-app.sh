@@ -50,6 +50,13 @@ if [[ -n $(git -C "$ROOT" status --porcelain -uno 2>/dev/null) ]]; then GIT_COMM
 mkdir -p "$APP_DIR"
 swift build "${BUILD_ARGS[@]}"
 
+# 同一份 plist 里再打一个**内容**指纹（P22 之后才有）。为什么 `-dirty` 不够、
+# 以及取证侧怎么用它当场拒拍，全写在 `Scripts/mm-provenance.sh` 的头部注释里。
+# 算的时机在编译**之后**：算早了的话，编译那几十秒里被改的源码会被记成"改之前的那一份"，
+# 而二进制是照改之后编出来的——这一支自己就成了它要拦的那个形状。
+source "$ROOT/Scripts/mm-provenance.sh"
+SRC_DIGEST=$(mm_source_digest "$ROOT" || echo 未知)
+
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 BIN_SRC="${SCRATCH:-$ROOT/.build}/release/$BIN_NAME"
@@ -92,6 +99,8 @@ ${ICON_KEY}
     <string>$BUILD</string>
     <key>MMGitCommit</key>
     <string>$GIT_COMMIT</string>
+    <key>MMSourceDigest</key>
+    <string>$SRC_DIGEST</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
@@ -124,4 +133,5 @@ fi
 runtime_flags=$(codesign -dv "$APP" 2>&1 | grep -o 'flags=0x[0-9a-f]*([a-z,]*)' | head -1)
 print -r -- "签名档次：${runtime_flags:-（读不到 flags）}（HARDENED=${HARDENED:-0}）"
 
+print -r -- "产物源码指纹：$SRC_DIGEST（同一键写进 plist 的 MMSourceDigest；取证脚本当场比这一个数，不等就拒拍）"
 print -r -- "$APP"

@@ -46,6 +46,16 @@ DISK_SETTLE=${DISK_SETTLE:-12}
 [[ -x "$APP/Contents/MacOS/MacMaster" ]] || {
   print -u2 -- "找不到可执行文件：$APP/Contents/MacOS/MacMaster"; exit 2; }
 
+# 同源检查（P22 之后立的规矩，配方见 mm-provenance.sh）：这一道门禁的结论是
+# "每一档留痕都在"，而留痕是**那份二进制**打印的——拍在旧产物上，某一行"没留痕"
+# 可能只是那一份还没这一句，判据就成了猜。
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，一档都不跑："
+  mm_provenance_line >&2
+  exit 4
+fi
+
 if [[ -z ${KEEP_FIXTURE:-} ]]; then
   ./Scripts/purge-fixture.sh >/dev/null
   ./Scripts/disk-fixture.sh >/dev/null
@@ -86,6 +96,7 @@ TRACE='含非法取值|沿用系统外观|解析失败|钩子已忽略|不在 /t
   # 两个 repo 行是分开的两件事：`# repo:` 是跑这条脚本的那棵树，`# app-repo:` 是被测二进制
   # 打包时的那棵树。改完取证脚本重跑旧产物时它们就不一样，只有一个行的话会指错。
   print -r -- "# app-repo: $gcommit"
+  mm_provenance_line
   print -r -- "# shape under test: 档位选择与夹具路径钩子在取值写错时的行为（改前：静默回落，日志一行没有）"
   print -r -- "# expected: 正向档的 stderr 里必须有该行给出的 expect 子串；负向档（expect=-）里"
   print -r -- "            一条留痕都不许出现。照片用来人眼核对'确实落在文案说的那一档'。"
