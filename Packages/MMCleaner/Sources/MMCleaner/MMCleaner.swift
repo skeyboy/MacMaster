@@ -964,7 +964,7 @@ struct MMRowAction: View {
 ///
 /// 所以那两段"合起来才是能删多少"的（可释放 / 另有 N 只读）排在**最后**。P25 之前时间戳在它们后面，
 /// 1000 pt 宽的窗口一掐，藏起来的正是"另有 N"那个数字——而它单独存在的理由就是
-/// "只读档混进可释放里就是一个偏大的假数字"。时间挪到中段，并且不带年份（`monthDayTime`）：
+/// "只读档混进可释放里就是一个偏大的假数字"。时间挪到中段，并且不带年份（`scanTime`）：
 /// 它不改变这一屏的任何决定，可整句一旦超出可用宽度，被吃掉的还是尾部那两段的**标签**。
 /// **要加一段就先想位置，再想它值不值得占那几个字符，别往末尾追加。**
 enum CleanerHeaderCopy {
@@ -984,7 +984,7 @@ enum CleanerHeaderCopy {
         }
         var segments = ["已扫描 \(categoryCount) 类"]
         if isPartial { segments.append("未完成") }
-        if let scannedAt { segments.append(MMFormat.monthDayTime(scannedAt)) }
+        if let scannedAt { segments.append(scanTime(scannedAt)) }
         segments.append("可释放 \(MMFormat.bytes(measuredTotal))")
         if readOnlyTotal > 0 {
             // 只读档没有删除入口，混进"可释放"里就是一个假数字，单独报。
@@ -992,4 +992,19 @@ enum CleanerHeaderCopy {
         }
         return segments
     }
+
+    /// 扫描时刻写成不带年份的短格式：中间截断先吃的是"整句超出来的那几个字符"，
+    /// 而年份是这一格里最不像判据的五个。
+    ///
+    /// 没有放进 `MMFormat`（那里有 `dateTime`/`relative`/`duration`）：那是九个模块共用的文件，
+    /// 为这一个调用点往里插十二行，代价是入库文档里指向该文件第 201 行之后的约四十处行号引用
+    /// 全部要重指一遍——P21 那一轮还的就是这种债，那一轮为 11 行的搬家重指了六份文档。
+    static func scanTime(_ date: Date) -> String { scanTimeFormatter.string(from: date) }
+
+    private static let scanTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "MM-dd HH:mm"
+        return f
+    }()
 }

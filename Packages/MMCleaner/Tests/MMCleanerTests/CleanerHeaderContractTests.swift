@@ -46,7 +46,7 @@ final class CleanerHeaderContractTests: XCTestCase {
     func testTimestampNeverTakesTheTail() {
         let date = Date(timeIntervalSince1970: 1_760_000_000)
         let s = segments(readOnlyTotal: 140_278_720, scannedAt: date)
-        let index = s.firstIndex(of: MMFormat.monthDayTime(date))
+        let index = s.firstIndex(of: CleanerHeaderCopy.scanTime(date))
         XCTAssertNotNil(index, "副标题里没有那枚时间戳，这一条判据等于没跑")
         // 尾部两格是"可释放 + 另有 N 只读"。时间戳一旦挤进去，中间截断吃掉的就是只读那句。
         XCTAssertLessThan(index ?? .max, s.count - 2,
@@ -60,7 +60,7 @@ final class CleanerHeaderContractTests: XCTestCase {
         let date = Date(timeIntervalSince1970: 1_760_000_000)
         let s = segments(readOnlyTotal: 140_278_720, scannedAt: date)
         let stamp = s.first { $0.contains(":") } ?? ""
-        XCTAssertEqual(stamp, MMFormat.monthDayTime(date))
+        XCTAssertEqual(stamp, CleanerHeaderCopy.scanTime(date))
         XCTAssertLessThan(stamp.count, MMFormat.dateTime(date).count,
                           "又用回带年份的长格式了：省下来的五个字符正是尾部标签的余量")
     }
