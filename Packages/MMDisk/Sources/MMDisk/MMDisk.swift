@@ -42,7 +42,6 @@ public struct DiskAnalyzerView: View {
     @State private var scanningPath: String = ""
     @State private var scanningFileCount: Int = 0
     @State private var scanStartTime: Date = Date()
-    @State private var scanDuration: TimeInterval = 0
     @State private var navigationStack: [String] = []
     // currentItems 只存有界渲染窗口；全量数据在 scanStore 里，一条不丢
     @State private var currentItems: [DiskTreeNode] = []
@@ -224,15 +223,16 @@ public struct DiskAnalyzerView: View {
         }
     }
 
-    /// 副标题只报事实：占用、路径、用时、文件数。
-    /// **顺序按"窄窗被截时谁该活下来"排**，判据与实拍见 `docs/analysis/header-truncation-audit.md` §3/§8。
+    /// 副标题只报事实：占用、路径、文件数。**顺序按"窄窗被截时谁该活下来"排**，
+    /// 三条判据与两次实拍见 `docs/analysis/header-truncation-audit.md` §3/§8。
+    /// 扫描用时不在这里——它是个数字，中间截断会把它切成假话（§8）。
     /// 受保护目录的口径声明也不放这里，摆面包屑条的徽标位（见 breadcrumbBar）。
     private var headerSubtitle: String? {
         guard let result = scanResult else {
             return isScanning ? scanningPath : "选择一个目录开始分析"
         }
         return DiskHeaderCopy.subtitle(size: result.scannedSize, path: result.path,
-                                       duration: scanDuration, fileCount: result.fileCount)
+                                       fileCount: result.fileCount)
     }
 
     private var placeholder: some View {
@@ -1523,7 +1523,6 @@ public struct DiskAnalyzerView: View {
             self.findingsDismissed = false
             self.apply(children: output.topItems, for: rootPath)
             self.applySelectionHook()
-            self.scanDuration = Date().timeIntervalSince(scanStartTime)
             self.isScanning = false
         }
     }
@@ -1543,20 +1542,20 @@ public struct DiskAnalyzerView: View {
 /// （Treemap/列表/大文件 + 筛选框 + 重新扫描 + 选择目录）是九屏里最宽的一档——
 /// 1000 pt 窗口下整句一定放不下，**中段必掉**。所以段序不是排版问题，是"用户看见哪一句"的问题。
 ///
-/// P26 之前的顺序是「占用 · 文件数 · 用时 · 路径」，窄窗实拍截成
-/// `77.8 MB · 44…aster-disk-fixture`：尾部被 26 字符的路径占满，头部只剩 12 字符，
-/// "44" 的单位「个文件」正好落在被吃掉的区间，界面上留下两个并排的光数——
-/// 那是一句核对不了的话（判据见 `docs/analysis/header-truncation-audit.md` §3）。
+/// 中间截断只保头尾，**任何跨在中段边界上的段都会被切成半句**。于是合同是三条：
+/// 头部放占用（磁盘页最不该没的数），尾部放**恰好一段**带单位的文件数，
+/// 中段只留给路径——路径被吃掉中段是惯例，尾部的目录名仍然活着（面包屑条也显示它）。
 ///
-/// 现在的顺序把「N 个文件」放到**尾部**，让"用时"和路径中段去当牺牲者：
-/// 头保占用、尾保文件数（带单位），被吃的是本来就最没用的那一段。
-/// 钉得住的是段序，钉不住的是"这一句在 1000 pt 放不放得下"——那要实机照片，
-/// 复现命令在 `docs/analysis/header-truncation-audit.md` §7/§8。
+/// 这条形状是两次实拍逼出来的（`docs/analysis/header-truncation-audit.md` §3/§8）：
+/// ① 旧序「占用 · 文件数 · 用时 · 路径」截成 `77.8 MB · 44…aster-disk-fixture`，
+///    "44" 的单位落在被吃掉的区间，界面上是两个并排的光数；
+/// ② 改成「占用 · 路径 · 用时 · 文件数」后单位活了，但"用时"自己成了新的半句：
+///    实拍读到 `77.8 MB · /tmp….1 s · 44 个文件`——真值是 0.1 s，画面上是 1 s。
+///    所以"用时"整段出页头：一个数字要么完整可见，要么不出现。
 enum DiskHeaderCopy {
-    static func subtitle(size: UInt64, path: String, duration: Double, fileCount: Int) -> String {
+    static func subtitle(size: UInt64, path: String, fileCount: Int) -> String {
         [MMFormat.bytes(size),
          path,
-         "扫描用时 \(String(format: "%.1f", duration)) s",
          "\(MMFormat.count(fileCount)) 个文件"].joined(separator: " · ")
     }
 }

@@ -7,7 +7,8 @@
 //  "44" 的单位被吃掉，界面上留下两个并排的光数，那是一句核对不了的话。
 //
 //  这里钉三件事：① 「N 个文件」必须在**尾部**（中间截断保头保尾，单位不许落在中段）；
-//  ② 占用必须在**头部**；③ 被牺牲的那一段固定是"扫描用时"，不是任何一个数字的单位。
+//  ② 占用必须在**头部**；③ 整句只有三段——中段唯一的牺牲者是路径的腰，页头不许有
+//  第二个数字来抢那条被拦腰切的缝（「扫描用时」因此出页头，见 :③ 的注释）。
 //
 //  钉不住的那一半写在这儿：单测能钉段序，钉不住"这一句在 1000 pt 放不放得下"——
 //  那要实机照片，复现命令在 `docs/analysis/header-truncation-audit.md` §7。
@@ -22,9 +23,8 @@ final class DiskHeaderContractTests: XCTestCase {
 
     private func line(path: String = "/tmp/macmaster-disk-fixture",
                       size: UInt64 = 81_612_800,
-                      duration: Double = 0.4,
                       count: Int = 44) -> String {
-        DiskHeaderCopy.subtitle(size: size, path: path, duration: duration, fileCount: count)
+        DiskHeaderCopy.subtitle(size: size, path: path, fileCount: count)
     }
 
     /// ① 尾部必须是带单位的文件数：窄窗上"保尾"保的就是这一截。
@@ -40,14 +40,17 @@ final class DiskHeaderContractTests: XCTestCase {
         XCTAssertTrue(s.hasPrefix(MMFormat.bytes(head)), "头部不是占用：\(s)")
     }
 
-    /// ③ 牺牲者固定是"扫描用时"：它排在路径之后、文件数之前，
-    /// 所以窄窗上被吃掉的只会是它和路径中段，不会是任何一个数字的单位。
-    func testSegmentOrderIsSizePathDurationCount() {
+    /// ③ 中段只留给路径：整句恰好三段，被切成半句的只可能是路径的腰。
+    /// 「扫描用时」在 P26 之前是第四段，实拍两次都不肯安静地整段消失——
+    /// 旧序截成 `44…`（单位没了），新序截成 `….1 s`（真值 0.1 s 画成 1 s）。
+    /// 所以这一条钉的是"页头上不再有任何会被拦腰切的数字"。
+    func testOnlyThePathIsSacrificial() {
         let s = line()
-        let head: UInt64 = 81_612_800
-        let marks = [MMFormat.bytes(head), "/tmp/macmaster-disk-fixture",
-                     "扫描用时 0.4 s", "44 个文件"].map { s.range(of: $0)!.lowerBound }
-        XCTAssertEqual(marks, marks.sorted(), "段序变了：\(s)")
+        let segments = s.components(separatedBy: " · ")
+        XCTAssertEqual(segments.count, 3, "页头副标题不是三段：\(s)")
+        XCTAssertEqual(segments, [MMFormat.bytes(UInt64(81_612_800)),
+                                 "/tmp/macmaster-disk-fixture", "44 个文件"], "段序或措辞变了：\(s)")
+        XCTAssertFalse(s.contains(" s"), "页头又出现了秒数（中间截断会把它切成假话）：\(s)")
     }
 
     /// 千位分隔不许把单位挤散：`1,234 个文件` 整段都得到尾部。
