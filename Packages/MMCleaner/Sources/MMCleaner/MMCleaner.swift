@@ -879,22 +879,15 @@ public struct CleanerView: View {
     }
 
     private var headerSubtitle: String {
-        var parts: [String] = []
-        if model.isScanning {
-            parts.append("正在扫描 \(model.progress?.categoryName ?? "")")
-        } else {
-            parts.append("已扫描 \(model.categories.count) 类")
-            parts.append("可释放 \(MMFormat.bytes(model.measuredTotal))")
-            if model.readOnlyTotal > 0 {
-                // 只读档没有删除入口，混进"可释放"里就是一个假数字，单独报。
-                parts.append("另有 \(MMFormat.bytes(model.readOnlyTotal)) 只读")
-            }
-            if let scannedAt = model.scannedAt {
-                parts.append(MMFormat.dateTime(scannedAt))
-            }
-        }
-        if model.isPartial { parts.append("未完成") }
-        return parts.joined(separator: " · ")
+        CleanerHeaderCopy.subtitleSegments(
+            isScanning: model.isScanning,
+            scanningCategoryName: model.progress?.categoryName,
+            categoryCount: model.categories.count,
+            measuredTotal: model.measuredTotal,
+            readOnlyTotal: model.readOnlyTotal,
+            scannedAt: model.scannedAt,
+            isPartial: model.isPartial
+        ).joined(separator: " · ")
     }
 }
 
@@ -960,5 +953,42 @@ struct MMRowAction: View {
         .buttonStyle(.plain)
         .help(help)
         .onHover { isHovering = $0 }
+    }
+}
+
+// MARK: - 页头副标题
+
+/// 副标题的**段序就是优先级**。`MMPageHeader` 的副标题是单行 + 中间截断
+/// （`lineLimit(1)` 配 `truncationMode(.middle)`）：画面上保得住的是头与尾，被吃掉的是中段，
+/// 而加长它**不报错、不换行、没有任何一条测试会红**，只多一个省略号。
+///
+/// 所以那两段"合起来才是能删多少"的（可释放 / 另有 N 只读）排在**最后**。P25 之前时间戳在它们后面，
+/// 1000 pt 宽的窗口一掐，藏起来的正是"另有 N"那个数字——而它单独存在的理由就是
+/// "只读档混进可释放里就是一个偏大的假数字"。时间挪到中段：它不改变这一屏的任何决定，
+/// 而页底的删除历史里本来就有同一个时刻。**要加一段就按这个优先级想位置，别往末尾追加。**
+enum CleanerHeaderCopy {
+    static func subtitleSegments(
+        isScanning: Bool,
+        scanningCategoryName: String?,
+        categoryCount: Int,
+        measuredTotal: UInt64,
+        readOnlyTotal: UInt64,
+        scannedAt: Date?,
+        isPartial: Bool
+    ) -> [String] {
+        if isScanning {
+            var scanning = ["正在扫描 \(scanningCategoryName ?? "")"]
+            if isPartial { scanning.append("未完成") }
+            return scanning
+        }
+        var segments = ["已扫描 \(categoryCount) 类"]
+        if isPartial { segments.append("未完成") }
+        if let scannedAt { segments.append(MMFormat.dateTime(scannedAt)) }
+        segments.append("可释放 \(MMFormat.bytes(measuredTotal))")
+        if readOnlyTotal > 0 {
+            // 只读档没有删除入口，混进"可释放"里就是一个假数字，单独报。
+            segments.append("另有 \(MMFormat.bytes(readOnlyTotal)) 只读")
+        }
+        return segments
     }
 }
