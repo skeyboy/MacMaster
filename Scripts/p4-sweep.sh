@@ -30,6 +30,20 @@ typeset -a extra=()
 [[ -n "$SIZE" ]] && extra+=(MM_WINDOW_SIZE="$SIZE")
 [[ -n "$EXTRA" ]] && extra+=(${=EXTRA})
 
+# 归因头 + 同源门禁（P26 补：这一支是九屏逐屏取证的主工具，此前是 27 支持照脚本里
+# 没有门禁的那 22 支之一——它产出的照片能说"画面长这样"，不能说"这画面是这棵树构建的产物"）。
+# 用 -uno：本脚本正往证据目录里写未跟踪的 .log/.png，算进脏活就永远是 -dirty。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
+appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一屏一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先按顺序来：提交 → ./Scripts/make-app.sh → 再跑本脚本。"
+  exit 4
+fi
+
 # 设置页不是模块目的地，它靠 MM_SHOW_SETTINGS 弹出，所以单独列一行
 targets=(dashboard cleaner uninstaller disk monitor guardian optimizer settings)
 if [[ -n "$SELECTED" ]]; then
@@ -37,10 +51,15 @@ if [[ -n "$SELECTED" ]]; then
 fi
 for m in $targets; do
   log="$OUT/$m.log"
+  # 四行归因头先落盘，应用自己的输出往后追加（原来是直接截断，头一写就没了）。
+  print -r -- "# p4-sweep.sh $m  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP" >"$log"
+  print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
+  print -r -- "# env: ${extra[*]} ${EXTRA:+$EXTRA }" >>"$log"
   if [[ "$m" == "settings" ]]; then
-    env MM_SHOW_SETTINGS=1 "${extra[@]}" "$APP/Contents/MacOS/MacMaster" >"$log" 2>&1 &
+    env MM_SHOW_SETTINGS=1 "${extra[@]}" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
   else
-    env MM_OPEN_MODULE="$m" "${extra[@]}" "$APP/Contents/MacOS/MacMaster" >"$log" 2>&1 &
+    env MM_OPEN_MODULE="$m" "${extra[@]}" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
   fi
   pid=$!
   sleep 3.5
@@ -58,7 +77,9 @@ for m in $targets; do
   # 别枚举钩子名——上一版只列了 MM_APPEARANCE/MM_WINDOW_SIZE/MM_DISK/MM_SHOW 四类，
   # 于是 monitor/guardian/optimizer/dev/watch 那十几个钩子即便真生效了，这行也是空的，
   # 读起来跟"钩子没落"一模一样。凡是 MM_ 开头的名字加上夹具哨兵词，一并收进来。
-  marks=$(grep -E "MM_[A-Z]|夹具|示例|TZZ|com\.example" "$log" | head -6 | tr '\n' '；')
+  # `tail -n +5`：上面那四行归因头里就写着 MM_APPEARANCE/MM_WINDOW_SIZE，
+  # 连头一起 grep 等于**脚本自己给钩子作证**——这一行要的凭据是应用自己打出来的那句。
+  marks=$(tail -n +5 "$log" | grep -E "MM_[A-Z]|夹具|示例|TZZ|com\.example" | head -6 | tr '\n' '；')
   print -r -- "✅ $m windowid=$wid ${marks}"
 done
 
