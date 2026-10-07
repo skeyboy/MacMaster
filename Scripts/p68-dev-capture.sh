@@ -87,6 +87,13 @@ shot 06-real-machine "$REAL_SETTLE" MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched
 # 07 最小窗口（1000×700）：看窄窗下扫描根 chip 内部省略号截断、"另有 N 个"不丢、主按钮标题不被截尾。
 shot 07-fixture-min-window "$SETTLE" MM_PURGE_FIXTURE_HOME="$FIXTURE" \
      MM_DEV_EXPAND=1 MM_DEV_SELECT=untouched MM_WINDOW_SIZE=1000x700
+# 08 P26「最长副标题」档：把页头那句能长到的每一段都请出来——根预算压到 0.05 秒逼出截断根
+#    （"N 个根没扫完"），再自动续扫 2 批逼出分批（"本清单由 2 批拼成"、"最近一批扫于"、"累计耗时"）。
+#    为什么不带 MM_DEV_SELECT：这一档量的是页头放不放得下，勾选只会多一块面板。
+#    这一档是 P26 逐屏截断审计（release-readiness.md §7.17）里开发产物页的最坏情况；
+#    07 那一档的夹具默认态副标题只有 4 段，量不出最坏。
+shot 08-fixture-min-window-all-disclosures "$SETTLE" MM_PURGE_FIXTURE_HOME="$FIXTURE" \
+     MM_DEV_ROOT_BUDGET_SECONDS=0.05 MM_DEV_AUTO_CONTINUE=2 MM_WINDOW_SIZE=1000x600
 
 print -r -- "→ $OUT"
 print -r -- "转 jpeg（与 p7-dev 同格式，可选）：for f in $OUT/*.png; do sips -s format jpeg -Z 1400 \"\$f\" --out \"\${f%.png}.jpg\" >/dev/null; done"

@@ -289,10 +289,14 @@ public struct MMPageHeader<Actions: View>: View {
                 if let subtitle {
                     // 副标题常带完整路径，不限行就会在 46pt 的头部里换行并压到工具行上。
                     // 中间截断：开头认目录，结尾看数字，两头都比路径中段有用。
+                    // `.help`：中间截断一定会吃掉点什么（P26 逐屏实拍：九屏里两屏被截，
+                    // 见 docs/analysis/header-truncation-audit.md），挂上整句是被吃掉的那一段
+                    // 唯一的找回途径。**它是兜底，不是免罪**——该被看见的东西仍要排在头尾。
                     Text(subtitle).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                         .monospacedDigit()
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .help(subtitle)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

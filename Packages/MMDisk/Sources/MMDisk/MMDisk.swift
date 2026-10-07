@@ -224,20 +224,15 @@ public struct DiskAnalyzerView: View {
         }
     }
 
-    /// 副标题只报事实：占用、文件数、用时、路径。
-    /// **顺序按"窄窗被截时谁该活下来"排**：`MMPageHeader` 的副标题是
-    /// `lineLimit(1) + truncationMode(.middle)`，最小窗口下中段一定会掉，
-    /// 所以把最没用的"用时"放中间、把"这块占多少"放开头、把路径的尾（目录名）放最后。
-    /// 实测（1000pt 窗口 + 44 个文件的夹具）截完是 "77.8 MB · 44…aster-disk-fixture"：
-    /// 占用和目录名活着，用时整段被吃掉、文件数只剩个位数——这个代价换得值，
-    /// 反过来把路径放开头时被吃掉的就是 77.8 MB，磁盘页最不该没的就是这个数。
+    /// 副标题只报事实：占用、路径、用时、文件数。
+    /// **顺序按"窄窗被截时谁该活下来"排**，判据与实拍见 `docs/analysis/header-truncation-audit.md` §3/§8。
     /// 受保护目录的口径声明也不放这里，摆面包屑条的徽标位（见 breadcrumbBar）。
     private var headerSubtitle: String? {
         guard let result = scanResult else {
             return isScanning ? scanningPath : "选择一个目录开始分析"
         }
-        return "\(MMFormat.bytes(result.scannedSize)) · \(MMFormat.count(result.fileCount)) 个文件 · "
-            + "扫描用时 \(String(format: "%.1f", scanDuration)) s · \(result.path)"
+        return DiskHeaderCopy.subtitle(size: result.scannedSize, path: result.path,
+                                       duration: scanDuration, fileCount: result.fileCount)
     }
 
     private var placeholder: some View {
@@ -1539,6 +1534,30 @@ public struct DiskAnalyzerView: View {
         let cap = 8
         guard skipped.count > cap else { return skipped.joined(separator: "、") }
         return "\(skipped.prefix(cap).joined(separator: "、")) 等 \(skipped.count) 处"
+    }
+}
+
+/// 磁盘页页头副标题的段序合同。
+///
+/// `MMPageHeader` 的副标题是 `lineLimit(1) + truncationMode(.middle)`，而这一屏的动作簇
+/// （Treemap/列表/大文件 + 筛选框 + 重新扫描 + 选择目录）是九屏里最宽的一档——
+/// 1000 pt 窗口下整句一定放不下，**中段必掉**。所以段序不是排版问题，是"用户看见哪一句"的问题。
+///
+/// P26 之前的顺序是「占用 · 文件数 · 用时 · 路径」，窄窗实拍截成
+/// `77.8 MB · 44…aster-disk-fixture`：尾部被 26 字符的路径占满，头部只剩 12 字符，
+/// "44" 的单位「个文件」正好落在被吃掉的区间，界面上留下两个并排的光数——
+/// 那是一句核对不了的话（判据见 `docs/analysis/header-truncation-audit.md` §3）。
+///
+/// 现在的顺序把「N 个文件」放到**尾部**，让"用时"和路径中段去当牺牲者：
+/// 头保占用、尾保文件数（带单位），被吃的是本来就最没用的那一段。
+/// 钉得住的是段序，钉不住的是"这一句在 1000 pt 放不放得下"——那要实机照片，
+/// 复现命令在 `docs/analysis/header-truncation-audit.md` §7/§8。
+enum DiskHeaderCopy {
+    static func subtitle(size: UInt64, path: String, duration: Double, fileCount: Int) -> String {
+        [MMFormat.bytes(size),
+         path,
+         "扫描用时 \(String(format: "%.1f", duration)) s",
+         "\(MMFormat.count(fileCount)) 个文件"].joined(separator: " · ")
     }
 }
 
