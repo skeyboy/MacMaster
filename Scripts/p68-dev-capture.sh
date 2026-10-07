@@ -36,6 +36,20 @@ REAL_SETTLE=${REAL_SETTLE:-30}
 [[ -d $FIXTURE ]] || { print -u2 -- "夹具不存在：先跑 ./Scripts/purge-fixture.sh"; exit 2; }
 mkdir -p "$OUT"
 
+# 同源门禁（P26 补）：这一支的 08 档要主张"页头那句最长的副标题在 1000 pt 放得下"，
+# 而这句话只对拍它的那份二进制成立——不绑源码，过几轮就没人能复核。
+# 用 -uno：本脚本正往证据目录里写未跟踪的 .log/.png，算进脏活就永远是 -dirty。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
+appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一支一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先按顺序来：提交 → ./Scripts/make-app.sh → 再跑本脚本。"
+  exit 4
+fi
+
 # shot <文件名> <等待秒> <环境变量...>
 # 公共部分（模块/页签/外观/尺寸）在这里统一注入；夹具 home 与四个 dev 钩子由各档自带，
 # 好让 06 那一档能干净地"不注入夹具"。后面的 "$@" 会覆盖同名变量（MM_APPEARANCE/MM_WINDOW_SIZE 靠这点做逐档特例）。
@@ -47,6 +61,8 @@ shot() {
   # 归因头：这份 .log 要自己说清本档注入了什么——06 真机档不带夹具，
   # 没有这一行就分不出"没注入"和"忘了注入"。
   print -r -- "# p68-dev-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP" >"$log"
+  print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
   print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev ${SIZE:+MM_WINDOW_SIZE=$SIZE }$*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=cleaner MM_OPEN_TAB=dev \
       ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
