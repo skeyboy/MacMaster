@@ -1,8 +1,8 @@
 # p16 citation audit
-# date: 2026-10-07 21:31:27
+# date: 2026-10-07 21:43:39
 # repo: fc2a7b2-dirty branch=main
 # docs scanned: 33 个真抽了 / 33 个入库 .md（两个数不等就是有文件没被读到）
-# index: 本仓库 872 个跟踪文件 / 参考仓库 5471 个 / SDK 头文件 6274 个
+# index: 本仓库 873 个跟踪文件 / 参考仓库 5471 个 / SDK 头文件 6274 个
 # vocab: 本仓库源码 token 7550 个（已排除本脚本自身，见第 1 步②）
 # ref: docs/github-references/Mole head=f32fa0c tracked=264 remote=https://github.com/tw93/Mole.git
 # ref: docs/github-references/OverSight head=58e4a64 tracked=198 remote=https://github.com/objective-see/OverSight.git
