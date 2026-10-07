@@ -1,0 +1,21 @@
+# p18-hook-typo-proof.sh 钩子写错值留痕核验
+# date: 2026-10-07 21:07:46 +0800
+# command: ./Scripts/p18-hook-typo-proof.sh /tmp/mm-app-p25/MacMaster.app docs/verification/p25-header-narrow
+# window: MM_WINDOW_SIZE=1000x652（proof() 给每档注入；20 档自带这个键，覆盖它）
+# repo: fc2a7b2-dirty branch=main
+# app: 1.0.0 (1)
+# app-repo: fc2a7b2-dirty
+# digest: tree=fc2a7b2+e3b0c442 app=fc2a7b2+e3b0c442
+# shape under test: 档位选择与夹具路径钩子在取值写错时的行为（改前：静默回落，日志一行没有）
+# expected: 正向档的 stderr 里必须有该行给出的 expect 子串；负向档（expect=-）里
+            一条留痕都不许出现。照片用来人眼核对'确实落在文案说的那一档'。
+# observed: 见下面每档的 result 行；原始 stderr 逐档存在 raw/<档名>.log
+# restore: 本脚本不写用户任何状态；夹具目录在 /tmp，需要时用 purge-fixture.sh --clean / disk-fixture.sh --clean 删
+# ---- 02-module-ok ----
+# env: MM_OPEN_MODULE=cleaner MM_OPEN_TAB=cache
+# expect: -
+# windowid: 5226  pid: 98272  settle: 7s  照片: docs/verification/p25-header-narrow/02-module-ok.png
+# result: ✅ 无留痕（如预期）
+# ---- 结论 ----
+# 核对 1 档，失败 0 档
+# 照片 1 张，原始 stderr 在 docs/verification/p25-header-narrow/raw/

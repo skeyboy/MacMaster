@@ -41,7 +41,11 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 **这条顺序 P24 第一次照做**（`docs/verification/p24-v1/`，产物 `MMGitCommit=b4f9e1f` 不带 `-dirty`），
 两支只验过"拒"的脚本（`p17-website-capture` / `p18-hook-typo-proof`）也各有一份**放行**日志在
 `docs/verification/p24-gate-pass/`——只验一条边的门禁，另一条边要等下一轮才看得见它通不通。
-十一遍发版核验的产物版本号逐字相同（**现读 36 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
+**P25 第二次照做，而且是第一次带着源码改动照做**（`docs/verification/p25-v1/`）：这一遍的产物
+`MMGitCommit=fc2a7b2-dirty` 而 `MMSourceDigest=fc2a7b2+e3b0c442`——**这两串量的是不同的东西**，
+前者是整棵树的脏净态（本轮构建时文档正在改），后者只量 92 个编译输入；
+**照片与二进制同源看的是 `# digest:` 那一行，不是 plist 上那个短 sha 后缀。**
+十二遍发版核验的产物版本号逐字相同（**现读 39 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
 一个写法**：`grep -rl "CFBundleShortVersionString=1.0.0 CFBundleVersion=1" docs/verification --include='*.log' | wc -l`），
 没这两键就分不出哪一份出自哪一次改动；
 取证日志里的 `# repo:` 是**跑脚本的那棵树**，`# app-repo:` 才是**被测二进制那棵树**，两行不一样是常态
@@ -61,15 +65,17 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p16-citation-audit.sh  # 入库文档里每处 `文件:行号` 落盘验一遍（纯读，约 40 秒）
 ```
 
-现测（2026-10-06，P22 之后重跑）：**622 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（2026-10-07，P25 之后重跑）：**629 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
 **P21 加 9 条删除闸门口径判据**（`DeletionGuardTests` +3：`/dev`、`/private`、"字面问与全量问不许给两种答案"；
 `DiskRiskTests` 全新 6 条：界面标签不许和闸门唱反调）→ 621；
 **P22 加 1 条跳过披露判据**（`DiskScannerHierarchyTests.testNestedProtectedSkipIsDisclosed`：
-受保护目录跳过发生在每一层，披露也必须覆盖每一层）→ 622）。
-**逐包求和 = 622**（73 / 17 / 117 / 18 / 121 / 73 / 53 / 96 / 54），这一条自 P11c 起每轮都当自证用；
+受保护目录跳过发生在每一层，披露也必须覆盖每一层）→ 622；
+**P25 加 7 条清理页副标题判据**（`CleanerHeaderContractTests`：段序按优先级排、"另有 N 只读"不许被中间截断吃掉、
+时间戳不带年份这一长度决定）→ 629）。
+**逐包求和 = 629**（73 / 17 / 117 / **25** / 121 / 73 / 53 / 96 / 54），这一条自 P11c 起每轮都当自证用；
 **这一跑第一包和第六包都是 73**（MMCore 与 MMDisk），读那行数字时别把两格并成一格——
 按名字读，别按"73 出现过一次"读。
 **P20 那遍是在一次干净 `git clone` 出来的树上跑的**，那一跑九个包逐包数一个不差
@@ -236,7 +242,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）**已实跑十一遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
+"版本号从打包脚本走到关于页"）**已实跑十二遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
 `docs/verification/v1.0.0/`），P12 那遍在带 P11 改动的二进制上重跑 581/0/1（证据
 `docs/verification/p12-v1/`），**P13 那遍在带 P11c 改动的二进制上重跑 579/0/1**（证据
 `docs/verification/p13-v1/`，判据逐条见 §7.4；这一遍还多拍一张——改名之后的活动卡，
@@ -267,6 +273,14 @@ checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产�
 但那一遍干净的是克隆树）。本轮动的是两支取证脚本，于是那两支的**放行路径**第一次归档了
 （`docs/verification/p24-gate-pass/`）——P23 只验过它们"拒"的那一支，而一条只验过拒的门禁，
 通不通没人知道。
+**第十二遍在 2026-10-07，P25，629/0/1**：这一遍改的是业务源码一处——清理页页头那句副标题在 1000 pt 硬最小宽度下
+被中间截断吃掉了"另有 N 只读"（一句话在宽窗说、在窄窗不说，等于不说）。
+段序按优先级重排 + 时间戳去掉年份，判据 +7 全在 MMCleaner（18 → 25）。
+**这条顺序第二次照做，也是第一次带着源码改动照做**：三个提交在前、构建在中、出片在后，
+同一屏留下三档实拍（`p25-header-yeardate/` 是改去年份之前那一版二进制拍的窄窗档，
+它的 `# digest:` 跟着它自己的 commit 走，**故意不等于最终产物**；`p25-header-wide/` 是 1280×800；
+`p25-header-narrow/` 是最终产物的验收档）。残余没清零：那一屏在 minWidth 下仍差约 5 个字符宽度，
+账在 `docs/analysis/release-readiness.md` §8。
 第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
 
 **P14（2026-10-05）改的是守护页页头那一句副标题**：它从前只列三件事，而那一屏有四张卡

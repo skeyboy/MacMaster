@@ -1,0 +1,34 @@
+# run-all-tests.sh  P25 第十二遍发版核验·第 1 步  2026-10-07 21:21:28 +0800（结论行完成时刻）
+# repo: fc2a7b2-dirty branch=main
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P24 那一格见
+#       docs/verification/p24-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（它是 swift test 的全文，体积大且每轮重生成）。
+#       工作树 dirty 的是这一份文档与 docs/verification/p25-* 那几份新证据；
+#       **编译输入一个没动**（现读 `git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` 为 0 行——本轮的源码改动全部在 fc2a7b2 里）。
+#       同一时刻 `source Scripts/mm-provenance.sh; mm_source_digest "$PWD"` = fc2a7b2+e3b0c442，
+#       与本轮那两张验收照片（窄窗 + 默认宽）以及 p25-v1 那三张基础照片日志头里的 `# digest:` 逐字相同；
+#       那一族里第四份 docs/verification/p25-header-yeardate/ 配的是中间态 7ec32c9+e3b0c442，
+#       它记的就是"段序改完、年份还没拿掉"那一版画面，故意不与最终产物对齐（§7.16 里那张是判据的一部分）。
+#       也就是说"这 629 条与那几张照片量的是同一套编译输入"，不需要靠谁来担保。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=73   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：629 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
+
+# 逐包求和 = 629（73+17+117+25+121+73+53+96+54），与合计那一格一致——这一条自 P11c 起每轮都当自证用：
+# 抄来的数不会同时抄错九格。本轮 MMCore 与 MMDisk 仍然都是 73，撞车没有含义，按包名读。
+# 本轮唯一动的包是 MMCleaner：18 → 25（+7，CleanerHeaderContractTests.swift 全新一个文件 92 行）。
+# 与 P24 归档那一份逐包对差：**只有 MMCleaner 那一格变，其余八格逐字相同**——
+# 这正是"改了清理页那一屏，判据只加在被改的那一包"的形状（P21/P22 同形，见 §7.16）。
+# 因此"其余八包不变"这次**不能**当"别处没被改坏"的证据；
+# MMCleaner 那 18 条旧判据全部通过、MMDisk 那 73 条里 72 通过 + 1 跳过（唯一那条仍是
+# testMountedVolumeRootIsBlocked，本机没有第二块挂载卷）、全程 0 失败，才是那件事的证据。

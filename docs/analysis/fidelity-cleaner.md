@@ -40,13 +40,13 @@
 - 容器两级导航：`CleanerContainerView.swift:31-61` —— 顶部 `safeAreaInset` 里 30pt 高的三页签
   segmented `Picker`（`缓存清理/用户文件夹/系统分析`），其下才是各页自己的 `MMPageHeader`。
 - 页头：`MMPageHeader`（`MMDesign.swift:238-271`）= `MMMetric.toolbar` 46pt + `contentBackground` + 底部 Divider。
-- 过滤条：`MMCleaner.swift:305-325`，`CleanerFilter` 四档 `全部/缓存/日志/临时`（`:856-881`）。
+- 过滤条：`MMCleaner.swift:305-325`，`CleanerFilter` 四档 `全部/缓存/日志/临时`（`:896-921`，**P25 现读重指**，旧值那一对行号漂了约四十行）。
 - 分类表：`MMCleaner.swift:425-464` —— 内联卡（`background(MMColor.contentBackground)` + `MMRadius.card` 8 + separator 描边 + `MMGap.lg` 16 内边距），**没有调用 `MMCard`**。
 - 表头 26pt / 分组头 30pt / 行 44pt：`MMCleaner.swift:466-481`、`:500-520`、`MMItemRow`（`MMDesign.swift:682-742`，`MMMetric.rowRegular` 44）。
 - 动作栏：`MMActionBar`（`MMDesign.swift:280-313`）= `MMMetric.actionBar` 52pt + `cardBackground`。
 - 风险三档真源：`MMRisk`（`Packages/MMCore/Sources/MMCore/Risk.swift:9-41`），`groupTitle/groupNote/isDefaultSelected/allowsDeletion`。
 - 卡片 token 真源：`MMCard`（`MMDesign.swift:770-786`）= `MMColor.controlBackground`（`windowBackgroundColor`）+ 8pt 圆角 + 16pt 内边距；而本文页内卡用的是 `MMColor.contentBackground`（`textBackgroundColor`）→ 见 I4/S9。
-- 拒绝回执预演：`CleanerView.refusalPreview()`（`MMCleaner.swift:883-894`），三条由 `DeletionGuard.rejection(for:)` 现场算出。
+- 拒绝回执预演：`CleanerView.refusalPreview()`（`MMCleaner.swift:926-934`），三条由 `DeletionGuard.rejection(for:)` 现场算出。
 
 ## 1. 逐元素对照表
 
@@ -66,9 +66,9 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 标题「系统清理」 | `MMCleaner.swift:305` | ✅ | 代码逐字一致（页签叫「缓存清理」、页头叫「系统清理」，模块名与页签名不同源，见 I8） | — | — |
-| 副标题格式「已扫描 N 类 · 可释放 X · 时间」 | `headerSubtitle` `MMCleaner.swift:834-851` | ✅ 结构 | 实现多出一段「**另有 Y 只读**」（`readOnlyTotal>0` 时），且类数用 `categories.count` | 低 | 设计稿该改 S6 |
-| 副标题数值「已扫描 **9 类** · 可释放 **2.42 GB** · **21:15**」 | 同上 | ❌ | 稿内 9/2.42/21:15 均为**占位**：本机实拍副标题为「已扫描 16 类 · 可释放 653.6 MB · 另有 16.3 MB 只读 · 2026-09-30 10:06」；且稿内自相矛盾（表里列了 5+3+2=**10** 行却写"9 类"） | 低 | 设计稿该改 S6 |
-| 过滤条 seg：`全部 / 缓存 / 日志 / **开发**` | `CleanerFilter.label` `MMCleaner.swift:864-871` = `全部/缓存/日志/**临时**` | ❌ | 第 4 项文案不一致；实现的 `temp` 映射 `CacheScope.temp`，语义是「临时」不是「开发」 | 低 | 设计稿该改 S3 |
+| 副标题格式「已扫描 N 类 · 可释放 X · 时间」 | `headerSubtitle` `MMCleaner.swift:881-891`，段序在 `CleanerHeaderCopy.subtitleSegments` `:970-1010` | ⚠️ 结构 | 实现多出一段「**另有 Y 只读**」（`readOnlyTotal>0` 时），类数用 `categories.count`；**P25 把段序改成「已扫描 N 类（·未完成）· 时间 · 可释放 X ·· 另有 Y 只读」**——时间从末尾挪到中段，只读那一段压到最后。理由是界面上的而不是审美的：页头副标题单行 + 中间截断，用户能拖到的最窄窗（1000 pt）先吃中段，而"另有 N 只读"被吃掉等于把代码里那条自我约束在界面上撤销，见 `release-readiness.md` §7.16 | 低 | 设计稿该改 S6 |
+| 副标题数值「已扫描 **9 类** · 可释放 **2.42 GB** · **21:15**」 | 同上 | ❌ | 稿内 9/2.42/21:15 均为**占位**：1280×800 实拍副标题为「已扫描 16 类 · 10-07 21:03 · 可释放 3.76 GB · 另有 136.7 MB 只读」（`docs/verification/p25-header-wide/`）；稿内另外还自相矛盾（表里列了 5+3+2=**10** 行却写"9 类"）。**这一格 2026-09-30 那版抄的是旧段序**，P25 之后按新照片重指 | 低 | 设计稿该改 S6 |
+| 过滤条 seg：`全部 / 缓存 / 日志 / **开发**` | `CleanerFilter.label` `MMCleaner.swift:904-911` = `全部/缓存/日志/**临时**` | ❌ | 第 4 项文案不一致；实现的 `temp` 映射 `CacheScope.temp`，语义是「临时」不是「开发」 | 低 | 设计稿该改 S3 |
 | 「搜索类别」搜索框 | `MMCleaner.swift:315-317`，`TextField.frame(width: 140)` | ✅ | 稿 `width:150px`；宽度差 **10pt `⚠️待真机测量`** | 低 | 记录 |
 | 「重新扫描」按钮 + refresh 图标 | `MMCleaner.swift:319-324` `.disabled(model.isScanning)` | ✅ | 一致（实机在扫描时禁用，稿内未画禁用态） | — | — |
 
@@ -92,7 +92,7 @@
 | 「沙盒容器缓存」大小占位「·」 | `MMCleaner.swift:572` `scannedSize > 0 ? bytes : "—"` | ❌ | 稿内未测用「·」，实现用「—」；且实现把"扫到 0 字节"也画成「—」（与"未测"同形） | 低 | 设计稿该改 S7 |
 | 行高 44 / 表头 26 / 分组头 30 / 卡圆角 8 | `MMMetric.rowRegular` 44、`:478` 26、`:518` 30、`MMRadius.card` 8 | ✅ | 与稿内 `.crow min-height:44`、`.hdr 26`、`.gtitle 30`、`--r-md 8` **数值一致**（代码层；实机像素 `⚠️待真机测量`） | — | — |
 | 底部注脚「所有删除一律先移入废纸篓…不会静默跳过。」 | `MMCleaner.swift:436-446` | ✅ | 文案逐字一致 | — | — |
-| hover 才显现的文件夹按钮 | `MMRowAction`（`MMCleaner.swift:898-917`）图标**常显**，仅 hover 时出底 | ❌ | 稿内 `.crow .op{opacity:0}` 整枚按钮 hover 才现；实现图标一直在 | 低 | 设计稿该改 S7 |
+| hover 才显现的文件夹按钮 | `MMRowAction`（`MMCleaner.swift:938-957`）图标**常显**，仅 hover 时出底 | ❌ | 稿内 `.crow .op{opacity:0}` 整枚按钮 hover 才现；实现图标一直在 | 低 | 设计稿该改 S7 |
 
 ### 1.5 底部操作栏
 
@@ -693,3 +693,59 @@ ONLY=04 ./Scripts/p68-dev-capture.sh …           # 只重拍 04 那一档
 正是同一次运行；夹具 home 在照片里是以 `~` 显示的（`~/Documents/bulk-1…bulk-12` 这 12 行是真机上
 不存在的哨兵），所以**这一档的对应关系靠时间戳成立，不靠字面路径**——写日志的人别把
 `MM_PURGE_FIXTURE_HOME=/tmp/…` 当成"照片里应当看得见 /tmp"。
+
+## 11. P25 追加（2026-10-07）：页头副标题的**截断合同**，以及单测钉不住的那一半
+
+这一节对应的改动是本轮唯一一处业务源码（`release-readiness.md` §7.16 是主记录，§8 那一格从本轮起划掉）。
+它由 P24 那张窄窗照片照出来，所以第一句该说的是**这张照片是怎么拍到的**：
+`MM_WINDOW_SIZE` 注入 + `ONLY=02` 只跑清理页那一档，命令可重跑 ——
+`SIZE=1000x652 ONLY=02 KEEP_FIXTURE=1 ./Scripts/p18-hook-typo-proof.sh <app> docs/verification/p25-header-narrow`。
+`<app>` 必须是**当前树构建**的那一份，否则门禁 exit 4、一张都不出（这是 P23 立的规矩，本轮第二次照做）。
+
+### 11.1 病不在字号，在段序
+
+`MMPageHeader` 的副标题是一条单行文本 + `.lineLimit(1)` + 中间截断，**段序决定谁被吃、长度决定有没有人被吃**。
+旧段序把「可释放 X」放中间、「另有 Y 只读」放最后？不是——旧段序是「已扫描 N 类 · 可释放 X · 时间 · 另有 Y 只读」，
+1000 pt 下画面读作「已扫描 16 类 · 可释放 3.74 GB…MB 只读」：**被吃掉的正好是只读那一段的数字**。
+这一句在界面上的意义是「上面那个可释放数不含只读档」，它在窄窗消失，等于代码里那条自我约束被界面撤销了
+（`MMCleaner.swift` 里那句注释写的就是这件事）。
+
+改法两步，都不涉及颜色/间距这类令牌：① 段序按"用户会当成能删多少"的两段压到尾部的原则重排；
+② 时间戳从 `yyyy-MM-dd HH:mm` 换成不带年份的 `MM-dd HH:mm`。
+第二步单独说：整句原本 53 个字符宽度，而 1000 pt 那一档的预算约 48 —— **去年份不是审美决定，是长度决定**，
+它换来的是"尾部那两段能整段读全"。
+
+### 11.2 三档照片，中间那一档故意不同源
+
+| 档 | 目录 | 窗宽 | `# digest:` | 用途 |
+| --- | --- | --- | --- | --- |
+| 带年份那一版 | `docs/verification/p25-header-yeardate/` | 1000×652 | `7ec32c9+e3b0c442` | 改去年份**之前**的窄窗实拍，证明"重排够了/还差多少"这一步真的被看过 |
+| 宽窗 | `docs/verification/p25-header-wide/` | 1280×800 | `fc2a7b2+e3b0c442` | 新段序在默认窗下的读数（§1.2 那一格现值抄自这一张） |
+| 验收 | `docs/verification/p25-header-narrow/` | 1000×652 | `fc2a7b2+e3b0c442` | 最终产物在硬最小宽度下的验收档 |
+
+**中间那一档的指纹不等于最终产物，这是有意的**：照片的出处由 `# digest:` 自己说，
+统一重拍成同源的那一份，就只剩结论、没有过程了（与 `p23-provenance/` 那五档否证同族做法）。
+
+### 11.3 单测钉住了什么、钉不住什么
+
+`Packages/MMCleaner/Tests/MMCleanerTests/CleanerHeaderContractTests.swift`（92 行 7 条，本轮判据 +7 全在这一包）
+钉四件事：① 会被当成"能删多少"的两段必须在尾部；② 时间戳不许占尾部；③ 只读档为零时整段不出现
+（不许写"另有 0 字节 只读"）；④ 时间戳用不带年份的短格式。
+**钉不住的是"这一句在 1000 pt 放不放得下"**——那要实机照片，所以这一节的三张图和那支脚本才是判据的另一半。
+顺带一条旧账：本轮之前 MMCleaner 那 18 条判据里**没有一条**断言过副标题的段序，
+这就是"屏上有句话、代码里有注释、测试里没有判据"那种缺口的形状。
+
+### 11.4 残余（没清零，如实记）
+
+1000 pt 那一档改完之后整句仍超预算约 **5 个字符宽度**，现在被吃掉的只剩「可释放」那三个字的标签
+（数字本身读得到）。两条真正的解法——副标题换两行、或让页头按窗宽丢段——**都要动 `MMDesign.swift` 那个共享页头**，
+它罩着全部九屏，不该在这一轮为一屏改，因此记在 `release-readiness.md` §8 并绑到 P4 那一轮的最小窗口账上。
+
+### 11.5 锚点代价
+
+本轮动了编译输入，`MMCleaner.swift` 副标题那一屏之上整体 **−7 行**（新代码加在文件末尾）。
+本文被牵动而现读重指的格子共 **五处**：副标题那格（`:881-891` + 新增的 `:970-1010`）、过滤条总览那格、
+`refusalPreview` 那格、`MMRowAction` 那格、过滤条 seg 的 `label` 那格
+（另有一格只是副标题的实拍文案串，不带行号所以不进这笔账）——
+**这五处的旧值在本轮之前就已经漂了四十到五十行**，P25 只是让这件事不得不被看见；
+逐条成因、P24 那一版记的五个旧值与对应符号在 P24 HEAD 上的现值，都在 `release-readiness.md` §7.16 末尾那段。
