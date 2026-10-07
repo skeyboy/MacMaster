@@ -35,6 +35,9 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 而 P22 撞的那一次（搬动一个私有辅助函数的位置）恰好是 commit、脏净态与画面**三条线都看不见**的改动。
 取证脚本（`p7-release-check` 与那四支 capture）起跑前先比这个指纹，**不同源就 exit 4、一张都不出**，
 配方一份在 `Scripts/mm-provenance.sh`，构建侧与取证侧共用（两边各算一遍等于没门禁）。
+**顺序因此是钉死的：提交 → `make-app.sh` → 出片脚本**。指纹前缀是 HEAD 短 sha，
+所以一次提交本身就让提交前那份产物失配（内容没变也一样）——这不是麻烦，是它该管的那件事：
+照片出自哪一格树，日志里那一行 `tree=` 会写明。
 十遍发版核验的产物版本号逐字相同（**现读 33 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
 一个写法**：`grep -rl "CFBundleShortVersionString=1.0.0 CFBundleVersion=1" docs/verification --include='*.log' | wc -l`），
 没这两键就分不出哪一份出自哪一次改动；
