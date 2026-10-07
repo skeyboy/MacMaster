@@ -1,0 +1,33 @@
+# run-all-tests.sh  P27 第十三遍发版核验·第 1 步  2026-10-08 00:10:27 +0800（结论行完成时刻）
+# repo: fd2ec86 branch=main
+# digest: fd2ec86+e3b0c442
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P26 那一格见
+#       docs/verification/p26-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **这一遍的树不是作者工作树，是 `/tmp/mm-clone-p27`——一次 `git clone` 出来的树**，
+#       跑的时候 `git status --porcelain` 只有 `?? docs/verification/p27-clone/` 一行（本轮刚拍的三张照片
+#       与它们的日志头，都是未跟踪文档），编译输入脏行数现读为 0：
+#       `git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` → 0 行。
+#       同一棵树同一时刻 `source Scripts/mm-provenance.sh; mm_source_digest "$PWD"` = fd2ec86+e3b0c442，
+#       与本轮三张照片（docs/verification/p27-clone/）日志头里的 `# digest: tree=… app=…` 逐字相同，
+#       而那一行里 tree 与 app 本身就相等——这是第十三遍与前十二遍形状上的区别：
+#       **树是干净克隆、产物指纹与树指纹相等、`# repo:` 不带 `-dirty`，三件事第一次同时成立**
+#       （P20 那一遍也是干净克隆，但那时候同源门禁还没立起来，那三张照片里没有 `# digest:` 行）。
+#       重叠如实记：第 3 步的三张照片落在 00:08:01 / 00:08:08 / 00:08:14，而这一遍的第 1 步同一时刻正在跑
+#       （MMCore 00:08:40、MMUI 00:08:49 起）——照片与跑测在时间上有约二分半钟的重叠，本轮第一次如此。
+#       它不影响"633 条跑在哪一棵树"这个结论（同一棵树、同一套编译输入），但它意味着
+#       03-dashboard-min 那张照片上的 CPU 15% / 内存 12.34 GB / 磁盘写 60.9 KB/s 是**跑测正在进行的时刻**，
+#       不能当成 idle 基线来引用。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：633 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
