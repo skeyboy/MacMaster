@@ -63,11 +63,11 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 身份头：38pt 图标 + 名称 + `包名 · 大小 · /Applications` | `AppDetailView.identityHeader` `MMUninstaller.swift:1499` | ✅ | 实现 `deletingLastPathComponent` 取父目录，与稿一致（P16 现读：本文此前只写裸行号 853，是写作当时的位置） | — | — |
-| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1527` → `MMStatItem` | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:386`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:403`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
-| 键值对：包名/版本/开发者/最低系统/可执行文件/修改时间/所在文件夹 | `infoSection` `MMUninstaller.swift:1536` → `MMKeyRow` | ✅ | 实现 `MMKeyRow("版本", "\(version) (\(build))")` 与稿"26.2 (17C4011)"一致；空值填空字符串；`MMKeyRow` 在 `MMDesign.swift:362` | — | — |
+| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1527` → `MMStatItem` | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:390`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:407`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
+| 键值对：包名/版本/开发者/最低系统/可执行文件/修改时间/所在文件夹 | `infoSection` `MMUninstaller.swift:1536` → `MMKeyRow` | ✅ | 实现 `MMKeyRow("版本", "\(version) (\(build))")` 与稿"26.2 (17C4011)"一致；空值填空字符串；`MMKeyRow` 在 `MMDesign.swift:366` | — | — |
 | 「将一并移除的残留」+ 徽标"N 项默认不勾选" + "按包名…匹配·不含共享文件" + 全选可删项 | `residualSection` `:902-918` | ✅ | 实现徽标 `unselectedCount` 项、文案"按包名与容器证据匹配 · 不含其他应用的共享文件"，与稿一致 | — | — |
-| 残留按风险分组，每行：图标 + 路径 + 原因 + 徽标 + 勾选框 | `residualGroups` `:958` → `ResidualRow`/`MMItemRow` | ✅ | 实现 `MMItemRow`（`MMDesign.swift:682`）逐行：risk 徽标、`risk.allowsDeletion` 为假时勾选框禁用（root 属主项不可选），与稿"root 属主项勾选框直接禁用"一致 |
-| 残留行高 28pt（稿 `.res`） | `MMItemRow` 用 `MMMetric.rowRegular`（=44，`MMDesign.swift:738`） | ❌ | 稿 28pt 两行文案放不下且与 03b 的 52pt 自相矛盾；实现统一 44pt 更合理 | 低 | 设计稿该改 S2 |
+| 残留按风险分组，每行：图标 + 路径 + 原因 + 徽标 + 勾选框 | `residualGroups` `:958` → `ResidualRow`/`MMItemRow` | ✅ | 实现 `MMItemRow`（`MMDesign.swift:686`）逐行：risk 徽标、`risk.allowsDeletion` 为假时勾选框禁用（root 属主项不可选），与稿"root 属主项勾选框直接禁用"一致 |
+| 残留行高 28pt（稿 `.res`） | `MMItemRow` 用 `MMMetric.rowRegular`（=44，`MMDesign.swift:742`） | ❌ | 稿 28pt 两行文案放不下且与 03b 的 52pt 自相矛盾；实现统一 44pt 更合理 | 低 | 设计稿该改 S2 |
 | 说明："卸载会把 X.app 及勾选的 N 项（合计 X）移到废纸篓，可在 15 秒内撤回" | `confirmationNote` `:999` | ❌ | 实现写"可在 15 秒内撤回"，**漏了"或「最近操作」中**；而它自己的确认面板（`:502`）有完整句——实现内部口径不一致 | 低 | 实现该改 I2 |
 | 两个动作按钮：卸载应用并移除勾选的残留（破坏红）/ 仅卸载应用，保留所有残留（borderless） | `:945-954` | ✅ | 实现同稿：破坏红 full-width + borderless small | — | — |
 
@@ -111,7 +111,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `:566-573` → `MMPermissionBanner`（`MMDesign.swift:443`）；`fullDiskAccessPane` `MMUninstaller.swift:525` | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
+| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `:566-573` → `MMPermissionBanner`（`MMDesign.swift:447`）；`fullDiskAccessPane` `MMUninstaller.swift:525` | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
 | 目录不存在走另一文案且**不放授权按钮** | `TrashWatcher.start` `:120-124` `needsFullDiskAccess:false` → `MMPermissionBanner(settingsPane:nil)` | ✅ | 实现区分 ENOENT（目录不存在，无按钮）与 EPERM/EACCES（要授权），与 `trash-watch-fda.md` 红线 2 一致 |
 | 页面其余部分不受影响（列表/卸载动作不依赖读废纸篓） | `trashRegion` 仅替换卡片区，列表/详情照常 | ✅ | 与稿"页面其余部分不受影响"一致；`uninstaller-no-fda-banner.jpg` 已证 |
 | 横幅底色 warning 10% | `MMPermissionBanner` `soft(caution,0.10)` | ✅ | 与稿 `color-mix(warning 10%)` 一致 |
@@ -171,7 +171,7 @@
    实现 `MMItemRow` 统一 44pt。建议稿面两处都改到 44pt。
 2. **【低】S3 · 应用行图标 28pt、行高 52pt 与令牌不符**：实现 `iconApp=32`/`rowApp=56`；建议稿面改到 32/56，或确认令牌要调。
 3. **【低】S4 · 统计卡用了非标准令牌**：稿 03 `.cards .c` 底用 `--c-card-bg-alt`、圆角 6pt，而实现 `MMStatItem`
-   用 `MMColor.underPageSurface`（`MMDesign.swift:403`，值 `:47` 浅 #E4E4E4）+ `MMRadius.control`=6（`:104`，用在 `:403`）；**圆角这一维 P16 现读已经对齐**（本文此前写的是 `cardBackground` + `control=8`，那个符号已改名、那个数值也不是当前值），只剩底色一档之差。建议稿面改用 `--c-card-bg` 一档，与全站组件对齐。
+   用 `MMColor.underPageSurface`（`MMDesign.swift:407`，值 `:47` 浅 #E4E4E4）+ `MMRadius.control`=6（`:104`，用在 `:407`）；**圆角这一维 P16 现读已经对齐**（本文此前写的是 `cardBackground` + `control=8`，那个符号已改名、那个数值也不是当前值），只剩底色一档之差。建议稿面改用 `--c-card-bg` 一档，与全站组件对齐。
 4. **【低】S5 · 03c 缺"废纸篓清理确认面板"稿面**：孤儿确认 03b 有（第二 artboard），废纸篓清理确认（
    `trashConfirmSheet`）没有，建议补一张对齐 03b 的确认稿。
 5. **【低】S6 · 03b 缺空态/扫描态稿面**："还没有反查过""没有发现没有主人的残留""正在反查残留归属…"

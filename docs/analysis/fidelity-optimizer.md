@@ -37,7 +37,7 @@
 代码侧已实证的口径（来自共享文件，非本模块自造）：
 
 - `MMFormat.bytes(_:UInt64?)`（`MMDesign.swift:113-117`）：`nil → "测量中"`，`<1000 → "N 字节"`，否则 `byte.string`。→ 浏览器 nil 体积渲染"测量中"与 08c 一致，非"0 字节"。
-- `MMFailurePanel`（`MMDesign.swift:614-674`）：恒定渲染 `MMBadge("N 项失败", tint:.caution)`（:633，无论 `summary` 是否 nil）；逐条按 `code=="PROTECTED"` 走 `exclamationmark.shield`+`MMColor.caution`（:645-647），否则 `xmark.circle.fill`+`destructive`；显示 `path + message + code`（:649-663）；`>4` 条折叠"另有 N 项失败"（:666-670）。
+- `MMFailurePanel`（`MMDesign.swift:618-678`）：恒定渲染 `MMBadge("N 项失败", tint:.caution)`（:633，无论 `summary` 是否 nil）；逐条按 `code=="PROTECTED"` 走 `exclamationmark.shield`+`MMColor.caution`（:645-647），否则 `xmark.circle.fill`+`destructive`；显示 `path + message + code`（:649-663）；`>4` 条折叠"另有 N 项失败"（:666-670）。
   **复核 2026-10-04 的两处更正**：① 上面这一串行号取自今天的文件已不成立（组件现 `:666`，body `:710-779`）；
   ② **更要紧的是这条 bullet 本身漏判了一件事**——它把 body 截在 `:674`，于是没读到 `:676` 之后的
   `.background(MMColor.soft(MMColor.caution, 0.10))`（今天 `:777`），直接导致 §3 I1 那个"橙底缺失"疑点被立案。
@@ -86,7 +86,7 @@
 | 操作栏随勾选：「已选 N 项 · X」+ 提示句 | `:380-398` `MMActionBar` | ✅ | 未勾="未勾选的文件不会被改动。"，已勾="被勾选的文件会先移入废纸篓，可撤回。"(:385) | — | — |
 | 「移到废纸篓」置灰(disabled) 当未勾选 | `:397` `.disabled(selection.isEmpty)` | ✅ | — | — | — |
 | 撤回 toast 8s 自动消失、不传 secondsRemaining（无倒计时数字） | `:399-414` `MMUndoToast` + `Task.sleep(8)` | ✅ | 与稿"没有倒计时数字"一致 | — | — |
-| 失败回执 `MMFailurePanel`（PROTECTED 分档） | `:118-122` `MMFailurePanel(summary:nil, trashFailures)` | ✅（结构） | 见 §2②；容器橙底 **✅已核：组件自带**（`MMDesign.swift:777`） | ~~中(待核)~~ 无 | §3 I1 已关闭 |
+| 失败回执 `MMFailurePanel`（PROTECTED 分档） | `:118-122` `MMFailurePanel(summary:nil, trashFailures)` | ✅（结构） | 见 §2②；容器橙底 **✅已核：组件自带**（`MMDesign.swift:781`） | ~~中(待核)~~ 无 | §3 I1 已关闭 |
 
 ### 1.3 浏览器缓存 tab（browser）
 
@@ -154,7 +154,7 @@
 ### ②-② PROTECTED 拒绝态是否走 shield/caution 分档
 
 - 实现两处失败回执都用共享 `MMUI.MMFailurePanel`：重复文件 `:118-122` 传 `summary:nil`；浏览器 `:192-194` 默认 `summary:nil`。
-- 该组件（已核 `MMDesign.swift:614-674`）：
+- 该组件（已核 `MMDesign.swift:618-678`）：
   - 恒定渲染 `MMBadge("N 项失败", tint:.caution)`（`:633`，**不受 summary 是否 nil 影响**）→ 与 08d 画的"2 项失败"琥珀徽章一致；
   - 逐条按 `code=="PROTECTED"` 渲染 `exclamationmark.shield` + `MMColor.caution`（`:645-647`），非 PROTECTED（errno）走 `xmark.circle.fill`+`destructive`（红）——**主动拒绝 vs 系统挡住的图标/颜色分档**与组件注释（`:643-644`）一致；
   - 每条显示 `path + message + code`（`:649-663`），`>4` 条折叠"另有 N 项失败"（`:666-670`）。
@@ -176,10 +176,10 @@
 ## 3. 实现该改（0 硬项 + 1 待核 → **待核已于 P6.5b 结清：缺陷从未存在**）
 
 1. ~~**【中·⚠️待真机测量】I1 · 失败回执容器橙底缺失风险**~~ **✅ 已关闭（复核 2026-10-04）——实现没有这个缺陷，本条从未成立**
-   `MMFailurePanel`（`MMDesign.swift:625-674`）的 `body` 只做 `padding`、未显式设置 `warning-soft` 背景；设计 08d / `05-states.html` 的失败回执均为橙 10% 底。MMCleaner 的 `MM_FAILURE_FIXTURE=protected` 实机图（deletion-guard.md §6）显示"琥珀色盾牌"面板，其橙底可能来自 `05-states` 的容器而非组件自身。
+   `MMFailurePanel`（`MMDesign.swift:629-678`）的 `body` 只做 `padding`、未显式设置 `warning-soft` 背景；设计 08d / `05-states.html` 的失败回执均为橙 10% 底。MMCleaner 的 `MM_FAILURE_FIXTURE=protected` 实机图（deletion-guard.md §6）显示"琥珀色盾牌"面板，其橙底可能来自 `05-states` 的容器而非组件自身。
    → 待真机核对：若 optimizer 直接放置 `MMFailurePanel` 缺橙底，则改 `MMFailurePanel` 补 `.background(MMColor.warningSoft)` 或在 `MMOptimizer` 两处调用外加橙底容器。**归实现该改 / 两边都改待核**，不擅自改共享组件（违反红线 3）。
    **核对结果（不用截图也能定，因为它是个读漏）**：`MMFailurePanel` 的 body 一直自带橙底——
-   `.background(MMColor.soft(MMColor.caution, 0.10))` 在 **`MMDesign.swift:777`**（今天的坐标；组件结构体 `:666`，body `:710-779`，
+   `.background(MMColor.soft(MMColor.caution, 0.10))` 在 **`MMDesign.swift:781`**（今天的坐标；组件结构体 `:670`，body `:714-783`，
    下一个结构体 `MMItemRow` 从 `:801` 起）。`git log -S'soft(MMColor.caution, 0.10)' -- MMDesign.swift` 的最早一条是
    **`e5634d3`（2026-09-29，`feat(cleaner): 清理页改为风险分组表…`）——即创建这个组件的那一个提交**，
    所以它不是"后来补上的"，是**生下来就有**。本条之所以立案，是因为对照时把 body 的行范围截在 `:674`
@@ -273,7 +273,7 @@
    给一张"没有结果"的列表配一句"有些文件没参与判定"，照片本身自相矛盾。
    那句"扫描中态 #2 需要 HOLD"的注释**已按实测改掉**（P6.6 第 01 档证明不需要），别照旧注释补 HOLD 档。
 2. **I1 容器橙底待真机裁定**：请协调者在真机截图后确认 `MMFailurePanel` 在 optimizer 两处是否缺橙底；若缺，决定改 `MMFailurePanel`（共享组件，影响全站）还是在 optimizer 调用外加容器——此改动越共享层，按红线 3 由协调者落地。
-   **✅ 已裁定，不需要截图**：橙底一直在组件里（`MMDesign.swift:777`，自 `e5634d3` 创建该组件起），见 §3 I1。
+   **✅ 已裁定，不需要截图**：橙底一直在组件里（`MMDesign.swift:781`，自 `e5634d3` 创建该组件起），见 §3 I1。
    **这一条剩下的部分换个名字继续开着**：面板形态是通栏条还是带边框卡（与 `fidelity-cleaner.md` §2 I5 同一件事），
    那是形态题，不是缺不缺底色。
 3. **S1/S2/S3 设计稿侧修正**：侧栏占位数字（随全站侧栏 footer 组件重画）、浏览器删除按钮图标（box→trash）、08e 推演档在补 fixture 后核对——均属设计稿侧，不在本模块实现范围。

@@ -77,7 +77,7 @@
 | 百分比 1 位小数（35.8% / 80.2%） | `MenuBarManager.percentText:169` → `MMFormat.percent` | ✅ | 0.4% 不会被压成 0% | — | — |
 | 速率 `compactBytes + "/s"`（1.9 MB/s、293.3 KB/s） | `MMMonitor.swift:64-67` | ✅ | 稿内数值取自实机 | — | — |
 | nil → 「—」（C 稿 CPU/磁盘四项） | `:65`、`MenuBarManager:170` | ✅ | 空值不塌成 0 | — | — |
-| 卡片几何：48pt 高、6pt 圆角、`cardBackground` + separator 描边、v8/h12 内边距 | `MMDesign.swift:359-369` | ✅ | 实机 48pt（115→162）与稿内一致 | — | — |
+| 卡片几何：48pt 高、6pt 圆角、`cardBackground` + separator 描边、v8/h12 内边距 | `MMDesign.swift:363-373` | ✅ | 实机 48pt（115→162）与稿内一致 | — | — |
 | 网络速率（`networkUp/DownBytesPerSecond`） | 快照里有（`MetricTypes.swift`），菜单栏菜单里显示（`MenuBarManager:160-164`），**页面一处都不用** | ❌ | 页面叫「系统监控」却只有磁盘 IO 没有网络；同一份数据在两个出口口径不一致 | 低 | 实现该改 I8 |
 
 ### 1.3 每核 CPU 卡
@@ -108,7 +108,7 @@
 | 卡标题「内存」+ `memorychip` | `MMMonitor.swift:179` | ✅ | 一致 | — | — |
 | 五个标签逐字：「已用」「活动」「联动保留(wired)」「压缩」「Swap」 | `:181-186` | ⚠️ 稿侧过期 | **实现侧已在 `e84066a` 去掉 `(wired)` 括注**（全站纯中文惯例），这一行是 2026-09-30 那轮的快照。稿内 D/B 两稿的标签列仍写「联动保留(wired)」→ 归 §3 设计稿该改（S8） | 低 | 设计稿该改 S8 |
 | 「已用」= `bytes(used) / bytes(total)` | `:181`，口径 `MemoryMetrics.usedBytes = active+wired+compressed`（`MetricTypes.swift`） | ✅ | B 稿卡头把"不含 inactive"的口径写死 | — | — |
-| 「联动保留(wired)」在 80pt 标签列内**换行** | `MMDesign.swift:376` `.frame(width: 80)` | ✅（触发条件已消） | 括注去掉后本页最长标签 4 汉字，80pt 装得下（实机 `docs/verification/p65/0*` 五行行距 22pt 无折行）。**令牌没动**，5 汉字是上限、6 个就折行 → 见 §2.5 的关闭条件 | — | ~~实现该改 I5~~ **已改（`e84066a`）** |
+| 「联动保留(wired)」在 80pt 标签列内**换行** | `MMDesign.swift:380` `.frame(width: 80)` | ✅（触发条件已消） | 括注去掉后本页最长标签 4 汉字，80pt 装得下（实机 `docs/verification/p65/0*` 五行行距 22pt 无折行）。**令牌没动**，5 汉字是上限、6 个就折行 → 见 §2.5 的关闭条件 | — | ~~实现该改 I5~~ **已改（`e84066a`）** |
 | `memory == nil` → 「内存读数不可用（host_statistics64 失败），显示 —。」 | `MMMonitor.swift:189-197` | ❌ | 这句在**三种**不同成因下都会出现：①`.empty`（压根没采）②`host_statistics64` 真失败 ③`vm_page_size` 异常。把"还没采到"写成"系统调用失败"= 给出错误的因果结论 | **高** | ~~实现该改 I2~~ **已改**（②③仍同句，见 §2.2） |
 | `swapAvailable == false` → Swap 行「—」 | `:186` → `MenuBarManager.swapText` | ✅（夹具已拍） | D 稿画了；本机 swapAvailable=true，实机拍不到 → `MM_MONITOR_FIXTURE=swapOff`，照片 `docs/verification/p65/03`（+ 暗档） | — | 见 §4 |
 | `swapAvailable == true` 且读到 0 → ~~「0 字节 / 0 字节」~~「0 字节（未使用）」 | `MenuBarManager.swift:186-203`（`MMFormat.bytes` 的 <1000 特判仍在，只是不再一行用两次） | ✅ | 中文语境里读起来像坏了 → **I9 已改（2026-10-04）**；零值档实机拍不到（本机 used≈800M），夹具 `swapZero` 摆拍，照片 `p65/02` | — | ~~实现该改 I9~~ **已改**（见 §2.10） |
@@ -154,7 +154,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 页面卡：`underPage` 底 + 12pt 内边距 + 8pt 圆角 + separator 描边 | `MMMonitor.swift:349-366`（私有 `card()`，内部是 `MMCard(padding: MMGap.md, style: .underPage)`） | ✅ | 实机卡底 (40,40,40)、描边 1px，与稿内 `.mcard` 一致 | — | — |
-| ~~但 `card()` **没有复用 `MMCard`**~~ | `MMDesign.swift:898-932`（`MMCardStyle.content` / `.underPage` 两档 + `padding:` 参数） | ✅ | ~~同一 App 里两套"卡片"~~ **I4 已改**（`c74f045` 补档位、`e84066a` 本页改调组件，均 2026-09-30）：底色这一维收口进组件，内边距这一维由本页**显式选** 12pt（密度按实测量到的 22pt/36pt 行距定的，见 §2.4） | — | ~~实现该改 I4~~ **已改** |
+| ~~但 `card()` **没有复用 `MMCard`**~~ | `MMDesign.swift:902-936`（`MMCardStyle.content` / `.underPage` 两档 + `padding:` 参数） | ✅ | ~~同一 App 里两套"卡片"~~ **I4 已改**（`c74f045` 补档位、`e84066a` 本页改调组件，均 2026-09-30）：底色这一维收口进组件，内边距这一维由本页**显式选** 12pt（密度按实测量到的 22pt/36pt 行距定的，见 §2.4） | — | ~~实现该改 I4~~ **已改** |
 | 块间距 16pt、滚动区内边距 16pt | `:35,42` | ✅ | 实机 98→114=16、卡间 165→180=16 | — | — |
 | **无底部动作条** | 实现里确实没有 `MMActionBar` | ✅ | 只读页不加动作条，稿内注明理由 | — | — |
 | 侧栏宽 216pt（`MMMetric.sidebar`） | 实机分隔线在 **x=220** | ❌ | 全站骨架 +4pt | 低 | 实现该改 I10a |
@@ -195,20 +195,20 @@
    是因为落地那轮把它连同 I4–I7 一起写进了代码、没回写这份清单。现状：`MMMonitor.swift:160-164`
    在 `.ok` 且任一速率为 nil 时补 caption「等待下一次采样计算速率」，三态在图元层已可分
    （文案与这里的建议不同句，判据相同）。
-4. **【中】I4 · 私有 `card()` 复刻 `MMCard`**（`MMMonitor.swift:191-213` vs `MMDesign.swift:766-782`）
+4. **【中】I4 · 私有 `card()` 复刻 `MMCard`**（`MMMonitor.swift:191-213` vs `MMDesign.swift:770-786`）
    底（underPage vs controlBackground）与内边距（12 vs 16）两套。→ 建议：`MMCard` 增加
    `background:` 参数或加一个 `MMCardStyle.underPage`，本页改为调用组件。
-   **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:898-910`（`c74f045`，2026-09-30），
+   **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:902-914`（`c74f045`，2026-09-30），
    本页 `card()` 只剩标题行 + 内容，容器是 `MMCard(padding: MMGap.md, style: .underPage)`
    （`MMMonitor.swift:349-366`）。**内边距这一档没有统一到 16**：本页仍是 `MMGap.md`(12)，
    这是选出来的而不是漏的——监控页六张卡的密度按 §0 实测的 22pt/36pt 行距定的，改到 16 会整体变长。
    组件侧的"两套底色"已收口，剩下的只是这一页主动选了另一档内边距。
-5. **【中】I5 · `MMKeyRow` 80pt 标签列撑不住长标签**（`MMDesign.swift:340` + `MMMonitor.swift:122`）
+5. **【中】I5 · `MMKeyRow` 80pt 标签列撑不住长标签**（`MMDesign.swift:344` + `MMMonitor.swift:122`）
    「联动保留(wired)」折行、破坏实机 22pt 行距。→ 建议：标签列改为按内容自适应（`Grid`/`alignmentGuide`）
    或把令牌提到 96pt；顺带决定「联动保留」是否保留英文括注（全站措辞惯例是纯中文，括注属例外）。
    **✅ 触发条件已消（复核 2026-10-04：`e84066a` 去掉了 `(wired)` 括注）**：本页标签现在是
    「已用/活动/联动保留/压缩/Swap」（`MMMonitor.swift:181-186`），最长 4 汉字，80pt 装得下。
-   **令牌本身没动**（`MMDesign.swift:376` 仍是 `.frame(width: 80)`），所以这条的**结构风险还在**：
+   **令牌本身没动**（`MMDesign.swift:380` 仍是 `.frame(width: 80)`），所以这条的**结构风险还在**：
    5 汉字是实测上限（磁盘页的「所在文件夹」「可执行文件」正好顶格），6 个就折行。
    归"关闭 + 附条件"：下一次有页面写进 6 汉字标签时按建议改自适应，而不是等它先折行。
 6. **【中】I6 · 进程失败态没有下一步 —— ✅ 已改（2026-09-30，复核 2026-10-04 收口）**
@@ -228,7 +228,7 @@
 8. **【中】S1 关联 · 侧栏 footer 与实机不符**（见 §3，实机是容量行 + 带边框设置按钮）——**这条两边都要改**：
    设计稿要重画，同时实现里侧栏 footer 的容量条/设置按钮在 01–06 六张稿里全部缺失，属全站缺口。
 9. **【低】I8 · 网络速率在页面消失**：快照有 `networkUp/DownBytesPerSecond`、菜单栏有显示（`MenuBarManager.swift:320-322`）、页面一处不用。**仍未做**，是这一页唯一还开着的图元/文案项（I2 的半条是"逐因逐句"的粒度问题，I10a/b 在骨架层）。
-   没顺手做的理由：顶部读数条是 `MMStatItem × 4`（一行四个，`MMDesign.swift:386`），加网络进出要变 6 个——
+   没顺手做的理由：顶部读数条是 `MMStatItem × 4`（一行四个，`MMDesign.swift:390`），加网络进出要变 6 个——
    要么换行（页头高度 +一行，影响 §0 量的折叠线落点），要么把磁盘读写挤成一行两项。这是**画稿决定**，不是代码决定。
 10. **【低】I9 · Swap 读到 0 输出「0 字节 / 0 字节」**（`MMFormat.bytes` <1000 特判）→ 中文读起来像坏了。
     **✅ 已改（2026-10-04，P6.5）**：文案抽成 `MenuBarManager.swapText(_:compact:)`（`MenuBarManager.swift:186-203`），

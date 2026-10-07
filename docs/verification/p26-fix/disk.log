@@ -1,0 +1,7 @@
+# p4-sweep.sh disk  2026-10-07 22:15:09 +0800  app=/tmp/mm-app-p26b/MacMaster.app
+# repo: 59e653b   # app-repo: 59e653b
+# digest: tree=59e653b+e3b0c442 app=59e653b+e3b0c442
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1000x600 MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_DISK_SCAN=/tmp/macmaster-disk-fixture 
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p26b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1000x600 请求 1000x600pt，窗口实际 1000x652pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）

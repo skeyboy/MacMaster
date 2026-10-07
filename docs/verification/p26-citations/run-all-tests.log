@@ -1,0 +1,45 @@
+# run-all-tests.sh  P26 逐屏页头截断审计·第 1 步  2026-10-07 22:35:14 +0800（结论行完成时刻）
+# repo: 17f4371 branch=main
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P25 那一格见
+#       docs/verification/p25-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests-p26/，
+#       那一份不入库（它是 swift test 的全文，体积大且每轮重生成）。
+#       工作树 dirty 的是这一份文档、docs/analysis/header-truncation-audit.md 与 docs/verification/p26-* 那几批新证据；
+#       **编译输入一个没动**（现读 `git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` 为 0 行——本轮的源码改动全部在 59e653b / 6aa897e / 17f4371 里）。
+#       同一时刻 `source Scripts/mm-provenance.sh; mm_source_digest "$PWD"` = 17f4371+e3b0c442，
+#       与本轮最终那两张磁盘页照片（docs/verification/p26-disk-fixed/、p26-disk-fixed-deep/）以及
+#       p26-dev-worst2/ 那一档的日志头 `# digest:` 逐字相同——也就是"这 633 条与那几张照片量的是同一套编译输入"，
+#       不需要靠谁来担保。
+#       注意这一格的 `# repo:` 不带 `-dirty` 而 P25 那一份带——**这不说明本轮文档没在改**（这一份文件自己就是
+#       那批未提交的改动之一）。八支写归因头的脚本用的是同一条脏判定
+#       （现读 `grep -rn "repoTag=" Scripts/*.sh` 八处全部是 `git status --porcelain -uno`）：
+#       **已跟踪文件的改动算脏，未跟踪的新文件不算**。所以本轮这几批照片的 `# repo:` 讲的是"这一批拍在
+#       文档回写之前还是之后"：最终的 22:23 那三族（p26-disk-fixed / p26-disk-fixed-deep / p26-dev-worst2）
+#       全是 `17f4371` 不带脏，而更早那批里的 p26-disk-deep 是 `cae60fe-dirty`——那一刻已跟踪的那几份
+#       fidelity 文档正在改。判据始终是 `# digest:` 那一行（本轮五族最终照片的 tree= 与 app= 全部逐字相等），
+#       `-dirty` 这一后缀只说明"当时有人在写文档"，P25 那一格实拍到过同一档，见 §1。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：633 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests-p26/<pkg>.log
+
+# 逐包求和 = 633（73+17+117+25+121+77+53+96+54），与合计那一格一致——这一条自 P11c 起每轮都当自证用：
+# 抄来的数不会同时抄错九格。**本轮这一条自证比 P25 更该逐包按名字读**：P25 那一格撞的是
+# "MMCore 与 MMDisk 都是 73"，本轮 MMDisk 走到 77 之后撞车没了，但**MMFileScanner 117 与新的 MMDisk 77
+# 里那个 7 是同一个字**，按"77 出现过没有"读仍然会读错，按包名读不会。
+# 本轮唯一动的包是 MMDisk：73 → **77**（+4，DiskHeaderContractTests.swift 全新一个文件 60 行），其余八格逐字不变。
+# 形状与 P25 相同、判据也相同：**新加的那四条钉的是页头副标题的段序与"不许出现秒数"，
+# 而旧的 73 条里没有任何一条断言过副标题文案**（可现读：
+# `git ls-tree -r --name-only 59e653b^ Packages/MMDisk/Tests | while read f; do git cat-file blob "59e653b^:$f"; done | grep -c "headerSubtitle\|DiskHeaderCopy"` 退 **0**）。
+# 所以"旧的那 73 条全绿"只能证明没改坏别的（本轮确实是 0 失败，唯一的跳过仍是
+# testMountedVolumeRootIsBlocked，本机没有第二块挂载卷），证明不了页头文案以前有过保护。
+# **这一轮的照片推翻的正是第一轮那段"保护"**：第一档修复（只调段序）在单测下是全绿的，
+# 实拍却把"用时"切成一半（真值 0.1 s 画面上成 1 s）。单测钉得住段序，钉不住这一句在 1000 pt 放不放得下。

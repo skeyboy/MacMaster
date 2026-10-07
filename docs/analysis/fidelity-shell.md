@@ -113,7 +113,7 @@
 > "已落地"写上去、而对代码核得一字不差的**——I11/I12 两处的坐标、形态、判据全部仍在原位：
 > I11 = `MainWindow.swift:580-584`（`Text("全部")` + `Image(systemName:"chevron.right").font(.caption2)`，
 > 注释 `:580-581` 还留着"那半枚箭头是'点了会离开这一页'"的原始理由）；
-> I12 = `MMSparkline`（`MMDesign.swift:1051-1089`，`slotCount` 默认 12、`:1055`；未满的槽用 `Color.clear`
+> I12 = `MMSparkline`（`MMDesign.swift:1055-1093`，`slotCount` 默认 12、`:1059`；未满的槽用 `Color.clear`
 > 撑位而不是画 2pt 矮柱，`:1064-1068`，判据"没轮到 ≠ 读不到"写在注释里），调用点 `MainWindow.swift:534`，
 > 数据侧 `DashboardModel.swift:92-118` 把"读不到"压成 `nil` 槽、量不到时整列空出来（`:114-118`）。
 > **本页没有需要更正的落地记录。** 唯一要补的是下面第 5 行那句"待真机测量"里新添的一项边界（见 §5 第 2 条补记：
