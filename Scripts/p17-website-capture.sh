@@ -141,7 +141,9 @@ shot 04-guardian "$SETTLE" \
      MM_TCC_FIXTURE=rows MM_GUARDIAN_LOGIN_FIXTURE=rows MM_GUARDIAN_ACTIVITY_FIXTURE=rows
 
 print -r -- "# ---- 产出清点 ----" >>"$LOG"
-for f in "$OUT"/0*.png; do
+# (N)：zsh 对不匹配的 glob 直接报错，配上 set -e 就让"ONLY 没匹配到任何档"这一跑
+# 在门禁放行、日志头都写完之后死在清点这里（退 1）。放行路径不该有一个和拒拍不同的假失效形态。
+for f in "$OUT"/0*.png(N); do
   [[ -f $f ]] && print -r -- "# file: $(basename "$f") $(du -h "$f" | cut -f1) $(sips -g pixelWidth -g pixelHeight "$f" 2>/dev/null | awk '/pixel/{printf "%s ", $2}')" >>"$LOG"
 done
 print -r -- "→ 照片 $OUT，归因日志 $LOG"

@@ -38,7 +38,10 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 **顺序因此是钉死的：提交 → `make-app.sh` → 出片脚本**。指纹前缀是 HEAD 短 sha，
 所以一次提交本身就让提交前那份产物失配（内容没变也一样）——这不是麻烦，是它该管的那件事：
 照片出自哪一格树，日志里那一行 `tree=` 会写明。
-十遍发版核验的产物版本号逐字相同（**现读 33 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
+**这条顺序 P24 第一次照做**（`docs/verification/p24-v1/`，产物 `MMGitCommit=b4f9e1f` 不带 `-dirty`），
+两支只验过"拒"的脚本（`p17-website-capture` / `p18-hook-typo-proof`）也各有一份**放行**日志在
+`docs/verification/p24-gate-pass/`——只验一条边的门禁，另一条边要等下一轮才看得见它通不通。
+十一遍发版核验的产物版本号逐字相同（**现读 36 份 .log 带 `CFBundleShortVersionString=1.0.0 CFBundleVersion=1` 这一对键，
 一个写法**：`grep -rl "CFBundleShortVersionString=1.0.0 CFBundleVersion=1" docs/verification --include='*.log' | wc -l`），
 没这两键就分不出哪一份出自哪一次改动；
 取证日志里的 `# repo:` 是**跑脚本的那棵树**，`# app-repo:` 才是**被测二进制那棵树**，两行不一样是常态
@@ -233,7 +236,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11
 **功能就绪、分发未就绪**，卡的还是许可、权利人、签名方式那三项人的决定。
 
 checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产物 → 三张照片闭合并验证
-"版本号从打包脚本走到关于页"）**已实跑十遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
+"版本号从打包脚本走到关于页"）**已实跑十一遍**：前五遍都在 2026-10-05——P9 那遍 571/0/1（证据
 `docs/verification/v1.0.0/`），P12 那遍在带 P11 改动的二进制上重跑 581/0/1（证据
 `docs/verification/p12-v1/`），**P13 那遍在带 P11c 改动的二进制上重跑 579/0/1**（证据
 `docs/verification/p13-v1/`，判据逐条见 §7.4；这一遍还多拍一张——改名之后的活动卡，
@@ -258,6 +261,12 @@ checklist 的 1–3 步（全量测试 → `VERSION=1.0.0 BUILD=1` 出候选产�
 否证五档 `docs/verification/p23-provenance/probe.log`，见 §7.14）。
 磁盘那一族本轮只重拍两档（`p23-disk-skip/`），画面里会动的只有真机那两格
 （卷可用 45.54 → 45.18 GB、可清理 1.87 → 2.15 GB），新事实全在日志头那一行 `# digest:`。
+**第十一遍在 2026-10-07，P24，还是 622/0/1**：这一遍是上面那条顺序规矩（**先提交、再构建、再出片**）
+立起来之后**第一次照做**的一遍——产物构建在已经提交的那棵干净树上，所以日志头 `# digest:` 的
+`tree=` 与 `app=` 两边相等，`MMGitCommit` 也**不带 `-dirty`**（作者工作树这一侧的第一份；P20 那一遍同样干净，
+但那一遍干净的是克隆树）。本轮动的是两支取证脚本，于是那两支的**放行路径**第一次归档了
+（`docs/verification/p24-gate-pass/`）——P23 只验过它们"拒"的那一支，而一条只验过拒的门禁，
+通不通没人知道。
 第 4 步（许可、权利人、签名方式）是人的决定，实现不代拍。
 
 **P14（2026-10-05）改的是守护页页头那一句副标题**：它从前只列三件事，而那一屏有四张卡

@@ -1,0 +1,23 @@
+# p17-website-capture.sh 落地页四屏夹具档实拍
+# date: 2026-10-07 20:08:42 +0800
+# command: ./Scripts/p17-website-capture.sh /tmp/mm-app-p24/MacMaster.app /tmp/mm-p24-p17-assets dark 1280x800
+# repo: b4f9e1f-dirty branch=main
+# app: 1.0.0 (1)
+# app-repo: b4f9e1f
+# digest: tree=b4f9e1f+e3b0c442 app=b4f9e1f+e3b0c442
+# shape under test: 落地页 §界面预览 那四个截图位（改前是四个 .screenshot-placeholder 的 div、全页 <img> 为 0）
+# expected: 四张图的清单与读数来自夹具钩子；画面上出现 /tmp 夹具路径或 com.example.*/TZZ* 合成条目，
+            不出现真实登录项、真实密钥目录 mtime。**但有三个值夹具顶替不了，必然带真机状态**：
+            侧栏卷名+剩余百分比（MainWindow.swift:143-168）、侧栏「系统清理」那格可回收体积
+            （MainWindow.swift:107-111，读概览那次真实扫描）、磁盘页「卷可用」badge（MMDisk.swift:376）。
+            这三处不做隐藏、也不裁图，改成在落地页 §界面预览 那句话里明说——见 website-audit.md §3。
+# observed: 见下面每档的 env 行与哨兵核对结果（人工对着照片打勾，脚本只负责把注入项如实写下来）
+# restore: 本脚本不写用户任何状态；夹具目录在 /tmp，需要时用 --clean 删
+# ---- 03-monitor ----
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1280x800 MM_OPEN_MODULE=monitor MM_MONITOR_FIXTURE=populated,processes,sensors
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p24/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1280x800 请求 1280x800pt，窗口实际 1280x800pt
+# result: 03-monitor windowid=5093 pid=38045 settle=8s file=/tmp/mm-p24-p17-assets/03-monitor.png
+# ---- 产出清点 ----
+# file: 03-monitor.png 272K 2560 1600 

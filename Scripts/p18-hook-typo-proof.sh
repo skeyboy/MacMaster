@@ -23,6 +23,9 @@
 #                                                     既有照片与 capture.log 一字不动）
 #   KEEP_FIXTURE=1 …                                   不重建 /tmp 夹具
 #   SETTLE=6 DISK_SETTLE=14 …                          落位秒数
+#   SIZE=1000x652 …                                    每档照片的窗口尺寸（默认 1280x800）；
+#                                                     不钉它照片宽度会跟着系统恢复的窗口 frame 漂，
+#                                                     两轮的画面就不能互为证据（20 档自带这个键，覆盖它）
 #
 # 退出码：有任何一档"该留痕没留"或"不该留痕却留了"就是 1，可以当发版门禁的一部分。
 set -e
@@ -87,6 +90,7 @@ TRACE='含非法取值|沿用系统外观|解析失败|钩子已忽略|不在 /t
   print -r -- "# p18-hook-typo-proof.sh 钩子写错值留痕核验"
   print -r -- "# date: $(date '+%Y-%m-%d %H:%M:%S %z')"
   print -r -- "# command: ./Scripts/p18-hook-typo-proof.sh $APP $EVIDENCE"
+  print -r -- "# window: MM_WINDOW_SIZE=${SIZE:-1280x800}（proof() 给每档注入；20 档自带这个键，覆盖它）"
   print -r -- "# repo: $repoTag branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 未知)"
   local ver bld gcommit
   ver=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" 2>/dev/null || echo 未知)
@@ -126,7 +130,10 @@ proof() {
   fi
   local raw="$RAW/$name.log"
   : >"$raw"
-  env MM_APPEARANCE=dark "$@" "$APP/Contents/MacOS/MacMaster" >>"$raw" 2>&1 &
+  # MM_WINDOW_SIZE 注入在 "$@" 之前，所以自带这个键的档（20-window-size-typo 写的是 900）
+  # 仍然覆盖它——env 后写的算。不钉这一键的话照片宽度跟着系统恢复的窗口 frame 走：
+  # 同一档 2026-10-06 那一批是 2800px 宽，本轮重跑拿到 2000px，画面没法逐张对照。
+  env MM_APPEARANCE=dark MM_WINDOW_SIZE=${SIZE:-1280x800} "$@" "$APP/Contents/MacOS/MacMaster" >>"$raw" 2>&1 &
   local pid=$!
   sleep "$settle"
   local wid photo="无（这一档不出照片）"

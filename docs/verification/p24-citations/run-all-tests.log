@@ -1,0 +1,27 @@
+# run-all-tests.sh  P24 第十一遍发版核验·第 1 步  2026-10-07 20:13:57 +0800（结论行完成时刻）
+# repo: b4f9e1f-dirty branch=main
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P23 那一格见
+#       docs/verification/p23-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests-p24/，
+#       那一份不入库（它是 swift test 的全文，体积大且每轮重生成）。
+#       工作树 dirty 的是三支文件：本轮改的两支 `Scripts/*.sh` 与这份文档自己，
+#       **编译输入一个没动**（现读 `git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` 为 0 行）。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=18   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=73   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：622 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests-p24/<pkg>.log
+# 这一格与前八遍逐字相同，本轮**没有新增任何单测**——改的两支脚本都在 `Scripts/`，
+# 而壳层没有测试 target（这条空白记在 §11 已知空白，不在这里）。
+# 本轮跑这一遍的理由和 P23 那句一样："没改代码所以没重跑"这种话不说，重跑很便宜。
+# 多出来的一件可核对的事：`source Scripts/mm-provenance.sh; mm_source_digest "$PWD"` 在这一跑之前
+# 与之后都是 b4f9e1f+e3b0c442，而后半截 e3b0c442 **与 P23 归档那一份（df71638+e3b0c442）逐字相同**——
+# 也就是"这两遍跑的测试量的是同一套编译输入"这句话，本轮不需要靠"我记得没改代码"来担保。
+# 短 sha 那一半从 df71638 走到 b4f9e1f，中间是 P23 的那两个提交，它们改的全是文档、日志与 Scripts/。
