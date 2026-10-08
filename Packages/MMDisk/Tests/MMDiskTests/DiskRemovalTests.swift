@@ -55,18 +55,34 @@ final class DiskRemovalTests: XCTestCase {
         XCTAssertEqual(plan.blocked.map(\.reason), [.isScanRoot])
     }
 
+    /// 这一条不需要真有一个主目录：`.isHome` 是纯字符串比对，发生在"还在不在磁盘上"之前。
+    /// 所以主目录用编出来的名字，测试在任何机器、任何用户下都同样成立。
     func testHomeIsBlockedEvenWhenScanningFromRoot() {
-        let home = "/Users/lee"
+        let home = "/Users/probe"
         let plan = DiskRemoval.plan(marks: [mark(home)], root: "/", home: home)
         XCTAssertEqual(plan.blocked.map(\.reason), [.isHome])
     }
 
+    /// 系统树那条规则只看**从卷根往下数的第一层**：`/Library/Caches` 是系统的，
+    /// `~/Library/Caches` 是第三方缓存、正是该清理的地方，两者字面都像 "Library/Caches"。
+    ///
+    /// 这一条原来写死 `/Users/lee/Library/Caches` 并断言它进 `targets`：换一台机器
+    /// （CI 上是 `/Users/runner`）那条路不存在，`plan` 落到 `.vanished` 分支，测试当场红——
+    /// 也就是说它测的是"作者这台机装过什么"，不是规则本身（P28 在 macos-latest 上现读到）。
+    /// 现在改成用每台 mac 都有的 `NSHomeDirectory()`，并且只咬住"系统树这一条没打死它"：
+    /// 再往后的判据（闸口、卷根、已消失）各有各的测试，不在这里顺带验。
     func testSystemTreeIsBlockedButUserLibraryIsNot() {
         let system = DiskRemoval.plan(marks: [mark("/System/Library/CoreServices")], root: "/")
         XCTAssertEqual(system.blocked.map(\.reason), [.systemTree])
-        // 用户资源库里的第三方缓存是该清理的地方，不能被系统树规则一起打死。
-        let userLibrary = DiskRemoval.plan(marks: [mark("/Users/lee/Library/Caches")], root: "/Users/lee")
-        XCTAssertEqual(userLibrary.targets.map(\.path), ["/Users/lee/Library/Caches"])
+
+        let rootLibrary = DiskRemoval.plan(marks: [mark("/Library/Caches")], root: "/")
+        XCTAssertEqual(rootLibrary.blocked.map(\.reason), [.systemTree],
+                       "卷根第一层的 Library 要算系统树，否则清理页一刀就挥到系统缓存上")
+
+        let userLibrary = DiskRemoval.plan(marks: [mark(NSHomeDirectory() + "/Library/Caches")],
+                                           root: NSHomeDirectory())
+        XCTAssertFalse(userLibrary.blocked.contains { $0.reason == .systemTree },
+                       "用户资源库不能被系统树规则一起打死：\(userLibrary.blocked.map(\.reason))")
     }
 
     /// 执行那一层的闸口（`DeletionGuard`）本来就会拒绝的路径，不能列进"要删的清单"。

@@ -220,11 +220,19 @@ struct MonitorSnapshotFixture {
             "com.example.xcode", "com.example.spotlight", "com.example.photos",
             "com.example.mail", "com.example.messages", "com.example.music", "com.example.terminal",
         ]
-        return (0..<min(count, names.count)).map { i in
-            MonitorProcess(
+        // 这一段原来是一整条 `return (0..<min(count, names.count)).map { ... MonitorProcess(...) }`。
+        // 行内三个参数各带一次混合类型算术（Int32/Double/UInt64 乘字面量），类型检查器在
+        // Xcode 15.4（Swift 5.10）和 26.6（Swift 6.3.3）上都报
+        // "the compiler is unable to type-check this expression in reasonable time"——
+        // 作者机 Xcode 27（Swift 6.4）算得动，于是这个包在本地的 53 个测试从来没机会发现。
+        // 拆成带类型的局部量，每个表达式只剩一步乘法；数值与原来逐位相同。
+        let limit = min(count, names.count)
+        return (0..<limit).map { (i: Int) -> MonitorProcess in
+            let cpuSeconds: Double = 120 - Double(i) * 10
+            let memoryMiB: UInt64 = 500 - UInt64(i) * 40
+            return MonitorProcess(
                 name: names[i], pid: Int32(1000 + i),
-                cpuSeconds: Double(120 - i * 10),
-                memoryBytes: UInt64((500 - i * 40) * 1024 * 1024))
+                cpuSeconds: cpuSeconds, memoryBytes: memoryMiB * 1024 * 1024)
         }
     }
 }
