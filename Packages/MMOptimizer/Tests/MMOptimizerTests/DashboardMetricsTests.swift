@@ -33,13 +33,23 @@ final class DashboardMetricsTests: XCTestCase {
     func testCPULoadSampleRangeOnRealMachine() {
         let first = SystemSampler.cpuTicks()
         XCTAssertNotNil(first)
-        Thread.sleep(forTimeInterval: 0.25)
-        let second = SystemSampler.cpuTicks()
-        XCTAssertNotNil(second)
-        let load = second.flatMap { SystemSampler.load(from: first, to: $0) }
-        // 两次差分跨度大于 0，必须给出 0~1 的总占用率。
-        XCTAssertNotNil(load)
-        if let load { XCTAssertTrue((0...1).contains(load)) }
+        // "0.25 s 的跨度里 tick 一定前进"**不是这个 API 给的前提**：P28 在这台机器上现读到过
+        // 整包跑到这一条时差分为 0 的一刻（单跑三次全绿、整包两次红一次，而直接探 `host_cpu_load_info`
+        // 的 12 帧全都在走；见 release-readiness §7.19）。把它当前提，判据就变成一枚会随机亮红的灯，
+        // 而发版门禁要的正是"红了就一定有事的"。所以这里改成：**跨度是要测的事**——
+        // 最多取 6 帧、每帧间隔 0.25 s，凡是算得出数的帧都必须在 0~1 之间，一帧都没算出来才判失败。
+        var previous = first
+        var loads: [Double] = []
+        for _ in 0..<6 {
+            Thread.sleep(forTimeInterval: 0.25)
+            guard let current = SystemSampler.cpuTicks() else { continue }
+            if let load = SystemSampler.load(from: previous, to: current) { loads.append(load) }
+            previous = current
+        }
+        XCTAssertFalse(loads.isEmpty, "6 帧 × 0.25 s 里 host_cpu_load_info 的累计 tick 一次都没前进")
+        for load in loads {
+            XCTAssertTrue((0...1).contains(load))
+        }
     }
 
     func testCPULoadSyntheticDelta() {

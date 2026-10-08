@@ -1,0 +1,28 @@
+# p28-cpu-ticks-probe.sh  2026-10-08 11:00:39 +0800
+# repo: 1da6924-dirty branch=main
+# 编译器: swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 机器: 27.0.1 / arm64 / kern.boottime={ sec = 1791422343, usec = 471008 } Thu Oct  8 09:19:03 2026
+# 量法：20 帧，每帧间隔 250 ms，读同一份 host_cpu_load_info（HOST_CPU_LOAD_INFO）
+# 判读：total_delta 只要有一帧 ≤ 0，'跨度必然 > 0' 这条前提就当场不成立
+每行 = 一次 250 ms 间隔：du/ds/di/dn 与 total_delta（tick 单位 1/100 s，跨全部 CPU 累计）
+帧 1：首帧，合计=6053001
+帧 2：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 3：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 4：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 5：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 6：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 7：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 8：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 9：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 10：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 11：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 12：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 13：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 14：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 15：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 16：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 17：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 18：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 19：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+帧 20：du=0 ds=0 di=0 dn=0 total_delta=0  ← 这一帧 load(from:to:) 会返回 nil
+结论：20 帧里 total_delta ≤ 0 的有 19 帧

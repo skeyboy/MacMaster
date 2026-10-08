@@ -167,7 +167,7 @@
 - 全模块检索（`grep removeItem|trashItem|\brm\b|moveToTrash|FileTrashService` 于 `Packages/MMOptimizer`）：
   - 产品代码删除动作仅 **2 处** `moveToTrash`（`MMOptimizer.swift:355`、`:583`）+ **1 处** `undo`（`:373`），全部走 `FileTrashService`（可撤回、入台账）。
   - **无任何** `FileManager.default.removeItem` / `trashItem` / shell `rm` 直接删除调用。
-  - 唯一命中的 `removeItem` 在 `MMOptimizer/Tests/MMOptimizerTests/DashboardMetricsTests.swift:163`，仅清理该测试自己的 `/tmp` 夹具（符合 `README §4`「钩子只认 /tmp 之下」），**不是产品路径**。
+  - 唯一命中的 `removeItem` 在 `MMOptimizer/Tests/MMOptimizerTests/DashboardMetricsTests.swift:178`，仅清理该测试自己的 `/tmp` 夹具（符合 `README §4`「钩子只认 /tmp 之下」），**不是产品路径**。
 - devtools tab **零删除入口**（`DevToolCacheView` 仅有"拷贝命令"= `NSPasteboard` 写、`DevToolCacheView.swift:27-33`、与"显示"= 访达揭示）；`refresh` 经 `Task.detached` 调 `DevToolCacheAuditor.liveEntries`，其 `toolProbe` 仅 `isExecutableFile`（stat，不执行）、`presenceProbe` 仅 `fileExists`/`isReadableFile`（`DevToolCacheAudit.swift:171-184`）——**全链路零 spawn、零写盘**，满足 `docs/analysis/devtool-owner-commands.md`「只报位置和 owner 命令，不执行任何第三方二进制」。
 - **结论：③ 无越界 bug**。未发现任何绕过 `FileTrashService` 闸门的直接删除路径。
 

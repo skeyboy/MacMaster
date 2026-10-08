@@ -1,0 +1,15 @@
+# package-app.sh MacMaster-1.0.0-1
+# repo: 1da6924
+# app: /Users/lee/Desktop/MacMaster/build/MacMaster.app
+# plist: CFBundleShortVersionString=1.0.0 CFBundleVersion=1 CFBundleIdentifier=com.macmaster.app LSMinimumSystemVersion=14.0 MMGitCommit=1da6924
+# digest: 1da6924+e3b0c442
+# codesign: flags=0x2(adhoc) verify=通过（/Users/lee/Desktop/MacMaster/build/MacMaster.app: valid on disk /Users/lee/Desktop/MacMaster/build/MacMaster.app: satisfies its Designated Requirement）
+# spctl: /Users/lee/Desktop/MacMaster/build/MacMaster.app: rejected 
+# assets:
+#   MacMaster-1.0.0-1-SHA256SUMS.txt 176 bytes
+#   MacMaster-1.0.0-1.dmg 3831430 bytes
+#   MacMaster-1.0.0-1.zip 3233047 bytes
+# sha256:
+#   1e25ed4d4884e33e58f8fa89d6aee9204de00c64fec798a4e2fe70796c0af080  MacMaster-1.0.0-1.zip
+#   c4bf6e3a098920ff3a239fa9280f2b72c3743e8a83f545a1421161f06ebfc02c  MacMaster-1.0.0-1.dmg
+/Users/lee/Desktop/MacMaster/build/dist

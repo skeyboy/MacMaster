@@ -1,0 +1,37 @@
+# run-all-tests.sh  P28 第十四遍发版核验·第 1 步  2026-10-08 10:55:54 +0800（结论行完成时刻）
+# repo: 1da6924-dirty branch=main
+# digest: 1da6924+e3b0c442
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P27 那一格见
+#       docs/verification/p27-citations/run-all-tests.log。逐包原始输出在 /tmp/mm-p28b-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **本轮这一跑真正的看点不在这 633 个数，在跑它们的那支脚本**：`Scripts/run-all-tests.sh`
+#       的失败计数正则原来写的是复数 `failures`，而 XCTest 按数字单复数变形——1 条失败时那行是
+#       `with 1 failure`。那一行整体不匹配，`f` 落回 0，屏幕上打出"0 个失败"，而同一份原始日志里
+#       明写着 1 条失败（§7.19）。现在改成了 `failures?`，这一跑是**修好之后**的第一跑。
+#        tree 的形状与 P27 不同：这一遍跑在作者工作树，不是干净克隆。`# repo:` 因此带 `-dirty`。
+#       这一格里**不写工作树总脏行数**：那个数每 `git add` 一步都在变，跑测那一刻的值事后测不出来。
+#       能测的只有"编译输入有没有脏"这一件事，它现读为 **0 行**（读数取在本轮收口时，
+#       跑测之后编译输入再没动过——动了的话下面那条 `+e3b0c442` 就不成立了）：
+#       `git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` → 0 行，所以 `mm_source_digest "$PWD"` 还是
+#       `1da6924+e3b0c442`，与产物那一侧逐字相等（产物那一读在 `docs/verification/p28-package/package.log`
+#       第 5 行，本轮 10:33 那份产物 plist 的 `MMSourceDigest`）。唯一进 git 的源码改动
+#       （`DashboardMetricsTests.swift`，+17/−7）落在被排除的 `Packages/*/Tests/**` 里——
+#       这正是归因指纹"改判据不改产物"的那一侧，所以 633 条跑的还是同一个二进制输入。
+#       这 9 行与 /tmp 里那 9 份原始日志的 `Executed` 行本轮逐包重抽过一遍（见 §7.19 的对照），
+#       因为这一格自己就是那一类"结论行与原始日志各说一套"的事故现场，不能再靠抄。
+#       时间上不重叠：本轮打包日志 10:33:42 在前，这一跑 10:55:54 收口，CPU 探针三份 11:00–11:03 在后。
+#       P27 那一格记过约二分半钟的照片/跑测重叠，这一遍不存在这件事——本轮一张照片都没出
+#       （§7.19 全是门禁与探针，没有一屏画面要归因），所以也没有 idle 基线可以误引。
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：633 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/mm-p28b-tests/<pkg>.log

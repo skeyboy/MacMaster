@@ -86,6 +86,8 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/run-all-tests.sh     # 九个包逐个 swift test，逐包一行结论 + 总计
 ./Scripts/clone-references.sh  # 参考仓库在不在、HEAD 对不对得上钉住的 commit（只读；--fetch 才联网）
 ./Scripts/p16-citation-audit.sh  # 入库文档里每处 `文件:行号` 落盘验一遍（纯读，约 40 秒）
+./Scripts/package-app.sh       # 把 build/MacMaster.app 打成 zip + dmg 并自验（先对 plist 的版本号）
+./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
 现测（**2026-10-08，P27 在一棵 `git clone` 出来的树上重跑**；上一读是 2026-10-07 的 P26）：**633 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时

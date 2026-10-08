@@ -1,0 +1,41 @@
+Building for production...
+[Using on-disk description]
+[1 / 1]
+[2 / 18] MMUI
+[4 / 19] MMUI
+[14 / 38] MMMonitor
+[20 / 42] MMDisk
+[26 / 44] MMMonitor
+/Users/lee/Desktop/MacMaster/Packages/MMOptimizer/Sources/MMOptimizer/MMOptimizer.swift:396:41: [1;33mwarning: [1;39m'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture\ImplicitStrongCapture]8;;\]
+[0;36m393 |[0;0m                 in: entries,
+[0;36m394 |[0;0m                 shouldContinue: { !flag.isCancelled }
+[0;36m395 |[0;0m             ) { update in
+    [0;36m|[0;0m               |- [1;39mnote: [1;39m'self' implicitly strongly captured here[0;0m
+    [0;36m|[0;0m               `- [1;39mnote: [1;39madd 'self' as a capture list item to silence[0;0m
+[0;36m396 |[0;0m                 Task { @MainActor [weak self] in self?.progress = update }
+    [0;36m|[0;0m                                         |- [1;33mwarning: [1;39m'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope[0;0m [#]8;;https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture\ImplicitStrongCapture]8;;\]
+    [0;36m|[0;0m                                         `- [1;39mnote: [1;39mexplicitly assign the capture list item [28 / 43] MMOptimizer
+to silence[0;0m
+[0;36m397 |[0;0m             }
+[0;36m398 |[0;0m         }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[30 / 42] MMGuardian
+[32 / 41] MMCleaner
+/Users/lee/Desktop/MacMaster/Packages/MMCleaner/Sources/MMCleaner/SystemAnalysisView.swift:84:54: [1;33mwarning: [1;39mtrailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning[0;0m
+ [0;36m82 |[0;0m             guard analyzed, ProcessInfo.processInfo.environment["MM_SHOW_CONFIRM"] != nil else { return }
+ [0;36m83 |[0;0m             // 只勾可清理项中最小的一个：这条路径只为截确认弹窗，误触发的损失要接近零。
+ [0;36m84 |[0;0m             if let smallest = selectableItems.filter { $0.size > 0 }.min(by: { $0.size < $1.size }) {
+    [0;36m|[0;0m                                                      `- [1;33mwarning: [1;39mtrailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning[0;0m
+ [0;36m85 |[0;0m                 selectedPaths = [smallest.path]
+ [0;36m86 |[0;0m                 showConfirmAlert = true
+[34 / 40] MMDisk
+[41 / 44] MacMaster-product
+[43 / 45] MacMaster-product
+[45 / 45] MacMaster-product
+[46 / 47] MacMaster-product
+Build complete! (19.57秒)
+/Users/lee/Desktop/MacMaster/build/MacMaster.app: replacing existing signature
+签名档次：flags=0x2(adhoc)（HARDENED=0）
+产物源码指纹：1da6924+e3b0c442（同一键写进 plist 的 MMSourceDigest；取证脚本当场比这一个数，不等就拒拍）
+/Users/lee/Desktop/MacMaster/build/MacMaster.app

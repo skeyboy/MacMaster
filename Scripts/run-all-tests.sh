@@ -32,9 +32,12 @@ for p in ${=PKGS}; do
   # 每个测试类都会打一行 `Executed N tests`，只有「Test Suite 'All tests' passed/failed」
   # 后面那一行才是这个包的总数。别按字面顺序匹配 "with X failures"：
   # 有跳过项时那行长成 `with 1 test skipped and 0 failures`，MMDisk 曾被这样解析成 0 个测试。
+  # **`failures` 要写成可选**：XCTest 按数字单复数变形，1 条失败时那行是 `with 1 failure`，
+  # 照原来的复数写法这条正则整体不匹配、`f` 落回 0——于是屏幕上打出"0 个失败"，
+  # 而同一份原始日志里明写着 `with 1 failure`（P28 现读到过这一对，见 §7.19）。
   line=$(grep -A1 "Test Suite 'All tests' \(passed\|failed\)" "$out" | grep -m1 "Executed" || true)
   t=$(printf '%s' "$line" | sed -nE 's/.*Executed ([0-9]+) tests.*/\1/p')
-  f=$(printf '%s' "$line" | sed -nE 's/.*with ([0-9]+) failures.*/\1/p')
+  f=$(printf '%s' "$line" | sed -nE 's/.*with ([0-9]+) failures?.*/\1/p')
   sk=$(printf '%s' "$line" | sed -nE 's/.*with ([0-9]+) test(s)? skipped.*/\1/p')
   # swift-testing 那一支（有些包用的是 @Test 宏，不出 XCTest 行）。
   st=$(grep -oE "Test run with [0-9]+ tests" "$out" | grep -oE "[0-9]+" | awk '{s+=$1} END {print s+0}')
