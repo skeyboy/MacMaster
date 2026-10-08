@@ -115,12 +115,29 @@ jobs:
       # 自动触发时单测是闸门，不是可选项：附件一挂上 Release 就成了"别人下载的那一份"。
       # 原始逐包日志落在另一个目录再拷进来，是因为 `run-all-tests.sh` 开头会 `rm -rf $LOG`——
       # 直接把 tee 的目标写进那个目录，文件会在被写之前就被删掉，产物里只剩一个空壳。
+      #
+      # **这一格在 run 37723769898 上翻过一次车**：runner 每个 step 都跑在
+      # `/bin/bash -e -o pipefail` 下，`run-all-tests.sh` 有包失败时退出 1，那条管道一非零
+      # 整个 step 当场结束，写在后面的 `cp` 从来没执行过——产物里只有 `summary.txt`（833 B，
+      # 就是 tee 那一份），恰恰在最需要原始日志的那一跑没有原始日志。所以现在是
+      # "先收退出码 → 该留的都留下 → 最后才 exit"，顺序不能倒。
       - name: 九包全量单测
         if: github.event_name != 'workflow_dispatch' || inputs.run_tests
         run: |
           mkdir -p build/testlogs
-          LOG="$PWD/build/.tests-raw" ./Scripts/run-all-tests.sh | tee build/testlogs/summary.txt
-          cp build/.tests-raw/*.log build/testlogs/
+          status=0
+          LOG="$PWD/build/.tests-raw" ./Scripts/run-all-tests.sh | tee build/testlogs/summary.txt || status=$?
+          # 失败时把逐包原始日志的末尾直接打进主日志：主日志不用下载，是人第一眼看到的地方。
+          if [[ "$status" != 0 ]]; then
+            for f in build/.tests-raw/*.log; do
+              [[ -f "$f" ]] || continue
+              echo "===== $(basename "$f")：末尾 40 行 ====="
+              tail -40 "$f"
+            done
+          fi
+          cp build/.tests-raw/*.log build/testlogs/ 2>/dev/null || echo "逐包原始日志目录是空的"
+          echo "run-all-tests.sh 退出码：$status"
+          exit "$status"
 
       - name: 留一份单测日志
         if: always()
