@@ -55,8 +55,18 @@ concurrency:
 
 jobs:
   package:
-    name: 构建并打包（macOS 14 arm64）
-    runs-on: macos-14
+    name: 构建并打包（macOS latest arm64）
+    # **这一格换过一次机器**：原先写 `macos-14`，理由是"产物要求 macOS 14"——那句推理是错的。
+    # `LSMinimumSystemVersion=14.0` 说的是**跑**的最低系统，而 runner 的镜像决定的是
+    # **编**的工具链。macos-14 镜像带 Xcode 15.4 / Swift 5.10（run 37723769898 第 4 步原文），
+    # 而作者的构建机是 Xcode 27 / Swift 6.4：三个包（MMDisk、MMMonitor、MMGuardian）在 5.10 下
+    # 直接编不过，第 5 步因此红，六包合计 407 条而不是 633 条。报错原文与处置记在
+    # `docs/analysis/release-readiness.md` §8「工具链那一档」。
+    # 现在用 `macos-latest`（GitHub 当前 GA 的 macOS 26 arm64；`macos-14` 已标 deprecated）。
+    # 换镜像**没有**放宽任何闸门：第 5 步还是九包全量、第 8 步还是 package-app.sh 自校验，
+    # 产物的最低系统仍由 `Package.swift:6` 的 `.macOS(.v14)` 与 plist 说了算，不是 runner 的
+    # `sw_vers` 说了算——第 4 步把那四个数（系统、Xcode、Swift、arch）原样打进日志就是为了这件事。
+    runs-on: macos-latest
     defaults:
       run:
         shell: bash
@@ -103,8 +113,9 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "这一跑要发的是 $TAG → MacMaster $VERSION ($BUILD_NO)，prerelease=$PRERELEASE"
 
-      # 构建机的型号与 SDK 要留在日志里：产物要求 macOS 14，而 SMC 温度那一档能不能读到
-      # 取决于 runner 的机型与系统版本（见 release-readiness §8 那条 SDK 单列档）。
+      # 构建机的型号与 SDK 要留在日志里：SMC 温度那一档能不能读到取决于 runner 的机型与系统版本
+      # （见 release-readiness §8 那条 SDK 单列档）；而工具链版本决定九包能不能编过（见上面
+      # `runs-on` 那一格）。**这两个数都不是产物的最低系统**——那一个由 `Package.swift` 与 plist 定。
       - name: 记构建环境
         run: |
           sw_vers
