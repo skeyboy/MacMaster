@@ -15,10 +15,10 @@
 | `MMFileScanner/DuplicateScanner` | 只哈希前 10MB 且用非确定性 `Swift.Hasher`；**读取失败返回 `""`，全部不可读文件会被归为同一组"重复文件"** | 写作时复核的是当时那份 `MMFileScanner.swift` 里的 14 行——**那个位置已不存在**（重写过：本仓库那份文件只剩 168 行，不足 211）。那份实现在 2026-09-29「重复文件检测改为可验证的安全实现」中整体移出成独立文件。现址逐条现读，全在 `DuplicateScanner.swift`：SHA256 `:244`；读失败一律 `.failure` 并计入 `unreadablePaths`（`:238-240`、字段 `:55`）；采样是**首尾各 4 MB**而非前 10 MB（`sampleSize` 默认 `:100`，分支 `:246-251`）。这一行描述的三个缺陷在当前代码里都不成立，只作为缺口快照的历史保留 |
 | `MMOptimizer.runOptimization` | **空操作**：只把状态改成 `.optimized`、detail 写"已完成"，不执行任何系统动作 | 写作时复核的是 `MMOptimizer.swift` 里当时的那 6 行；**该符号已不存在**（P16 现读：全仓 `grep -rn runOptimization` 零命中，那几个行号现在是失败面板的夹具赋值）。P0 §0.3 那条按"移除假动作"收口 |
 | `MMOptimizer.deleteSelected` | 用 `try? FileManager.default.trashItem`，**绕过 `FileTrashService`**（无撤回、无历史、错误被 `try?` 吞掉） | 写作时复核的是 `MMOptimizer.swift` 里当时的那 3 行；**该符号已不存在**，那几个行号现在是扫描中文案。优化页删除现走 `FileTrashService`（P16 现读：`MMOptimizer.swift:433`、`:456`（撤回）、`:684`） |
-| `MMUninstaller.findResiduals` | 只探测 11 个固定候选路径，无 Containers / Group Containers / LaunchAgents / receipts / Spotlight | 已复核（本轮重写前的实现） |
-| `MMGuardian` | 有 LaunchAgents/Daemons plist 扫描；对 `/Library` 域写 `Disabled` 键在无 root 时会静默失败；**完全没有摄像头/麦克风占用监控、没有 TCC 权限视图** | 部分复核（行号来自子代理，未逐行验证） |
-| `MMMonitor` | 菜单栏 CPU/内存/网络 + 阈值通知；无每核、无磁盘 IO、无电池/温度/风扇 | 部分复核 |
-| `MMCleaner/CacheScanner` | 7 个静态类别，全在 `~/Library` 下 | 部分复核 |
+| `MMUninstaller.findResiduals` | 只探测 11 个固定候选路径，无 Containers / Group Containers / LaunchAgents / receipts / Spotlight | 部分复核（**P29b 现读：本行五项全已落地，别再当缺口排期**——Containers 见 `ContainerScanner.swift:17`（`MCMMetadataIdentifier`）、Group Containers `:59`；LaunchAgents/Daemons 见 `LaunchServiceScanner.swift:44,98`；receipts 见 P1.8 的 `OrphanScanner.swift`；Spotlight 元数据即 `MCMMetadataIdentifier` 那条） |
+| `MMGuardian` | 有 LaunchAgents/Daemons plist 扫描；对 `/Library` 域写 `Disabled` 键在无 root 时会静默失败；**完全没有摄像头/麦克风占用监控、没有 TCC 权限视图** | 部分复核（**P29b 现读：加粗那半句不成立**——`DeviceUsage.swift`/`DeviceUsageProbe.swift` 是占用检测，`TCCProbe.swift`/`TCCAuthorization.swift` 是只读授权视图，见下方「P3.1 落地」「P3.2 落地」两节；写 `Disabled` 那半句也已按 3.5 收口，`LaunchItemPolicy.swift:5` 明写"永远不尝试写"） |
+| `MMMonitor` | 菜单栏 CPU/内存/网络 + 阈值通知；无每核、无磁盘 IO、无电池/温度/风扇 | 部分复核（**P29b 现读：除电池外全已落地**——每核与磁盘 IO 在 `MetricReaders.swift`（`IOBlockStorageDriver` 六处命中），温度/风扇在 `SMC.swift`+`SensorSampler.swift`+`HotBand.swift`（P6.4）；**电池确实到现在也没有**，全仓 `battery`/`电池`/`AppleSmartBattery` 三查 0 命中，见本节末「v1.1 起的版本迭代规划」§1 的 v1.2） |
+| `MMCleaner/CacheScanner` | 7 个静态类别，全在 `~/Library` 下 | 部分复核（**P29b 现读：不成立**——`CacheScanner.swift` 里 `/private/var/folders` 命中 7 处，4.1/4.2 那两行说的系统缓存与沙盒容器缓存都在） |
 
 ## P0：正确性与安全（先于任何新功能）
 
@@ -78,7 +78,7 @@
 | 3.1 设备占用指示 | ✅ 已落地 | `MMGuardian/DeviceUsage.swift` + `DeviceUsageProbe.swift`，见「P3.1 落地」节 |
 | 3.2 TCC 授权只读视图 | ✅ 已落地 | `MMGuardian/TCCAuthorization.swift` + `TCCProbe.swift`（只读 `SQLITE_OPEN_READONLY`，半读即整库判不可读），见「P3.2 落地」节 |
 | 3.3 登录项异常标注 | ✅ 已落地 | `MMGuardian/LoginItemAudit.swift`：磁盘 plist × `launchctl list` 快照交叉，三类异常徽章 + 孤儿标签脚注，见「P3.3 落地」节 |
-| 3.4 菜单栏指标 | ✅ 已落地 | `MMMonitor.swift:71` 每核 CPU、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分 / compressed / `AppleSmartBattery` / IOReport |
+| 3.4 菜单栏指标 | 🟡 **四项里两项从未落地，这一行的依据此前说满了** | `MMMonitor.swift:133` `perCoreCard` 每核 CPU（**P29b 重锚**：这一行从前引 `:71`，而门禁的符号面从它建立的第一跑起、26 份 `audit.log` 每一份都点名这一行——"那一行里没有 `IOBlockStorageDriver`/`AppleSmartBattery`"——提示档不进退出码，所以它喊了十几轮没人当账还，本轮换成真锚并同时改掉那两个假符号）、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分（六处命中）与 compressed 口径（`MetricTypes.swift:138-140`）。**但同一行从前还写着 `AppleSmartBattery` 与 IOReport——P29b 现读全仓 0 命中**（`battery`/`电池`/`AppleSmartBattery`/`IOReport` 四查皆空，命中的只有 `Sensors.swift:80` 一句"不做 GPU 归属推测"的注释），电池与 GPU 两张卡在 P6.4 那一节已自纠为"不存在"。**这一行现在才是它的真实状态**，缺的两项排到 v1.2（见本节末） |
 | 3.5 不再写系统域 `Disabled` | ✅ 已落地 | `LaunchItemPolicy.swift:5` 明确"永远不尝试写 Disabled 键"，用户域改写走 throwing API（`LoginItemStore.swift:158-188`） |
 | 4.1 非显性系统缓存 | ✅ 已落地 | `CacheScanner.swift:475-485`（metalfe / gpuarchiver），QuickLook、iconservices、GeoServices、photoanalysisd 同文件内共 13 处 |
 | 4.2 沙盒容器内缓存 | ✅ 已落地 | `CacheScanner.swift:564-569` 走 `~/Library/Containers/*/Data/Library/Caches` 通配 |
@@ -980,8 +980,119 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 - **还欠的照片**：disk I9/I10/I11 与 cleaner I9 四条共用一个 `⚠️待真机测量`，已经挂了四天，
   一张磁盘页截图就能同时结掉；优化器 §5 的六条等 `Scripts/p6x-optimizer-capture.sh`
   （手法照 `p65-swap-capture.sh`：pid → windowid → `screencapture -o -x -l`，四档 `MM_OPEN_TAB`，零合成点击）。
+  **这一条写完之后两轮就还清了，抄它的人注意**（P29b 现读收口）：`Scripts/p66-layout-measure.sh` 与
+  `Scripts/p66-optimizer-capture.sh` 已在 2026-10-04 跑过，产物在 `docs/verification/p66-layout/`、
+  `docs/verification/p66-optimizer/`（12 图 + 12 日志），结论各自回写在 `fidelity-disk.md` 的「P6.6 收口」段
+  与 `fidelity-optimizer.md` 的「P6.6 已跑」段——**disk I9/I11 已量、I10 判为不需要量、优化器 #1–#7 七行全结**，
+  只剩 #8/#9/#10 三条是"缺能力"而不是"缺照片"。那两支脚本的实际文件名也不叫 `p6x-`，
+  **这一条从"待办"改判为"已关闭"，它留在本文里只作为"路线图末尾会落后正文"的样本**。
 - **下一轮**：改代码的活现在集中在**协调层**（`MMBadge` 短/长约定、`MMFailurePanel` 那个没人用的 init、
   三个面的卡底 token，外加 `dev-artifact-walk-merge.md` §4.2(b) 那条 size 口径要拍板）
   和**改稿**（`04-disk.html` 一次重渲染打包 I3+I6+I10，`07-monitor.html` 打包 S8+S5b），
   真正需要新写实现的是 S 系列全站骨架与 I2 标题栏 52pt。取证脚本两条（磁盘页一张 + 优化器六档）是本轮
   结论里唯一"跑一遍就关一条"的低悬果。
+
+## v1.1 起的版本迭代规划（P29b，2026-10-09）
+
+> **这一节是"下一个版本做什么"的唯一真源**。上面那些 `## P…` 与 `## P… 落地` 的段落是历史，
+> 只在"这件事当时为什么这么定"上有效；本节把它们剩下的开放项重新按**版本**而不是按**模块**排。
+> 三份输入都是本轮现读的：`release-readiness.md` §8 的账（顶层 20 条，
+> `awk '/^## 8\./,/^## 9\./' … | grep -c '^- '`，与 §11 那一格同一个数、两处只认同一条命令）、
+> 九份 `docs/analysis/fidelity-*.md` 里仍标"待落地/待量/待人工"的 S 与 I、以及参考仓库的能力差集
+> （下面每一条都当场打开过那一行，也当场 grep 过我们自己的代码确认确实没有）。
+>
+> **版本不按功能大小切，按三条已经被实测过的代价线切**：
+> ① **动编译输入就要重拍照片**——P29 前后两族八张、`# digest:` 从 `+e3b0c442` 走到 `+c62c45c0`，
+> 所以"改的是哪一屏"决定它能和谁同车；
+> ② **要新权限或新子进程的能力单独立项**——P15 的 `CommandRunner`、P3.1 的摄像头各占一整轮；
+> ③ **要另一台机器的能力，排在真有那么台机器的时候**——P3.1 的教训，本轮电池卡又撞在同一处。
+> 再加一条不是代价、是顺序：**§11 的对外口径要求——仓库或 Release 转公开之前，三项人拍板的决策先定完**。
+
+### 0. 排在所有功能版本之前的（不属于任何 vN）
+
+| 事项 | 为什么不能并进功能版 | 谁做 |
+|---|---|---|
+| 许可证 / 权利人与年份 / 签名与公证身份 | 候选、代价与"定了之后动哪几行"全在 `docs/analysis/release-decisions.md`；**代码一行不用写**，写的是决定 | 用户 |
+| 已经发出去的 v1.0.0 那条 GitHub Release 正文改不改 | 改它是对外动作。本轮只改了仓库内的 `RELEASE-NOTES.md`（补了设置页那四处缺陷与"641 不属于本构建"两格），**公开正文一字未动** | 用户 |
+| v1.0.1 要不要发 | 发版 = 打 tag = CI 跑 = Release 挂附件，也是对外动作 | 用户 |
+
+这三条不定，后面每一版都只能停在"库里改好了、外面看不见"的状态——P29 就是这个形状：
+九项修复已经在 `eb1e506` 里，而 Release 页上那两个附件仍然带着死深链和假绿。
+
+### 1. v1.0.1 补丁版（不含任何新功能）
+
+| 装什么 | 凭什么是补丁 | 验收 |
+|---|---|---|
+| P29 那九项设置页修复（已入库） | 用户报的故障，不改界面语义 | 前后两族照片已在 `docs/verification/p29-{before,after}/` |
+| 三条纯措辞账：发版说明别写"支持中英双语"（语言开关是死的）、别写"自动更新"（`SettingsView.swift:358` 的 `checkForUpdates()` 只读本机 Info.plist，不联网）、README 与 §10 补"构建需要哪版 Xcode/Swift" | 全是说出去的话与本文自己的口径，不动编译输入 | 文档现读 + `p16` 门禁 |
+| 仓库根那两处空骨架（`helper`/`widget` 各只有一个空 `Sources/`，git 里没文件）要么补要么删 | §8 记它"待人工决定"；它同时是 `RELEASE-NOTES.md` 里"明确没有的"那一格的内容 | 删或补之后重跑门禁 |
+
+**这一版是"核验遍数"该从十三加到十四的地方**：§10 第 3 步整跑一遍（构建→签名→plist→Gatekeeper→三张基础照片），
+九包 641/0/1 复跑，引用门禁跑在 `git add` **之后**（理由见 §7 新增那条）。
+
+### 2. v1.1：四条只读能力（零新权限、零新子进程、零 TCC 弹窗）
+
+| 能力 | 参考出处（本轮打开过那一行） | 我们现在的状态（本轮现读 grep） | 落点 |
+|---|---|---|---|
+| 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | `NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
+| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 生产代码只有 `MMDisk.swift:400` 一句无关注释；P5.2 的 `AppProvenance` 有 brew/收据两档，缺这一档 | uninstaller（来源徽章加一档） |
+| `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if plutil -lint "${batch[@]}"` | `plutil` 生产代码 **0 命中**；同类记账只在登录项那一域（`LoginItemStore.swift:111` 的"解析 … 失败"），缺的是全 Preferences 域 | optimizer（新 tab 复用开发工具页版式）；**用 `PropertyListSerialization`，不许为此 spawn `plutil`** |
+| 磁盘页跨卷枚举 + "最满的那卷优先" | disktree `crates/disktree-core/src/space.rs:644` `pub fn volumes()`（同文件注释：fullest first） | `mountedVolumeURLs` 生产代码 **1 命中**，在 `Sources/MacMaster/DashboardModel.swift:75`——**概览页只拿它数"挂了几卷"**，磁盘页只认用户选的那个根；`volumeIsBrowsable` 0 命中 | disk（**用 Foundation 的卷枚举，不学 disktree spawn `mount`**） |
+
+**这一版的判据规矩**（照 P29 那 8 条的写法）：每条拆成"纯函数 + 照片"两半——
+纯函数钉规则（像 `caption(for:)` 那样，**不假装单测能读到系统状态**），照片钉那一屏真的把话说到界面上。
+四条都只读、都不改系统，所以能共用一次九包重跑与一轮取证，不会互相作废照片。
+
+### 3. v1.2：三条要等新条件的
+
+| 能力 | 卡在哪 | 处置 |
+|---|---|---|
+| 电池电量 / 健康度卡 | 读法零权限（stats `Modules/Battery/readers.swift:16` 走 `IOServiceMatching("AppleSmartBattery")`，进程内 IOKit），**但开发机是 Mac mini，没有电池**——正分支拍不出照片 | 代码可以先写；取证排在有笔记本的那一轮，**文档里明写"这一条只有单测"**（与 P3.1 摄像头同一处理，别再写"已验证"） |
+| GPU 利用率 | 需要 IOReport 订阅，是一条全新子系统，与 SMC 不同路径；性价比低于上面全部 | **默认不做**，等人点头才排（roadmap 3.4 那一行历史上还替它背过"已落地"的假账，本轮已改口） |
+| 微信聊天媒体分类（头像/图片/文件/视频四桶） | 用户价值最高的一条，但属**个人数据**（Lemon `QMWechatScan.m:14-22` 那四条路径常量）。它和被"明确不采纳"的浏览器记录级删除不同族：那条拒的是 SQLite 锁与记录级语义，这条可以按文件级"只报 + 默认不勾"规避 | **先要产品决定**"只报不删"还是"默认不勾、勾选才删"；后者必须走 `DeletionGuard` + 确认勾选那套现有闸门，行文案要点名"删了聊天里的图就没了" |
+
+### 4. v1.3：协调层与全站几何（一改就作废全部像素基线，所以必须集中一版做完）
+
+`MMBadge` 短/长约定、`MMFailurePanel` 那两个补救按钮（**11 处命中全在 `MMDesign.swift:677-774` 的定义侧，外部调用点 0 处**，
+清理页的统计行与页脚因此是死代码路径）、三个面的卡底 token 与 under-page 变体（S4）、
+标题栏 52pt vs 令牌 `--titlebar-h: 38`（I10b，全站）、`--sidebar-w-min: 200px` 从未被引用（要么删令牌要么把稿改 220）、
+`dev-artifact-walk-merge.md` §4.2(b) 那条 size 口径（人拍板）。
+**这一版不写新功能**——它改的是所有版本共用的量尺，混进功能版就等于让那一版的照片同时背着两笔变化。
+
+### 5. v1.4：改稿版
+
+九份 fidelity 的 S 系列（全站 footer、稿内占位数字、content 底色、under-page 变体）
++ `09-settings.html` 落后实现的那六条（含 `:178`/`:215` **两句实现已经改掉的假脚注**——
+§8 记过它的风险不是"稿不好看"，而是**下一轮还会拿旧稿当规格**，照稿施工会把假话改回代码里）。
+按 #53 的约定排到集成阶段。**它不与 v1.3 合并**：一次作废两批基线，出差异时分不清是谁改的。
+
+### 6. 不排期（写在这里是为了下一轮别把它当新候选再提一次）
+
+- 上面「明确不采纳」那七条照旧。
+- **本轮新增两条不做**：treemap 捏合/手势缩放（disktree `crates/disktree-app/src/views.rs:92` 的 `zoom_interface`；
+  我们的验证体系禁止合成 UI 事件，**这条等于永远只有单测**，没有照片就不算落地）；
+  应用更新检查（Pearcleaner `Logic/AppsUpdater/` 整个目录，**违反零网络**，且依赖的私有框架那部分本就在拒绝清单里）。
+- **有意不修两条**：磁盘风险标签与删除闸门在 symlink 上给的口径不同（`realpath` 后落 `/System` 才被拦，
+  代价=每行一次 realpath，§8 论证过不改）；`protectedNames` 里那五条以点开头的名单永远匹配不上
+  （`.` 开头被 `readEntries` 先跳过，是归因错不是 bug，改它=改扫描语义）。
+
+### 7. 每一版共用的验收不变量（本轮新增两条）
+
+1. 九包重跑 + 结论行入库；动编译输入 → 前后两族照片 + `# digest:` 当场同源（P23b 那道门禁）。
+2. §10 第 3 步**真跑了**遍数才加一——拍了多少张照片都不算（P29 实拍八张、前后两族各四，遍数仍是十三）。
+3. 引用门禁 `Scripts/p16-citation-audit.sh` 每版跑一次并归档。
+4. **新增**：门禁跑在 `git add` **之后**。P29 实测：它的索引取自 `git ls-files`，
+   两个本轮新文件在入库前被判成"不可达"，那一跑报 7 条硬失败、入库后 0 条——**顺序反了就会记一笔假账**。
+5. **新增**：记"某处行号漂了"的那句话，自己不许写成 文件名 + 冒号 + 行号 的成对形态。
+   P29 实测：同一段记账的话触发了第二次硬失败（0 → 1），因为门禁不分"使用一处引用"和"谈到一处引用"。
+6. **版本边界 = 照片边界**：一版里尽量只让改动落在同一批屏上；跨屏几何与改稿各走各的版（见 §4、§5）。
+
+### 8. 本轮没能确认的（下一轮先问这几句）
+
+- **有没有第二台带电池的设备**——决定 v1.2 那三条里的第一条能不能收尾。
+- **个人数据的删除边界**（微信那一类）——这是产品决定，不是工程决定。
+- **`§8` 里那三档"本机拿不到"的状态**（CPU 是否真存在 0.25s 零跨度、登录项 `.requiresApproval`/`.notFound`、
+  通知 `.notDetermined`/`.authorized`）——要么换机器，要么由用户手动改系统授权档位再拍，
+  本轮**没有**为了拍照去动用户的系统设置。
+- 五份 fidelity 的"待量"里，本轮只交叉核对了 disk/cleaner/optimizer 三份的现读收口，
+  monitor/guardian/uninstaller 三份的"待量/无 HOLD 钩子"以各文档自记文本为准，**没有逐张照片目录扫过**。
