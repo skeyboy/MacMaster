@@ -298,18 +298,22 @@ report() {
   awk -F'\t' '$1=="sdk" { printf "#   SDK %s:%s → %s\n", $8, $9, $2 }' "$TMP/class.tsv"
   print -r -- "# ---- 明细：参考仓库引用（入库的清单写了取法即可达）----"
   awk -F'\t' '$1=="ref" { printf "#   参考 %s:%s → %s\n", $8, $9, $2 }' "$TMP/class.tsv"
+  # 结论行写在 report() 里，不写在调用它之后：入库那份 audit.log 就是 report 的产物，
+  # 而 P30 之前这一行只出现在 stdout——于是文档里每一句"audit.log 报 0 硬失败"
+  # 都得由读的人把上面四道判据自己相加，才能从证据文件里核出来。
+  print -r -- "# 硬失败（本仓库引用漂了 + 都不到）: $hard"
 }
 
-report > "$TMP/report.txt"
-cat "$TMP/report.txt"
-
+# hard 必须在 report 被调用之前算好——它是 report 的最后一行（见上面那段注释）。
 hard=$(awk -F'\t' '$1=="self" && $4>1' "$TMP/class.tsv" | wc -l | tr -d ' ')
 hard=$((hard + $(grep -c "^oob"$'\t' "$TMP/lines.tsv" || true)))
 hard=$((hard + $(grep -c "^blank"$'\t' "$TMP/lines.tsv" || true)))
 # 「都不到」也算硬失败：一条写错目录的引用（本轮抓出四处）和一个不存在的文件，
 # 对读的人而言是同一件事——按文档写的路径打不开。命不上一律改。
 hard=$((hard + $(grep -c "^nowhere"$'\t' "$TMP/class.tsv" || true)))
-print -r -- "# 硬失败（本仓库引用漂了 + 都不到）: $hard"
+
+report > "$TMP/report.txt"
+cat "$TMP/report.txt"
 
 if [[ -n $OUT ]]; then
   mkdir -p "$OUT"

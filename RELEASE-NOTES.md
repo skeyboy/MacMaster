@@ -125,11 +125,21 @@ MMMonitor 53、MMGuardian 96、MMOptimizer 54。结论行入库在
 
 ```
 git clone --no-local <本仓库> /tmp/mm-clone && cd /tmp/mm-clone
+git checkout v1.0.0                                   # 不落这一步，你编的是 main，不是本构建
 VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh          # 产物 build/MacMaster.app
 ./Scripts/package-app.sh                              # zip + dmg + SHA256SUMS，并当场验一遍
 ./Scripts/run-all-tests.sh                            # 期望：633 个测试，0 个失败，1 个跳过
 ./Scripts/p7-release-check.sh build/MacMaster.app /tmp/evidence   # 三张实机照片 + 签名/plist/Gatekeeper
 ```
+
+上面那行期望值只对 `v1.0.0` 那一棵树。默认分支已经带着设置页那九项修复，同一条脚本现读是
+**641 个测试、0 失败、1 跳过**（MMCore 73→77、MMMonitor 53→57，其余七格逐字相同，
+结论行入库 `docs/verification/p29-citations/run-all-tests.log`）——**这两个数不是矛盾，是两棵树**。
+
+**构建机要 Xcode 26 / Swift 6.3 或更高**，这是实测下限而不是清单里那行版本号：`Package.swift` 声明
+swift-tools-version 5.9，但 Xcode 15.4（Swift 5.10）实测在磁盘页那一屏报三处 `await`/MainActor 错误，
+CI 因此已经从 `macos-14` 换到 `macos-latest`；Xcode 26.6 与作者机 27.0 两个档实测绿，
+**中间那些档（16.x–25.x）从没测过**。产物本身要求的是 macOS 14.0+，那与构建机是哪个 macOS 无关。
 
 产物 Info.plist 里有 `MMGitCommit` 与 `MMSourceDigest` 两把键：后者是「这次编译真正吃进去的那些文件的
 内容指纹」，取证脚本会在拍照片之前当场比这一个数，不等就直接拒拍。所以「照片里的界面」和

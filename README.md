@@ -4,7 +4,13 @@
 SwiftPM 多包结构，无第三方依赖，**无任何网络代码**。
 
 - 系统要求：**macOS 14.0+**（`Package.swift` 的 `.macOS(.v14)`，产物 `Info.plist` 的 `LSMinimumSystemVersion=14.0`）
-- 工具链：swift-tools-version 5.9；本仓库开发与全部取证都在 Apple Swift 6.4 / macOS 27 上完成
+- 工具链：**构建实测下限是 Xcode 26 / Swift 6.3 这一档**，不是清单里那行版本号。`Package.swift` 第一行是
+  swift-tools-version 5.9，但**5.9/5.10 那批工具链实测编不过**：CI 曾在 Xcode 15.4（Swift 5.10）镜像上跑，
+  磁盘页 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1416-1421` 的 `scanDirectory()` 报三处 `await`/MainActor 错误
+  （三档读数都出自当场跑的构建日志，"为什么不改那三行"记在 `docs/analysis/release-readiness.md` §7.20 与 §8 的工具链那一档）。
+  实测绿的两个档：Xcode 26.6 / Swift 6.3.3（CI 现用 `macos-latest`）与作者机 Xcode 27.0 / Swift 6.4（全部取证产物出自后一个）。
+  **中间那些档（16.x–25.x）从没测过，别假设能编。** swift-tools-version 5.9 只是清单声明的下限，够不着这一条。
+- 产物要求的 macOS 与构建机是哪个 macOS **无关**（上一条只讲构建）：那由 `Package.swift` 的 `.macOS(.v14)` 与 plist 的 `LSMinimumSystemVersion=14.0` 定
 - 界面语言：简体中文单语（设置页那个语言选择器是**禁用状态**，因为界面文案还没接入多语言，切了不改变任何东西）
 - 许可：**尚未选择**——仓库里没有 LICENSE 文件，所以本文也不声称任何许可。详见 `docs/analysis/release-readiness.md` §2.3
 
@@ -90,7 +96,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
-现测（**2026-10-08，P27 在一棵 `git clone` 出来的树上重跑**；上一读是 2026-10-07 的 P26）：**633 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（**2026-10-09，P29 在带设置页修复的那棵树上重跑**；上一读是 2026-10-08 的 P27 那一遍）：**641 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
@@ -100,10 +106,15 @@ P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunn
 受保护目录跳过发生在每一层，披露也必须覆盖每一层）→ 622；
 **P25 加 7 条清理页副标题判据**（`CleanerHeaderContractTests`：段序按优先级排、"另有 N 只读"不许被中间截断吃掉、
 时间戳不带年份这一长度决定）；**P26 加 4 条磁盘页页头判据**（`DiskHeaderContractTests`：单位必须贴着数字待在尾格、
-占用待在头格、副标题必须正好三段且**不许出现秒数**）→ 633。
-**逐包求和 = 633**（73 / 17 / 117 / 25 / 121 / **77** / 53 / 96 / 54），这一条自 P11c 起每轮都当自证用。
-**P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，本轮 MMDisk 走到 77 之后撞车解开**，
-但这条自证**仍然要按包名读**：117 与 77 里那个 `7` 是同一个字，"某个数出现过没有"这种读法会读错。
+占用待在头格、副标题必须正好三段且**不许出现秒数**）→ 633；
+**P29 加 8 条设置页判据**（`MMSettingsPaneTests` 4 条钉深链拼接"只许有一个 scheme"、`NotificationStatusTests` 4 条钉
+通知授权状态的文案与判据，两包各 +4）→ **641**——这两族钉的都是包里的纯函数，
+壳层那一条都没被它们覆盖（下一句"零测试"的口径不变）。
+**逐包求和 = 641**（**77** / 17 / 117 / 25 / 121 / 77 / **57** / 96 / 54），这一条自 P11c 起每轮都当自证用。
+**P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，P26 MMDisk 走到 77 之后撞车解开**——
+**而 P29 把它们撞回来了**：MMCore 也走到 77，于是这一跑里"77"同时是 MMCore 和 MMDisk。
+所以这条自证**要按包名读**这件事现在有了实指，不再只是一句提醒：117 与 77 里那个 `7` 是同一个字，
+而两个 77 更是同一个字，"某个数出现过没有"这种读法这一次会直接数错总数。
 **这一轮多出来的一条教训跟这 4 条判据有关**：第一档修复（只调段序）在这 4 条下是全绿的，
 实拍却把"扫描用时"切成一半——真值 0.1 s 在画面上成了 1 s。**单测钉得住段序，钉不住"这一句在 1000 pt 放不放得下"**，
 后者只有照片（§7.17）。
