@@ -1025,7 +1025,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 |---|---|---|
 | P29 那九项设置页修复（已入库） | 用户报的故障，不改界面语义 | 前后两族照片已在 `docs/verification/p29-{before,after}/` |
 | 三条纯措辞账：发版说明别写"支持中英双语"（语言开关是死的）、别写"自动更新"（`SettingsView.swift:358` 的 `checkForUpdates()` 只读本机 Info.plist，不联网）、README 与 §10 补"构建需要哪版 Xcode/Swift" —— **P30 现读：前两账在本仓库里已经是成立的**（README 那一格写的是"简体中文单语"、语言选择器标着禁用；`RELEASE-NOTES.md` 把"多语言"和"自动更新"都列在"明确没有"那一节；落地页 `docs/website/index.html` 里"双语/中英/自动更新"三查 0 命中；界面上那句"此检查仅读取本机 Info.plist"是当场写在 alert 文案里的），**第三账 P30 已补**（README 工具链那一格 + §10 第 2 步上方，口径是"实测下限 Xcode 26 / Swift 6.3，16.x–25.x 没测过"）。**P30 顺带抓到第四账，是本轮新加的**：本文 §10 第 1 步的期望值与 §0/§1/§6 三处活数停在 633（P29 只把叙述抬到 641、没抬抬头），已全部跟上 | 全是说出去的话与本文自己的口径，不动编译输入 | 文档现读 + `p16` 门禁 |
-| 仓库根那两处空骨架（`helper`/`widget` 各只有一个空 `Sources/`，git 里没文件）要么补要么删 | §8 记它"待人工决定"；它同时是 `RELEASE-NOTES.md` 里"明确没有的"那一格的内容 | 删或补之后重跑门禁 |
+| 作者机上那五处空壳（P30 现读正名：`MacMaster/`、`MacMasterHelper/Sources/MacMasterHelper/`、`MacMasterWidgets/Sources/MacMasterWidgets/`、`docs/verification/mmguardian/`、`docs/verification/shell/`，`find … -type f` 逐处 0 个文件）——**这一条从 v1.0.1 的必做里摘出去**：P30 直接验证了它在别人机器上根本不存在（克隆树里 `ls -d` 三查全"No such file"，`git ls-files MacMaster MacMasterHelper MacMasterWidgets` 给 0 行，根 `Package.swift` 里 helper/widget 两个词 0 命中），所以它**对 clone、对 CI、对产物都是零影响**，留与删只是作者工作树的整洁，而且 §8 早就记过"删掉等于把这条账抹了、留着又污染目录计数" | §8 记它"待人工决定"；`RELEASE-NOTES.md`"明确没有的"那一格已经改成实话（P30 改：明写 clone 里连目录都看不到、不是"没打进包"而是"没有这回事"） | **不再挂门禁**：它没有可复现的判据，只有作者机上的五个壳。剩下要动的只有对外那一句措辞，本轮已动 |
 
 **这一版是"核验遍数"该从十三加到十四的地方**：§10 第 3 步整跑一遍（构建→签名→plist→Gatekeeper→三张基础照片），
 九包 641/0/1 复跑，引用门禁跑在 `git add` **之后**（理由见 §7 新增那条）。
@@ -1035,7 +1035,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 | 能力 | 参考出处（本轮打开过那一行） | 我们现在的状态（本轮现读 grep） | 落点 |
 |---|---|---|---|
 | 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | `NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
-| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 生产代码只有 `MMDisk.swift:400` 一句无关注释；P5.2 的 `AppProvenance` 有 brew/收据两档，缺这一档 | uninstaller（来源徽章加一档） |
+| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档 | uninstaller（来源徽章加一档） |
 | `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if plutil -lint "${batch[@]}"` | `plutil` 生产代码 **0 命中**；同类记账只在登录项那一域（`LoginItemStore.swift:111` 的"解析 … 失败"），缺的是全 Preferences 域 | optimizer（新 tab 复用开发工具页版式）；**用 `PropertyListSerialization`，不许为此 spawn `plutil`** |
 | 磁盘页跨卷枚举 + "最满的那卷优先" | disktree `crates/disktree-core/src/space.rs:644` `pub fn volumes()`（同文件注释：fullest first） | `mountedVolumeURLs` 生产代码 **1 命中**，在 `Sources/MacMaster/DashboardModel.swift:75`——**概览页只拿它数"挂了几卷"**，磁盘页只认用户选的那个根；`volumeIsBrowsable` 0 命中 | disk（**用 Foundation 的卷枚举，不学 disktree spawn `mount`**） |
 

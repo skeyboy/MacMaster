@@ -1,0 +1,39 @@
+# run-all-tests.sh  P30 第十四遍发版核验·第 1 步  2026-10-09 12:56:30 +0800（结论行完成时刻）
+# repo: 54ca105 branch=main
+# digest: 54ca105+e3b0c442
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P29 那一格见
+#       docs/verification/p29-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **这一遍的树不是作者工作树，是 `/tmp/mm-clone-p30`——一次 `git clone` 出来的树**，
+#       HEAD 54ca105、branch main，跑第 1 步那一刻 `git status --porcelain` 为空（clone 之后先跑测，
+#       第 3 步才在那棵树里落下 `?? docs/verification/p30-clone/` 这一行未跟踪证据）。
+#       编译输入脏行数现读 0：`git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'` → 0 行，指纹因此是 `+e3b0c442`（空输入流的前缀）。
+#       **"树是干净克隆、`# repo:` 不带 `-dirty`、产物指纹与树指纹相等"这三件事同时成立是第二次**
+#       （第一次是 P27，见 docs/verification/p27-citations/run-all-tests.log）：本轮三张照片
+#       （docs/verification/p30-clone/）日志头里那行 `tree=54ca105+e3b0c442 app=54ca105+e3b0c442`
+#       与上面 `# digest:` 逐字相等，而 tree 与 app 本身就相等。
+#       九格与 P29 那份逐字相同（两份日志对过，不是推的）：**P30 没动任何编译输入**，改的是四份文档
+#       加一支门禁脚本（`Scripts/p16-citation-audit.sh` 把结论行搬进 report()，让入库那份 audit.log
+#       自己带着判定），而 `Scripts/` 不在这九包的编译输入里。所以这一轮"数字一个没变"与
+#       "核验又真跑了一遍"是两件分别成立的事，后者由上面那几行出处背书，不由前者推出。
+#       与 P27 那一遍还有一处形状差别，如实记：本轮第 1 步与第 3 步**没有时间重叠**
+#       （九格里最后一包 MMOptimizer 结束于 12:56:30，三张照片落在 12:57:48 / 12:57:56 / 12:58:02），
+#       而 P27 那一遍两者有约二分半钟重叠。这一遍照片里的运行时数字拍的是"跑测已经结束"的机器。
+#       第 2、3 步其余结论（同一棵克隆树、同一份产物）：codesign flags=0x2(adhoc) Signature=adhoc
+#       TeamIdentifier=not set；plist 里那两个版本号键读 1.0.0 与 1（写法照 `# plist:` 那一行原样，
+#       这一格故意不整行抄它——全仓数"带这一对键的 .log"时口径是每族三份**照片**日志，
+#       把测试结论行也算进去会平白多出一份）；CFBundleIconFile=AppIcon、MMGitCommit=54ca105；
+#       `spctl` 仍是 rejected——与前十三年一字不差。
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no 
+
+合计：641 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
