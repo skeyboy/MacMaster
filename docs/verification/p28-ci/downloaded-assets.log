@@ -1,0 +1,46 @@
+# 从 Release 页"下载下来的那一份"再验一遍（v1.0.0 的三个附件）
+# 时刻：2026-10-08 12:52 +0800，作者机
+# 来源：https://github.com/skeyboy/MacMaster/releases/tag/v1.0.0（release id 406425969）
+#   资产 id：620765714 zip / 620765718 dmg / 620765721 SHA256SUMS.txt
+# 取法：`git credential fill` 现取口令 → `curl -sL -u "$user:$token"
+#        -H "Accept: application/octet-stream" api.github.com/repos/skeyboy/MacMaster/releases/assets/<id>`
+#   （`github.com/.../releases/download/...` 那一条对 private 仓不吃 basic auth，返回 Not Found——
+#     人要登录态才能点，程序要走 API；这一条记下来是因为它会决定"别人怎么自己验"那一节怎么写）
+# 为什么要这一份：第 8 步的自校验证的是"runner 产出的那一份完好"，
+#   这一份证的是"经过 GitHub 传输之后仍然完好"——两者之间隔着一次上传与一次下载。
+
+# ---- 1. 清单逐字比对 ----
+$ cat MacMaster-1.0.0-1-SHA256SUMS.txt
+be639c583eb282ec76eceefc0c2a3d736367411c1d260fb0911270409dcdfb27  MacMaster-1.0.0-1.zip
+51551b5d0cb0e3aa8c07c752330dc07c177a857ad7bf78f89fb7c676cb6bc30d  MacMaster-1.0.0-1.dmg
+$ shasum -a 256 -c MacMaster-1.0.0-1-SHA256SUMS.txt
+MacMaster-1.0.0-1.zip: OK
+MacMaster-1.0.0-1.dmg: OK
+
+# ---- 2. 字节数与 runner 日志、Release API 三方一致 ----
+zip 3,175,601 B ／ dmg 3,778,114 B ／ SHA256SUMS 176 B
+（与 green-run.log 的 `# assets:` 三行、与 Release API 的 assets[].size 逐字相同）
+
+# ---- 3. zip 解回来的 bundle ----
+$ ditto -x -k MacMaster-1.0.0-1.zip unz
+unz/MacMaster.app
+$ ls -l unz/MacMaster.app/Contents/MacOS/MacMaster
+-rwxr-xr-x@ 1 lee staff 11146368     ← 可执行位在 zip 传输之后还在（package-app.sh 就防这一手）
+$ codesign --verify --deep --strict --verbose=2 unz/MacMaster.app
+unz/MacMaster.app: valid on disk
+unz/MacMaster.app: satisfies its Designated Requirement
+$ spctl --assess --type execute -vvv unz/MacMaster.app
+unz/MacMaster.app: rejected          ← ad-hoc 签名的已知现状，见 release-decisions.md 第 3 项
+$ otool -l … | LC_BUILD_VERSION
+platform 1 / minos 14.0 / sdk 26.5   ← 最低系统仍是 14.0，与构建机是 macOS 26.6.2 无关
+$ PlistBuddy Info.plist
+CFBundleShortVersionString 1.0.0 ／ CFBundleVersion 1 ／ LSMinimumSystemVersion 14.0
+MMGitCommit 5e3b2ca ／ MMSourceDigest 5e3b2ca+e3b0c442   ← 产物自己说得出是哪一棵树，且不带 -dirty
+
+# ---- 4. dmg 挂回来 ----
+$ hdiutil verify MacMaster-1.0.0-1.dmg
+hdiutil: verify: checksum of "MacMaster-1.0.0-1.dmg" is VALID
+$ hdiutil attach -nobrowse -mountpoint mnt MacMaster-1.0.0-1.dmg && ls -l mnt
+lrwxr-xr-x Applications -> /Applications   ← 拖拽安装那个替身还是符号链接，不是普通目录
+drwxr-xr-x MacMaster.app
+$ codesign --verify --deep --strict mnt/MacMaster.app → 通过

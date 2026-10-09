@@ -126,6 +126,16 @@
 - **分发面：现在这份产物还不能直接发给别人。** 它是 **ad-hoc 签名**、Gatekeeper 判定 `rejected`、
   没有许可证书（§2）。图标那一项 **P10 已补**（§2.2：`Resources/AppIcon.icns` + `CFBundleIconFile`）。
   剩下的都不是代码问题，是**发版动作**问题，各自都有明确的补法。
+  **P28b 补一条现状**：`v1.0.0` 的 Release 已经建出来了（三个附件 zip / dmg / SHA256SUMS，
+  从 GitHub 下载回来再验的那一份见 `docs/verification/p28-ci/downloaded-assets.log`——
+  清单逐字 `OK`、可执行位还在、dmg 里 `/Applications` 还是符号链接），
+  但**这一格没变绿**：下载回来的那一份 `spctl` 仍判 `rejected`，签的那一档仍是 ad-hoc。
+  所以"能不能发给别人"取决于对方是不是登录进这个 private 仓的协作者，与附件完好与否是两件事。
+- **构建面：CI 到 P28b 才第一次在别人家的机器上跑绿**（run 37729249935，tag `v1.0.0` 触发，
+  macOS 26.6.2 / Xcode 26.6 / Swift 6.3.3 / arm64，九包 **633 / 0 失败 / 1 跳过**与作者机逐包同数，
+  产物归因行 `MMGitCommit=5e3b2ca`、`MMSourceDigest=5e3b2ca+e3b0c442`）。
+  在那之前它连红三跑，红因各不相同，其中两处**在作者机上没有任何表现**——记在 §7.20，
+  那一节还有一条"给人看的失败数会说谎"的第三次复发。
 - **一句话判定**：作为 **"自己编译自己用 / 附带源码的私有分发"**——今天就能发。
   作为 **"给陌生人的 dmg"**——差 §2 的三项。§3 那条 hardened runtime 的兼容验证 **P11 已跑完**：
   本机实测七行能力**零行被打断**，所以走 §2.1 第 2 条**不需要砍功能**；
@@ -323,7 +333,32 @@
 本轮不必为它改任何东西。**`# vocab:` 7563 → 7617**（新增的探针 Swift 与两支 shell 都进词汇表），同样只记账。
 **这一格没有再跑"不带输出目录的第三读"**：P25/P26/P27 那一手要的是"最后一批只改数字的写法没有动总数"，
 而本轮最后一批改的正是数字本身，两次读数（`audit-prewrite.log` 11:15 / `audit.log` 收口）已经把它答完了——
-四个总数在两读之间一字不动，就是这段文字自身不加锚点的证据。 |
+四个总数在两读之间一字不动，就是这段文字自身不加锚点的证据。
+**P28b 收口那一跑：803 / 674 / 608 / 65 / 1，越界 0、整段空白 0、死符号 0、位置存疑 99、硬失败 0、exit 0**
+（`docs/verification/p28b-citations/audit.log`，`# repo: 5e3b2ca-dirty`，提交之前那一读；
+`# docs scanned: 36 个真抽了 / 36 个入库`——本轮照 P18 那条规矩先把 `p28-ci/` 两份日志 `git add` 再跑门）。
+**相对 P28 收口那一读：条次 +22 / 唯一 +19 / 命本仓库 +19 / 命参考仓库 65 不动 / SDK 1 不动**。
+这一轮动了源码（两支测试判据 + 一份新判据文件），牵出的锚点代价就是那 +19。
+**而本轮这道门第一次报红，报的是我自己刚写下去的那一条**：收口前那一跑是**硬失败 1**，
+四条判据里中的是**歧义面**——我在 §7.20 ③ 写了一句把产物最低系统指回根清单第 6 行的引用，
+同后缀因此命中 **10** 份文件（仓库根那一份加九个包各一份）。
+**这不是笔误，是结构**：仓库根的文件没有目录前缀可写，而 `endsuf` 只认"整段相等或以 `/路径` 结尾"，
+所以**根 `Package.swift` 用「文件名:行号」引用在这道门里永远歧义**。改法是把它写成不带冒号的
+"仓库根的 `Package.swift` 里那行 `.macOS(.v14)`（第 6 行）"——行号照旧给、人照样能跳，只是不进抽取器。
+**这一格因此多一条写法约束（与 §7.7 那条同族）**：往后凡要引仓库根那一份清单，写"第 N 行"而不是"冒号 N"，
+否则下一轮每次收口都要重新撞一次同一个歧义。**没有改审计器**：把"恰好全路径相等就不算歧义"加进去
+会让这道门少看一类真漂（`main.swift` 那族），而本轮要修的只有那一句措辞。
+**`# index:` 942 → 947、`# vocab:` 7617 → 7658**，两格都只记账（P26 立的规矩），947 这一读含已 `git add`
+而未提交的两份日志自己。位置存疑 99 与 P27/P28 同一格，本轮没动它，也不解释它的组成。
+**上面那一句里"第一次报红"的那一读现在只剩一句话，因为它被就地盖掉了**：`p28b-citations/` 这一个目录
+连着跑了三遍（13:13 撞出硬失败 1 → 13:26 修完措辞 → 10-09 10:08 把 `release-decisions.md` 那一处改动一并收口），
+后两读都写的是同一个 `audit.log`。这是 §10 第 3 步那条"重跑要换输出目录"的**第四次犯**
+（前三次：P24、P25、P26，各自都记过、也各自都再犯过一次），而这一轮犯得比前三轮更难看：
+**被盖掉的那一读恰好是唯一有信息量的那一次**——第 2、3 读之间四个总数一字不动（803 / 674 / 608 / 65），
+而第 1 读报的是 804 / 675 / 609 加那一个硬失败：那一条歧义引用既是红因、也是总数里多出来的那一个 1。
+入库的这份因此只能是最后一读（`# date: 2026-10-09 10:08:16`、硬失败 0），红因那一行的明细只能靠上面这段话留着。
+**下一轮的改法已经写清**：同一目录第二跑之前先换个名字（`…-prewrite` / `…-refix`），
+P18 起就有先例，本轮只是没照做。 |
 | 发版门禁换一棵树还跑不跑得动 | **跑得动，四条命令**（P20 实测） | `git clone --no-local` 出来的树里：`make-app.sh` 直接出产物（22.48 秒、零远程依赖，全仓 `.package(url:` 零命中）、`run-all-tests.sh` 612/0/1 逐包相同、`p7-release-check.sh` 三张照片与签名结论逐字相同、`Info.plist` 的 `MMGitCommit=b2b3718` **不带 `-dirty`**（P19 只验过"脏树加后缀"那一支）。逐条与撞出来的三个问题见 §7.11 |
 | 照片与二进制同源的门禁（P23 新增） | **当场拒，exit 4；否证五档全绿** | 指纹 = 当前树里那 **92 个编译输入**的内容哈希前 8 位，前面拼 HEAD 短 sha（`git diff HEAD --binary -- <路径集>` ∪ 未跟踪编译输入的内容，配方一份在 `Scripts/mm-provenance.sh`，构建侧与取证侧共用）；构建侧把它写进产物 `Info.plist` 的 `MMSourceDigest`，取证侧起跑前先比，**不等就 exit 4、一张都不出**（已接：`p7-release-check.sh`、`p68-disk-capture.sh`、`p22-disk-skip-capture.sh`、`p17-website-capture.sh`、`p18-hook-typo-proof.sh`；`grep -rl mm_provenance_check Scripts` 现读数就是这一份清单）。否证跑在 `docs/verification/p23-provenance/probe.log`：① 加一个未跟踪源文件 → 指纹变、两支脚本各 exit 4、目录里 **0 张**；② 加一个未跟踪**测试**文件 → 指纹不变（改判据不该拦截图）；③ 无 `MMSourceDigest` 键的旧产物 → 当不同源处理；④ 当前树 + 当前产物 → 放行；⑤ 同源产物上一档都不拍 → 正常 exit 0（**这条防的是"永远失败的门禁"**——只会被关掉的那种门禁就是这一档没测过的）。基准那一份指纹 `df71638+e3b0c442`，工作区没脏时后半截正是**空输入流的 sha256 前缀**（`printf '' \| shasum -a 256` 现读同一串）——配方里没有藏起来的输入。**这一串的前半截是短 sha，所以「提交」这个动作本身就让旧产物失配**：本轮 `git commit` 之后现读，树变成 `f30fd40+e3b0c442`、后半截一个字没变，而对 `df71638+e3b0c442` 那份产物 `mm_provenance_check` 退 1——**内容与提交前逐字节相同，失配全部来自短 sha**。它因此把顺序钉成**提交 → 构建 → 出片**，代价与这条现读落在哪一格见 §7.14 残余第 ④ 条。
 **P24 把这条规矩第一次照做了一遍**（第十一遍，`docs/verification/p24-v1/`，产物 `MMGitCommit=b4f9e1f` 不带 `-dirty`），
@@ -1685,7 +1720,7 @@ zip 解压回来查 bundle 在不在、可执行位还在不在、签名还验�
 真错误输出在 `$?` 里不在那个字符串里，所以改成看退出状态、detail 单独打一行进归因头。
 这个 bug 如果留到 CI，表现是"每一次发版都在签名那一步红"，而红的原因和产品毫无关系。
 
-`.github/workflows/release.yml`（172 行）：三种触发（`workflow_dispatch` 手动、`push` 带 `v*` tag、
+`.github/workflows/release.yml`（写这一节时 172 行，**三处修完现读 204 行**，见 §7.20）：三种触发（`workflow_dispatch` 手动、`push` 带 `v*` tag、
 `release` 的 `published`）、`macos-14`、只用第一方 action（`actions/checkout@v4`、
 `actions/upload-artifact@v4`）加 runner 自带的 `gh`、`permissions: contents: write`、
 十步的顺序就是 §10 的顺序（定档版本号 → 记环境 → 九包全量单测 → 构建 → 打包 → 留附件 → 建 Release → 传附件）。
@@ -1738,6 +1773,75 @@ zip 3,233,047 B、dmg 3,831,430 B、两个 sha256 都在那张单子里，`# dig
 仓库实测是 **private**（匿名 `api.github.com/repos/skeyboy/MacMaster` 404，而带凭据的 `git ls-remote` 成功），
 `docs/verification/**` 里那些带本机状态的照片要推上去，依据就是这一条。
 
+### 7.20 P28b：CI 第一次跑在别人家的机器上，三跑三连红，每一跑的红因都不同（2026-10-08）
+
+§7.19 立起来的那条 workflow，本轮是它第一次真的执行。**结果不是"绿了，收工"，是三连红，
+而且三个红因彼此不相干**——这一节按红因记账，因为这三笔后面每一笔都会咬人。
+
+| 那一跑 | 红在哪一步 | 红因 | 修法与 commit |
+| --- | --- | --- | --- |
+| run 37723416848（`workflow_dispatch`，`macos-14`） | 第 3 步，8 秒 | `PRERELEASE: unbound variable`：那个变量只在写 `$GITHUB_ENV` 的 heredoc 里现算，下一行又要打印它，而每一步都是 `bash -e -u -o pipefail` | 先赋给 shell 自己的变量再往 `$GITHUB_ENV` 写（`02aebb7`） |
+| run 37723769898 | 第 5 步失败，但**失败现场没留下** | 产物 `testlogs-2` 里只有 `summary.txt`（833 B）：`set -e` 让脚本在失败那一行就退了，排在后面的"拷逐包原始日志"根本没跑到 | 先收退出码 → tail 每个包 → cp → 最后才 `exit "$status"`（`7c73105`）。本地把新旧两版各跑一遍对照过 |
+| run 37725696397（`macos-latest`） | 第 5 步 | `失败的包：MMDisk MMMonitor`，而同一行上面写的是 **"0 个失败"** | 见下面两块 |
+
+**① 这一行假话修一次修不掉**（`Scripts/run-all-tests.sh:44-47`）。§7.19 记了第一次漏读
+（`with 1 failure` 单数不匹配 `failures`）。本轮又撞上两种形态：
+
+- 一行里有跳过**又有**失败时，那行是 `Executed 77 tests, with 1 test skipped and 1 failure`——
+  `with` 后面跟的是 `skipped`，所以"with <数> failures"整体不匹配，`f` 再落回 0。
+- **上一轮那个"先把 skipped 半截 sed 掉再按 with 取"的改法自己也是坏的**：那半截连 `with`
+  一起摘掉了，剩下 `tests, 1 failure` 里没有 `with` 可锚。它是在本轮新写的夹具里被当场抓出来的
+  （ShapeD 那一格仍然报"汇总行说 0 条失败"），而不是在 CI 上——**这就是先写夹具的后账**：
+  真跑一次带失败的 CI 之前，这个 bug 会一路跟着脚本进下一次发版。
+
+现在的取法绕开 `with`，按 `failure(s)` / `tests? skipped` **这个词前面那个数**取。
+配套 **`Scripts/p28-test-summary-shapes.sh`（113 行）**：一把假 `swift` 只回放日志、退出码可编，
+把六种结论形态摆出来各测一遍（常规 / 只跳过 / 单数 failure / 跳过+failure / `Executed 1 test` 单数 /
+纯 swift-testing），每份日志都多带一行**类级** `Executed` 作诱饵。它不需要"真有一包失败"才测得到——
+这是这一格从前测不到的根本原因：**本地全绿的时候，假绿长得和真绿一模一样**。
+顺带修一个包的失败会被点名两遍（`swift test` 非零与对撞改判各 append 一次，
+`run-all-tests.sh:55-64` 现在只 append 一次）。
+
+**② 两处"只在作者机器上成立"**——这一档是本轮最值钱的，因为它在本地**没有任何一种表现**：
+
+- `Packages/MMDisk/Tests/MMDiskTests/DiskRemovalTests.swift:74`：那条测试把
+  `/Users/lee/Library/Caches` 写进断言，并期望它出现在 `plan.targets` 里。CI 上的主目录是
+  `/Users/runner`，那条路不存在，`plan` 按 `DiskRemoval.swift:103` 的顺序落到 `.vanished`，
+  于是**红的原因是"这台机器上没装过作者装过的东西"**。改法不是把路径换成 `NSHomeDirectory()`
+  就完事：`targets` 那一半本来就依赖磁盘状态，所以改成只咬规则本身
+  （`~/Library/Caches` 不被系统树打死 + `/Library/Caches` 要被，`:82`），
+  另把同族那一处 `/Users/lee` 换成编出来的 `/Users/probe`（`:60-61`，它走的是纯字符串比对，
+  本来就到处都过，换掉是为了不让下一轮再把它当成机器依赖去查）。
+- `Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:217-231`：
+  `the compiler is unable to type-check this expression in reasonable time`，Xcode 15.4（Swift 5.10）
+  与 26.6（Swift 6.3.3）**都报**，作者机 Xcode 27.0（`27A266a`，Swift 6.4）只是碰巧算得动。
+  代价不是那一行编译不过，是**这个包的 53 个测试在任何别的机器上从来没跑过**。
+  拆成带类型的局部量、每个表达式只剩一步乘法，数值逐位相同。
+
+**③ 镜像那一格换过一次，换的理由不是"产物要求 macOS 14"**（`release.yml:69`）。
+`macos-14` = macOS 14.8.9 / Xcode 15.4 / Swift 5.10，除了 `MMMonitor` 那一处超时，还报
+`MMDisk.swift:1417`、`:1421` 的 `await`/MainActor 三处（**这三处本轮没动**，见 §8 新增那一格），
+而 actions/runner-images 已把它列进 deprecated。`macos-latest` = macOS 26.6.2 / Xcode 26.6 /
+Swift 6.3.3 / arm64。**产物的最低系统跟构建机无关**：那是仓库根的 `Package.swift` 里那行
+`.macOS(.v14)`（第 6 行）与 plist 的 `LSMinimumSystemVersion=14.0` 定的，本轮在换了镜像的产物上重读
+`otool -l` 仍是 `LC_BUILD_VERSION minos 14.0`。**从前我把"产物要求 14"当成"构建要用 14 的镜像"，那是一次口径混淆**，
+所以这一格单独写出来。
+
+**④ 重指 tag 这一次真的触发了 run**。`v1.0.0` 从前停在 `02aebb7`，本轮
+`git tag -f -a` + `git push --force origin refs/tags/v1.0.0` 指到 `5e3b2ca`，
+API 立刻出现一条 `event=push / head_branch=v1.0.0 / head_sha=5e3b2ca` 的 run（37729249935）。
+这和 §7.19 末尾那条"第一次推 tag 没有 run"不矛盾：**对已存在的 tag 做 force-update 会触发**，
+没触发的是"仓库里 workflow 文件与 tag 同一刻第一次出现"那一档。这一格值得单独记，
+因为它决定了"改一处 CI 要重跑一次，最省事的触发方式是哪一种"。
+另：推之前先确认过 `releases` 是空的（`[]`），所以这次重指**没有改写任何已发布的东西**。
+
+**本轮四个数**：本地九包 **633 / 0 失败 / 1 跳过**（逐包 73 / 17 / 117 / 25 / 121 / 77 / 53 / 96 / 54，
+与 §7.19 同一串——两处改动一处只重排算术、一处把一条测试换成同名的更强版本，条数不该动，
+动了才算有问题）；`release.yml` **204 行**（§7.19 写的 172 是那一版）；打包一次，
+zip 3,233,024 B、dmg 3,831,239 B，归因行 `# digest: 5487f95+70948ba4`——
+**这一档本地产物只是"改完编译输入之后仍能构建打包"的自证**，它带的是提交前那棵脏树的 sha，
+上传给 Release 的是 runner 从 `5e3b2ca` 自己重算的那一份。
+
 ## 8. 已知不一致（不阻塞发版，但要有账）
 
 - **一条真机判据把没量过的前提当成了合同**（P28 记，本轮已改判据，账没全还）：
@@ -1750,12 +1854,29 @@ zip 3,233,047 B、dmg 3,831,430 B、两个 sha256 都在那张单子里，`# dig
   "监控页那一格沿用上一次的数"，这一句**只有代码路径支撑，没有照片支撑**。
   下一轮若要还，办法是给监控页拍一帧"跨度为 0 时画面显示什么"的夹具档，而不是回去加断言。
 
-- **`run-all-tests.sh` 的结论行与原始日志可以各说一套**（P28 记）：`Scripts/run-all-tests.sh:40`
-  从前要求 `failures` 复数，一条失败时那行是单数，于是整包 1 条失败在屏幕上显示成"0 个失败"。
-  兜住它的是**退出码**（那一包非零退出 → 脚本末尾退 1），所以 CI 门禁一直是对的，
-  错的是**历轮文档抄的那一行**。这类"人读的数与机器判的数分家"在这套工具链里已经有三次同族
-  （P22 的 `-dirty` 不敏感、P24 的"放行那一支其实退 1"、本轮的单数），
+- **`run-all-tests.sh` 的结论行与原始日志可以各说一套**（P28 记，**P28b 又复发了两次**）：
+  `Scripts/run-all-tests.sh:44-47` 那三条 sed 从前要求 `failures` 复数，一条失败时那行是单数，
+  于是整包 1 条失败在屏幕上显示成"0 个失败"。兜住它的是**退出码**（那一包非零退出 → 脚本末尾退 1），
+  所以 CI 门禁一直是对的，错的是**历轮文档抄的那一行**。这类"人读的数与机器判的数分家"在这套工具链里
+  已经有三次同族（P22 的 `-dirty` 不敏感、P24 的"放行那一支其实退 1"、P28 的单数），
   **共同形态是：门禁有效，但门禁打印的那句话没人复核过。**
+  P28b 补的两笔：① 一行里**既有跳过又有失败**时 `with` 后面跟的是 `skipped`，"with <数> failures"
+  整体不匹配，`f` 第二次落回 0；② **把 skipped 半截 sed 掉再按 `with` 取**这一版改法自己也是坏的
+  （`with` 被一起摘掉了）——它是在 `Scripts/p28-test-summary-shapes.sh` 的 ShapeD 那一格被抓出来的，
+  不是在三跑 CI 上。**这一格现在的形状是**：按 `failure(s)` / `tests? skipped` 这个词前面的数取，
+  外加一道与逐条 `Test Case '…' failed` 行数的 0/非 0 对撞（`run-all-tests.sh:55-64`），
+  六种结论形态由那份夹具钉住，不需要"真有一包失败"才测得到。
+
+- **工具链那一档：三个只有作者机看不见的编译/测试缺陷，本轮只修了两处**（P28b 记）：
+  同一段 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1416-1421`（`scanDirectory()` 那一段，
+  调用点在 `:217`、`:245`）在 **Xcode 15.4 / Swift 5.10** 上报三处 `await`/MainActor 错误，
+  在 **Xcode 26.6 / Swift 6.3.3**（现 `macos-latest`）与作者机 **Xcode 27.0 / Swift 6.4** 上都干净。
+  三档读数都来自当场跑的构建日志，不是推断。**本轮没动它**，理由写在两处：① 现用镜像已经不是 15.4，
+  这一格在 CI 上不再咬人；② 在那台机器上"照着报错改并发"等于拿一个再也测不到的档当判据去改代码，
+  风险比不动更大。**它仍然是一条真账**：谁要用 Xcode 15.x 从源码构建，磁盘页那一段编译不过，
+  而 README 与 §10 都没写过"构建需要哪一版 Xcode"——要收这一格，补的是**最低工具链主张**，
+  不是那三行代码。同族的两处（`MonitorFixtureHooks.swift:217-231` 的类型检查超时、
+  `DiskRemovalTests.swift:74` 把作者主目录当事实）都已修，见 §7.20。
 
 - **磁盘页风险标签与删除闸门之间还剩一类已知的、故意不修的差集**（P21 记）：符号链接行——
   字面路径不在受保护清单里所以界面给按钮，`realpath` 之后落在 `/System` 里所以闸门拒。
@@ -2104,6 +2225,22 @@ git push origin main --follow-tags        # 或分开 push origin main; git push
 先发空 Release 再让工作流补附件：在 GitHub 上建 tag `v*` 并发布 Release，`release: types: [published]` 那一支接住它。
 **CI 的第一次真绿要到 push 之后才读得到**（本机没有 `gh`，也没法在推之前验 runner 行为），
 所以这一格的"已跑"状态在 §7.19 末尾那条"还欠的"里，不在这里。
+
+**P28b 实跑状态（2026-10-08，第一次真绿）**：那一格欠的账已经还上了——run **37729249935**
+（`event=push`、`head_branch=v1.0.0`、`head_sha=5e3b2ca`、结论 `success`，十一步全绿），
+runner 上九包 **633 / 0 失败 / 1 跳过**与作者机逐包同数，Release `v1.0.0` 建出、
+三个附件（zip 3,175,601 B / dmg 3,778,114 B / SHA256SUMS 176 B）挂上，
+`draft=false`、`prerelease=false`。逐字摘录 `docs/verification/p28-ci/green-run.log`，
+下载回来的那一份再验一遍的结果 `docs/verification/p28-ci/downloaded-assets.log`
+（清单 `shasum -c` 两个 OK、可执行位还在、dmg 里 `/Applications` 仍是符号链接、
+`spctl` 仍 `rejected`——第 4 步那三项没定，这一条就不会变）。**到达这一格花了三跑**，
+每跑红因不同、其中两处本地毫无表现，账记在 §7.20。
+两条这一格用得到的操作口径：① **改 CI 要重跑，最省事的触发方式是把同一个 tag force-update**
+（`git tag -f -a v1.0.0 -m "…" <sha>` + `git push --force origin refs/tags/v1.0.0` 当场就出 run；
+"第一次推 tag 没有 run"是另一档，见 §7.19 末尾与 §7.20 ④）；② 推之前先读一眼
+`/releases` 是不是空的——tag 重指会改写指针，Release 若已存在就是改写已发布的东西。
+从 private 仓的程序化下载**不走** `github.com/…/releases/download/…`（那条只吃登录态，basic auth 返回
+`Not Found`），走 `api.github.com/repos/…/releases/assets/<id>` + `Accept: application/octet-stream`。
 
 **2026-10-05 实跑状态**：第 1 步 571/0/1 ✅；第 2 步产物 `/tmp/mm-app-v1/MacMaster.app`（release 配置，
 `VERSION=1.0.0 BUILD=1`，隔离 scratch `/tmp/mm-scratch-v1`）✅；第 3 步
@@ -2505,4 +2642,19 @@ zsh 的 NOMATCH 配上 `set -e` 在 §7.11 打死过一条降级分支，本轮�
 **换句话说：核验跑到第十三遍、跑到别人的机器上也能复现的那一棵树上，卡住的还是同样那三项人拍板的事**——
 许可证（§2.3）、权利人与年份、签名与公证的身份（§2.1）。
 **这三项一个字都不需要写代码**，这是本文从 P7 起一直没改过的判定，也是它唯一还没能自己走完的一段。
+
+**P28 + P28b（2026-10-08）把判定从"发不了"变成"已经发出去了，而那三项还没定"——这是本文措辞的一次真变化，不是笔误。**
+上面那一句"第十二遍也还是发不了给陌生人"从前有双重含义：既"分发面没准备好"，也"还没推上去"。
+后者在 P28b 结束了：tag `v1.0.0` 触发的 run 37729249935 跑绿，Release 页有了，三个附件挂上去了
+（`https://github.com/skeyboy/MacMaster/releases/tag/v1.0.0`）。
+所以卡点从**"能不能发"**挪到了**"发出去的这一版对外说了什么"**，而这三条今天都还是未定态的原样：
+关于页那一格现读仍是「许可 尚未选择许可」（`Sources/MacMaster/SettingsView.swift:281`），
+产物 plist 的 `NSHumanReadableCopyright` 仍是无权利人的占位值 `MacMaster`
+（来源 `Scripts/make-app.sh:110`，本轮没动），下载回来的那一份 `spctl` 仍判 `rejected`
+（ad-hoc，逐字在 `docs/verification/p28-ci/downloaded-assets.log`）。
+**当前唯一的缓解是可见性**：仓库实测仍是 private（`private=true`、fork 0、watcher 0，2026-10-08 现读），
+所以今天能拿到这三个附件的只有登录进来的协作者，"陌生人双击被拒"要等仓库或 Release 公开那一天才成为对外事实。
+这一格因此新增一条**可核验的顺序要求**：把仓库或 Release 转公开之前，第 4 步那三项要先定完——
+从前它只是"洁癖"（没发出去，慢慢定也行），现在它是**已经发出去的那一版的对外口径**。
+三项候选、代价与"定了之后要动哪几行"并成了一张决策单：`docs/analysis/release-decisions.md`。
 

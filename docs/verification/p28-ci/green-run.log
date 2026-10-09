@@ -1,0 +1,46 @@
+# P28b CI 第一次跑绿的逐字摘录（tag v1.0.0 触发）
+# run:  37729249935   event=push  head_branch=v1.0.0  head_sha=5e3b2ca  conclusion=success
+# job:  113154390847  构建并打包（macOS latest arm64）  10 步 + setup/complete 全 success
+# url:  https://github.com/skeyboy/MacMaster/actions/runs/37729249935
+# release: https://github.com/skeyboy/MacMaster/releases/tag/v1.0.0  draft=false prerelease=false
+# assets(Release API 现读): MacMaster-1.0.0-1.zip 3175601 B / .dmg 3778114 B / -SHA256SUMS.txt 176 B
+#   —— 与下面 # assets: 那三行逐字相同，即"挂到 Release 上的就是第 8 步产出的那一份"
+# 怎么复现这一份摘录：
+#   git credential fill <<< "protocol=https\nhost=github.com\n"   # 取 username/password（口令不落盘、不入日志）
+#   curl -sL -u "$user:$token" https://api.github.com/repos/skeyboy/MacMaster/actions/jobs/113154390847/logs
+#   去掉每行开头的 ISO 时间戳前缀，按 run/步骤关键词筛（本文件只保留结论行，不保留逐步回显）
+# 摘录时刻：2026-10-08（作者机现拉）
+# 说明：runner 侧 ad-hoc 签名 + spctl rejected 是已知现状，见 release-decisions.md 第 3 项
+
+这一跑要发的是 v1.0.0 → MacMaster 1.0.0 (1)，prerelease=false
+ProductName:		macOS
+ProductVersion:		26.6.2
+BuildVersion:		25G83
+arch=arm64
+Xcode 26.6
+Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)
+swift-driver version: 1.148.6 
+MMCore         XCTest=73   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=53   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no 
+合计：633 个测试，0 个失败，1 个跳过
+Build complete! (33.71s)
+签名档次：flags=0x2(adhoc)（HARDENED=0）
+产物源码指纹：5e3b2ca+e3b0c442（同一键写进 plist 的 MMSourceDigest；取证脚本当场比这一个数，不等就拒拍）
+# package-app.sh MacMaster-1.0.0-1
+# repo: 5e3b2ca
+# app: /Users/runner/work/MacMaster/MacMaster/build/MacMaster.app
+# plist: CFBundleShortVersionString=1.0.0 CFBundleVersion=1 CFBundleIdentifier=com.macmaster.app LSMinimumSystemVersion=14.0 MMGitCommit=5e3b2ca
+# digest: 5e3b2ca+e3b0c442
+# codesign: flags=0x2(adhoc) verify=通过（/Users/runner/work/MacMaster/MacMaster/build/MacMaster.app: valid on disk /Users/runner/work/MacMaster/MacMaster/build/MacMaster.app: satisfies its Designated Requirement）
+# spctl: /Users/runner/work/MacMaster/MacMaster/build/MacMaster.app: rejected 
+# assets:
+#   MacMaster-1.0.0-1-SHA256SUMS.txt 176 bytes
+#   MacMaster-1.0.0-1.dmg 3778114 bytes
+#   MacMaster-1.0.0-1.zip 3175601 bytes
