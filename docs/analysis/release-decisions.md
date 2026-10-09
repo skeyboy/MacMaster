@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | `Scripts/make-app.sh:111`（写进产物 plist 的 `NSHumanReadableCopyright`） | `MacMaster`——**没年份、没权利人** | 第 2 项 |
 | `docs/website/index.html:394`（落地页页脚） | `&copy; 2026 MacMaster. All rights reserved.` | 第 2 项（年份与权利人同一个写法） |
-| `Sources/MacMaster/SettingsView.swift:281`（关于页那一格） | 「许可 尚未选择许可」 | 第 1 项 |
+| `Sources/MacMaster/SettingsView.swift:321`（关于页那一格） | 「许可 尚未选择许可」 | 第 1 项 |
 | `.github/workflows/release.yml:12-13`（那条注释 + Release 页附件的说明） | 「附件档仍是 ad-hoc 签名、未公证」 | 第 3 项 |
 
 页脚那一行已经写着 `© 2026`，而 plist 那一行连权利人都没有——**这不是"还没填完"，是两处对外主张
@@ -35,7 +35,7 @@ MIT 三份（disktree / stats / SwiftFormat）——见 `docs/analysis/reference
 | 候选 | 代价 | 定了之后的后果 | 要动的地方 |
 | --- | --- | --- | --- |
 | A. **不给许可**（保持现状，默认"保留所有权利"） | 零 | 别人 clone 只算"能看到"，不算"能用"；README 与 Release 页都不能写"开源" | 只需把关于页那一格从「尚未选择许可」改成「保留所有权利」，并确认 README 没在自称开源 |
-| B. **MIT** | 零；一份文件 | 最宽。任何人都能闭源再分发，包括把你的代码原样卖掉的第三方——对**工具类**应用这通常可接受，但要知情 | 补根目录 `LICENSE`（含权利人+年份，与第 2 项同一主体）；改 `SettingsView.swift:281`；设计稿 `09-settings.html` 的 09d 板**跟着一起改回**（P10 已把稿子改成与实现同口径，就是防这一处分叉） |
+| B. **MIT** | 零；一份文件 | 最宽。任何人都能闭源再分发，包括把你的代码原样卖掉的第三方——对**工具类**应用这通常可接受，但要知情 | 补根目录 `LICENSE`（含权利人+年份，与第 2 项同一主体）；改 `SettingsView.swift:321`；设计稿 `09-settings.html` 的 09d 板**跟着一起改回**（P10 已把稿子改成与实现同口径，就是防这一处分叉） |
 | C. **Apache-2.0** | 零；文件长一点 | 同样宽松，多一条专利授权与"修改要标注"；对贡献者更友好 | 同 B |
 | D. **GPL-3.0** | 零；但要**重新审上游** | 衍生作品必须以同源许可分发。一旦选这一条，"只读不转发"这个现状就从"省事"变成"必须论证"——因为这一条正好和上游三份 GPL 相邻 | 同 B，外加：`reference-repos.md:71-73` 那条处置要重述为"确认过没有代码来自上游"，并把那批"命参考仓库"的引用逐条抽查一遍（`./Scripts/p16-citation-audit.sh` 每次重算这一档，`./Scripts/clone-references.sh --check` 只读地把它们变成能打开的文件） |
 | E. **闭源免费分发** | 零；但**和本仓库的可见性撞车** | 仓库现在是 **private**（2026-10-08 现读 API：`private=true`、fork 0、watcher 0）。"闭源但免费给人用"要先有一个能下载的地方——把仓库或 Release 公开，跟"专有"这一条并存时需要一句对外说明 | 补 `LICENSE` 写"专有"，并把关于页那一格与 README 里"开源"字样的所有位置清干净 |

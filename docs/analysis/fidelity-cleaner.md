@@ -42,10 +42,10 @@
 - 页头：`MMPageHeader`（`MMDesign.swift:238-271`）= `MMMetric.toolbar` 46pt + `contentBackground` + 底部 Divider。
 - 过滤条：`MMCleaner.swift:305-325`，`CleanerFilter` 四档 `全部/缓存/日志/临时`（`:896-921`，**P25 现读重指**，旧值那一对行号漂了约四十行）。
 - 分类表：`MMCleaner.swift:425-464` —— 内联卡（`background(MMColor.contentBackground)` + `MMRadius.card` 8 + separator 描边 + `MMGap.lg` 16 内边距），**没有调用 `MMCard`**。
-- 表头 26pt / 分组头 30pt / 行 44pt：`MMCleaner.swift:466-481`、`:500-520`、`MMItemRow`（`MMDesign.swift:686-746`，`MMMetric.rowRegular` 44）。
+- 表头 26pt / 分组头 30pt / 行 44pt：`MMCleaner.swift:466-481`、`:500-520`、`MMItemRow`（`MMDesign.swift:688-748`，`MMMetric.rowRegular` 44）。
 - 动作栏：`MMActionBar`（`MMDesign.swift:280-317`）= `MMMetric.actionBar` 52pt + `cardBackground`。
 - 风险三档真源：`MMRisk`（`Packages/MMCore/Sources/MMCore/Risk.swift:9-41`），`groupTitle/groupNote/isDefaultSelected/allowsDeletion`。
-- 卡片 token 真源：`MMCard`（`MMDesign.swift:774-790`）= `MMColor.controlBackground`（`windowBackgroundColor`）+ 8pt 圆角 + 16pt 内边距；而本文页内卡用的是 `MMColor.contentBackground`（`textBackgroundColor`）→ 见 I4/S9。
+- 卡片 token 真源：`MMCard`（`MMDesign.swift:776-792`）= `MMColor.controlBackground`（`windowBackgroundColor`）+ 8pt 圆角 + 16pt 内边距；而本文页内卡用的是 `MMColor.contentBackground`（`textBackgroundColor`）→ 见 I4/S9。
 - 拒绝回执预演：`CleanerView.refusalPreview()`（`MMCleaner.swift:926-934`），三条由 `DeletionGuard.rejection(for:)` 现场算出。
 
 ## 1. 逐元素对照表
@@ -85,7 +85,7 @@
 | 表头列「类别 · 大小 · 风险 · **操作**」 | `tableHeader` `MMCleaner.swift:466-481` | ❌ | 实现最后一列表头是 `Text("")`（空），**没有「操作」列名**；列宽 `大小 minWidth 72 / 风险 44 / 操作 52` vs 稿 `78 / 92 / 60`（**`⚠️待真机测量`**） | 低 | 实现该改 I6 |
 | 分组头「可安全清理 N 类 · X」+ 右侧说明 | `groupHeader` `MMCleaner.swift:500-520`；文案真源 `MMRisk` | ✅ | 组名「可安全清理/需谨慎/只读 · 不会修改」与右注三句**逐字一致**（`Risk.swift:22-36`）；`N 类` 与合计按实算 | — | — |
 | 分组右注文字 | 同上 `.frame(maxWidth: 280, alignment: .trailing)` + `.lineLimit(1)` | ✅ | **P6.6 实测**：最长那句（谨慎档 19 个汉字）完整显示、无 "…"，实宽 ≈187pt < 280pt 封顶 | 低 | ~~I9~~ 已量，非缺陷 |
-| 行结构：勾选 · 图标 · 名称/副标题 · **大小 → 风险徽章 → 操作** | `MMItemRow`（`MMDesign.swift:717-745`）：`勾选 → 图标 → 名称/副标题 → Spacer → 徽章 → accessory → 大小` | ❌ | **大小永远在最右**，徽章/折叠箭头/文件夹都在它左边；稿内大小在徽章**之前**。分类行与安装包行都如此 | **中** | 实现该改 I3 |
+| 行结构：勾选 · 图标 · 名称/副标题 · **大小 → 风险徽章 → 操作** | `MMItemRow`（`MMDesign.swift:719-747`）：`勾选 → 图标 → 名称/副标题 → Spacer → 徽章 → accessory → 大小` | ❌ | **大小永远在最右**，徽章/折叠箭头/文件夹都在它左边；稿内大小在徽章**之前**。分类行与安装包行都如此 | **中** | 实现该改 I3 |
 | 行内图标配色：安全档 `--c-warning`（橙）/ 谨慎档 secondary（灰）/ 只读 tertiary | `MMItemRow` 用 `risk?.color`（安全=绿 `systemGreen`、谨慎=橙、只读=secondary） | ❌ | 安全档图标实现是**绿**、稿内是**橙**；谨慎档实现是**橙**、稿内是**灰**。且稿内"安全徽章绿 + 图标橙"自身不一致 | 低 | 设计稿该改 S7 |
 | 只读行：虚线禁用复选框（`.chk.off-allowed`）+ 锁图标 + 「只读」徽章 | `categoryRows` `MMCleaner.swift:522-546` 传 `isSelectable: category.risk.allowsDeletion` → 只读档 **不渲染 Toggle** | ❌ | 实现**整列删掉复选框**（`MMItemRow` 里 `if isSelectable { Toggle }`），不是画虚线禁用框；后果是只读行的图标列相对可勾选行**左移、列不对齐** | **中** | 实现该改 I2 |
 | 只读行操作列 = info 图标 | `categoryRows` 仍按 `subItems` 非空给 `chevron.down/up` + `folder` | ❌ | 只读分类只要 `subItems` 非空就仍带**展开箭头**，稿内只给 info | 低 | 实现该改 I7 |
@@ -118,12 +118,12 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| PROTECTED 行：琥珀盾 + 原因 + 错误码三列 | `MMFailurePanel`（`MMDesign.swift:645-668`）：`failure.code=="PROTECTED"` → `exclamationmark.shield` 琥珀 + 原因 2 行 + 右列 `PROTECTED` | ✅ | 与 `cleaner-refusal-panel.jpg` 实拍一致：三条 PROTECTED，盾牌/原因/码齐全；文案由 `DeletionGuard.rejection` 现场算，非手写 | — | — |
+| PROTECTED 行：琥珀盾 + 原因 + 错误码三列 | `MMFailurePanel`（`MMDesign.swift:647-670`）：`failure.code=="PROTECTED"` → `exclamationmark.shield` 琥珀 + 原因 2 行 + 右列 `PROTECTED` | ✅ | 与 `cleaner-refusal-panel.jpg` 实拍一致：三条 PROTECTED，盾牌/原因/码齐全；文案由 `DeletionGuard.rejection` 现场算，非手写 | — | — |
 | 顶部摘要「已回收 X GB」（绿） + 「N 项失败」徽章 + 忽略 | `MMCleaner.swift:337-344` 传 `"已回收 \(MMFormat.bytes(model.lastResult?.totalSize))"` | ⚠️ | 实拍图摘要显示「已回收 **测量中**」（夹具下 `lastResult==nil`）；真实删除后才会是「已回收 X GB」 | 低 | 实现该改 I10 |
 | 「计划 N · 成功 N · 失败 N · 跳过 N」统计行 | 实现无此行 | ❌ | `05-states.html` 局部失败态明确画了这行；实现只给"已回收 + N 项失败" | **中** | 实现该改 I5 |
 | 页脚「复制诊断信息 / 重试失败项 / 完成」 | 实现只有「忽略」 | ❌ | 缺"重试失败项"等补救入口；`05-states` 规格有 | **中** | 实现该改 I5 |
 | 面板形态：带边框圆角卡（`05-states`） | 实现是**琥珀底通栏条**（`MMColor.soft(caution,0.10)` + 顶部 Divider，无圆角/边框），贴动作栏上方 | ❌ | 形态不同；影响的是共享组件 | 低 | 实现该改 I5（→ 协调者） |
-| 超过 4 条折叠为「另有 N 项失败」 | `MMDesign.swift:645` `failures.prefix(4)` | ✅ | 夹具正好 3 条，全部列出 | — | — |
+| 超过 4 条折叠为「另有 N 项失败」 | `MMDesign.swift:647` `failures.prefix(4)` | ✅ | 夹具正好 3 条，全部列出 | — | — |
 
 ### 1.8 删除后状态一致性（无稿，代码走查）
 
@@ -203,14 +203,14 @@
    → 建议：`MMItemRow` 在 `isSelectable==false` 时**保留占位**（画禁用框或至少留 15pt 空槽）——
    这会碰到共享组件 `MMUI`，见 §5 提请协调者。
    **复核 2026-10-04：✅ 已落地（`c74f045`，2026-09-30，"只读行占位"就写在提交信息里）**——
-   `MMDesign.swift:843-850` 现在给 `isSelectable == false` 一支画禁用 + `opacity(0.35)` 的空框，
+   `MMDesign.swift:845-852` 现在给 `isSelectable == false` 一支画禁用 + `opacity(0.35)` 的空框，
    注释直接标着"I2"。共享组件那条路径走通了，§5 的对应提请可以撤。
-3. **【中】I3 · 行内要素顺序：大小永远最右**（`MMItemRow` `MMDesign.swift:718-739`）
+3. **【中】I3 · 行内要素顺序：大小永远最右**（`MMItemRow` `MMDesign.swift:720-741`）
    稿内两处行（分类行 `02-cleaner.html:67-70`、安装包行 `02b:77-79`）顺序都是
    **名称 → 大小 → 风险徽章 → 操作**；实现是 **名称 → 徽章 → 操作 → 大小**。
    → 建议：二选一——要么 `MMItemRow` 支持"数值列提前"的排布，要么把稿改成与共享行一致。
    因涉及共享组件，倾向**设计稿对齐组件**（见 §3）。
-   **复核 2026-10-04：✅ 已落地（`e84066a`，2026-09-30）**——`MMDesign.swift:861-865` 的顺序现在是
+   **复核 2026-10-04：✅ 已落地（`e84066a`，2026-09-30）**——`MMDesign.swift:863-867` 的顺序现在是
    数值（`Text(value)`，`minWidth: 72` 右对齐）→ `MMBadge(risk:)` → `accessory`，即建议里的"数值列提前"那一支。
    实现与稿子在这一格上同序了。
 4. **【中】I4 · 空态把"取消/未产出一类"说成"没有可清理的内容"**（`MMCleaner.swift:413-419`）
@@ -241,18 +241,18 @@
    所以归因头多了第三行 `# defaults:`；跑完 `trap` 还原，02 就是还原后的对照档）。
    ②③ 两档**没有新照片**：②需要"扫到一半取消"、③需要真机上恰好全干净，
    两者都不是钩子能定格的；这一条的闭环只到"①不再是假话"为止。
-5. **【中】I5 · `MMFailurePanel` 比 `05-states` 局部失败规格少两截**（`MMDesign.swift:618-682`）
+5. **【中】I5 · `MMFailurePanel` 比 `05-states` 局部失败规格少两截**（`MMDesign.swift:620-684`）
    缺 **「计划 N · 成功 N · 失败 N · 跳过 N」统计行**，缺 **页脚「重试失败项 / 复制诊断信息」**；
    面板形态也由"带边框圆角卡"变成"琥珀底通栏条"。这是共享组件，见 §5。
    **复核 2026-10-04：⚠️ 组件侧做完了、调用侧一处没用 = 页面上仍然看不到**（`c74f045` 给组件加了
-   `Stats` 结构体 + 带 `stats:`/`onRetry:`/`onCopyDiagnostics:` 的新 init（`MMDesign.swift:680-712`）、
+   `Stats` 结构体 + 带 `stats:`/`onRetry:`/`onCopyDiagnostics:` 的新 init（`MMDesign.swift:682-714`）、
    统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 11 个调用点无一使用新 init**
    （**P20 现读重跑，判据换成能罩住壳层的那一条**：
    `grep -rn 'MMFailurePanel(' --include='*.swift' Packages Sources | grep -v 'struct MMFailurePanel' | wc -l` = 11，
    逐个位置是 `MMCleaner.swift:376`、`SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、
    `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:161`、
    `MMOptimizer.swift:235`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
-   `Sources/MacMaster/MainWindow.swift:241`。
+   `Sources/MacMaster/MainWindow.swift:242`。
    **原来这一格写的是"10 个"，少的那一个不是漏看而是命令本身罩不住**——旧命令
    `grep -n 'MMFailurePanel(' Packages/*/Sources` 的 glob 只展开 `Packages/<模块>/Sources`，
    壳层 `Sources/MacMaster` 在仓库根，永远不在它的搜索范围里。而 `release-readiness.md` §6

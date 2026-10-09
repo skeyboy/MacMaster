@@ -100,6 +100,16 @@ git 里根本没有文件）；许可证文件（尚未选择）。
 - 监控页的网络速率只在菜单栏显示，页面里不用。
 - 优化页失败面板的形态（通栏条 vs 带边框卡）与设计稿不一致。
 - 温度与风扇那一卡依赖本机 SMC，换机型/换系统要重验（`docs/analysis/release-readiness.md` §8 有这条单列档）。
+- **设置页这一版有四处够得着的缺陷**（2026-10-09 逐行核对，四处都在本构建的源码那一棵 `5e3b2ca` 上现读确认；
+  下面那两处行号是**那一棵**上的，工作区这一棵已经改过，别照当前文件去对）：
+  深链 `x-apple.systempreferences:` 被拼了两遍（`MMDesign.swift:516-517` 加一次、调用点传的字符串里已有一次），
+  点开不会有任何反应；没有 ⌘,，系统菜单栏里也没有「设置…」，只能从标题栏那枚齿轮进；
+  通知那一节不读系统的授权状态，脚注无论本机是什么档都写"已开启"；设置窗口高 400 pt
+  （`SettingsView.swift:54`），第二个页签以下的内容在画面之外。**这四处已在源码中修复**
+  （`docs/analysis/release-readiness.md` §7.21、取证照片 `docs/verification/p29-before/` 与 `p29-after/`），
+  但**不在本构建里**——它们会随下一版发出。
+- 壳层测试那一格要说得更准：本轮之后 MMCore 多了 4 条钉深链拼接的测试、MMMonitor 多了 4 条钉通知文案的测试，
+  它们钉的都是包里的纯函数；上面那句"一条都不覆盖壳层"仍然成立，根 `Package.swift` 里没有测试目标。
 
 ## 测试与规模（本轮现读）
 
@@ -107,6 +117,9 @@ git 里根本没有文件）；许可证文件（尚未选择）。
 逐包：MMCore 73、MMUI 17、MMFileScanner 117、MMCleaner 25、MMUninstaller 121、MMDisk 77、
 MMMonitor 53、MMGuardian 96、MMOptimizer 54。结论行入库在
 `docs/verification/p27-citations/run-all-tests.log`。
+**这一格量的是"本构建"，不是仓库当前那一棵**：设置页修复之后同一支脚本现读 **641 / 0 / 1**
+（MMCore 73→77、MMMonitor 53→57，其余七格逐字相同；日志 `docs/verification/p29-citations/run-all-tests.log`），
+那 8 条判据对应的改动**不在这一版产物里**。
 
 ## 拿到源码的人怎么自证
 

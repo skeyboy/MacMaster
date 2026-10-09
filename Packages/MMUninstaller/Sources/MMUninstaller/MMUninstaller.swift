@@ -731,9 +731,6 @@ public struct UninstallerView: View {
 
     // MARK: 废纸篓提示
 
-    /// 完全磁盘访问面板。守护页用的是同一个 URL scheme 参数，这里不另写一份。
-    private static let fullDiskAccessPane = "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles"
-
     /// 无头截图用的假 home。规矩沿用 `MM_ORPHAN_FIXTURE_HOME`：只认 /tmp 之下，
     /// 因为这张卡片的终点是删除按钮。
     private static var trashScanHome: String? { TrashWatcher.fixtureScanHome() }
@@ -874,7 +871,7 @@ public struct UninstallerView: View {
                         ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页才会重试。"
                         : reason + " 这和权限无关，所以这里不放授权按钮；重新进入这一页会重试。")
                     + " 在恢复监听之前，这里不会给出任何残留判定。",
-                    settingsPane: needsFullDiskAccess ? Self.fullDiskAccessPane : nil
+                    settingsPane: needsFullDiskAccess ? .fullDiskAccess : nil
                 )
             }
         }
@@ -1046,7 +1043,7 @@ public struct UninstallerView: View {
                 detail: needsFullDiskAccess
                     ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页或重启应用才会生效。"
                     : reason + " 这和权限无关，所以这里不放授权按钮。",
-                settingsPane: needsFullDiskAccess ? Self.fullDiskAccessPane : nil
+                settingsPane: needsFullDiskAccess ? .fullDiskAccess : nil
             )
         }
     }

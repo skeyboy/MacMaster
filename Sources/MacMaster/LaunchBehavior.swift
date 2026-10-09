@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import ServiceManagement
 import MMCore
+import MMMonitor
 
 /// 「开机自动启动」的真实执行者：SMAppService.mainApp。
 ///
@@ -14,19 +15,42 @@ final class LoginItemManager: ObservableObject {
     static let shared = LoginItemManager()
 
     /// 真实注册状态（以系统为准，不由设置存储单方面宣称）。
-    @Published var isEnabled: Bool
+    @Published var status: SMAppService.Status
     /// 最近一次注册/注销失败的原因；nil 表示无错误。
     @Published var lastError: String?
 
     private var cachedSettings: AppSettings { AppSettings.shared }
 
     private init() {
-        self.isEnabled = SMAppService.mainApp.status == .enabled
+        self.status = SMAppService.mainApp.status
     }
+
+    /// 开关画面上显示的状态。`.requiresApproval` 也算"开"：注册这一步确实成功了，
+    /// 只是 macOS 要用户在「登录项与扩展」里再点一次允许。
+    /// 以前这里只认 `.enabled`，用户拨上去以后开关自己弹回"关"，看起来就是"这个设置坏了"。
+    var isOn: Bool { status == .enabled || status == .requiresApproval }
+
+    /// 真的会开机自启（不含"等用户批准"这一档）。
+    var isEnabled: Bool { status == .enabled }
+
+    /// 状态本身要说的话；nil = 没有需要提醒的，用默认那句说明。
+    var statusCaption: String? {
+        switch status {
+        case .requiresApproval:
+            return "已注册，但 macOS 要你在「系统设置 → 登录项与扩展」里再允许一次；在那之前开机不会自动启动。"
+        case .notFound:
+            return "macOS 没把当前构建认成可注册的 App bundle（从 .build 目录直接跑就是这样）。用 Scripts/make-app.sh 产出的 .app 启动时这一项才有意义。"
+        default:
+            return nil
+        }
+    }
+
+    /// 要不要配一个"去系统设置"的出口：只有等用户批准这一档点了有用。
+    var needsSystemSettings: Bool { status == .requiresApproval }
 
     /// 把系统真实状态同步回设置存储，避免「存储说开、系统说关」。
     func syncFromSystem() {
-        isEnabled = SMAppService.mainApp.status == .enabled
+        status = SMAppService.mainApp.status
         cachedSettings.launchAtLogin = isEnabled
     }
 
@@ -42,7 +66,7 @@ final class LoginItemManager: ObservableObject {
             lastError = "登录项操作失败：\(error.localizedDescription)。当前为 ad-hoc 签名的手工打包构建（无 Developer ID / 未公证），macOS 可能拒绝注册登录项；正式签名打包后此功能方可稳定生效。"
         }
         // 一切以系统真实状态收尾，不假装成功
-        isEnabled = SMAppService.mainApp.status == .enabled
+        status = SMAppService.mainApp.status
         cachedSettings.launchAtLogin = isEnabled
     }
 }
@@ -141,5 +165,60 @@ enum LaunchWindowSizeOverride {
         let className = String(describing: type(of: window))
         guard className.contains("StatusBar") == false, window is NSPanel == false else { return false }
         return window.isVisible
+    }
+}
+
+/// `MM_DUMP_MENUS=1`：把两支菜单的条目文字打进 stderr——应用菜单（`NSApp.mainMenu`）
+/// 和菜单栏下拉（`MenuBarManager.statusMenuTitlesForDump`）。
+///
+/// 为什么需要这个钩子：「设置入口在不在」这件事只有点开菜单才看得见，而本项目
+/// **不用合成点击取证**（点击会逃逸到用户当时的前台应用）。把菜单构造出来读一遍文字，
+/// 是唯一能进日志的凭据；不然这一项改动就只能靠"我记得我加了"。
+@MainActor
+enum LaunchMenuDump {
+    private static var didRun = false
+
+    static func dumpOnceIfEnabled(_ env: [String: String] = ProcessInfo.processInfo.environment) {
+        guard env["MM_DUMP_MENUS"] != nil else { return }
+        guard !didRun else { return }
+        didRun = true
+        // 排一拍再读：onAppear 时 SwiftUI 还没把 `.commands` 里的条目装进 mainMenu。
+        DispatchQueue.main.async {
+            for line in appMenuTitles(NSApp.mainMenu, depth: 0) {
+                MMHookValue.emit("MM_DUMP_MENUS 应用菜单 \(line)")
+            }
+            for line in MenuBarManager.statusMenuTitlesForDump() {
+                MMHookValue.emit("MM_DUMP_MENUS 菜单栏 \(line)")
+            }
+        }
+    }
+
+    /// 递归展开，子菜单靠缩进表层级；带快捷键的条目写成 `[⌘,]`，
+    /// 因为「⌘, 有没有绑上」正是要量的那一件事，只看标题量不出来。
+    static func appMenuTitles(_ menu: NSMenu?, depth: Int) -> [String] {
+        guard let menu else { return ["（没有 mainMenu）"] }
+        var lines: [String] = []
+        let indent = String(repeating: "  ", count: depth)
+        for item in menu.items {
+            if item.isSeparatorItem {
+                lines.append(indent + "───")
+                continue
+            }
+            let mark = item.keyEquivalent.isEmpty ? "" : " [\(modifierText(item))\(item.keyEquivalent)]"
+            lines.append(indent + item.title + mark)
+            if let submenu = item.submenu {
+                lines.append(contentsOf: appMenuTitles(submenu, depth: depth + 1))
+            }
+        }
+        return lines
+    }
+
+    private static func modifierText(_ item: NSMenuItem) -> String {
+        var text = ""
+        if item.keyEquivalentModifierMask.contains(.control) { text += "⌃" }
+        if item.keyEquivalentModifierMask.contains(.option) { text += "⌥" }
+        if item.keyEquivalentModifierMask.contains(.shift) { text += "⇧" }
+        if item.keyEquivalentModifierMask.contains(.command) { text += "⌘" }
+        return text
     }
 }

@@ -197,8 +197,8 @@
    **✅ 本页已落地（`5e1dfe3`），但组件默认值没动，问题升级成站级的**：
    详情徽章现为 `MMBadge(risk.groupTitle, tint: risk.color, systemImage: risk == .readOnly ? "lock" : nil)`
    （`MMDisk.swift:763`）。可共享的 `MMBadge.init(risk:)`（现 `MMDesign.swift:255-256`）**仍取 `risk.label`**，
-   今天还有四个调用点在用「安全」这一套（P16 现读 `grep -rn "MMBadge(risk:"`，全仓恰好四处）：`MMDesign.swift:864`（`MMItemRow` 的行内徽章）、
-   `MMUninstaller.swift:1629`、`MMOptimizer.swift:527` 与 `:866`。
+   今天还有四个调用点在用「安全」这一套（P16 现读 `grep -rn "MMBadge(risk:"`，全仓恰好四处）：`MMDesign.swift:866`（`MMItemRow` 的行内徽章）、
+   `MMUninstaller.swift:1626`、`MMOptimizer.swift:527` 与 `:866`。
    → 这不是漏改，是一个**没写下来的站级约定**：行内徽章用短标签（列宽只有 44–92pt，「可安全清理」放不下），
    分组/详情徽章用长说法（`risk.groupTitle` 本来就是分组标题）。建议按这个口径把约定写进 MMUI 注释并划掉本条，
    **而不是**统一成一种——统一成 `groupTitle` 会把三页的行内徽章撑破。归协调层。

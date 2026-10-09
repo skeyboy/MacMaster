@@ -1,0 +1,34 @@
+# run-all-tests.sh  P29 设置页修复收口  2026-10-09 11:02:13 +0800（结论行完成时刻）
+# repo: 06db0db-dirty branch=main
+# digest: 06db0db+c62c45c0
+# 说明：P22 起这一格的结论行入库，本轮续着同一份格式。P28 那一格见
+#       docs/verification/p28-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **这一跑是本轮最后一次源码改动之后重跑的**：`SettingsView.swift` 通知那一节把
+#       "系统已拒绝"那行与跳转按钮从两个开关下方搬到上方（为了它们不用滚动才可见，§7.21 第 6 条），
+#       搬完之后重跑，不是沿用搬之前那一读。两读九格逐字相同（那一处改的是壳层，
+#       壳层不是这九包的编译输入——但"应当相同"是推的，"确实相同"是这两份日志对出来的）。
+#       `# digest:` 那一行与本轮四张 after 照片的出处逐字相等
+#       （`docs/verification/p29-after/00-general.log` 第 4 行、产物 plist 的 `MMSourceDigest`），
+#       也就是"这 641 条量的编译输入"与"照片里那一格设置页"是同一棵树。
+#       **工作树是 dirty 的，所以 `# repo:` 带 `-dirty`**；本轮编译输入脏文件现读 **10 个**
+#       （`git status --porcelain -uno -- Sources Packages Resources Package.swift
+#       ':(exclude)Packages/*/Tests/**'`），与 P27/P28 那两格"编译输入 0 行、只有测试目录脏"
+#       **不是同一种形状**：这一轮改的是产品代码，指纹因此从 `+e3b0c442`（空输入流的前缀）
+#       走到 `+c62c45c0`。这一格照旧不写"总脏行数"——那个数每 `git add` 一步都在变。
+#       九格里两处与上一轮不同，且各对应本轮一个新文件：
+#       MMCore 73 → **77**（`MMSettingsPaneTests.swift`，4 条，钉深链拼接只许有一个 scheme），
+#       MMMonitor 53 → **57**（`NotificationStatusTests.swift`，4 条，钉授权状态的文案与判据）。
+#       其余七格与 P26、P27、P28 三份归档逐字相同。
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=121  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no 
+
+合计：641 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log

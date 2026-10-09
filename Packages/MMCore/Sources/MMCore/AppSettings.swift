@@ -93,8 +93,9 @@ public final class AppSettings: ObservableObject {
 
     // MARK: - Cleaner
 
-    /// 以下扫描范围/安全选项当前仅持久化，供 MMCleaner/MMFileScanner 侧消费
-    /// （清理扫描逻辑在另一任务线中改造，本存储不直接参与扫描）。
+    /// 以下扫描范围/安全选项的消费点在 MMCleaner 与 MMFileScanner 两侧：
+    /// 扫描范围 → `CacheScanScope.selected(...)`（清理页与概览各读一次），
+    /// 排除目录 → 扫描时按标准路径吞并，`confirmBeforeDelete`/`allowUndo` 决定确认面板与撤回吐司。
     @Published public var scanSystemCache: Bool {
         didSet { defaults.set(scanSystemCache, forKey: Key.scanSystemCache.rawValue) }
     }

@@ -1,0 +1,10 @@
+# p29-settings-capture.sh tab=monitor  2026-10-09 10:17:58 +0800  app=/tmp/mm-p29a/MacMaster.app
+# env: MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=monitor MM_APPEARANCE=light
+# repo: 06db0db branch=main
+# digest: tree=06db0db+e3b0c442 app=06db0db+e3b0c442
+# codesign: flags=0x2(adhoc) 
+# plist: MMGitCommit=06db0db
+sandbox_extension_issue_file_to_process failed for /tmp/mm-p29a/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=95370): windowid=3857 pid=95370 layer=0 title= bounds=["Height": 400, "Width": 500, "X": 556, "Y": 252] | windowid=3856 pid=95370 layer=0 title=MacMaster bounds=["Height": 652, "Width": 1000, "X": 306, "Y": 126]
+# captured windowid=3857

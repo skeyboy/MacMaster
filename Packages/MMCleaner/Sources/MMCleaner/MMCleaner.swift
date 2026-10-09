@@ -366,7 +366,7 @@ public struct CleanerView: View {
                 MMPermissionBanner(
                     title: "有 \(model.inaccessiblePaths.count) 个位置读不到，统计不到它们的体积",
                     detail: "多数是其他应用的沙盒容器。未授权的部分不计入合计，也不会显示为 0。",
-                    settingsPane: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+                    settingsPane: .fullDiskAccess
                 )
             }
 

@@ -1,0 +1,79 @@
+# p29 anchor repayment log
+# date: 2026-10-09 11:39:00
+# repo: 06db0db-dirty（工作区含本轮源码与文档改动，尚未提交；锚点债正是这笔改动产生的）
+# 这一份记录的是"还债"这一半；量债那一半是同目录的 drift.tsv（本轮改源码之前先跑的量尺）。
+#
+# 为什么要单独留这一份：`Scripts/p16-citation-audit.sh` 那四条硬判据问的都是
+# "这段能不能打开"（文件在不在、越不越界、空不空、歧不歧），没有一条问
+# "它指的是不是当初那一行"。§7.17 记过一次实测：门禁报 2、实漂 88。
+# 所以本轮动过源码以后，光"门禁绿了"什么都不能说明——必须另起一把量尺。
+
+## 1. 量债：`./Scripts/p29-anchor-drift-audit.sh docs/verification/p29-anchor-drift`
+
+判据：对本轮改过的每个非测试 .swift，把 `docs/**/*.md` 里指向它的 `Base.swift:NN` 逐条取出来，
+比较 `git show HEAD:$f` 的第 NN 行与工作区第 NN 行的**文字**。两行不同 = 这条锚点在改动前后
+指的是两件事，它漂了。
+
+    124 行 = 64 DRIFT + 60 UNRESOLVED
+
+- `DRIFT`（64）：HEAD 那一行的原文在工作区**唯一命中**，新址是确定的，可机械重指。
+- `UNRESOLVED`（60）：原文在工作区 0 处命中——那一行被改写或删除了（本轮 `SettingsView.swift`
+  与 `LaunchBehavior.swift` 的注释块正是这样），机器定不了新址，只能人读。
+
+按文档分布（DRIFT / UNRESOLVED）：
+
+    fidelity-shell.md            16 / 24     release-readiness.md        10 / 9
+    fidelity-monitor.md           7 /  1     fidelity-cleaner.md          6 /  5
+    hook-ledger.md                6 /  6     fidelity-uninstaller.md      4 /  4
+    fidelity-optimizer.md         3 /  3     website-audit.md             3 /  2
+    fidelity-disk.md              2 /  0     fidelity-guardian.md         2 /  3
+    header-truncation-audit.md    2 /  1     release-decisions.md         2 /  0
+    feature-roadmap.md            1 /  2
+
+同一组事实在不同文档里漂成不同的旧值（`MM_WINDOW_SIZE` 在台账记 `:112`、在 `fidelity-shell.md`
+记 `:111`、在 `fidelity-guardian.md` 记 `:116`，现读都是 `:135`）——这不是三份文档各错一次，
+是"锚点从来没有一把量尺"的同一件事被量了三次。
+
+## 2. 还债：`python3 Scripts/p29-anchor-remap.py --write`
+
+两条重指规则，按优先级：①**文本唯一**（HEAD 那一行的原文在工作区只出现一次 → 新址就是它）；
+②**位置平移**（`git diff -U0 HEAD` 的 hunk 头把旧行号平移到新行号）——第一条抓不到结构行
+（`}`、`Divider()`、`.font(.caption)` 这类在工作区出现几十次的行），只靠第一条 HAND 会停在 67 条。
+
+一条护栏是本轮踩坑之后加的：**只重指"HEAD 那一版就存在的引用行"**。本轮自己往文档里写的锚点
+是对着工作区写的，再被机械平移一次就指错了地方——第一版工具提议把 `SettingsView.swift:13`
+（本轮写的 `MM_SETTINGS_TAB`，现读第 13 行就是它）改成 `:15`，**这一条如果落笔就是本轮最坏的一处
+自伤**：它行号有效、行不空，p16 门禁一辈子也不会报。护栏生效后 31 个本轮新写的 token 被挡下，
+逐个现读都对得上工作区。
+
+改写结果（**这份 diff 就是凭据，任何人可复算**）：
+
+    git diff HEAD -- docs/            13 份文档
+    被改掉的旧锚点 token             107 处
+    新写上的锚点 token               143 处（比 107 多，因为本轮把若干"一句话只引头一处"
+                                       的写法拆成了逐条引用，另加 §2 那 12 行新写的行）
+
+工具是**单发**的：`--write` 之后再跑一次报 `可重指: 0 / 需人工: 0`——被它改过的行在第二次跑时
+已经是"HEAD 之后新增的行"，护栏把它们挡在外面。这是设计而非缺陷（docstring 里写着），
+但代价是**"94 个 token 被机械重指"这一跑自己的读数没被存下来**，所以这一节改用 diff 计数：
+diff 是别人也能跑出来的数，工具 stdout 不是。
+
+`REVIEW` 标记（含"此前写/旧写法/改前"这类历史叙述的行）只提示、不跳过整行——第一版按整行
+`SKIP` 处理，结果把 5 个本该重指的现行锚点留在了漂的状态。跳过整行是拿历史叙述的准确性
+换现行锚点的准确性，方向反了。命中的两例由人改：
+- `release-readiness.md:723` 那句"本文此前写 `LaunchBehavior.swift:24-37`"是**历史叙述**，
+  旧值不许跟着机械走；改法是保留旧值 + 把现行三个落点 `:61`/`:63`/`:69` 写全（旧的裸行号
+  `:37`/`:39`/`:45` 明确标成"已经不作数"）。
+- `fidelity-shell.md:73` 的 `MainWindow.swift:18` 落在一段解释注释上，现读 `.navigationSplitViewColumnWidth`
+  在 `:22`，改成 `:22` 并把"此前引 `:18`"写在同一格里。
+
+裸 `:NN`（不带文件名的续引，如 `（`:37/:39`）`）是**量尺和门禁共同的盲区**：p16 的抽取正则要求
+`路径:行` 成对，量尺同理。本轮把 §2 里那两处裸行号补成了带文件名的写法，其余的仍看不见——
+这一条记在这里，别当成"已经扫干净了"。
+
+## 3. 复跑（本轮收口时）
+
+    ./Scripts/p29-anchor-drift-audit.sh   →  仍会报一批"DRIFT"，但那些是**已经重指过**的锚点：
+      文档现在指新行，而 HEAD 那一版的新行上是别的文字，两行文本自然不等。
+      这条量尺只在"改源码之后、重指之前"有意义；重指之后它的对偶是 p16 门禁（0 硬失败）
+      与 remap 的幂等复跑（0 可重指 / 0 需人工）。

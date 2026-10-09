@@ -35,6 +35,7 @@ struct MainWindow: View {
             LaunchMinimizeHandler.applyOnceIfEnabled(settings: settings)
             applyLaunchTargetIfNeeded()
             LaunchWindowSizeOverride.applyOnce()
+            LaunchMenuDump.dumpOnceIfEnabled()
             MMWindowProbe.start()
         }
     }
@@ -44,7 +45,7 @@ struct MainWindow: View {
     private func applyLaunchTargetIfNeeded() {
         let env = ProcessInfo.processInfo.environment
         if env["MM_SHOW_SETTINGS"] != nil {
-            appState.showSettings = true
+            appState.requestSettings()
         }
         // 解析与留痕在 MMCore 的 MMHookValue（有单测）：写错一个字母就会停在概览，
         // 而截图看上去照样是"跑通了"，这种假通过必须在日志里留痕。
@@ -125,7 +126,7 @@ struct SidebarView: View {
 
             // Settings
             Button {
-                appState.showSettings = true
+                appState.requestSettings()
             } label: {
                 Label("设置", systemImage: "gear")
                     .font(.body)

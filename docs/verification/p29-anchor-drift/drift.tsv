@@ -1,0 +1,124 @@
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1855	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:369	reason=工作区里 0 处命中（0 处以上需人工认）	| settingsPane: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+DRIFT	doc=docs/analysis/fidelity-shell.md:101	move=Packages/MMCore/Sources/MMCore/AppSettings.swift:203 -> Packages/MMCore/Sources/MMCore/AppSettings.swift:204	reason=唯一命中原文	| public var monitorRefreshIntervalSeconds: TimeInterval {
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1855	src=Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:177	reason=工作区里 0 处命中（0 处以上需人工认）	| MMReveal.openSystemSettings(pane: "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles")
+DRIFT	doc=docs/analysis/fidelity-monitor.md:114	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:186 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:198	reason=唯一命中原文	| /// Swap 一行（I9）。`sysctl(VM_SWAPUSAGE)` 读不到 → "—"；读到且已用与总量都是 0 →
+DRIFT	doc=docs/analysis/fidelity-monitor.md:230	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:320 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:343	reason=唯一命中原文	| let up = snapshot.networkUpBytesPerSecond.map { MMFormat.rate($0, up: true) } ?? "↑ —"
+DRIFT	doc=docs/analysis/fidelity-monitor.md:234	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:186 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:198	reason=唯一命中原文	| /// Swap 一行（I9）。`sysctl(VM_SWAPUSAGE)` 读不到 → "—"；读到且已用与总量都是 0 →
+DRIFT	doc=docs/analysis/fidelity-monitor.md:236	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:305 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:328	reason=唯一命中原文	| menu.addItem(Self.infoItem("Swap: \(MenuBarManager.swapText(memory, compact: true))"))
+DRIFT	doc=docs/analysis/fidelity-monitor.md:435	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:305 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:328	reason=唯一命中原文	| menu.addItem(Self.infoItem("Swap: \(MenuBarManager.swapText(memory, compact: true))"))
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:102	src=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:103	reason=工作区里 2 处命中（2 处以上需人工认）	| let interval = settings.monitorRefreshIntervalSeconds
+DRIFT	doc=docs/analysis/hook-ledger.md:130	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:59 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:71	reason=唯一命中原文	| if let button = statusItem?.button {
+DRIFT	doc=docs/analysis/release-readiness.md:1859	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:52 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:53	reason=唯一命中原文	| Bundle.main.bundleIdentifier != nil && Bundle.main.bundleURL.pathExtension == "app"
+DRIFT	doc=docs/analysis/release-readiness.md:1886	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:59 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:71	reason=唯一命中原文	| if let button = statusItem?.button {
+DRIFT	doc=docs/analysis/release-readiness.md:240	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:59 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:71	reason=唯一命中原文	| if let button = statusItem?.button {
+DRIFT	doc=docs/analysis/release-readiness.md:729	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:215 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:227	reason=唯一命中原文	| UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+DRIFT	doc=docs/analysis/website-audit.md:22	move=Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:57 -> Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69	reason=唯一命中原文	| statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+UNRESOLVED	doc=docs/analysis/feature-roadmap.md:957	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:698	reason=工作区里 26 处命中（26 处以上需人工认）	| public init(
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:121	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:645	reason=工作区里 199 处命中（199 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:126	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:645	reason=工作区里 199 处命中（199 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:206	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:843	reason=工作区里 2 处命中（2 处以上需人工认）	| } else {
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:208	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:718	reason=工作区里 2 处命中（2 处以上需人工认）	| Text(summary)
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:213	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:861 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:863	reason=唯一命中原文	| Text(value).font(.callout.monospaced()).monospacedDigit()
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:244	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:618 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:620	reason=唯一命中原文	| message: String,
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:248	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:680 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:682	reason=唯一命中原文	| public struct Stats: Equatable {
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:45	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:686 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:688	reason=唯一命中原文	| self.planned = planned
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:48	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:774	reason=工作区里 199 处命中（199 处以上需人工认）	| }
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:88	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:717 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:719	reason=唯一命中原文	| if let summary {
+DRIFT	doc=docs/analysis/fidelity-disk.md:200	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:864 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:866	reason=唯一命中原文	| if let risk { MMBadge(risk: risk) }
+DRIFT	doc=docs/analysis/fidelity-monitor.md:157	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:902 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:904	reason=唯一命中原文	| public enum MMCardStyle {
+UNRESOLVED	doc=docs/analysis/fidelity-monitor.md:198	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:770	reason=工作区里 199 处命中（199 处以上需人工认）	| }
+DRIFT	doc=docs/analysis/fidelity-monitor.md:201	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:902 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:904	reason=唯一命中原文	| public enum MMCardStyle {
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:157	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:618 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:620	reason=唯一命中原文	| message: String,
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:179	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:629 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:631	reason=唯一命中原文	| self.onUndo = onUndo
+UNRESOLVED	doc=docs/analysis/fidelity-optimizer.md:182	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:781	reason=工作区里 2 处命中（2 处以上需人工认）	| .background(MMColor.soft(MMColor.caution, 0.10))
+UNRESOLVED	doc=docs/analysis/fidelity-optimizer.md:276	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:781	reason=工作区里 2 处命中（2 处以上需人工认）	| .background(MMColor.soft(MMColor.caution, 0.10))
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:40	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:618 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:620	reason=唯一命中原文	| message: String,
+UNRESOLVED	doc=docs/analysis/fidelity-optimizer.md:89	src=Packages/MMUI/Sources/MMUI/MMDesign.swift:781	reason=工作区里 2 处命中（2 处以上需人工认）	| .background(MMColor.soft(MMColor.caution, 0.10))
+DRIFT	doc=docs/analysis/fidelity-shell.md:116	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:1055 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:1057	reason=唯一命中原文	| public struct MMSparkline: View {
+DRIFT	doc=docs/analysis/fidelity-uninstaller.md:69	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:686 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:688	reason=唯一命中原文	| self.planned = planned
+DRIFT	doc=docs/analysis/fidelity-uninstaller.md:70	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:742 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:744	reason=唯一命中原文	| .font(.caption.monospaced())
+DRIFT	doc=docs/analysis/release-readiness.md:1854	move=Packages/MMUI/Sources/MMUI/MMDesign.swift:519 -> Packages/MMUI/Sources/MMUI/MMDesign.swift:521	reason=唯一命中原文	| NSWorkspace.shared.open(url)
+DRIFT	doc=docs/analysis/feature-roadmap.md:786	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1316 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1313	reason=唯一命中原文	| : "无法判定（两个 cask 都声明了这个名字：\(tokens.joined(separator: "、"))）"
+DRIFT	doc=docs/analysis/fidelity-disk.md:201	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1629 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1626	reason=唯一命中原文	| private var residualGroups: some View {
+UNRESOLVED	doc=docs/analysis/fidelity-uninstaller.md:152	src=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1050	reason=工作区里 762 处命中（762 处以上需人工认）	| )
+UNRESOLVED	doc=docs/analysis/fidelity-uninstaller.md:158	src=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1653	reason=工作区里 2 处命中（2 处以上需人工认）	| .clipShape(RoundedRectangle(cornerRadius: MMRadius.card, style: .continuous))
+UNRESOLVED	doc=docs/analysis/fidelity-uninstaller.md:54	src=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:778	reason=工作区里 396 处命中（396 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-uninstaller.md:65	src=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1499	reason=工作区里 4 处命中（4 处以上需人工认）	| .padding(MMGap.lg)
+DRIFT	doc=docs/analysis/fidelity-uninstaller.md:66	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1527 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1524	reason=唯一命中原文	| MMRevealButton(path: app.path)
+DRIFT	doc=docs/analysis/fidelity-uninstaller.md:67	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1536 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1533	reason=唯一命中原文	| MMStatItem("残留大小", MMFormat.bytes(app.residualSize))
+DRIFT	doc=docs/analysis/hook-ledger.md:125	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:745 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:742	reason=唯一命中原文	| return MMHookValue.flag(key: "MM_SHOW_TRASH_CONFIRM", token: "1")
+DRIFT	doc=docs/analysis/release-readiness.md:1855	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:874 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:871	reason=唯一命中原文	| ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页才会重试。"
+DRIFT	doc=docs/analysis/website-audit.md:20	move=Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1352 -> Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1349	reason=唯一命中原文	| + "没验证到与本 bundle 是同一个文件。这一档不给 brew 命令。"
+UNRESOLVED	doc=docs/analysis/fidelity-guardian.md:419	src=Sources/MacMaster/LaunchBehavior.swift:135	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-guardian.md:421	src=Sources/MacMaster/LaunchBehavior.swift:182	reason=HEAD 那行是空行	wt=        guard env["MM_DUMP_MENUS"] != nil else { return }
+UNRESOLVED	doc=docs/analysis/fidelity-guardian.md:422	src=Sources/MacMaster/LaunchBehavior.swift:144	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:144	src=Sources/MacMaster/LaunchBehavior.swift:135	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:145	src=Sources/MacMaster/LaunchBehavior.swift:182	reason=HEAD 那行是空行	wt=        guard env["MM_DUMP_MENUS"] != nil else { return }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:146	src=Sources/MacMaster/LaunchBehavior.swift:144	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:98	src=Sources/MacMaster/LaunchBehavior.swift:30	reason=工作区里 2 处命中（2 处以上需人工认）	| cachedSettings.launchAtLogin = isEnabled
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:100	src=Sources/MacMaster/LaunchBehavior.swift:135	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:130	src=Sources/MacMaster/LaunchBehavior.swift:182	reason=HEAD 那行是空行	wt=        guard env["MM_DUMP_MENUS"] != nil else { return }
+DRIFT	doc=docs/analysis/hook-ledger.md:99	move=Sources/MacMaster/LaunchBehavior.swift:105 -> Sources/MacMaster/LaunchBehavior.swift:129	reason=唯一命中原文	| enum LaunchWindowSizeOverride {
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1858	src=Sources/MacMaster/LaunchBehavior.swift:31	reason=工作区里 55 处命中（55 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1885	src=Sources/MacMaster/LaunchBehavior.swift:178	reason=HEAD 那行是空行	wt=enum LaunchMenuDump {
+UNRESOLVED	doc=docs/analysis/release-readiness.md:723	src=Sources/MacMaster/LaunchBehavior.swift:24	reason=工作区里 0 处命中（0 处以上需人工认）	| self.isEnabled = SMAppService.mainApp.status == .enabled
+DRIFT	doc=docs/analysis/website-audit.md:100	move=Sources/MacMaster/LaunchBehavior.swift:116 -> Sources/MacMaster/LaunchBehavior.swift:140	reason=唯一命中原文	| let width = request.width, height = request.height
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:98	src=Sources/MacMaster/MacMasterApp.swift:93	reason=HEAD 那行是空行	wt=    func requestSettings() {
+DRIFT	doc=docs/analysis/release-readiness.md:1695	move=Sources/MacMaster/MacMasterApp.swift:47 -> Sources/MacMaster/MacMasterApp.swift:55	reason=唯一命中原文	| registry.register(CleanerModule())
+DRIFT	doc=docs/analysis/release-readiness.md:1856	move=Sources/MacMaster/MacMasterApp.swift:46 -> Sources/MacMaster/MacMasterApp.swift:54	reason=唯一命中原文	| let registry = ModuleRegistry.shared
+DRIFT	doc=docs/analysis/release-readiness.md:2090	move=Sources/MacMaster/MacMasterApp.swift:47 -> Sources/MacMaster/MacMasterApp.swift:55	reason=唯一命中原文	| registry.register(CleanerModule())
+UNRESOLVED	doc=docs/analysis/feature-roadmap.md:31	src=Sources/MacMaster/MainWindow.swift:122	reason=工作区里 9 处命中（9 处以上需人工认）	| Divider()
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:255	move=Sources/MacMaster/MainWindow.swift:241 -> Sources/MacMaster/MainWindow.swift:242	reason=唯一命中原文	| MMFailurePanel(summary: "撤回未完成，文件仍在废纸篓", model.undoFailures) {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:418	move=Sources/MacMaster/MainWindow.swift:52 -> Sources/MacMaster/MainWindow.swift:53	reason=唯一命中原文	| fallback: MMDestination.dashboard)
+DRIFT	doc=docs/analysis/fidelity-shell.md:114	move=Sources/MacMaster/MainWindow.swift:580 -> Sources/MacMaster/MainWindow.swift:581	reason=唯一命中原文	| // 的唯一提示，光一个蓝色词读起来像个筛选开关。
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:117	src=Sources/MacMaster/MainWindow.swift:534	reason=工作区里 5 处命中（5 处以上需人工认）	| .frame(maxWidth: .infinity, alignment: .leading)
+DRIFT	doc=docs/analysis/fidelity-shell.md:143	move=Sources/MacMaster/MainWindow.swift:52 -> Sources/MacMaster/MainWindow.swift:53	reason=唯一命中原文	| fallback: MMDestination.dashboard)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:33	src=Sources/MacMaster/MainWindow.swift:252	reason=工作区里 166 处命中（166 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:34	src=Sources/MacMaster/MainWindow.swift:264	reason=工作区里 166 处命中（166 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:35	src=Sources/MacMaster/MainWindow.swift:253	reason=HEAD 那行是空行	wt=    }
+DRIFT	doc=docs/analysis/fidelity-shell.md:41	move=Sources/MacMaster/MainWindow.swift:298 -> Sources/MacMaster/MainWindow.swift:299	reason=唯一命中原文	| MMCard {
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:42	src=Sources/MacMaster/MainWindow.swift:305	reason=工作区里 166 处命中（166 处以上需人工认）	| }
+DRIFT	doc=docs/analysis/fidelity-shell.md:43	move=Sources/MacMaster/MainWindow.swift:317 -> Sources/MacMaster/MainWindow.swift:318	reason=唯一命中原文	| MMStackedBar(segments: storageSegments, height: 8)
+DRIFT	doc=docs/analysis/fidelity-shell.md:44	move=Sources/MacMaster/MainWindow.swift:369 -> Sources/MacMaster/MainWindow.swift:370	reason=唯一命中原文	| return total + (model.trashBytes ?? 0)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:45	src=Sources/MacMaster/MainWindow.swift:328	reason=工作区里 7 处命中（7 处以上需人工认）	| HStack(spacing: MMGap.sm) {
+DRIFT	doc=docs/analysis/fidelity-shell.md:51	move=Sources/MacMaster/MainWindow.swift:402 -> Sources/MacMaster/MainWindow.swift:403	reason=唯一命中原文	| private var loadCard: some View {
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:52	src=Sources/MacMaster/MainWindow.swift:412	reason=工作区里 41 处命中（41 处以上需人工认）	| ))
+DRIFT	doc=docs/analysis/fidelity-shell.md:53	move=Sources/MacMaster/MainWindow.swift:419 -> Sources/MacMaster/MainWindow.swift:420	reason=唯一命中原文	| performance: model.performanceCoreCount,
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:54	src=Sources/MacMaster/MainWindow.swift:486	reason=工作区里 2 处命中（2 处以上需人工认）	| Spacer(minLength: 0)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:55	src=Sources/MacMaster/MainWindow.swift:436	reason=工作区里 9 处命中（9 处以上需人工认）	| Divider()
+DRIFT	doc=docs/analysis/fidelity-shell.md:61	move=Sources/MacMaster/MainWindow.swift:549 -> Sources/MacMaster/MainWindow.swift:550	reason=唯一命中原文	| let isDeletable: Bool
+DRIFT	doc=docs/analysis/fidelity-shell.md:62	move=Sources/MacMaster/MainWindow.swift:618 -> Sources/MacMaster/MainWindow.swift:619	reason=唯一命中原文	| Text(MMFormat.bytes(row.bytes))
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:63	src=Sources/MacMaster/MainWindow.swift:656	reason=工作区里 3 处命中（3 处以上需人工认）	| HStack(spacing: MMGap.md) {
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:69	src=Sources/MacMaster/MainWindow.swift:101	reason=工作区里 4 处命中（4 处以上需人工认）	| Spacer(minLength: MMGap.sm)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:70	src=Sources/MacMaster/MainWindow.swift:137	reason=HEAD 那行是空行	wt=    }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:72	src=Sources/MacMaster/MainWindow.swift:272	reason=HEAD 那行是空行	wt=    }
+DRIFT	doc=docs/analysis/header-truncation-audit.md:43	move=Sources/MacMaster/MainWindow.swift:267 -> Sources/MacMaster/MainWindow.swift:268	reason=唯一命中原文	| private var headerSubtitle: String {
+UNRESOLVED	doc=docs/analysis/header-truncation-audit.md:83	src=Sources/MacMaster/MainWindow.swift:133	reason=工作区里 10 处命中（10 处以上需人工认）	| .padding(.horizontal, MMGap.lg)
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:307	src=Sources/MacMaster/MainWindow.swift:107	reason=工作区里 5 处命中（5 处以上需人工认）	| .font(.caption).monospacedDigit()
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:307	src=Sources/MacMaster/MainWindow.swift:143	reason=工作区里 3 处命中（3 处以上需人工认）	| HStack(spacing: MMGap.xs) {
+DRIFT	doc=docs/analysis/hook-ledger.md:97	move=Sources/MacMaster/MainWindow.swift:38 -> Sources/MacMaster/MainWindow.swift:39	reason=唯一命中原文	| MMWindowProbe.start()
+DRIFT	doc=docs/analysis/hook-ledger.md:97	move=Sources/MacMaster/MainWindow.swift:52 -> Sources/MacMaster/MainWindow.swift:53	reason=唯一命中原文	| fallback: MMDestination.dashboard)
+UNRESOLVED	doc=docs/analysis/hook-ledger.md:98	src=Sources/MacMaster/MainWindow.swift:47	reason=工作区里 0 处命中（0 处以上需人工认）	| appState.showSettings = true
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1856	src=Sources/MacMaster/MainWindow.swift:48	reason=工作区里 166 处命中（166 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/release-readiness.md:2054	src=Sources/MacMaster/MainWindow.swift:644	reason=工作区里 3 处命中（3 处以上需人工认）	| .padding(MMGap.lg)
+UNRESOLVED	doc=docs/analysis/release-readiness.md:788	src=Sources/MacMaster/MainWindow.swift:244	reason=工作区里 166 处命中（166 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/website-audit.md:85	src=Sources/MacMaster/MainWindow.swift:143	reason=工作区里 3 处命中（3 处以上需人工认）	| HStack(spacing: MMGap.xs) {
+UNRESOLVED	doc=docs/analysis/website-audit.md:88	src=Sources/MacMaster/MainWindow.swift:107	reason=工作区里 5 处命中（5 处以上需人工认）	| .font(.caption).monospacedDigit()
+DRIFT	doc=docs/analysis/fidelity-guardian.md:419	move=Sources/MacMaster/SettingsView.swift:13 -> Sources/MacMaster/SettingsView.swift:15	reason=唯一命中原文	| @State private var updateResultText = ""
+DRIFT	doc=docs/analysis/fidelity-shell.md:100	move=Sources/MacMaster/SettingsView.swift:118 -> Sources/MacMaster/SettingsView.swift:135	reason=唯一命中原文	| Text("1 秒").tag(1)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:103	src=Sources/MacMaster/SettingsView.swift:99	reason=工作区里 78 处命中（78 处以上需人工认）	| }
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:104	src=Sources/MacMaster/SettingsView.swift:122	reason=工作区里 3 处命中（3 处以上需人工认）	| .pickerStyle(.segmented)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:106	src=Sources/MacMaster/SettingsView.swift:176	reason=HEAD 那行是空行	wt=                Toggle("应用缓存", isOn: $settings.scanAppCache)
+DRIFT	doc=docs/analysis/fidelity-shell.md:107	move=Sources/MacMaster/SettingsView.swift:233 -> Sources/MacMaster/SettingsView.swift:273	reason=唯一命中原文	| let panel = NSOpenPanel()
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:108	src=Sources/MacMaster/SettingsView.swift:211	reason=工作区里 78 处命中（78 处以上需人工认）	| }
+DRIFT	doc=docs/analysis/fidelity-shell.md:143	move=Sources/MacMaster/SettingsView.swift:13 -> Sources/MacMaster/SettingsView.swift:15	reason=唯一命中原文	| @State private var updateResultText = ""
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:81	src=Sources/MacMaster/SettingsView.swift:20	reason=工作区里 2 处命中（2 处以上需人工认）	| Button {
+DRIFT	doc=docs/analysis/fidelity-shell.md:82	move=Sources/MacMaster/SettingsView.swift:32 -> Sources/MacMaster/SettingsView.swift:34	reason=唯一命中原文	| Text("通用").tag(SettingsTab.general)
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:83	src=Sources/MacMaster/SettingsView.swift:61	reason=工作区里 3 处命中（3 处以上需人工认）	| Form {
+DRIFT	doc=docs/analysis/fidelity-shell.md:91	move=Sources/MacMaster/SettingsView.swift:75 -> Sources/MacMaster/SettingsView.swift:80	reason=唯一命中原文	| Text("界面文案尚未接入多语言，切换不会改变界面")
+DRIFT	doc=docs/analysis/header-truncation-audit.md:52	move=Sources/MacMaster/SettingsView.swift:19 -> Sources/MacMaster/SettingsView.swift:21	reason=唯一命中原文	| MMPageHeader("设置") {
+DRIFT	doc=docs/analysis/hook-ledger.md:101	move=Sources/MacMaster/SettingsView.swift:13 -> Sources/MacMaster/SettingsView.swift:15	reason=唯一命中原文	| @State private var updateResultText = ""
+DRIFT	doc=docs/analysis/release-decisions.md:17	move=Sources/MacMaster/SettingsView.swift:281 -> Sources/MacMaster/SettingsView.swift:321	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")
+DRIFT	doc=docs/analysis/release-decisions.md:38	move=Sources/MacMaster/SettingsView.swift:281 -> Sources/MacMaster/SettingsView.swift:321	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1861	src=Sources/MacMaster/SettingsView.swift:59	reason=HEAD 那行是空行	wt=        .frame(width: 500, height: 560)
+DRIFT	doc=docs/analysis/release-readiness.md:2723	move=Sources/MacMaster/SettingsView.swift:281 -> Sources/MacMaster/SettingsView.swift:321	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")

@@ -1,0 +1,11 @@
+# p29-settings-pane-probe.sh  2026-10-09 10:22:26 +0800
+# repo: 06db0db branch=main
+# 被测的是 URL 字符串本身（open 交给系统的 Settings.app），与任何 .app 产物无关
+# macos: 27.0.1 (26A434)
+# 起跑前在跑的系统设置 pid: （没有，收尾时要把起来的那个收掉）
+A 现代写法（守护页/卸载页在用）  rc=0  title=（拿不到窗口标题）  url=x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles
+B 旧版写法（清理页那一串的字面量）  rc=0  title=（拿不到窗口标题）  url=x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles
+C 今天真实拼出来的（双前缀）  rc=0  title=（拿不到窗口标题）  url=x-apple.systempreferences:x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles
+D 登录项面板  rc=0  title=（拿不到窗口标题）  url=x-apple.systempreferences:com.apple.LoginItems-Settings.extension
+E 通知面板  rc=0  title=（拿不到窗口标题）  url=x-apple.systempreferences:com.apple.Notifications-Settings.extension
+# 收尾：已收掉本脚本启动的系统设置 pid=

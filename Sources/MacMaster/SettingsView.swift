@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import MMCore
+import MMMonitor
 import MMUI
 
 struct SettingsView: View {
@@ -8,6 +9,7 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @StateObject private var localization = Localization.shared
     @StateObject private var loginItem = LoginItemManager.shared
+    @StateObject private var notifications = NotificationStatusModel.shared
     @State private var selectedTab: SettingsTab = MMHookValue.selected(key: "MM_SETTINGS_TAB", fallback: .general)
     @State private var showUpdateAlert = false
     @State private var updateResultText = ""
@@ -51,7 +53,10 @@ struct SettingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 500, height: 400)
+        // 高度按稿：`docs/design-system/screens/shell/09-settings.html:12` 的 `.sheet` 写的是
+        // `width:500px; height:auto`——宽度是钉死的，高度跟内容走。以前实现把高度也钉死在
+        // 400，「清理」这一栏 8 个分组只露出第一个半，用户翻不到下面的行，看着就像功能不在。
+        .frame(width: 500, height: 560)
         .onAppear {
             loginItem.syncFromSystem()
         }
@@ -79,13 +84,25 @@ struct SettingsView: View {
 
             Section("启动") {
                 Toggle("开机自动启动", isOn: Binding(
-                    get: { loginItem.isEnabled },
+                    get: { loginItem.isOn },
                     set: { loginItem.setEnabled($0) }
                 ))
                 if let error = loginItem.lastError {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(MMColor.caution)
+                } else if let caption = loginItem.statusCaption {
+                    // 注册成功 ≠ 会自启：`.requiresApproval` 这一档系统还要用户点一次允许。
+                    // 以前这一档和"没注册"长得一模一样，开关弹回原位，用户只会认为它坏了。
+                    Text(caption)
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                    if loginItem.needsSystemSettings {
+                        Button("打开系统设置 · 登录项") {
+                            MMReveal.openSystemSettings(pane: .loginItems)
+                        }
+                        .controlSize(.small)
+                    }
                 } else {
                     Text("通过 macOS 登录项（SMAppService）注册，状态以系统真实记录为准")
                         .font(.caption)
@@ -123,6 +140,21 @@ struct SettingsView: View {
             }
 
             Section("通知") {
+                // 开关说的是"希望通知"，系统记的是"允许通知"。用户曾在系统设置里拒过一次的话，
+                // 这里两个开关照样拨得动、`requestAuthorization` 也不会再弹——不说破就是假绿。
+                // 这一句和它下面的跳转按钮排在两个开关**上方**：它管的是这两个开关有没有用，
+                // 摆在下方就要滚动才看得到，而"要滚动才看得到"正是这一页被报不可用的形状。
+                if let caption = NotificationStatusModel.caption(for: notifications.authorizationStatus) {
+                    Text(caption)
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                }
+                if NotificationStatusModel.needsSystemSettings(for: notifications.authorizationStatus) {
+                    Button("打开系统设置 · 通知") {
+                        MMReveal.openSystemSettings(pane: .notifications)
+                    }
+                    .controlSize(.small)
+                }
                 Toggle("CPU 使用率过高时通知", isOn: $settings.notifyHighCPU)
                 Toggle("内存不足时通知", isOn: $settings.notifyLowMemory)
                 Text("CPU ≥ 85% 或内存 ≥ 90% 时发送系统通知（跨阈值触发，5 分钟冷却）")
@@ -132,6 +164,9 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
+        // 每次进「监控」这一栏重新读一次授权状态：用户很可能就是看了这句话以后
+        // 去系统设置里改，回来时这里不该还挂着旧读数。
+        .task { await notifications.refresh() }
     }
 
     private var cleanerSettings: some View {
@@ -141,7 +176,10 @@ struct SettingsView: View {
                 Toggle("应用缓存", isOn: $settings.scanAppCache)
                 Toggle("日志文件", isOn: $settings.scanLogFiles)
                 Toggle("临时文件", isOn: $settings.scanTempFiles)
-                Text("设置已持久化；清理模块接入这些开关后生效")
+                // 这一句以前写的是"设置已持久化；清理模块接入这些开关后生效"。
+                // 那句是假的：这四个开关从 P29 现读起就有消费点（清理页扫描、概览「重新测量」），
+                // 而假话的代价是用户以为整页都没接，于是根本不去拨它。
+                Text("决定扫描范围：关掉的那一类不会出现在清理页结果里，也不计入概览的可释放体积")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }
@@ -213,7 +251,9 @@ struct SettingsView: View {
                     }
                 }
 
-                Text("排除的文件夹将不会被扫描（清理模块消费该列表后生效）")
+                // 括号里那句"清理模块消费该列表后生效"同样是假的：这一份列表就是清理页
+                // 「已排除」面板读的那一份，两处编辑的是同一个存储值。
+                Text("排除的文件夹不会被扫描，也不计入可释放体积；清理页的「已排除」面板看到的是同一份列表")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }

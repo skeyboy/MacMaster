@@ -174,7 +174,7 @@ public struct GuardianView: View {
                             detail: detail + "\n\n" + TCCCopyTable.unreadableGuide
                         ) {
                             Button("打开系统设置 · 完全磁盘访问") {
-                                MMReveal.openSystemSettings(pane: "com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles")
+                                MMReveal.openSystemSettings(pane: .fullDiskAccess)
                             }
                             .controlSize(.small)
                         }
@@ -255,7 +255,7 @@ public struct GuardianView: View {
                           caption: "\(vm.loginItems.count) 项") {
                 // 系统域没有可编程开关：给用户的动作是"被带去正确的设置面板"。
                 Button("打开系统设置 · 登录项") {
-                    MMReveal.openSystemSettings(pane: "com.apple.LoginItems-Settings.extension")
+                    MMReveal.openSystemSettings(pane: .loginItems)
                 }
                 .controlSize(.small)
             }
@@ -642,7 +642,7 @@ struct LoginItemRow: View {
                 // 系统域：只读徽章 + 就地引导，不做任何写尝试。
                 MMBadge("只读", tint: MMColor.secondaryLabel, systemImage: "lock")
                 Button("在系统设置中管理") {
-                    MMReveal.openSystemSettings(pane: "com.apple.LoginItems-Settings.extension")
+                    MMReveal.openSystemSettings(pane: .loginItems)
                 }
                 .controlSize(.small)
             }

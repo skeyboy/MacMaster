@@ -111,7 +111,7 @@
 | 「联动保留(wired)」在 80pt 标签列内**换行** | `MMDesign.swift:380` `.frame(width: 80)` | ✅（触发条件已消） | 括注去掉后本页最长标签 4 汉字，80pt 装得下（实机 `docs/verification/p65/0*` 五行行距 22pt 无折行）。**令牌没动**，5 汉字是上限、6 个就折行 → 见 §2.5 的关闭条件 | — | ~~实现该改 I5~~ **已改（`e84066a`）** |
 | `memory == nil` → 「内存读数不可用（host_statistics64 失败），显示 —。」 | `MMMonitor.swift:189-197` | ❌ | 这句在**三种**不同成因下都会出现：①`.empty`（压根没采）②`host_statistics64` 真失败 ③`vm_page_size` 异常。把"还没采到"写成"系统调用失败"= 给出错误的因果结论 | **高** | ~~实现该改 I2~~ **已改**（②③仍同句，见 §2.2） |
 | `swapAvailable == false` → Swap 行「—」 | `:186` → `MenuBarManager.swapText` | ✅（夹具已拍） | D 稿画了；本机 swapAvailable=true，实机拍不到 → `MM_MONITOR_FIXTURE=swapOff`，照片 `docs/verification/p65/03`（+ 暗档） | — | 见 §4 |
-| `swapAvailable == true` 且读到 0 → ~~「0 字节 / 0 字节」~~「0 字节（未使用）」 | `MenuBarManager.swift:186-203`（`MMFormat.bytes` 的 <1000 特判仍在，只是不再一行用两次） | ✅ | 中文语境里读起来像坏了 → **I9 已改（2026-10-04）**；零值档实机拍不到（本机 used≈800M），夹具 `swapZero` 摆拍，照片 `p65/02` | — | ~~实现该改 I9~~ **已改**（见 §2.10） |
+| `swapAvailable == true` 且读到 0 → ~~「0 字节 / 0 字节」~~「0 字节（未使用）」 | `MenuBarManager.swift:198-215`（`MMFormat.bytes` 的 <1000 特判仍在，只是不再一行用两次） | ✅ | 中文语境里读起来像坏了 → **I9 已改（2026-10-04）**；零值档实机拍不到（本机 used≈800M），夹具 `swapZero` 摆拍，照片 `p65/02` | — | ~~实现该改 I9~~ **已改**（见 §2.10） |
 
 ### 1.6 进程 TOP 10 卡
 
@@ -154,7 +154,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 页面卡：`underPage` 底 + 12pt 内边距 + 8pt 圆角 + separator 描边 | `MMMonitor.swift:349-366`（私有 `card()`，内部是 `MMCard(padding: MMGap.md, style: .underPage)`） | ✅ | 实机卡底 (40,40,40)、描边 1px，与稿内 `.mcard` 一致 | — | — |
-| ~~但 `card()` **没有复用 `MMCard`**~~ | `MMDesign.swift:902-936`（`MMCardStyle.content` / `.underPage` 两档 + `padding:` 参数） | ✅ | ~~同一 App 里两套"卡片"~~ **I4 已改**（`c74f045` 补档位、`e84066a` 本页改调组件，均 2026-09-30）：底色这一维收口进组件，内边距这一维由本页**显式选** 12pt（密度按实测量到的 22pt/36pt 行距定的，见 §2.4） | — | ~~实现该改 I4~~ **已改** |
+| ~~但 `card()` **没有复用 `MMCard`**~~ | `MMDesign.swift:904-938`（`MMCardStyle.content` / `.underPage` 两档 + `padding:` 参数） | ✅ | ~~同一 App 里两套"卡片"~~ **I4 已改**（`c74f045` 补档位、`e84066a` 本页改调组件，均 2026-09-30）：底色这一维收口进组件，内边距这一维由本页**显式选** 12pt（密度按实测量到的 22pt/36pt 行距定的，见 §2.4） | — | ~~实现该改 I4~~ **已改** |
 | 块间距 16pt、滚动区内边距 16pt | `:35,42` | ✅ | 实机 98→114=16、卡间 165→180=16 | — | — |
 | **无底部动作条** | 实现里确实没有 `MMActionBar` | ✅ | 只读页不加动作条，稿内注明理由 | — | — |
 | 侧栏宽 216pt（`MMMetric.sidebar`） | 实机分隔线在 **x=220** | ❌ | 全站骨架 +4pt | 低 | 实现该改 I10a |
@@ -195,10 +195,10 @@
    是因为落地那轮把它连同 I4–I7 一起写进了代码、没回写这份清单。现状：`MMMonitor.swift:160-164`
    在 `.ok` 且任一速率为 nil 时补 caption「等待下一次采样计算速率」，三态在图元层已可分
    （文案与这里的建议不同句，判据相同）。
-4. **【中】I4 · 私有 `card()` 复刻 `MMCard`**（`MMMonitor.swift:191-213` vs `MMDesign.swift:770-786`）
+4. **【中】I4 · 私有 `card()` 复刻 `MMCard`**（`MMMonitor.swift:191-213` vs `MMDesign.swift:772-788`）
    底（underPage vs controlBackground）与内边距（12 vs 16）两套。→ 建议：`MMCard` 增加
    `background:` 参数或加一个 `MMCardStyle.underPage`，本页改为调用组件。
-   **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:902-914`（`c74f045`，2026-09-30），
+   **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:904-914`（`c74f045`，2026-09-30），
    本页 `card()` 只剩标题行 + 内容，容器是 `MMCard(padding: MMGap.md, style: .underPage)`
    （`MMMonitor.swift:349-366`）。**内边距这一档没有统一到 16**：本页仍是 `MMGap.md`(12)，
    这是选出来的而不是漏的——监控页六张卡的密度按 §0 实测的 22pt/36pt 行距定的，改到 16 会整体变长。
@@ -227,13 +227,13 @@
    当初说"仍未做的那一半"就是这条，它做完了 I6 才成立——两条文案指向的是两个不同事实。
 8. **【中】S1 关联 · 侧栏 footer 与实机不符**（见 §3，实机是容量行 + 带边框设置按钮）——**这条两边都要改**：
    设计稿要重画，同时实现里侧栏 footer 的容量条/设置按钮在 01–06 六张稿里全部缺失，属全站缺口。
-9. **【低】I8 · 网络速率在页面消失**：快照有 `networkUp/DownBytesPerSecond`、菜单栏有显示（`MenuBarManager.swift:320-322`）、页面一处不用。**仍未做**，是这一页唯一还开着的图元/文案项（I2 的半条是"逐因逐句"的粒度问题，I10a/b 在骨架层）。
+9. **【低】I8 · 网络速率在页面消失**：快照有 `networkUp/DownBytesPerSecond`、菜单栏有显示（`MenuBarManager.swift:343-345`）、页面一处不用。**仍未做**，是这一页唯一还开着的图元/文案项（I2 的半条是"逐因逐句"的粒度问题，I10a/b 在骨架层）。
    没顺手做的理由：顶部读数条是 `MMStatItem × 4`（一行四个，`MMDesign.swift:390`），加网络进出要变 6 个——
    要么换行（页头高度 +一行，影响 §0 量的折叠线落点），要么把磁盘读写挤成一行两项。这是**画稿决定**，不是代码决定。
 10. **【低】I9 · Swap 读到 0 输出「0 字节 / 0 字节」**（`MMFormat.bytes` <1000 特判）→ 中文读起来像坏了。
-    **✅ 已改（2026-10-04，P6.5）**：文案抽成 `MenuBarManager.swapText(_:compact:)`（`MenuBarManager.swift:186-203`），
+    **✅ 已改（2026-10-04，P6.5）**：文案抽成 `MenuBarManager.swapText(_:compact:)`（`MenuBarManager.swift:198-215`），
     三档：**读不到 sysctl** → 「—」（原样）；**读到 0 且总量也是 0** → 「0 字节（未使用）」；
-    **其余** → 「已用 / 总量」照原样对仗。页面（`MMMonitor.swift:186`）与菜单栏下拉（`MenuBarManager.swift:305`，紧凑单位）都走它，
+    **其余** → 「已用 / 总量」照原样对仗。页面（`MMMonitor.swift:186`）与菜单栏下拉（`MenuBarManager.swift:328`，紧凑单位）都走它，
     同一句话不再有两个人质。**只在两侧同为 0 时才省略对仗**——一侧有数就照报，不替用户下"未使用"的结论。
     `MMFormat.bytes` 本身没动：那个 <1000 特判在清理工具里是对的（几百字节的真实体积不能塌成 "0 KB"），
     错的是一行里用两次再拼斜杠，属调用方。
@@ -432,6 +432,6 @@ total 恒为 2 GiB），零值不是"再等等就能拍到"的状态。与 §4.2
 **拍不到的原因写清，比编一个假数据凑一张照片值钱**；区别在于这一档是**定格的数值**，
 夹具能精确构造（`swapAvailable=true` + 两个 0），所以它拍得到，只是不在真机上拍。
 
-**没有拍的一档**：菜单栏下拉里那句 `Swap: …`（`MenuBarManager.swift:305`）。它与页面共用同一个
+**没有拍的一档**：菜单栏下拉里那句 `Swap: …`（`MenuBarManager.swift:328`）。它与页面共用同一个
 `swapText`，但打开菜单需要点击状态栏图标——合成点击是硬禁止项，`screencapture -l<windowid>` 也抓不到
 NSMenu（它不属于应用窗口）。所以这一档只有单测（`FormatTests.testSwapCompactUsesMenuBarUnits`）没有照片。

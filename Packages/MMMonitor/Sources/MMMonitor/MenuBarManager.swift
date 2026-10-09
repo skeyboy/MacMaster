@@ -47,9 +47,21 @@ public final class MenuBarManager: ObservableObject {
     private init() {}
 
     /// UNUserNotificationCenter.current() 在脱离 .app bundle 运行时会直接崩溃，
-    /// 所有通知相关调用必须先过这道闸。
-    private var supportsUserNotifications: Bool {
+    /// 所有通知相关调用必须先过这道闸。设置页读授权状态走的是同一个判据，
+    /// 所以它是 internal static：一处定义，两处消费。
+    static var supportsUserNotifications: Bool {
         Bundle.main.bundleIdentifier != nil && Bundle.main.bundleURL.pathExtension == "app"
+    }
+
+    /// `MM_DUMP_MENUS` 用：把菜单栏下拉的条目文字在**不点开**的前提下读出来。
+    /// 分隔线读成 "───"，带子菜单的条目后缀 " ▸"，这样"设置... 在不在这一支菜单里"
+    /// 是一条能进日志的凭据，而不是"我记得我加了"。
+    public static func statusMenuTitlesForDump() -> [String] {
+        MenuDelegate.shared.buildMenuItems().map { item in
+            if item.isSeparatorItem { return "───" }
+            guard !item.title.isEmpty else { return "（空标题）" }
+            return item.title + (item.submenu != nil ? " ▸" : "")
+        }
     }
 
     public func enable() {
@@ -207,7 +219,7 @@ public final class MenuBarManager: ObservableObject {
     private func requestNotificationAuthorizationIfNeeded() {
         guard !notificationAuthorizationRequested else { return }
         guard settings.notifyHighCPU || settings.notifyLowMemory else { return }
-        guard supportsUserNotifications else {
+        guard Self.supportsUserNotifications else {
             notificationAuthorizationRequested = true
             return
         }
@@ -261,7 +273,7 @@ public final class MenuBarManager: ObservableObject {
     }
 
     private func postNotification(identifier: String, title: String, body: String) {
-        guard supportsUserNotifications else { return }
+        guard Self.supportsUserNotifications else { return }
         let center = UNUserNotificationCenter.current()
         let content = UNMutableNotificationContent()
         content.title = title
@@ -279,6 +291,17 @@ final class MenuDelegate: NSObject, NSMenuDelegate {
 
     func menuWillOpen(_ menu: NSMenu) {
         menu.removeAllItems()
+        for item in buildMenuItems() {
+            menu.addItem(item)
+        }
+    }
+
+    /// 下拉菜单条目的**唯一**构造处。
+    /// 分成"构造"和"挂上菜单"两步是为了 `MM_DUMP_MENUS`（`statusMenuTitlesForDump`）：
+    /// 本项目不用合成点击取证（点击会逃逸到用户当时的前台应用），而这一支菜单平时
+    /// 只有真的点开才会被建出来——不点开就看不见里面有没有「设置...」，等于没法取证。
+    func buildMenuItems() -> [NSMenuItem] {
+        let menu = NSMenu()
         let snapshot = MenuBarManager.shared.snapshot
 
         let header = NSMenuItem(title: "MacMaster 系统监控", action: nil, keyEquivalent: "")
@@ -327,11 +350,18 @@ final class MenuDelegate: NSObject, NSMenuDelegate {
         openItem.target = self
         menu.addItem(openItem)
 
+        // 设置入口以前只在主窗口的侧栏底部：主窗口一收进菜单栏，全app就没有任何地方能进设置了。
+        let settingsItem = NSMenuItem(title: "设置...", action: #selector(openSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(title: "退出", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
+
+        return menu.items
     }
 
     private static func infoItem(_ title: String) -> NSMenuItem {
@@ -351,6 +381,13 @@ final class MenuDelegate: NSObject, NSMenuDelegate {
             ]
         )
         return item
+    }
+
+    @objc private func openSettings() {
+        // 设置弹窗挂在主窗口上（`AppState.showSettings` → MainWindow 的 .sheet），
+        // 所以先把窗口要回来再发通知；窗口都不在的时候发通知就是没人接的空响。
+        openApp()
+        NotificationCenter.default.post(name: .mmOpenSettings, object: nil)
     }
 
     @objc private func openApp() {

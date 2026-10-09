@@ -415,10 +415,11 @@ P6.2b 去掉行药丸底，唯一没核的就是暗档——量同一行像素�
      "用户能拖到的最窄处从 200 变成 220"）——这条副作用是真的，但它把另一个方向也一起封住了，
      所以"最窄能到多少"这个问题在代码层就有答案，拍它等于拍一个已知量。
    - **`max:280` 那一端仍是缺口，而且缺的是取证手段，不是缺一次截图**。逐一排除了：
-     ① 壳层现有的启动钩子全集是 `MM_OPEN_MODULE`（`MainWindow.swift:49`）/ `MM_SHOW_SETTINGS`（`:46`）/
-     `MM_SETTINGS_TAB`（`SettingsView.swift:12`）/ `MM_WINDOW_SIZE`（`LaunchBehavior.swift:116`）/
-     `MM_APPEARANCE`（`:81`）/ `MM_PROBE_WINDOW`（`WindowProbe.swift:12`），
-     **没有一个能移动分隔线**；② `MM_WINDOW_SIZE` 走 `window.setContentSize`（`LaunchBehavior.swift:126`），
+     ① 壳层现有的启动钩子全集是 `MM_OPEN_MODULE`（`MainWindow.swift:52`）/ `MM_SHOW_SETTINGS`（`:47`）/
+     `MM_SETTINGS_TAB`（`SettingsView.swift:13`）/ `MM_WINDOW_SIZE`（`LaunchBehavior.swift:135`）/
+     `MM_APPEARANCE`（`:105`）/ `MM_PROBE_WINDOW`（`WindowProbe.swift:12`）/
+     `MM_DUMP_MENUS`（`LaunchBehavior.swift:182`），
+     **没有一个能移动分隔线**；② `MM_WINDOW_SIZE` 走 `window.setContentSize`（`LaunchBehavior.swift:144`），
      改的是**整窗**尺寸，加宽的部分归 detail 面板，侧栏仍停在 `min`；
      ③ 往 `NSSplitView Subview Frames…` 写值这条路已经被 §6.3 实验 B 否证（应用不读、退出时改回）；
      ④ 代码里没有任何 `setPosition`/`resizeSubview` 可调；⑤ **拖分隔线属合成操作，红线禁止**

@@ -40,7 +40,7 @@ P25 修掉了清理页页头那一格，同时留了两笔账：一是**残余**
 
 | 屏 | 副标题出处 | 画面上实际读到 | 判定 |
 | --- | --- | --- | --- |
-| 概览 | `Sources/MacMaster/MainWindow.swift:267-271` | 「上次采样 刚刚 · CPU/内存/磁盘均为本机实时读数」 | ✅ 整句 |
+| 概览 | `Sources/MacMaster/MainWindow.swift:268-272` | 「上次采样 刚刚 · CPU/内存/磁盘均为本机实时读数」 | ✅ 整句 |
 | 缓存清理 | `Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:881-891` | 「已扫描 16 类 · 10-07 21:58 ·…4.04 GB · 另有 139.9 MB 只读」 | ⚠️ P25 残余：被吃的是「可释放」标签，只读那一段活着 |
 | 应用卸载 | `Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:331-339` | 「41 个应用 · 已测 0 · 41 个测量中」 | ✅ 整句 |
 | 磁盘分析（浅） | `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:230-236`（文案在 `:1555-1561`） | 「77.8 MB · 44…aster-disk-fixture」 | ❌ 单位「个文件」+ 用时 + 路径前段被吃 |
@@ -49,7 +49,7 @@ P25 修掉了清理页页头那一格，同时留了两笔账：一是**残余**
 | 隐私守护 | `Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:796-805` | 四段全在：「摄像头与麦克风的当前占用（手动测量，非实时监听） · TCC 授权只读视图 · 登录项管理 · 密钥与自启配置的改动时间（只读 mtime）」 | ✅ 整句（63 字符） |
 | 系统优化 | `Packages/MMOptimizer/Sources/MMOptimizer/MMOptimizer.swift:51` | 副标题**不出现**（`diagnostics.updatedAt` 为 nil） | ⚠️ 空，不是截断 |
 | 开发产物（最坏档） | `Packages/MMCleaner/Sources/MMCleaner/DevArtifactView.swift:464-486` | 「26 个项目 · 34 处产物 · 本清单由 2 批拼成 · 最近一批扫于 2026-10-07 22:00 · 累计耗时 0.1 秒」 | ✅ 整句 |
-| 设置 | `Sources/MacMaster/SettingsView.swift:19` | 无副标题 | — |
+| 设置 | `Sources/MacMaster/SettingsView.swift:21` | 无副标题 | — |
 
 **这一列的"画面上实际读到"是修复前那份产物（`cae60fe`）拍的**，修复后的画面在 §8。
 出处列给的是**当前树**（`17f4371`）的行号：审计文档要活到下一轮，行号就得跟着树走，
@@ -80,7 +80,7 @@ P25 第①条判据针对的正是这个形态：**用户看见的那一句必�
 
 | 手法 | 出处 | 一句话 |
 | --- | --- | --- |
-| 不让窗口窄到出问题 | `docs/github-references/Pearcleaner/Pearcleaner/Views/MainWindow.swift:133` + `docs/github-references/Pearcleaner/Pearcleaner/PearcleanerApp.swift:53` | `minWidth: 900` 配 `.windowResizability(.contentMinSize)` |
+| 不让窗口窄到出问题 | `docs/github-references/Pearcleaner/Pearcleaner/Views/MainWindow.swift:134` + `docs/github-references/Pearcleaner/Pearcleaner/PearcleanerApp.swift:53` | `minWidth: 900` 配 `.windowResizability(.contentMinSize)` |
 | 每段独立 `Text` + 尾部截断 + 给数字列留宽度 | `docs/github-references/Pearcleaner/Pearcleaner/Views/AppsView/AppListItems.swift:92-124` | 同文件 :124 `.frame(minWidth: 60)`；中间截断只留给路径（`Views/PluginsView.swift:906`） |
 | 低优先级段整段可关 | 同上 `:19`、`:92`（`@AppStorage("settings.interface.minimalist")`） | 不是截断，是"少说一段" |
 | 截断的那一格挂 tooltip | `docs/github-references/stats/Modules/Disk/popup.swift:448`（`nameField.toolTip = name`），配 `Kit/helpers.swift:273-274` 的单行截断、`Kit/constants.swift:15` 写死 264 宽 | 视觉上少了，悬停能拿回来 |

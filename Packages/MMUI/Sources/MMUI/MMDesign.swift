@@ -483,9 +483,9 @@ public struct MMEmptyState: View {
 public struct MMPermissionBanner: View {
     let title: String
     let detail: String
-    var settingsPane: String? = nil
+    var settingsPane: MMSettingsPane? = nil
 
-    public init(title: String, detail: String, settingsPane: String? = nil) {
+    public init(title: String, detail: String, settingsPane: MMSettingsPane? = nil) {
         self.title = title
         self.detail = detail
         self.settingsPane = settingsPane
@@ -514,8 +514,10 @@ public struct MMPermissionBanner: View {
 
 extension MMReveal {
     /// 深链到具体隐私面板，而不是把用户丢进"系统设置"首页。
-    public static func openSystemSettings(pane: String) {
-        guard let url = URL(string: "x-apple.systempreferences:\(pane)") else { return }
+    /// 参数是 `MMSettingsPane` 而不是 String：scheme 由 `settingsURL` 拼，
+    /// 调用方传不进带前缀的整串 URL（那正是清理页横幅死了两轮的写法）。
+    public static func openSystemSettings(pane: MMSettingsPane) {
+        guard let url = pane.settingsURL else { return }
         NSWorkspace.shared.open(url)
     }
 }

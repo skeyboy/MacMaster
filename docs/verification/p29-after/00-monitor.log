@@ -1,0 +1,69 @@
+# p29-settings-capture.sh tab=monitor  2026-10-09 10:54:42 +0800  app=/tmp/mm-p29a/MacMaster.app
+# env: MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=monitor MM_APPEARANCE=light MM_DUMP_MENUS=1
+# repo: 06db0db-dirty branch=main
+# digest: tree=06db0db+c62c45c0 app=06db0db+c62c45c0
+# codesign: flags=0x2(adhoc) 
+# plist: MMGitCommit=06db0db-dirty
+sandbox_extension_issue_file_to_process failed for /tmp/mm-p29a/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_DUMP_MENUS 应用菜单 MacMaster
+MM_DUMP_MENUS 应用菜单   关于MacMaster
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   设置… [⌘,]
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   服务
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   隐藏MacMaster [⌘h]
+MM_DUMP_MENUS 应用菜单   隐藏其他 [⌥⌘h]
+MM_DUMP_MENUS 应用菜单   全部显示
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   退出MacMaster [⌘q]
+MM_DUMP_MENUS 应用菜单 文件
+MM_DUMP_MENUS 应用菜单   新建窗口 [⌘n]
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   关闭 [⌘w]
+MM_DUMP_MENUS 应用菜单   全部关闭 [⌥⌘w]
+MM_DUMP_MENUS 应用菜单 编辑
+MM_DUMP_MENUS 应用菜单   撤销 [⌘z]
+MM_DUMP_MENUS 应用菜单   重做 [⇧⌘z]
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   剪切 [⌘x]
+MM_DUMP_MENUS 应用菜单   拷贝 [⌘c]
+MM_DUMP_MENUS 应用菜单   粘贴 [⌘v]
+MM_DUMP_MENUS 应用菜单   删除
+MM_DUMP_MENUS 应用菜单   全选 [⌘a]
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   自动填充
+MM_DUMP_MENUS 应用菜单     联系人…
+MM_DUMP_MENUS 应用菜单     密码…
+MM_DUMP_MENUS 应用菜单     信用卡…
+MM_DUMP_MENUS 应用菜单   开始听写…
+MM_DUMP_MENUS 应用菜单   开始听写… [d]
+MM_DUMP_MENUS 应用菜单   表情与符号 [⌘ ]
+MM_DUMP_MENUS 应用菜单   表情与符号 [⌃⌘ ]
+MM_DUMP_MENUS 应用菜单   表情与符号 [e]
+MM_DUMP_MENUS 应用菜单 显示
+MM_DUMP_MENUS 应用菜单 窗口
+MM_DUMP_MENUS 应用菜单   最小化 [⌘m]
+MM_DUMP_MENUS 应用菜单   缩放
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   前置全部窗口
+MM_DUMP_MENUS 应用菜单   ───
+MM_DUMP_MENUS 应用菜单   MacMaster
+MM_DUMP_MENUS 应用菜单 帮助
+MM_DUMP_MENUS 应用菜单   MacMaster帮助 [⌘?]
+MM_DUMP_MENUS 应用菜单   Toggle Sidebar [⌥⌘s]
+MM_DUMP_MENUS 菜单栏 MacMaster 系统监控
+MM_DUMP_MENUS 菜单栏 ───
+MM_DUMP_MENUS 菜单栏 CPU: —
+MM_DUMP_MENUS 菜单栏 内存: —
+MM_DUMP_MENUS 菜单栏 磁盘 IO: —
+MM_DUMP_MENUS 菜单栏 尚未完成首次采样
+MM_DUMP_MENUS 菜单栏 网络: ↑ —  ↓ —
+MM_DUMP_MENUS 菜单栏 ───
+MM_DUMP_MENUS 菜单栏 打开 MacMaster...
+MM_DUMP_MENUS 菜单栏 设置...
+MM_DUMP_MENUS 菜单栏 ───
+MM_DUMP_MENUS 菜单栏 退出
+# windows(pid=23134): windowid=4165 pid=23134 layer=0 title= bounds=["X": 556, "Height": 560, "Y": 178, "Width": 500] | windowid=4164 pid=23134 layer=0 title=MacMaster bounds=["X": 306, "Height": 652, "Y": 126, "Width": 1000]
+# captured windowid=4165

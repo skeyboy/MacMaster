@@ -17,9 +17,9 @@
 |---|---|---|---|
 | 1 | 「智能扫描系统缓存、日志、临时文件，释放宝贵磁盘空间。」 | `Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:129-130`（扫描结果按类别落列表）；勾选集由 `CacheScanScope` 决定（`release-readiness.md` §8 第一条记的 P8 收口） | **真** |
 | 2 | 「支持一键清理和安全撤回。」 | 界面上那个按钮写的是「清理已选 N 类」（`MMCleaner.swift:688`），点下去先弹确认、默认按钮是「移到废纸篓」（`MMCleaner.swift:753`）；撤回是开关 + 15 秒窗口（`MMCleaner.swift:746`）与删除历史里的「恢复」（`MMCleaner.swift:798`） | **说不到**（"一键清理"恰恰是产品内注释里那句要避免的语义） |
-| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1352` 的判定依据说明） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
+| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1349` 的判定依据说明） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
 | 4 | 「可视化磁盘空间使用情况，快速定位大文件和占用目录。Treemap 直观展示。」 | `Packages/MMUI/Sources/MMUI/TreemapView.swift:132` 起算、`:140` 放置；分类与可清理是两条独立判定链（`DiskClassify.swift:4-7`） | **真** |
-| 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:57`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:161`） | **真** |
+| 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:161`） | **真** |
 | 6 | 「检测摄像头与麦克风的当前占用（手动测量，非实时监听），查看 TCC 授权与密钥目录的改动时间，管理登录项启停。」 | 这一句就是产品内页头清单的改写：`Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:797-802` 四段（占用 / TCC 只读视图 / 登录项 / mtime 卡）；TCC 有独立探针文件 `TCCProbe.swift` | **真**（P14 已把这格对齐到实现） |
 | 7 | 「重复文件检测、浏览器清理、系统优化建议。」 | 重复文件 `Packages/MMFileScanner/Sources/MMFileScanner/DuplicateScanner.swift:244`（SHA256，读取失败进 `unreadablePaths` 而不是当成一组）；优化器四 tab 见 `docs/analysis/fidelity-optimizer.md` | **真** |
 | 8 | 「让 Mac 运行更快更流畅。」 | 没有任何一处代码或取证测过"清理前 vs 清理后"的性能差 | **说不到**（这是效果承诺，不是功能描述；我们连"回收了多少"都要分成功/失败两栏报） |
@@ -82,10 +82,10 @@
    所以 01 那张图画的是「开发产物」页（`MM_OPEN_TAB=dev`），卡片标题写的是"清理 · 开发产物"——
    不是随便起的名，是被钩子覆盖面决定的。
 2. **侧栏的卷信息条和磁盘页的"卷可用"没有钩子，画面上是真机状态**。
-   `Sources/MacMaster/MainWindow.swift:143-168` 的 `volumeFooter`（卷名 + 剩余百分比 + 那条堆叠条）
+   `Sources/MacMaster/MainWindow.swift:144-169` 的 `volumeFooter`（卷名 + 剩余百分比 + 那条堆叠条）
    数据来自 `Sources/MacMaster/DashboardModel.swift:71` 的 `SystemSampler.volume()`；
    磁盘页右上角 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:363` 那个 `卷可用 …` badge 同理。
-   还有第三处：**侧栏"系统清理"后面那格体积**（`Sources/MacMaster/MainWindow.swift:107-111`）
+   还有第三处：**侧栏"系统清理"后面那格体积**（`Sources/MacMaster/MainWindow.swift:108-111`）
    读的是概览页那次真实扫描的 `dashboard.reclaimState`，也不是钩子能顶替的东西——
    本轮是放大 01 那张照片时才看到它带着 `1.14 GB`，于是把页面上那句披露从两处改成三处。
    （顺带一条反证：01 画面里 `~/Code/macmaster-web` 看着像真项目，其实它是
@@ -97,7 +97,7 @@
    `Scripts/p17-website-capture.sh` 的 CSS 注释里也留了同一句理由（不裁切的原因写回图片样式旁边，
    下次有人想"顺手裁一下"时能看到这里已经有过决定）。
 
-窗口尺寸统一用 `MM_WINDOW_SIZE`（`Sources/MacMaster/LaunchBehavior.swift:116` 那条解析路径，
+窗口尺寸统一用 `MM_WINDOW_SIZE`（`Sources/MacMaster/LaunchBehavior.swift:140` 那条解析路径，
 格式 `宽x高`），外观统一暗档（设计稿那一套就是暗色底）。截图仍旧按 pid 找自己的窗口
 （`Scripts/window-ids.swift`），**不发一个合成点击**。
 

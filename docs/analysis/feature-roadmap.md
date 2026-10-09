@@ -28,7 +28,7 @@
 | 0.2 | **删除统一走 `FileTrashService`**：`MMOptimizer` 两处 `try? trashItem` 改为带历史与撤回的服务；失败必须可见上报，不得 `try?` 吞掉 | `MMOptimizer` | S |
 | 0.3 | **删掉假动作**：`runOptimization` 要么实现真实维护任务，要么从 UI 移除该行。宁可少功能，不可报"已完成"而什么都没做 | `MMOptimizer` | S |
 | 0.4 | 清理空包目录 `MMHelper`/`MMMenuBar`/`MMWidget`（或补齐 Package.swift） | 仓库 | S |
-| 0.5 | 概览页接真实数据（当前 CPU 23 / 内存 45 / 磁盘 49 与"清理 2.3 GB"全是硬编码常量） | `Sources/MacMaster/MainWindow.swift:122` | S |
+| 0.5 | 概览页接真实数据（当前 CPU 23 / 内存 45 / 磁盘 49 与"清理 2.3 GB"全是硬编码常量） | `Sources/MacMaster/MainWindow.swift:123` | S |
 
 ## P1：卸载残留引擎（价值最高的一档）
 
@@ -783,7 +783,7 @@ P6.2c 留下的三处"仍未拍"（`scanerror`、活动卡 `empty`、§6.6.5）�
 逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:52,93` 两处，
 都是 `try` 并逐条回 `TrashFailure`；MMUninstaller / MMCleaner / UserFolderCleanView /
 SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号也是编的
-（`MMUninstaller.swift:1316` 不存在）。**0.1 三条判据均已满足**，不要据此立项。
+（`MMUninstaller.swift:1313` 不存在）。**0.1 三条判据均已满足**，不要据此立项。
 
 | # | 候选 | 外部证据（本地可读） | 现状 | 代价 | 红线 |
 |---|---|---|---|---|---|
@@ -954,7 +954,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
   ① `MMBadge.init(risk:)` 用短标签 `risk.label`（「安全」）服务 4 个活调用点，磁盘详情页在**调用点**
   传长标签 `risk.groupTitle`（`MMDisk.swift:763`）——正确读法是"行内短、页头长"的**约定**，
   该写下来，不该统一；② `MMFailurePanel` 新增的 `stats:`/`onRetry:`/`onCopyDiagnostics:` init
-  （`MMDesign.swift:698-712`）**全仓 10 个调用点无一使用**，于是统计行（`:730-732`）与页脚
+  （`MMDesign.swift:700-714`）**全仓 10 个调用点无一使用**，于是统计行（`:730-732`）与页脚
   （`:759-772`）是不可达代码。
 - **回写要走遍全文，不能只走"实现该改"那一节**：cleaner 的 §8.6（"根报已扫完、组里却挂着
   读不到（预算用尽）"）写在 §8 的取证叙述里，不在 §2 的 I 系列清单上——只按 §2 复核就会把它**整条漏掉**。

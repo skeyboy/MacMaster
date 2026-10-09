@@ -40,6 +40,14 @@ struct MacMasterApp: App {
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 1100, height: 700)
+        // macOS 用户的第一个反射是应用菜单里的「设置…」或者 ⌘,。这一版之前两处都没有：
+        // 设置只能从主窗口侧栏底部那一枚按钮进，窗口一收进菜单栏就无处可去。
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("设置…") { appState.requestSettings() }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 
     private func registerAllModules() {
@@ -64,7 +72,25 @@ final class AppState: ObservableObject {
     @Published var scanProgress: Double = 0
     @Published var showSettings = false
 
+    /// 菜单栏下拉里「设置...」发来的请求。监听挂在进程级对象上而不是视图上：
+    /// MMMonitor 那一层拿不到本类的状态，而主窗口收进菜单栏时视图侧的 onReceive 已经没了。
+    private var openSettingsObserver: NSObjectProtocol?
+
+    init() {
+        openSettingsObserver = NotificationCenter.default.addObserver(
+            forName: .mmOpenSettings, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in self.requestSettings() }
+        }
+    }
+
     func selectModule(_ id: String) {
         selectedModuleID = id
+    }
+
+    /// 三个入口（应用菜单「设置…」+ ⌘,、侧栏底部按钮、菜单栏下拉）都收在这一处。
+    func requestSettings() {
+        showSettings = true
     }
 }
