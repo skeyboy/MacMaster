@@ -1,0 +1,36 @@
+# run-all-tests.sh  P31a（v1.1 第 1 条「卸载前发现应用在跑」）  2026-10-10 16:07:36 +0800（结论行完成时刻）
+# repo: 7918074-dirty branch=main
+# digest: 7918074+b8cf9354
+# 说明：格式续 `docs/verification/p30-citations/run-all-tests.log`。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **这一跑在作者的工作树上，不是干净克隆**：跑测那一刻本轮的三处源码改动
+#       （`MMUninstaller.swift` / `UninstallerModel.swift` / `UninstallFixtureHooks.swift`）
+#       与新增的 `RunningAppProbe.swift` 都还没提交，`# repo:` 因此带 `-dirty`，
+#       指纹 `+b8cf9354` 是工作区内容算出来的。
+#       它与产物同源这一条由 p31 那七份日志背书：`# digest: tree=7918074+b8cf9354 app=7918074+b8cf9354`
+#       （`Scripts/mm-provenance.sh` 的 `mm_source_digest .` 在 16:08 现读仍是同一个数）。
+#       **这是当日第二份**。第一份跑在 15:52:54、指纹 `+e7579651`，被本轮自己的核对推翻后重跑：
+#       那之后又改了两处**源码注释**（`UninstallerModel.swift` 里"换选中项会重读"、
+#       `RunningAppProbe.swift` 里把"报不出包名"归因给 `.prohibited`），两句都是假的、
+#       而注释是编译输入、进指纹，所以旧的那一份结论行描述的已经不是这棵树了。
+#       **九格与第一份归档逐字相同**（改的是注释，一条判据也没动）——比对的是第一份**归档下来的那九行**
+#       与这一次的输出；第一份的 /tmp 原始日志已经没了（`run-all-tests.sh` 每次开头 `rm -rf $LOG`），
+#       所以这一句的口径是"两份结论行相同"，不是"两份原始输出 diff 为空"。
+#       **本轮不是发版核验的一遍**：只跑了 §10 的第 1 步（九包全量），没跑第 2、3 步
+#       （签名/plist/spctl 与那三张基础照片），所以"第几遍"那个数不加——验收不变量第 2 条
+#       （feature-roadmap.md §7）要的是真跑过第 3 步，拍了多少张照片都不算。
+#       数字变化只有一格：MMUninstaller 121 → **148**（+27，本轮三个新测试文件：
+#       `RunningAppProbeTests` 13 + `RunningAppStatePresentationTests` 10 + `UninstallerRunningStateModelTests` 4）。
+#       逐包求和 = 668，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=148  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：668 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log

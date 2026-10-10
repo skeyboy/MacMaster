@@ -1034,7 +1034,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 
 | 能力 | 参考出处（本轮打开过那一行） | 我们现在的状态（本轮现读 grep） | 落点 |
 |---|---|---|---|
-| 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | `NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
+| 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | **P31a 已落地**（落地记录见本节 §9）。P29b 现读时是：`NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
 | Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档 | uninstaller（来源徽章加一档） |
 | `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if plutil -lint "${batch[@]}"` | `plutil` 生产代码 **0 命中**；同类记账只在登录项那一域（`LoginItemStore.swift:111` 的"解析 … 失败"），缺的是全 Preferences 域 | optimizer（新 tab 复用开发工具页版式）；**用 `PropertyListSerialization`，不许为此 spawn `plutil`** |
 | 磁盘页跨卷枚举 + "最满的那卷优先" | disktree `crates/disktree-core/src/space.rs:644` `pub fn volumes()`（同文件注释：fullest first） | `mountedVolumeURLs` 生产代码 **1 命中**，在 `Sources/MacMaster/DashboardModel.swift:75`——**概览页只拿它数"挂了几卷"**，磁盘页只认用户选的那个根；`volumeIsBrowsable` 0 命中 | disk（**用 Foundation 的卷枚举，不学 disktree spawn `mount`**） |
@@ -1098,3 +1098,77 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
   本轮**没有**为了拍照去动用户的系统设置。
 - 五份 fidelity 的"待量"里，本轮只交叉核对了 disk/cleaner/optimizer 三份的现读收口，
   monitor/guardian/uninstaller 三份的"待量/无 HOLD 钩子"以各文档自记文本为准，**没有逐张照片目录扫过**。
+
+### 9. v1.1 第 1 条的落地记录（P31a，2026-10-10）
+
+**状态：已落地，两半都齐**（纯函数 + 照片）。§2 表格第一行那句"0 命中"从现在起是历史。
+
+- **事实层**：`Packages/MMUninstaller/Sources/MMUninstaller/RunningAppProbe.swift`——
+  `RunningAppInfo` / `RunningAppEvidence` / `AppRunningState`（四档：running / notRunning /
+  undetermined / 以及按证据分两档的匹配）+ 纯函数 `resolve(bundleID:bundlePath:running:)`
+  （小写字符串比、**不解析符号链接**、`pid <= 0` 在读取端就剔）。
+  这一层**没有一句用户可见文案，也没有读 env 的假快照钩子**——运行状态是系统状态，
+  喂给界面的合成值只能证明界面会写字，证明不了写的是真话。
+- **呈现层**：`MMUninstaller.swift` 的 `extension UninstallCandidate`
+  （`runningChip` / `runningValue` / `runningBasis` / `runningWarning` / `runningEmphasis`），
+  文案合同是 `docs/design-system/screens/mmuninstaller/03f-uninstaller-running.html`（本轮首渲染，
+  高度按 PIL 逐行量出来的 2069pt，不是猜的）。
+- **状态从哪来**：`UninstallerModel.runningAppsFactory`（默认真读 `NSWorkspace`，单测注入假快照）+
+  `runningStates` 字典（**缺席 = 还没读过，界面这时一个字都不说**，`.notRunning` 是一种主张不是默认值）。
+  更新时点只有三个：载入清单、按下卸载/移到废纸篓打开确认面板、进程启动与退出的两条通知；
+  **换选中项不重读**，也**没有定时器、不轮询**。
+- **单测**：三个新文件 27 条（`RunningAppProbeTests` 13 / `RunningAppStatePresentationTests` 10 /
+  `UninstallerRunningStateModelTests` 4），MMUninstaller 121 → **148**，全仓 641 → **668**
+  （现读，结论行在 `docs/verification/p31-citations/run-all-tests.log`）。
+- **照片**：`docs/verification/p31-running/` 七张，一次跑完（七份日志 `# digest:` 全是
+  `tree=7918074+b8cf9354 app=7918074+b8cf9354`）。**当日跑了两轮**：第一轮拍完之后本轮又改了两处
+  **源码注释**（见下条），注释是编译输入、进指纹，取证脚本按 P23b 那道门禁当场拒拍，于是重建 +
+  整族重跑一次——七张照片与这份源码同源这一条是门禁给的，不是"只改了注释所以没关系"给的。
+  逐档哨兵、以及照片当场抓出来的**两处假话**，
+  记在 `fidelity-uninstaller.md` §13.1：05 第一次拍到的是设置窗（`head -1` 挑窗的仓库级潜伏缺陷，
+  现读 29 支引用 `window-ids.swift` 的脚本里有 26 支这么挑），07 交叉读出
+  `runningBasis` 句尾那句「两档都算『正在运行』」在"两个进程同一档"的画面上是假话。
+- **本轮第三处假话在源码注释里，不在画面上**：`UninstallerModel.swift` 写着"换选中项"是一个刷新时点
+  （现读 `select()` 并不重读）、`RunningAppProbe.swift` 把"报不出包名"归因给 `.prohibited`
+  （现读 19 条里 accessory 12 / prohibited 6 / **regular 1**）。两句都是本轮自己写的，
+  靠"逐句回到代码与系统现读"抓出来，改完就是上面那次重跑。**注释进指纹不是形式主义**：
+  这一轮就是它把两处没被任何断言覆盖的假话变成了必须修的事。
+- **引用门禁跑了七跑，归档的是最后一跑**（`docs/verification/p31-citations/audit.log`，
+  892 条引用、唯一「路径+行段」738、命本仓库 664，**硬失败 0、exit 0**；
+  两层只提示——死符号 0、位置存疑 116。时间戳在那份日志的第 2 行，不在这里复述，
+  免得文档里那个数和归档文件自己那个数长成人手抄的两个版本）。**三跑红的也都入库了**
+  （`audit-red1-drift.log` 876/727、`audit-red2-offbyone.log` 885/736、`audit-red3-selfcitation.log` 895/741）——
+  这是 §10 第 3 步那条"重跑要换输出目录"**第一次真的照做**：P24 到 P28b 四轮里它被犯了四次，
+  每一次盖掉的恰好是唯一有信息量的那一读。五处红判据**全是本轮自己造的**，没有一处旧账：
+  红一那三条是**位移**——往 `UninstallerModel.swift` 插注释把文档引的 `:202` 顶成了空行
+  （现在 `selectedAppID = nil` 在 `:216`）、往 `mm-provenance.sh` 的"已知松处"补两行把路径清单从 `:39`
+  顶到 `:41`、`MMUninstaller.swift` 的 525 行同理落成空白。**改注释要还的债不止指纹，还有锚点。**
+  红二那条是**我自己数错了行**：`sed -n '232,238p'` 打出来的第一行看着就是 232，实际 232 是空行、
+  `apps = …` 在 233——取行号得让命令自己带行号打，不能按打印顺序数。
+  红三那条性质又不同：它抓的是**本轮刚写的一句话**，散文里"某某文件某行号"只要写成 `路径:行` 的形态，
+  就照样被抽成一条引用送去判据（P30 那一轮抓到的是同族的另一种：新写的引用把包名记错了）。
+  同一张表（`fidelity-uninstaller.md` §1.7）里还有六处行号是"有效但早就指错了"——
+  `trashRegion`、`TrashWatcher.start`、`MMDesign.swift` 的 `MMPermissionBanner`、`trashConfirmSheet`、
+  `trashConfirmHook`、`reloadListing` 落回那两行——**门禁对它们一个字都没说**：
+  它只匹配 `路径:行`，表里那些写裸 `:566-573` 的行它根本不去读。这一轮按"表既然动就整表现读"重指了，
+  顺带纠正一处符号名：`fullDiskAccessPane` 从来不存在，真实取用的是 `MMSettingsPane.fullDiskAccess`
+  （定义 `SystemSettings.swift:18`，横幅取用 `MMUninstaller.swift:1083`，深链拼接 `MMDesign.swift:519`）。
+  **同一个符号名在别的文档面还有副本**：`trash-watch-fda.md` 第 52 行与 `fidelity-cleaner.md` 第 79 行
+  （后者引 `MMDesign.swift:447-477` 指 `MMPermissionBanner`，现读那一段是 `MMEmptyState`，banner 在 `483-513`），
+  两处同轮改掉；剩下 116 条"位置存疑"本轮没有逐条收，那是另一轮的活。
+- **与参考项目的边界差，写在明处**：Pearcleaner 的 `killApp`、Mole 的 best-effort termination
+  都在动手前**替用户退出应用**，这一版只做到"看见并说出来"——不代退出、不代结束、
+  也不因为"它在跑"而拦住卸载按钮（macOS 允许删掉正在运行的应用包，那句后果必须说，
+  但拦按钮是一种我们没有主张的权力）。**"结束进程"这项能力本就不在 v1.1 这一条的范围里**，
+  所以界面上也不出现任何"杀不动怎么办"的话。
+
+留给后面的三条，本轮没做：
+
+1. **`undetermined` 那一档没有照片**，本机现读两次（参与判定 163 / 165 条）里"包名与位置都报不出"
+   的都是 0 条。要拍它只能改 `snapshot()` 的语义喂一条假快照，那等于在这一屏唯一"看不见"的地方
+   造假——**不为一张照片改生产语义**，这条与 §6 里"treemap 手势永远只有单测"同一处理。
+   这一句的依据现在有一支可重算的工具兜底：`swift Scripts/running-apps-tally.swift`
+   （本轮 16:12 第三次现读：参与判定 139、`idEmpty` 19、`pathEmpty` 15、**`bothEmpty` 仍是 0**）。
+2. **旧 07 曾拍成磁盘分析页，三次同 env 重跑都没复现**，`~/Library/Saved Application State`
+   在本机不存在（所以也不是状态恢复）。根因未记，现在的兜底是日志里那行 `# windows(pid=…)`。
+3. **v1.1 第 2 条（Steam 启动器型识别）** 未开工，是下一版的第一个。

@@ -1,0 +1,9 @@
+# p31-running-capture.sh 06-live-launch-refresh  2026-10-10 16:01:59 +0800  app=/tmp/mm-app-p31/MacMaster.app  fixture=/tmp/macmaster-running-fixture.vFH6Ex
+# repo: 7918074-dirty   # app-repo: 7918074-dirty
+# digest: tree=7918074+b8cf9354 app=7918074+b8cf9354
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-running-fixture.vFH6Ex MM_UNINSTALL_CONFIRM_MODE=none MM_UNINSTALL_SELECT=IdleFoo
+# 时刻表：窗口出现（3 秒前 IdleFoo 未运行）→ open -g IdleFoo → 等 6 秒 → 拍
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p31/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=14991): windowid=2078 pid=14991 layer=0 title=MacMaster bounds=["X": 306, "Y": 126, "Width": 1000, "Height": 652]
+# launched: Applications/IdleFoo pid=15104（照片里那一行的进程号应与之一致；它是窗口出现之后才起的）

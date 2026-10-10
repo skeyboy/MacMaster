@@ -111,12 +111,12 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `:566-573` → `MMPermissionBanner`（`MMDesign.swift:447`）；`fullDiskAccessPane` `MMUninstaller.swift:525` | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
-| 目录不存在走另一文案且**不放授权按钮** | `TrashWatcher.start` `:120-124` `needsFullDiskAccess:false` → `MMPermissionBanner(settingsPane:nil)` | ✅ | 实现区分 ENOENT（目录不存在，无按钮）与 EPERM/EACCES（要授权），与 `trash-watch-fda.md` 红线 2 一致 |
+| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `MMUninstaller.swift:1069-1085`（横幅构造 `:1078-1084`）→ `MMPermissionBanner`（`MMDesign.swift:483`，`lock.fill` `:496`）；深链那一档取 `MMSettingsPane.fullDiskAccess`（`SystemSettings.swift:18`），在 `settingsPane:` 参数上（`MMUninstaller.swift:1083`） | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
+| 目录不存在走另一文案且**不放授权按钮** | `TrashWatcher.start` `TrashWatcher.swift:140-148` `needsFullDiskAccess:false` → `MMPermissionBanner(settingsPane:nil)` | ✅ | 实现区分 ENOENT（目录不存在，无按钮）与 EPERM/EACCES（要授权），与 `trash-watch-fda.md` 红线 2 一致 |
 | 页面其余部分不受影响（列表/卸载动作不依赖读废纸篓） | `trashRegion` 仅替换卡片区，列表/详情照常 | ✅ | 与稿"页面其余部分不受影响"一致；`uninstaller-no-fda-banner.jpg` 已证 |
 | 横幅底色 warning 10% | `MMPermissionBanner` `soft(caution,0.10)` | ✅ | 与稿 `color-mix(warning 10%)` 一致 |
-| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `:723` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（`:724,494`），与红线 3 一致 | 低 | 设计稿该改 S5 |
-| `MM_SHOW_TRASH_CONFIRM` 触发确认面板 | `trashConfirmHook` `:533`（需 `fixtureScanHome() != nil` 且环境变量=1） | ⚠️ 文档缺口 | 单设 `MM_SHOW_TRASH_CONFIRM=1` **不会**触发，必须同时设 `MM_TRASH_SCAN_HOME`（且限 /tmp）；稿/README 描述"自动开确认面板"未写此互锁 | **中** | 两边都改·提协调者 B2 |
+| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `MMUninstaller.swift:1251` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（调用 `MMUninstaller.swift:1252`，定义 `ResidualScanner.swift:392`），与红线 3 一致 | 低 | 设计稿该改 S5 |
+| `MM_SHOW_TRASH_CONFIRM` 触发确认面板 | `trashConfirmHook` `MMUninstaller.swift:777-779`（需 `fixtureScanHome() != nil` 且环境变量=1） | ⚠️ 文档缺口 | 单设 `MM_SHOW_TRASH_CONFIRM=1` **不会**触发，必须同时设 `MM_TRASH_SCAN_HOME`（且限 /tmp）；稿/README 描述"自动开确认面板"未写此互锁 | **中** | 两边都改·提协调者 B2 |
 
 ### 1.8 状态覆盖核对
 
@@ -355,13 +355,13 @@
 `（1 条）`；指一棵空 home → `（0 条）`。两种都落到"打开了面板"，只有条数不同，
 正是这条日志要区分的东西。
 
-**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:202`）。
+**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:216`）。
 上一轮审计把它列为"`MM_APPS_WATCH_AUTO_SCAN` 会抹掉 `MM_UNINSTALL_SELECT` 的选中"，
 现读之后判定它**不是缺陷**：清单重新反映了磁盘，选中项可能已经不存在，留在旧 id 上是悬空引用；
-而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`:842`），
+而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`MMUninstaller.swift:881`），
 拍的是后遗症页不是应用详情，两者不在同一屏。`runOrphanScan` 跑在
-`await model.reloadListing()` **之后**（`:838`→`:839`），`reloadListing` 落回时
-`isScanningApps=false`、`apps` 已填（`:219-220`），所以新加的那道前置判断不会在这条路上误报。
+`await model.reloadListing()` **之后**（`:877`→`:878`），`reloadListing` 落回时
+`apps` 已填（`UninstallerModel.swift:233`）、`isScanningApps=false`（`:237`），所以新加的那道前置判断不会在这条路上误报。
 
 ## 11. P6.7 追加：`MM_TRASH_FIXTURE_DIR` 被拒绝时现在会说清后果
 
@@ -497,4 +497,101 @@
 （09 那档根本不注入夹具，但 `$FIX` 在脚本开头无条件造，所以"只拍真机档"也要造一棵），
 余下的是 10-04 及更早几轮。都在 /tmp、重启即清，不构成缺陷，但重跑取证的人别把
 "上一棵"当成"本轮那棵"来复用——`FIX=` 只该指本轮新造的那一棵。
+
+## 13. P31a 追加（2026-10-10）：v1.1 第 1 条「卸载前发现应用在跑」七档照片
+
+这一族与 §12 那两族的根本差别：**它的哨兵不是合成值**。运行状态判的是"此刻有没有这个进程"，
+喂给界面的假快照只能证明界面会写字，证明不了写的是真话，所以
+`RunningAppProbe.snapshot()` 里**没有读 env 的分支**，照片里那个 pid 背后是一个
+`open -g` 真的启动起来的 /tmp 夹具应用（`Scripts/p31-running-fixture.sh` 造三棵 bundle：
+`Applications/RunningFoo`、`Applications/IdleFoo`、`Applications/ElsewhereFoo` + `Elsewhere/ElsewhereFoo`，
+后两份**同包名、不同位置**）。
+
+```sh
+./Scripts/make-app.sh -o /tmp/mm-app-p31 -s /tmp/mm-scratch-p31
+./Scripts/p31-running-capture.sh /tmp/mm-app-p31/MacMaster.app docs/verification/p31-running light
+ONLY=05 ./Scripts/p31-running-capture.sh …        # 重拍单档
+```
+
+| 档 | 前置状态 | 画面上必须有的（哨兵） |
+|---|---|---|
+| 01 fixture-running | `Applications/RunningFoo` 在跑，`SELECT=RunningFoo` | 列表行橙 chip「运行中」+ 详情「正在运行 · 进程 `<日志里的 pid>`」，依据点名"位置就是 …/Applications/RunningFoo.app" |
+| 02 confirm-sheet | 同上，省略 `CONFIRM_MODE`（自动弹面板） | 面板里那段橙色提醒 + 按钮仍是「取消 / 仅卸载应用」——**提醒不拦按钮** |
+| 03 fixture-idle | 同上，`SELECT=IdleFoo`（它没跑） | 同一张图里 RunningFoo 有 chip、IdleFoo 没有；详情「未检测到运行中的进程」+ 图标是 circle **不是勾** |
+| 04 min-window | 同上 + `MM_WINDOW_SIZE=900x600` | 提醒块三行折行不重叠。**窗口实际 1000×652**：900 宽被应用的硬下限夹住（P26 那条），日志的 `# windows(pid=…)` 行把实际尺寸记在案 |
+| 05 identifier-only | 先结束 RunningFoo，再启动 `Elsewhere/ElsewhereFoo`，`SELECT=ElsewhereFoo` | 值「正在运行 · 进程 14810」，依据是"只有包名对上，位置是 …/Elsewhere/ElsewhereFoo.app，与这里这一份的写法不同"；提醒里点名"对上的只是包名" |
+| 06 live-launch-refresh | 三个都没跑，窗口开好之后才 `open -g` `Applications/IdleFoo` | 那一行从「未检测到」变成「正在运行」，中间**没有任何重载**——只有 `NSWorkspace` 的启动通知能做到这一件事，也是夹具必须是 Cocoa 应用的由来（`sleep` 进程不发通知） |
+| 07 real-machine | 不注入夹具，`MM_UNINSTALL_SELECT=WeChat` | 「正在运行 · 2 个进程（1094、1276）」＋依据里两个号都写在"位置就是 /Applications/WeChat.app"那一档；同一张图上 ADB Link、ChatGPT 两行也各自带 chip（**同一条读取路径同时给三个应用判对**，这是夹具档给不出的旁证） |
+
+七份日志的 `# digest:` 全是 `tree=7918074+b8cf9354 app=7918074+b8cf9354`，头行时间戳
+16:01:14–16:02:12、最后一张照片 16:03:43（07 的 `REAL_SETTLE=90` 就花在头行与照片之间），
+**同一次跑**（§12.5 那两行归因头这一族照抄，另加 `# windows(pid=…)`、`# launched:`、
+`# snapshot(拍前/拍后):`）。
+
+**这一族是当天第二次跑出来的**，原因值得记：第一次拍完之后，本轮又改了两处**源码注释**
+（`UninstallerModel.swift` 里"换选中项会重读"这句是假的、`RunningAppProbe.swift` 里
+把"报不出包名"归因给 `.prohibited` 也是假的，现读 19 条里其实是 accessory 12 / prohibited 6 /
+regular 1）。注释是编译输入、进指纹，于是 `+e7579651` 变成 `+b8cf9354`，取证脚本按 P23b 那道
+门禁当场拒拍——重建 + 整族重跑一次，比"改注释不动照片"多花四分钟，换来的是这七张和
+现在这份源码确实同源。**这一族里所有 pid 与夹具根（`vFH6Ex`）都是这一次的字面值**，
+重跑必变。
+
+### 13.1 照片抓出来的两处假话（都不是单测能抓的）
+
+1. **05 第一次拍的是设置窗**。`shot()` 从前拿 `head -1` 的窗口清单——CGWindowList 是前→后排序，
+   最靠前那扇恰好是盖在主窗口前面的设置窗，而日志里连"这个 pid 当时有几扇窗、各是什么标题"都没留，
+   事后无从判断。改成 `main_window_id()`：标题正好 `MacMaster` 且 `layer=0` 的窗口**要求正好一扇**，
+   挑不到就一张都不出（与 `p29-settings-capture.sh:62-68` 同一立场），并把整份清单写进日志。
+   **这是一处仓库级的潜伏缺陷**：现读 `Scripts/` 里 29 支脚本引用 `window-ids.swift`，
+   其中 **26 支**在紧邻的两行内用 `head -1` 挑窗（口径=`grep -A2 window-ids.swift` 的输出里
+   出现 `head -1`；p31 自己不在其列，它已改走 `main_window_id`）。本轮只修了这一支。
+2. **07 交叉读出来的一句假话**：`runningBasis` 无论几档都在句尾拼「 两档都算『正在运行』」，
+   而微信这一屏是**两个进程、同一档**（1276 是包内 wxplayer：包名报不出、位置报得出），
+   画面里没有任何"两档"可数。改成两档同时出现才拼这句（`MMUninstaller.swift:1478-1483`），
+   合同 `03f-uninstaller-running.html` 三处同步，并补一条否证测试
+   `RunningAppStatePresentationTests.testBothTiersSentenceOnlyWhenBothTiersArePresent`。
+   这一句在旧照片上看不见——旧 07 拍的是磁盘分析页，而那一页根本没有这一行。
+
+### 13.2 哨兵口径必须与画面同源
+
+`# real-running:` 那行从前由 `pgrep -f "/Applications/WeChat.app/Contents/"` 给出，
+它数到 **13** 个进程（crashpad_handler、各种 Helper），而照片上只有 **2** 个号——
+因为快照里只有 1094 与 1276 两条报出的 `bundleURL` 正好是外层那个 `.app`。
+两种口径混用会让哨兵比画面多报，事后看着像"照片漏了 11 个"。
+现在换成 `Scripts/running-apps-probe.swift`：与 `RunningAppProbe.resolve` 同一条 API、
+同一套比较规则（pid>0、两样都报不出则不参与判定、小写字符串比、不做 realpath），
+并在**拍照前后各读一遍**追记进日志（`# snapshot(拍前/拍后):`），
+所以"照片上那几个号"与"那一刻的系统状态"是同一件事的两个读数。
+
+### 13.3 没有照片的那一档，以及为什么不给它造一张
+
+`undetermined`（快照里有既报不出包名也报不出位置的条目、且没有正对上的）本机拍不出来：
+2026-10-10 当日两次现读，参与判定的分别 163 / 165 条（这个数几小时内就会变），
+其中"两样都报不出"的**两次都是 0 条**——包名单独报不出 31 条、位置单独报不出 17 / 19 条，
+但没有一条同时缺两样。它只有单测（`testUnattributableIsDefinedByBothFieldsMissing`）。
+**不能为了凑一张照片去改 `snapshot()` 的语义**：那等于在这一屏唯一"看不见"的地方喂进去一条假快照。
+同一次现读里还有一条 `pid = -1`（`com.apple.dt.Devices`，Xcode 的 helper bundle），
+它在 LaunchServices 的账上却不是进程，读取端就剔掉——否则界面会写「正在运行 · 进程 -1」。
+
+**这一组数现在有一支可重算的工具**：`swift Scripts/running-apps-tally.swift`，口径与
+`RunningAppProbe.snapshot()` 逐条对齐（先剔 `pid <= 0`，"报不出"= nil 或空串）。
+本轮 16:12 用它第三次现读：**参与判定 139 条、包名报不出 19 条、位置报不出 15 条、两样都报不出 0 条**，
+`idEmpty` 按 activationPolicy 是 **accessory 12 / prohibited 6 / regular 1**——
+139 与 165 相隔不到一小时，这就是上面那句"几小时内就会变"的实测形状；
+而 `bothEmpty` 三次都是 0，这一条才是"本机拍不到 `undetermined`"的真正依据。
+**`RunningAppProbe.swift` 注释里那句"两次现读"本轮没有跟着改成三次**：注释是编译输入、
+进指纹，改一个字就要重建 + 重拍七张，而这一句的结论（`bothEmpty = 0`）一个字没变——
+这是明知代价后的取舍，不是漏改；下一次真需要动那一段时，把读数一并带上就是零成本。
+**顺带把"同一份源码里两个 `idEmpty`"这件事说清**：`snapshot()` 上那句记的是 **31 条**（15 点档那两次，
+照片第一族之前），`bundleIdentifier` 上那句记的是 **19 条**（16 点档，与上面第三次读数同一批）。
+同一个量在两个钟点上是两个数，这不是矛盾、是这一族读数的本性——两处都只写了日期没写钟点，
+读的时候要按"当日某一时刻的现读"理解，要当下值就自己跑一次那支 tally。
+
+### 13.4 本轮没能复现的那件事
+
+旧 07 拍成了磁盘分析页。用**同一份 env**（`MM_OPEN_MODULE=uninstaller` + `MM_UNINSTALL_SELECT=WeChat`）
+连跑三次都没能复现，每次都是卸载页、每次只有一扇窗。
+`~/Library/Saved Application State` 在本机**不存在**，所以也不是窗口状态恢复把它带回上一页。
+根因未记；现在的兜底是 `# windows(pid=…)` 那行——再落错页，日志会当场说出这个 pid 有几扇窗、
+各是什么标题，不用猜。
 

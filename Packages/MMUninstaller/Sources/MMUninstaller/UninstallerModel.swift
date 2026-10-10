@@ -158,6 +158,20 @@ public final class UninstallerModel: ObservableObject {
     /// 安装包收据目录。夹具截图下给 nil：假 home 不该去读真机的系统收据，
     /// 那样"这一档没有命中"到底是凭据缺失还是没读系统，就分不出来了。
     var provenanceReceiptsRootFactory: (String) -> String? = { _ in "/private/var/db/receipts" }
+    /// 运行中快照的注入点。**只有单测改它**：取证截图走的是真启动
+    /// （`Scripts/p31-running-capture.sh` 真的 `open -g` 一个 /tmp 下的夹具应用），
+    /// 所以照片里那个 pid 背后确实有进程。这一处刻意不给截图留 env 钩子，理由写在
+    /// `RunningAppProbe.snapshot()` 的注释上：合成值只能证明界面会写字，证明不了写的是真话。
+    var runningAppsFactory: () -> [RunningAppInfo] = { RunningAppProbe.snapshot() }
+
+    /// 每个应用上一次读到的运行状态，键是候选的 id（绝对路径）。
+    /// 存着而不是每次界面刷新都现读：一次 `runningApplications` 遍历不算贵，
+    /// 但不该跟着 SwiftUI 的重算跑。更新只有三个时点——载入清单（`reloadListing`）、
+    /// 按下卸载/移到废纸篓打开确认面板（`requestConfirmation`）、进程启动与退出的两条通知；
+    /// **换选中项不重读**（详情那一格读的是这张表里现成的值），也没有定时器。
+    /// 缺席 = 还没读过，界面这时什么都不说（`.notRunning` 是一种主张，不能当默认值）。
+    /// 缺席 = 还没读过，界面这时什么都不说（`.notRunning` 是一种主张，不能当默认值）。
+    @Published public private(set) var runningStates: [String: AppRunningState] = [:]
 
     public init() {}
 
@@ -217,7 +231,29 @@ public final class UninstallerModel: ObservableObject {
         }.value
 
         apps = discovered.map { makeCandidate(from: $0, provenance: provenances[$0.path]) }
+        // 运行状态跟着清单一起读：这一次遍历覆盖整张列表，等测大小那几十秒过去再读，
+        // 列表里那些"运行中"就已经是过期结论了。
+        refreshRunningStates()
         isScanningApps = false
+    }
+
+    // MARK: 运行状态
+
+    /// 读一次快照，给列表里每个应用算一份状态。**只读**：不启动、不结束任何进程。
+    public func refreshRunningStates() {
+        let snapshot = runningAppsFactory()
+        var next: [String: AppRunningState] = [:]
+        next.reserveCapacity(apps.count)
+        for app in apps {
+            next[app.id] = AppRunningState.resolve(bundleID: app.bundleID, bundlePath: app.path,
+                                                   running: snapshot)
+        }
+        runningStates = next
+    }
+
+    /// nil = 这一份还没读过（清单载入之前、或列表里还没有它）。
+    public func runningState(for app: UninstallCandidate) -> AppRunningState? {
+        runningStates[app.id]
     }
 
     /// 路径 → 来源。纯 `unknown` 不入表：默认值就是它，没必要为 44 个应用各存一份空结构。

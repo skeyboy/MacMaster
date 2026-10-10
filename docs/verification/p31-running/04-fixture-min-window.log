@@ -1,0 +1,9 @@
+# p31-running-capture.sh 04-fixture-min-window  2026-10-10 16:01:40 +0800  app=/tmp/mm-app-p31/MacMaster.app  fixture=/tmp/macmaster-running-fixture.vFH6Ex
+# repo: 7918074-dirty   # app-repo: 7918074-dirty
+# digest: tree=7918074+b8cf9354 app=7918074+b8cf9354
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-running-fixture.vFH6Ex MM_UNINSTALL_CONFIRM_MODE=none MM_UNINSTALL_SELECT=RunningFoo MM_WINDOW_SIZE=900x600
+# launched: Applications/RunningFoo pid=14174
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p31/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=900x600 请求 900x600pt，窗口实际 1000x652pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）
+# windows(pid=14667): windowid=2064 pid=14667 layer=0 title=MacMaster bounds=["Width": 1000, "X": 535, "Height": 652, "Y": 143]

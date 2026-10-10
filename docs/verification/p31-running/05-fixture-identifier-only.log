@@ -1,0 +1,8 @@
+# p31-running-capture.sh 05-fixture-identifier-only  2026-10-10 16:01:50 +0800  app=/tmp/mm-app-p31/MacMaster.app  fixture=/tmp/macmaster-running-fixture.vFH6Ex
+# repo: 7918074-dirty   # app-repo: 7918074-dirty
+# digest: tree=7918074+b8cf9354 app=7918074+b8cf9354
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-running-fixture.vFH6Ex MM_UNINSTALL_CONFIRM_MODE=none MM_UNINSTALL_SELECT=ElsewhereFoo
+# launched: Elsewhere/ElsewhereFoo pid=14810（清单上那一行是 Applications/ 里没跑过的同包名拷贝；照片里『位置是 …/Elsewhere/ElsewhereFoo.app』应与之一致）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p31/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=14876): windowid=2071 pid=14876 layer=0 title=MacMaster bounds=["X": 306, "Y": 126, "Height": 652, "Width": 1000]

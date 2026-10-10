@@ -49,7 +49,8 @@ FileManager.contentsOfDirectory
 
 授权入口深链到具体面板，不是把人丢进"系统设置"首页：
 `x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_AllFiles`
-（`MMUninstaller.fullDiskAccessPane` → `MMReveal.openSystemSettings(pane:)`）。
+（`MMSettingsPane.fullDiskAccess`，定义 `SystemSettings.swift:18`，横幅取用 `MMUninstaller.swift:1083`
+ → `MMReveal.openSystemSettings(pane:)`，`MMDesign.swift:519`）。
 
 - **本机未验证"授予 FDA 之后确实可读"**：给 ad-hoc 构建的 App 授 FDA 要人工点系统设置，
   不在自动化验证范围内。按 Apple 文档与同类实现（Mole / Pearcleaner 都要求 FDA 才碰 `~/.Trash`）

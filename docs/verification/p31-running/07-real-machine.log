@@ -1,0 +1,14 @@
+# p31-running-capture.sh 07-real-machine  2026-10-10 16:02:12 +0800  app=/tmp/mm-app-p31/MacMaster.app  fixture=/tmp/macmaster-running-fixture.vFH6Ex
+# repo: 7918074-dirty   # app-repo: 7918074-dirty
+# digest: tree=7918074+b8cf9354 app=7918074+b8cf9354
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_SELECT=WeChat
+# real-running: WeChat 快照口径 pid=1094、1276（口径与照片同源：Scripts/running-apps-probe.swift；照片里那一行的每个号都应在其中）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p31/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=15221): windowid=2091 pid=15221 layer=0 title=MacMaster bounds=["Height": 652, "Y": 126, "X": 306, "Width": 1000]
+# snapshot(拍前): pid=1094 evidence=sameBundle bundleID=com.tencent.xinWeChat bundlePath=/Applications/WeChat.app
+# snapshot(拍前): pid=1276 evidence=sameBundle bundleID=（无） bundlePath=/Applications/WeChat.app
+# snapshot(拍前): count=2 pids=1094、1276
+# snapshot(拍后): pid=1094 evidence=sameBundle bundleID=com.tencent.xinWeChat bundlePath=/Applications/WeChat.app
+# snapshot(拍后): pid=1276 evidence=sameBundle bundleID=（无） bundlePath=/Applications/WeChat.app
+# snapshot(拍后): count=2 pids=1094、1276

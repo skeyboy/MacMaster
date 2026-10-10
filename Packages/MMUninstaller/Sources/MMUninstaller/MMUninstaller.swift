@@ -311,6 +311,19 @@ public struct UninstallerView: View {
             guard scanning == false else { return }
             startOrphanScanIfNeeded()
         }
+        // 运行状态是这一页唯一会自己变的字段（其余字段都靠重新载入），所以它配两条通知：
+        // 用户在这里卸哪个应用，往往就是刚刚才把它打开或退出的那一个。
+        // 启动那一条只覆盖**连上窗口服务**的应用（P31a 实测：纯命令行、不初始化
+        // NSApplication 的进程会进 `runningApplications`，却不发这条通知）。这不是漏检
+        // 的窟窿，只是取证夹具必须写成 Cocoa 应用的原因——见 `Scripts/p31-running-fixture.sh`。
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didLaunchApplicationNotification)) { _ in
+            model.refreshRunningStates()
+        }
+        .onReceive(NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.didTerminateApplicationNotification)) { _ in
+            model.refreshRunningStates()
+        }
         .overlay(alignment: .bottom) {
             if let result = model.lastResult, result.successCount > 0, toastSeconds > 0 {
                 MMUndoToast(
@@ -375,7 +388,8 @@ public struct UninstallerView: View {
                 )) {
                     ForEach(filteredApps) { app in
                         AppListRow(app: app,
-                                   goneFromDirectory: appWatcher.departures.contains { $0.path == app.path })
+                                   goneFromDirectory: appWatcher.departures.contains { $0.path == app.path },
+                                   runningState: model.runningState(for: app))
                             .tag(app.id)
                             .contextMenu {
                                 Button {
@@ -436,6 +450,7 @@ public struct UninstallerView: View {
                 app: app,
                 selectedIDs: $model.selectedResidualIDs,
                 unselectedCount: model.unselectedCount,
+                runningState: model.runningState(for: app),
                 onToggle: { model.toggle($0) },
                 onToggleAll: { model.toggleAllDeletable() },
                 onUninstallWithResiduals: { requestConfirmation(.withResiduals) },
@@ -645,6 +660,9 @@ public struct UninstallerView: View {
     // MARK: 确认
 
     private func requestConfirmation(_ mode: ConfirmationMode) {
+        // 删除前的最后一次读。进程在页面打开这段时间里起落过，
+        // 面板要说的是按下按钮这一刻的状态，不是载入清单那一帧的。
+        model.refreshRunningStates()
         confirmationMode = mode
         showConfirm = true
     }
@@ -676,18 +694,12 @@ public struct UninstallerView: View {
                 // brew 装的应用被拖进废纸篓，账本不会同步——这句话说在动手之前，
                 // 因为做完之后没人会想起来。这里仍然只有废纸篓一条路径，不新增执行能力。
                 if let warning = app.sourceWarning {
-                    HStack(alignment: .top, spacing: MMGap.sm) {
-                        Image(systemName: "exclamationmark.triangle").foregroundStyle(MMColor.caution)
-                        Text(warning)
-                            .font(.caption)
-                            .foregroundStyle(MMColor.caution)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(MMGap.md)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(MMColor.soft(MMColor.caution, 0.10),
-                                in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+                    cautionNotice(warning)
                 }
+
+                // 运行中排在同一格：这一屏是删除前的最后一站，而"移到废纸篓不会让它退出"
+                // 是一件做完之后才会发现的事。它不给按钮加禁用——不代杀，也就不拦人。
+                runningNotice(app, model.runningState(for: app))
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: MMGap.xs) {
@@ -727,6 +739,31 @@ public struct UninstallerView: View {
         }
         .padding(MMGap.lg)
         .frame(width: 420)
+    }
+
+    /// 确认面板顶上的橙色提醒块。来源与运行状态两句共用一个版式：
+    /// 同一屏里两种"做完之后才发现"的事，不该长得不一样。
+    private func cautionNotice(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: MMGap.sm) {
+            Image(systemName: "exclamationmark.triangle").foregroundStyle(MMColor.caution)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(MMColor.caution)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MMGap.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(MMColor.caution, 0.10),
+                    in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+    }
+
+    /// 确认面板里的运行状态提醒。只在真的对上进程时才出现：
+    /// "没检测到"与"无法判定"在详情页已经说过了，这一屏不给它们占地方。
+    @ViewBuilder
+    private func runningNotice(_ app: UninstallCandidate, _ state: AppRunningState?) -> some View {
+        if let state, let warning = app.runningWarning(state) {
+            cautionNotice(warning)
+        }
     }
 
     // MARK: 废纸篓提示
@@ -1383,6 +1420,109 @@ extension UninstallCandidate {
     }
 }
 
+// MARK: - 运行状态的呈现口径
+//
+// 事实层在 `RunningAppProbe.swift`：它只回答"快照里有没有对上、按哪一条对上"。
+// 措辞与颜色收在这里。
+// 文案合同 = 设计稿 `docs/design-system/screens/mmuninstaller/03f-uninstaller-running.html`
+// 那三块（列表行、详情键值行、确认面板提醒），逐字一致；改这里要同步改那张图。
+//
+// 三处话术的共同底线：**这一版不代用户退出应用**。所以每说一次"正在运行"都要同时
+// 交代两件事——移到废纸篓不会让它退出（macOS 允许删掉正在运行的应用包，进程继续用
+// 已经载入内存的代码跑），以及"先退出"得用户自己做。只说前半句会让人以为删完就干净了，
+// 只说后半句像在暗示按钮会替他做。既然不代杀，这里也就没有"杀不动怎么办"这一类分支。
+
+extension UninstallCandidate {
+    /// 列表行的小标记。**只有"正在运行"占这一格**：它会改变你接下来的动作。
+    /// "没检测到"与"无法判定"都没有这种后果，与 `sourceChip` 同一取舍。
+    func runningChip(_ state: AppRunningState) -> (text: String, tint: Color)? {
+        guard state.isRunning else { return nil }
+        return ("运行中", MMColor.caution)
+    }
+
+    /// 详情页「运行状态」那一行的值。
+    func runningValue(_ state: AppRunningState) -> String {
+        switch state {
+        case .notRunning:
+            "未检测到运行中的进程"
+        case .undetermined(let count):
+            "无法判定（进程快照里有 \(count) 条报不出包名也报不出位置）"
+        case .running(let matches):
+            matches.count == 1
+                ? "正在运行 · 进程 \(pidList(matches))"
+                : "正在运行 · \(matches.count) 个进程（\(pidList(matches))）"
+        }
+    }
+
+    /// 「判定依据」小字：结论的强度写在脸上，与 `sourceBasis` 同一规矩。
+    func runningBasis(_ state: AppRunningState) -> String {
+        switch state {
+        case .notRunning:
+            return "判定依据：读了一次进程快照（只读，不启动也不结束任何进程），"
+                + "没有任何一条的 bundle 位置或包名与本 bundle 对上。"
+        case .undetermined(let count):
+            return "判定依据：快照里有 \(count) 条既报不出包名也报不出 bundle 位置的进程，无法归因到某个应用，"
+                + "所以这里不写「未运行」——那是把「我没看到」说成「没有」。"
+        case .running(let matches):
+            var line = "判定依据：按 bundle 位置与包名比对进程快照（只读）。"
+            let here = matches.filter { $0.evidence == .sameBundle }
+            let elsewhere = matches.filter { $0.evidence == .bundleIdentifierOnly }
+            if here.isEmpty == false {
+                line += "进程 \(pidList(here)) 报出的位置就是 \(path)。"
+            }
+            if elsewhere.isEmpty == false {
+                line += "进程 \(pidList(elsewhere)) 只有包名对上，位置是 "
+                    + elsewhere.map { $0.bundlePath ?? "（报不出位置）" }.joined(separator: "、")
+                    + "，与这里这一份的写法不同（只比路径字符串，没解析符号链接）。"
+            }
+            // 这句只在两档**同时**出现时才说：它是回答"包名对上、位置对不上的那一份算不算在跑"的。
+            // 只有一档的时候它是假话——真机照片上 WeChat 是「2 个进程（1094、1276）」，
+            // 两条都是按位置对上的，画面里没有任何"两档"可数。
+            if here.isEmpty == false && elsewhere.isEmpty == false {
+                line += " 两档都算「正在运行」。"
+            }
+            return line
+        }
+    }
+
+    /// 详情页那一块「运行状态」的图标与颜色。三档各有各的颜色，
+    /// 因为三档说的话不一样：警告 / 说明 / 承认看不出。
+    func runningEmphasis(_ state: AppRunningState) -> (symbol: String, tint: Color) {
+        switch state {
+        case .running: ("exclamationmark.triangle", MMColor.caution)
+        case .notRunning: ("circle", MMColor.secondaryLabel)
+        case .undetermined: ("questionmark.circle", MMColor.secondaryLabel)
+        }
+    }
+
+    /// 「移到废纸篓不会让它退出」那一句。详情页与确认面板共用，所以它不复述状态行
+    /// 已经说过的"正在运行（进程 …）"，只说后果与边界。
+    ///
+    /// 只有包名对上那一档的措辞是实拍教出来的：P31a 第一版写的是"与这里要移除的不是
+    /// 同一个文件"，而照片（`docs/verification/p31-running/05-fixture-identifier-only.png`）
+    /// 里那句话当场就是假的——清单上的路径经 `canonicalHome` 变成 `/private/tmp/…`，
+    /// 进程报出的还是 `/tmp/…`，**同一个文件的两种写法**。判定只比字符串（见
+    /// `AppRunningState.resolve` 上不解析符号链接的取舍），所以话只能说到"写法不同"，
+    /// 由用户自己判断是不是别处那一份。
+    func runningWarning(_ state: AppRunningState) -> String? {
+        guard case .running(let matches) = state else { return nil }
+        var line = ""
+        if matches.allSatisfy({ $0.evidence == .bundleIdentifierOnly }) {
+            line += "对上的只是包名：那一份进程报出的位置是 "
+                + matches.map { $0.bundlePath ?? "（报不出位置）" }.joined(separator: "、")
+                + "，与这里这一份的写法不同——可能是别处那一份真的在跑"
+                + "（换过安装目录、或经 App Translocation 跑在临时副本里），也可能只是同一条路径的另一种写法。"
+        }
+        return line + "把它移到废纸篓不会让它退出——macOS 允许删掉正在运行的应用包，"
+            + "进程会继续用已经载入内存的代码跑下去。建议先自己退出它再卸载；"
+            + "MacMaster 不会代你退出或结束进程，所以这条提醒也不拦住卸载按钮。"
+    }
+
+    private func pidList(_ matches: [RunningAppMatch]) -> String {
+        matches.map { String($0.pid) }.joined(separator: "、")
+    }
+}
+
 /// 行内来源标记：比 `MMBadge` 小一号（列表行只有两行文字的空间），
 /// 对应设计稿 `.src` 那枚 16pt 高的等宽小胶囊。
 private struct SourceChip: View {
@@ -1408,6 +1548,9 @@ struct AppListRow: View {
     /// 判据来自监听端的目录清单差异，不是这一行自己去 stat —— 一行一次 stat
     /// 会把 45 行的列表变成 45 次系统调用，而那件事监听已经做过一次了。
     var goneFromDirectory: Bool = false
+    /// 上一次读进程快照算出的状态。nil = 还没读过（清单载入之前），
+    /// 这时这一行不给任何关于运行与否的话。
+    var runningState: AppRunningState? = nil
 
     var body: some View {
         HStack(spacing: MMGap.md) {
@@ -1426,6 +1569,9 @@ struct AppListRow: View {
                         .truncationMode(.middle)
                 } else {
                     HStack(spacing: MMGap.xs) {
+                        if let state = runningState, let chip = app.runningChip(state) {
+                            SourceChip(text: chip.text, tint: chip.tint)
+                        }
                         if let chip = app.sourceChip {
                             SourceChip(text: chip.text, tint: chip.tint)
                         }
@@ -1477,6 +1623,8 @@ struct AppDetailView: View {
     let app: UninstallCandidate
     @Binding var selectedIDs: Set<String>
     let unselectedCount: Int
+    /// 上一次读进程快照算出的状态；nil = 还没读过，这一屏不提运行与否。
+    var runningState: AppRunningState? = nil
     let onToggle: (ResidualItem) -> Void
     let onToggleAll: () -> Void
     let onUninstallWithResiduals: () -> Void
@@ -1489,6 +1637,10 @@ struct AppDetailView: View {
                 Divider()
                 statsCards
                 Divider()
+                if let runningState {
+                    runningSection(runningState)
+                    Divider()
+                }
                 infoSection
                 Divider()
                 residualSection
@@ -1533,6 +1685,36 @@ struct AppDetailView: View {
             MMStatItem("残留大小", MMFormat.bytes(app.residualSize))
             MMStatItem("残留项", MMFormat.count(app.residuals.count))
         }
+    }
+
+    /// 「运行状态」这一屏排在基本信息之前：它比版本号更影响"现在能不能卸"，
+    /// 而它又是这一页里唯一会自己变的一行（进程起落由通知刷新）。
+    /// 三档都给话，包括"无法判定"——那一档要说的是我们看不看得出，不是安慰。
+    private func runningSection(_ state: AppRunningState) -> some View {
+        let emphasis = app.runningEmphasis(state)
+        return HStack(alignment: .top, spacing: MMGap.sm) {
+            Image(systemName: emphasis.symbol).foregroundStyle(emphasis.tint)
+            VStack(alignment: .leading, spacing: MMGap.xxs) {
+                Text(app.runningValue(state))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(emphasis.tint)
+                Text(app.runningBasis(state))
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let warning = app.runningWarning(state) {
+                    Text(warning)
+                        .font(.caption)
+                        .foregroundStyle(MMColor.caution)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: MMGap.sm)
+        }
+        .padding(MMGap.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MMColor.soft(emphasis.tint, state.isRunning ? 0.10 : 0.06),
+                    in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
     }
 
     private var infoSection: some View {

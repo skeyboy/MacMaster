@@ -21,9 +21,11 @@
 #
 # 已知松处，写在明处：
 #   ① 覆盖的是 `git ls-files -- Sources Packages Resources Package.swift` 去掉
-#      `Packages/*/Tests/**` 之后那 **92 个**编译输入（本轮现数，加总可对上）：
-#      壳层 `Sources/` 6 + 各包 `Sources/` 75 + 九个包各自的 `Package.swift` 9 +
-#      根 `Package.swift` 1 + `Resources/AppIcon.icns` 1。icns 在里面是故意的——它就是
+#      `Packages/*/Tests/**` 之后那 **95 个**编译输入（P31a 现数，加总可对上；P23 写这一格时是 92）：
+#      壳层 `Sources/` 6 + 各包 `Sources/` 77（已跟踪）+ 未跟踪的 `Packages/*/Sources/` 1
+#      （`RunningAppProbe.swift`，落地当天还没 `git add`——它照样进编译，所以照样进指纹）+
+#      九个包各自的 `Package.swift` 9 + 根 `Package.swift` 1 + `Resources/AppIcon.icns` 1。
+#      icns 在里面是故意的——它就是
 #      关于页照片上那个图标（P10 那一族），换掉它而产物不变，照片就成了假证。
 #      测试源码**不在**里面：改判据不改产物，为此拒拍等于逼人把门禁关掉。
 #      不在里面的还有 `make-app.sh` 自己的构建参数与签名——那几样另有 `MMGitCommit`、
