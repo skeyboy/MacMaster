@@ -1,0 +1,11 @@
+# p32-steam-capture.sh 03-steam-runsh-detail  2026-10-10 17:29:34 +0800  app=/tmp/mm-app-p32/MacMaster.app  fixture=/tmp/macmaster-steam-fixture.2CWMDY
+# repo: 2d49642   # app-repo: 2d49642
+# digest: tree=2d49642+e3b0c442 app=2d49642+e3b0c442
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_SELECT=SteamRunSh 
+# sentinel: 本体 Applications/SteamRunSh.app = 516 B / 2 个文件（find -type f 现算，口径同界面「本体」）
+# sentinel: 本体之外的游戏目录 steamapps/common/SteamGame = 25165832 B —— 照片的「残留」「合计」里不该出现这个量级
+# 清单应含五行（PlainTool/Steam/SteamGame/SteamNoId/SteamRunSh），不应含 Steam Shortcuts/DeepShortcut：应用根非递归
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p32/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=67575): windowid=2444 pid=67575 layer=0 title=MacMaster bounds=["X": 306, "Width": 1000, "Y": 126, "Height": 652]
+# post-shot: 本体仍在磁盘

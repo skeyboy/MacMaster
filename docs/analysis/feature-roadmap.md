@@ -1035,7 +1035,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 | 能力 | 参考出处（本轮打开过那一行） | 我们现在的状态（本轮现读 grep） | 落点 |
 |---|---|---|---|
 | 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | **P31a 已落地**（落地记录见本节 §9）。P29b 现读时是：`NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
-| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档 | uninstaller（来源徽章加一档） |
+| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档。**P32a 审计已落地（2026-10-10，只审计、代码一行未动）**：这类 bundle 现在被说成"一个 593 字节的普通应用"，而游戏本体（同一夹具里 25,165,832 字节）在八张照片上一个字节都没出现；反向那一条更要紧——卸载 Steam 本体时 `~/Library/Application Support/Steam`（夹具量到 25.2 MB，真机上那是全部已装游戏）作为一条「名称与包名对应」的谨慎残留被端出来，默认不勾挡住了误删，但那行文案说的是"登录态或未同步数据"，没说"这里面是你全部的游戏库"。事实、机制归因与 P32b 六条建议在 `docs/analysis/uninstaller-steam-launcher.md`，八张实拍加一份事故档在 `docs/verification/p32-steam/` | uninstaller（**P32a 修正落点**：**不**并入 `AppProvenance.Source`——那一档答"谁装的"、这一档答"它是什么"，一个 brew 装的 Steam 启动器两句同时成立；改成详情面板另起一行，且 §5 第 4 条那条反向措辞可以先做、不依赖识别） |
 | `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if plutil -lint "${batch[@]}"` | `plutil` 生产代码 **0 命中**；同类记账只在登录项那一域（`LoginItemStore.swift:111` 的"解析 … 失败"），缺的是全 Preferences 域 | optimizer（新 tab 复用开发工具页版式）；**用 `PropertyListSerialization`，不许为此 spawn `plutil`** |
 | 磁盘页跨卷枚举 + "最满的那卷优先" | disktree `crates/disktree-core/src/space.rs:644` `pub fn volumes()`（同文件注释：fullest first） | `mountedVolumeURLs` 生产代码 **1 命中**，在 `Sources/MacMaster/DashboardModel.swift:75`——**概览页只拿它数"挂了几卷"**，磁盘页只认用户选的那个根；`volumeIsBrowsable` 0 命中 | disk（**用 Foundation 的卷枚举，不学 disktree spawn `mount`**） |
 
@@ -1188,4 +1188,76 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
    （本轮 16:12 第三次现读：参与判定 139、`idEmpty` 19、`pathEmpty` 15、**`bothEmpty` 仍是 0**）。
 2. **旧 07 曾拍成磁盘分析页，三次同 env 重跑都没复现**，`~/Library/Saved Application State`
    在本机不存在（所以也不是状态恢复）。根因未记，现在的兜底是日志里那行 `# windows(pid=…)`。
-3. **v1.1 第 2 条（Steam 启动器型识别）** 未开工，是下一版的第一个。
+3. **v1.1 第 2 条（Steam 启动器型识别）**：P32a 审计已在同一天落地（见下面的 §10），实现（P32b）未开工。
+
+### 10. v1.1 第 2 条的审计记录（P32a，2026-10-10）
+
+**状态：审计完成，代码一行未动。** 产物是 `docs/analysis/uninstaller-steam-launcher.md`（结论、实拍事实表、
+参考项目识别合同、机制归因表、P32b 六条建议、没测的清单、复现），加 `docs/verification/p32-steam/`
+里八张照片与八份日志（另有一份事故档 `incident-04-panel-opened-then-confirmed.png/.log`，见本节末）。
+本轮**没有新的编译输入改动**，所以 §9 那笔测试总数不动；八份日志里的
+`# digest:` 全是 `tree=2d49642+e3b0c442 app=2d49642+e3b0c442`，与当轮干净树同源（指纹门禁在拍之前判过一次正向）。
+
+- **量到的两个数**：夹具里 `SteamGame.app` 本体 **593 字节 / 2 个文件**，而游戏本体（放在参考项目同一个位置
+  `Library/Application Support/Steam/steamapps/common/SteamGame/`）**25,165,832 字节**。
+  界面上出现的是前者：列表行「SteamGame 1.0 593 字节」、详情「本体 593 字节 · 包含文件 2 ·
+  残留大小 524 KB · 残留项 3」、确认面板「合计 525 KB」。**后者八张照片一次都没出现**（日志里那条
+  `# sentinel:` 就是专门用来钉这件事的：照片的「残留」「合计」里不该出现这个量级）。
+  对照档 `PlainTool.app`（8,389,057 字节真实负载、残留 0 项）证明这不是"小 bundle 都不显示"，
+  而是这一族没有那句话可说。
+- **本轮真正的收获是反向那一条**，它不在计划里、是拍 08 时撞出来的：卸载 **Steam 本体自己**时，
+  `~/Library/Application Support/Steam` 会以「名称与包名对应」的身份出现在残留清单里，
+  夹具量到 **25.2 MB**，风险档是谨慎、默认不勾（页脚「已选 0 项残留 · 0 字节」）。
+  真机上那一个目录装着**全部已装游戏**。默认不勾这一道挡住了误删，但那行的说明文字讲的是
+  "登录态或未同步数据"——**说的是账号，不是"这里面是你的游戏库"**。
+  所以 P32b 的第一条不是"认出启动器"，而是这一行措辞（审计文档 §5 第 4 条，它不依赖识别能力就能成立）。
+- **为什么正好错过它，是代码推导而不是猜测**：`Application Support` 那条 catalog entry 的
+  `extraDescent` 为 0，下探层数 = 敏感度秩 + 0 ⇒ 严格 0 层 / 增强 1 层 / 深度 2 层，
+  而 `Steam/steamapps/common/SteamGame` 在第三层（审计文档 §4 那张表逐行带出处）。
+  同一条层数既保证了我们**不会**误删游戏，也保证了我们**说不出**游戏在哪——一句话缝两面。
+  这里要提防一句现成的注释：`ResidualScanner.swift` 里那段"下探厂商目录（`~/Library/Application Support/Google/Chrome` 这种形态）"
+  并没有覆盖 `Steam/steamapps/common`，**P32b 不能把这层运气当合同用**。
+- **增强 / 深度两档只有推导、没有照片**：`MM_UNINSTALL_*` 那五个钩子里没有敏感度钩子，
+  本轮只拍到了严格档。这条缺口写进了建议第 5 条——P32b 只要动审计文档 §4 那张表任何一行，就得先把钩子做出来，
+  否则又是"用推导冒充实拍"。同理，本机**没有装 Steam**（`/Applications/Steam.app` 与
+  `~/Library/Application Support/Steam` 两条都现读不存在），所以这一族八张全部来自 `/tmp` 假 home，
+  没有 P31 那种"点名本机真在跑的应用"的对照档。
+- **两处参考项目的不共识，本轮按分歧做夹具而不是选一边**：那个启动脚本叫什么，Mole 走
+  `CFBundleExecutable`（取不到退回 bundle 文件名），Pearcleaner 写死 `Contents/MacOS/run.sh`——
+  于是 `SteamGame.app`（同名）与 `SteamRunSh.app`（run.sh）各一张；
+  包标识那一维也一样，Mole 的 bats 夹具用 `com.example.steamgame`，而它自己的两处注释都承认
+  真机这类 bundle 常常没有 `CFBundleIdentifier`——于是 `SteamNoId.app`，画面上「包名 —」、
+  「来源 无法判定」、残留 **0 项**（残留只剩名字一条腿，而 `Application Support/Steam` 与它名字不同）。
+- **落点从"来源徽章加一档"改掉了**（§2 那一格的第三列现在写的是新落点）：`AppProvenance.Source` 答的是
+  "谁装的"，启动器这一档答的是"它是什么"，两个维度正交——一个 brew 装的 Steam 启动器两句同时成立。
+  这条判断要写在实现之前，否则下一轮一定有人往那个枚举里加 case。
+- **本轮的错不在计数上，在夹具里**：`Scripts/p32-steam-fixture.sh` 第一次实跑折在
+  `plutil -create xml1` 那一步——它只建文件、不建父目录，而 `Library/Preferences` 在假 home 里本来就不存在，
+  于是整支脚本在 Preferences 那一行停下、留下半个夹具（那次半成品目录已删）。修法是那一行前面自己 `mkdir -p`，
+  原因写在脚本注释里。**教训是"每支新夹具脚本都得实跑一次才敢进仓库"**：这支脚本写的时候看着无懈可击，
+  第一次跑就断在第 150 行前后的一处目录假设上。
+  编辑路线这一轮刻意是"原地替换单行 + 只在文件末尾追加"，为的是不重演 P31 那种"加两行注释把别人引的行号顶掉"的
+  位移债（§9 那格记过红一那三条）。全仓文档引用本轮**只增不改**，新增的引用只有
+  `docs/analysis/uninstaller-steam-launcher.md` 与 `docs/verification/p32-steam/` 两个路径（不带行号）。
+- **事故档要留在仓库里**：04 那一档第一次拍到的其实是**删除之后**的画面（列表少一行、
+  「已卸载 2 项 · 532 KB」的 toast，夹具里的 `SteamGame.app` 当场没了）。代码上能走到删除的只有确认面板
+  那个 prominent 按钮；脚本不发合成事件（老规矩），所以最可能是那十秒里一次真实按键落在我们自己的窗口上——
+  **钩子自动把面板弹出来，而面板的默认按钮是破坏性的**。同一档重拍时 05 的面板好好地开着，所以它不是每次都发生，
+  而是"发生过一次，而当时的脚本没有能力发现自己看见了删除之后的画面"。
+  处置在取证侧：脚本每档拍完查一次夹具目录、写 `# post-shot:`，本体消失就判这一档不作数。
+  **产品侧不改**——一次回车确认删除是正常 macOS 交互，要收的是脚本自己"弹面板 + 等十秒"这个跑法。
+- **引用门禁本轮五跑入库**（`docs/verification/p32-steam-citations/`，全部跑在 `git add` 之后，
+  每跑一跑换一个文件名——§9 那条台账立的规矩）：`audit.log`（17:38）与 `audit-precommit.log`（17:39）
+  是对同一棵未提交树的重跑，两份 `diff` 出来**只差 `# date:` 一行**（三个总数、四道硬判据、
+  只提示那一层逐字相同）；`audit-final.log` 是审计文档 §4 补了 Library 根那条 entry 之后那一棵；
+  `audit-final2.log` 是本节定稿之后那一棵；`audit-postcommit.log` 是提交之后的干净树。
+  **定稿这两跑的读数是 引用条次 926 / 唯一「路径+行段」769 / 命本仓库 677，硬失败 0、exit 0**，
+  比 P31 终态那一份（892 / 738 / 664）多的 34 / 31 / 13 条全部来自本族新文档与这两处回写。
+  其中"条次多一条、唯一面没多"这一格是**本轮自己造的重复引用**：审计文档 §4 那一格现在把
+  `ResidualScanner` 的 208 行写了两次（正文一次、出处列一次）——P31 记过的那个"写文档的人数自己也算一条"
+  又出现了一次，只是这次它只影响条次，不影响任何判据。
+  **一句诚实的边界**：符号面"位置存疑"从 116 涨到 122，而日志按设计只印前 40 条，
+  所以"本族那 13 条新引用没落在软层里"这一句**从归档文件里读不出来**；
+  本族的行号是靠"写完逐条回到源码打开对一次"兜的（§4 那张表的出处列就是这次对的结果），
+  硬判据那一层则由门禁兜——**这两层谁也没替谁干过活**。
+
