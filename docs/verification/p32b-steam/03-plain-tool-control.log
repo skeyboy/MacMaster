@@ -1,0 +1,12 @@
+# p32b-steam-launcher-capture.sh 03-plain-tool-control  2026-10-10 19:39:09 +0800  app=/tmp/mm-app-p32b/MacMaster.app  fixture=/tmp/macmaster-steam-fixture.DnwjwO
+# repo: fdf0f95-dirty   # app-repo: fdf0f95-dirty
+# digest: tree=fdf0f95+71d7740f app=fdf0f95+71d7740f
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_UNINSTALL_SELECT=PlainTool  
+# sentinel: 本体 Applications/PlainTool.app = 8389057 B / 3 个文件（find -type f 现算，口径同界面「本体」）
+# sentinel: 本体之外的游戏目录 steamapps/common/SteamGame = 25165832 B
+# 应否出现: 游戏目录不作为残留行（判据=包含方向是「文件名包含应用名」，不是路径包含）
+# 清单应含夹具根 Applications 下的六个 .app（PlainTool/Steam/SteamGame/SteamNoId/SteamRunSh/SteamTwoEntries），不应含 Steam Shortcuts/DeepShortcut：应用根非递归
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p32b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+# windows(pid=83952): windowid=3072 pid=83952 layer=0 title=MacMaster bounds=["Y": 43, "X": 487, "Height": 1000, "Width": 1000]
+# post-shot: 本体仍在磁盘

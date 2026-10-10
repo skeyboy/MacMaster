@@ -1035,7 +1035,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 | 能力 | 参考出处（本轮打开过那一行） | 我们现在的状态（本轮现读 grep） | 落点 |
 |---|---|---|---|
 | 卸载前检测"该 app 正在运行"并提示（**只提示，不代杀**） | Pearcleaner `Logic/Utilities.swift:362` 那句 "Check if app is running before deleting app files"；Mole `lib/uninstall/batch.sh:2018` 同一意图（"Best-effort termination"、不得阻塞卸载） | **P31a 已落地**（落地记录见本节 §9）。P29b 现读时是：`NSRunningApplication`、`runningApplications` 在 `Sources` 与 `Packages` 生产代码里 **0 命中** | uninstaller |
-| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | `steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档。**P32a 审计已落地（2026-10-10，只审计、代码一行未动）**：这类 bundle 现在被说成"一个 593 字节的普通应用"，而游戏本体（同一夹具里 25,165,832 字节）在八张照片上一个字节都没出现；反向那一条更要紧——卸载 Steam 本体时 `~/Library/Application Support/Steam`（夹具量到 25.2 MB，真机上那是全部已装游戏）作为一条「名称与包名对应」的谨慎残留被端出来，默认不勾挡住了误删，但那行文案说的是"登录态或未同步数据"，没说"这里面是你全部的游戏库"。事实、机制归因与 P32b 六条建议在 `docs/analysis/uninstaller-steam-launcher.md`，八张实拍加一份事故档在 `docs/verification/p32-steam/` | uninstaller（**P32a 修正落点**：**不**并入 `AppProvenance.Source`——那一档答"谁装的"、这一档答"它是什么"，一个 brew 装的 Steam 启动器两句同时成立；改成详情面板另起一行，且 §5 第 4 条那条反向措辞可以先做、不依赖识别） |
+| Steam 启动器型应用识别（bundle 大小是启动器的大小，不是游戏） | Mole `lib/uninstall/steam.sh:5` "Its bundle size is the launcher's size, not" | **P32b 已落地**（落地记录见本节 §11，十一张实拍在 `fidelity-uninstaller.md` §14）。下面这一格保留的是 P29b/P32a 现读时的那份**现状账**，它已经不是界面上的样子了：`steam` 在 `Sources/` 与 `Packages/` 大小写不敏感 grep **0 命中**（**P30b 现读复核，改掉 P29b 那一版的错账**：原文写的是"MMDisk 第 400 行有一句无关注释"，而那一行现在说的是磁盘页中段截断，里面根本没有 steam——**这一条错在"0 命中"与"只有 1 命中"是两个不同的答案**，前者才是真的）；P5.2 的 `AppProvenance`（`AppProvenance.swift:39`，来源那一组枚举在 `:40-48`）现读是**五档**：`homebrewCask` / `homebrewCaskNameOnly` / `appStore` / `installerPackage` / `unknown`（不是从前记的"brew/收据两档"），缺的是"启动器型应用"这一档。**P32a 审计已落地（2026-10-10，只审计、代码一行未动）**：这类 bundle 现在被说成"一个 593 字节的普通应用"，而游戏本体（同一夹具里 25,165,832 字节）在八张照片上一个字节都没出现；反向那一条更要紧——卸载 Steam 本体时 `~/Library/Application Support/Steam`（夹具量到 25.2 MB，真机上那是全部已装游戏）作为一条「名称与包名对应」的谨慎残留被端出来，默认不勾挡住了误删，但那行文案说的是"登录态或未同步数据"，没说"这里面是你全部的游戏库"。事实、机制归因与 P32b 六条建议在 `docs/analysis/uninstaller-steam-launcher.md`，八张实拍加一份事故档在 `docs/verification/p32-steam/` | uninstaller（**P32a 修正落点**：**不**并入 `AppProvenance.Source`——那一档答"谁装的"、这一档答"它是什么"，一个 brew 装的 Steam 启动器两句同时成立；改成详情面板另起一行，且 §5 第 4 条那条反向措辞可以先做、不依赖识别） |
 | `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if plutil -lint "${batch[@]}"` | `plutil` 生产代码 **0 命中**；同类记账只在登录项那一域（`LoginItemStore.swift:111` 的"解析 … 失败"），缺的是全 Preferences 域 | optimizer（新 tab 复用开发工具页版式）；**用 `PropertyListSerialization`，不许为此 spawn `plutil`** |
 | 磁盘页跨卷枚举 + "最满的那卷优先" | disktree `crates/disktree-core/src/space.rs:644` `pub fn volumes()`（同文件注释：fullest first） | `mountedVolumeURLs` 生产代码 **1 命中**，在 `Sources/MacMaster/DashboardModel.swift:75`——**概览页只拿它数"挂了几卷"**，磁盘页只认用户选的那个根；`volumeIsBrowsable` 0 命中 | disk（**用 Foundation 的卷枚举，不学 disktree spawn `mount`**） |
 
@@ -1188,7 +1188,8 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
    （本轮 16:12 第三次现读：参与判定 139、`idEmpty` 19、`pathEmpty` 15、**`bothEmpty` 仍是 0**）。
 2. **旧 07 曾拍成磁盘分析页，三次同 env 重跑都没复现**，`~/Library/Saved Application State`
    在本机不存在（所以也不是状态恢复）。根因未记，现在的兜底是日志里那行 `# windows(pid=…)`。
-3. **v1.1 第 2 条（Steam 启动器型识别）**：P32a 审计已在同一天落地（见下面的 §10），实现（P32b）未开工。
+3. **v1.1 第 2 条（Steam 启动器型识别）**：P32a 审计与 P32b 实现都在 2026-10-10 落地（审计见下面的 §10，
+   实现与十一张实拍见 §11）。
 
 ### 10. v1.1 第 2 条的审计记录（P32a，2026-10-10）
 
@@ -1264,4 +1265,49 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
   所以"本族那 13 条新引用没落在软层里"这一句**从归档文件里读不出来**；
   本族的行号是靠"写完逐条回到源码打开对一次"兜的（§4 那张表的出处列就是这次对的结果），
   硬判据那一层则由门禁兜——**这两层谁也没替谁干过活**。
+
+### 11. v1.1 第 2 条的落地记录（P32b，2026-10-10）
+
+**状态：实现完成，v1.1 四条里第二条收口。** 审计那六条建议，**五条照原样落地、一条按人未拍板的那档停在半路**：
+
+| 审计建议 | 落地成什么 | 钉住它的东西 |
+|---|---|---|
+| ① 事实层 `SteamLauncherProbe` | 新文件 `Packages/MMUninstaller/Sources/MMUninstaller/SteamLauncherProbe.swift`：纯判定吃快照值 + 一个只读读取器，本文件零用户可见字符串；两条入口（`CFBundleExecutable` → `run.sh` 兜底） | `SteamLauncherProbeTests` 24 条；照片 01/02/04 走第一条、05 走第二条 |
+| ② 不塞进 `AppProvenance.Source` | 那个枚举**一个字未动**（仍五档）；界面上是 `MMKeyRow("启动器", …)` + 标题徽章 + 列表行 chip | `SteamLauncherPresentationTests` 5 条（含禁词表）；照片 01–05、09 |
+| ③ 措辞合同 | 依据两句：凭据 + "量的就是启动器本身"；收尾从"也说不出它们在哪"改成"只读了这份启动脚本、没按游戏逐个认" | 禁词表新增"说不出它们在哪"（本轮真实越界那一句）；照片 01 与 06 对读 |
+| ④ 反向那一条（**只取"改措辞"档**） | `ResidualItem.caveat` 独立字段 + `ResidualCollector.add` 唯一收口点判定 + `ResidualRow` 行下方独立一行 | `ResidualCollectorSteamTests` 5 条；照片 06（1400 宽）、08（同屏另一条候选不加字）、11（1000 宽整句）、**11a（修复前被省略号吃掉的判据档）** |
+| ⑤ 敏感度钩子 | `MM_UNINSTALL_SENSITIVITY`（`UninstallerModel.swift:184`），档位名与界面选择器同源；非法值回落 strict + stderr 留痕 | `ResidualSensitivityTests`；照片 07/08/09/10 |
+| ⑥ `1.0 ()` 版本口径 | **未动**（与本族无关，另开一格） | 本轮**又在这族照片上看见它一次**：`03-plain-tool-control.png` 的 PlainTool 就是「版本 1.0 ()」，而同一张上五份 Steam 夹具是 `1.0 (1)`——同一缺陷两档并存，一个字没改 |
+
+**没做的那半条，是人还没拍板而不是漏了**：§5 第 4 条给了两档，本轮只走"改措辞"（呈现层）。
+"改 `ResidualCatalog` 清单"那一档（要不要给厂商总目录一条排除/降级规则、别的厂商同不同规则）
+**仍待决定**，本轮一个字没碰 `ResidualCatalog` 的条目与层数。
+
+**照片侧抓出来的两处，都不是单测能抓的**（详版在 `fidelity-uninstaller.md` §14.1）：
+同屏自相矛盾（依据说"说不出它们在哪"、残留行说"内含 steamapps"还给着 25.2 MB），
+以及行内提醒拼进副标题后在窗口硬最小宽度下被中间省略吃掉（`MMItemRow` 副标题固定
+`.lineLimit(1)` + `.truncationMode(.middle)`，`MMDesign.swift:858-860`；光路径 35 个字符）。
+第二处的代价是**整族重拍一次**：判据档 11a 留在仓库里当"改之前长什么样"，
+它的 `# digest:`（`fdf0f95+1f91a012`）与其余十一张（`+71d7740f`）**故意不同源**。
+
+**产物清单**：源码 4 改 1 新（`MMUninstaller.swift`、`ResidualCollector.swift`、`ResidualScanner.swift`、
+`UninstallerModel.swift` + `SteamLauncherProbe.swift`）、测试 3 新 1 改（共 34 条 Steam 相关，
+另 `ResidualSensitivityTests` 加 36 行钩子档、净 +4 条判据：6 → 10，
+`git show HEAD:… | grep -c 'func test'` 与跑出来的日志两头现读对过）、
+取证脚本 1 新（`Scripts/p32b-steam-launcher-capture.sh`，十一档）+ 夹具脚本 1 改
+（`p32-steam-fixture.sh` 补第六份 bundle `SteamTwoEntries`，`p32-steam-capture.sh` 那行"清单应含几行"的判据跟着改），
+设计稿 1 新（`docs/design-system/screens/mmuninstaller/03g-uninstaller-steam-launcher.html` + 渲染图）、
+`docs/design-system/icons.js` 新增 `game` 一条（对应 SF Symbol `gamecontroller`，**本轮动了共享层**：
+只在表尾追加，既有那一条仅多一个行尾逗号，没有改任何已有键）、
+实拍 12 张 + 12 份日志（`docs/verification/p32b-steam/`）。
+
+**测试**：九包 **706 / 0 失败 / 1 跳过**（`Scripts/run-all-tests.sh` 在最终树上跑过两次，
+两次那 768 字节的输出 `diff` 为空），其中 MMUninstaller 148 → 186（+38 = 34 + 4，
+其余八格与 P31a 归档那份 `diff` 只此一行不同）；结论行入库
+`docs/verification/p32b-steam-citations/run-all-tests.log`。
+
+**留给下一轮的一条**（本轮照片顺出来、一个字未动）：09 那张里深度档
+`~/Library/Caches/com.example.steamgame · 名称包含应用名` **归到了 Steam 名下且默认勾选**
+（页脚「已选 1 项残留 · 524 KB」）——"名称包含应用名"这条证据会跨应用收残留。
+另立 P33a 审计（任务 #161），**它不在 v1.1 这四条里**，排期在四条之后。
 

@@ -114,7 +114,8 @@ shot() {
   print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=uninstaller ${size:+MM_WINDOW_SIZE=$size }MM_UNINSTALL_SELECT=$app ${mode:+MM_UNINSTALL_CONFIRM_MODE=$mode}" >>"$log"
   print -r -- "# sentinel: 本体 Applications/$app.app = ${bytes% *} B / ${bytes#* } 个文件（find -type f 现算，口径同界面「本体」）" >>"$log"
   print -r -- "# sentinel: 本体之外的游戏目录 steamapps/common/SteamGame = ${GAME_BYTES} B —— 照片的「残留」「合计」里不该出现这个量级" >>"$log"
-  print -r -- "# 清单应含五行（PlainTool/Steam/SteamGame/SteamNoId/SteamRunSh），不应含 Steam Shortcuts/DeepShortcut：应用根非递归" >>"$log"
+  print -r -- "# 清单应含夹具根 Applications 下的六个 .app（PlainTool/Steam/SteamGame/SteamNoId/SteamRunSh/SteamTwoEntries），不应含 Steam Shortcuts/DeepShortcut：应用根非递归" >>"$log"
+  print -r -- "# 注：SteamTwoEntries 是 P32b 才加进夹具的第六份，归档在 docs/verification/p32-steam 的那八张只拍到五行——这一行说的是当前夹具的形状。" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=uninstaller \
       ${size:+MM_WINDOW_SIZE="$size"} \
       MM_UNINSTALL_CONFIRM_FIXTURE_HOME="$FIX" \

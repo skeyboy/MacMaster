@@ -1,5 +1,6 @@
 import Foundation
 import XCTest
+import MMCore
 @testable import MMUninstaller
 
 /// 1.1 敏感度三档的命中差异。
@@ -124,5 +125,40 @@ final class ResidualSensitivityTests: XCTestCase {
             XCTAssertTrue(item.displayPath.hasPrefix("~/Library"), "展示路径应相对 home 缩写：\(item.displayPath)")
         }
         XCTAssertTrue(report.items.allSatisfy { $0.category == .cache } || report.items.contains { $0.category == .cache })
+    }
+
+    // MARK: 取证钩子 `MM_UNINSTALL_SENSITIVITY`
+
+    /// 钩子的档位名与 `ResidualSensitivity.allCases` 同源：照片里那一档与选择器上那一档
+    /// 必须是同一个值，不然拍到的照片说的是另一回事。
+    func testHookKeysMatchThePickerCases() {
+        XCTAssertEqual(ResidualSensitivity.allCases.map(\.hookKey), ["strict", "enhanced", "deep"])
+    }
+
+    /// 三个档位都能被钩子点名（P32a §5.5 的取证缺口：增强/深度以前拍不到）。
+    func testHookResolvesEachLevel() {
+        for level in ResidualSensitivity.allCases {
+            let got = MMHookValue.resolve(raw: level.hookKey, fallback: .strict,
+                                          cases: ResidualSensitivity.allCases)
+            XCTAssertEqual(got.selected, level)
+            XCTAssertNil(got.rejected, "\(level.hookKey) 是合法档位")
+        }
+    }
+
+    /// 写错值回落 strict，而且必须留痕——静默停在另一档的照片是最贵的一类假通过。
+    func testHookFallsBackWithNote() {
+        let got = MMHookValue.resolve(raw: "enhance", fallback: .strict,
+                                      cases: ResidualSensitivity.allCases)
+        XCTAssertEqual(got.selected, .strict)
+        XCTAssertEqual(got.rejected, "enhance")
+        XCTAssertTrue(got.note(key: "MM_UNINSTALL_SENSITIVITY")!.contains("只接受 strict|enhanced|deep"))
+    }
+
+    /// 大小写与空格不影响命中（钩子值是命令行里手打的）。
+    func testHookIsCaseAndSpaceTolerant() {
+        let got = MMHookValue.resolve(raw: "  Deep ", fallback: .strict,
+                                      cases: ResidualSensitivity.allCases)
+        XCTAssertEqual(got.selected, .deep)
+        XCTAssertNil(got.rejected)
     }
 }

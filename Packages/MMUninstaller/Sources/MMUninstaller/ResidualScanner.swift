@@ -47,6 +47,15 @@ public enum ResidualSensitivity: String, CaseIterable, Sendable {
     }
 }
 
+/// 取证钩子 `MM_UNINSTALL_SENSITIVITY` 的档位协议。档位名就是这三个 rawValue，
+/// 界面上「敏感度」选择器读的也是同一个值——钩子与 UI 不存在两套档位，
+/// 所以照片里那一档说什么，选择器上就是什么。
+/// P32a §5.5 记的取证缺口就在这儿：在那之前，"增强/深度两档到不到得了某一层目录"
+/// 只有代码推导、没有照片可拍。
+extension ResidualSensitivity: MMHookKeyed {
+    public var hookKey: String { rawValue }
+}
+
 // MARK: - 类别
 
 /// 残留的来源类别。类别决定默认风险档，也决定 UI 的分组文案与图标。
@@ -145,10 +154,14 @@ public struct ResidualItem: Identifiable, Hashable, Sendable {
     public let risk: MMRisk
     /// 命中证据，逐条展示给用户判断"这真是这个应用的吗"。
     public let reason: String
+    /// 这一行自己的一句提醒，显示在行下方而不是挤进副标题：副标题只有一行且中间省略，
+    /// 装不下"路径 + 证据 + 提醒"三样东西（判据见 `SteamGameLibraryCaveat.note`）。
+    public let caveat: String?
     public var size: UInt64?
 
     init(id: String, path: String, displayPath: String, name: String,
-         category: ResidualCategory, risk: MMRisk, reason: String, size: UInt64? = nil) {
+         category: ResidualCategory, risk: MMRisk, reason: String, size: UInt64? = nil,
+         caveat: String? = nil) {
         self.id = id
         self.path = path
         self.displayPath = displayPath
@@ -156,6 +169,7 @@ public struct ResidualItem: Identifiable, Hashable, Sendable {
         self.category = category
         self.risk = risk
         self.reason = reason
+        self.caveat = caveat
         self.size = size
     }
 

@@ -1523,6 +1523,48 @@ extension UninstallCandidate {
     }
 }
 
+// MARK: - 启动器型 bundle 的呈现口径
+//
+// 事实层在 `SteamLauncherProbe.swift`：它只回答"这个 bundle 的可执行文件是不是
+// 一份 `steam://` 启动脚本"。措辞与颜色全部收在这里。
+// 文案合同 = 设计稿 `docs/design-system/screens/mmuninstaller/03g-uninstaller-steam-launcher.html`
+//
+// 措辞的边界由 `docs/analysis/uninstaller-steam-launcher.md` §5.3 定：这一层只读过那个脚本，
+// 没有读过也没有数过游戏目录，所以只能说"大小那一格量的是启动器"——
+// 既不能说"游戏有 N GB"，也不能说"这里没有你的游戏"。
+// 与 P31a「只有包名对上」那一档只说"写法不同"是同一条纪律。
+
+extension UninstallCandidate {
+    /// 列表行的小标记。占这一格的理由与 `sourceChip` 同一取舍：它会改变你怎么读右边那个数——
+    /// 那一格是 bundle 的大小，而这类 bundle 里装的是启动脚本。
+    var steamLauncherChip: (text: String, tint: Color)? {
+        steamLauncher == nil ? nil : ("启动器", MMColor.informational)
+    }
+
+    /// 详情标题旁的徽章。识别不成立时一个都不出现，与 `sourceBadge` 不给 `unknown` 编造属性同一规矩。
+    /// 这里只放四个字：appid 已经写在「启动器」那一行里，标题栏同时挂两枚徽章时长度不可控。
+    var steamLauncherBadge: (text: String, tint: Color, symbol: String)? {
+        guard steamLauncher != nil else { return nil }
+        return ("Steam 启动器", MMColor.informational, "gamecontroller")
+    }
+
+    /// 「启动器」键值行的值。
+    var steamLauncherValue: String? {
+        guard let launcher = steamLauncher else { return nil }
+        return "Steam 生成的启动脚本 · \(launcher.scriptName)（appid \(launcher.appID)）"
+    }
+
+    /// 「启动器」的判定依据。两句：凭据是什么，以及那个数字量的是谁。
+    var steamLauncherBasis: String? {
+        guard let launcher = steamLauncher else { return nil }
+        return "判定依据：Contents/MacOS/\(launcher.scriptName) 是可执行脚本（≤ "
+            + "\(SteamLauncherProbe.maxScriptBytes) 字节），正文只有一行 "
+            + "open steam://\(launcher.verb.rawValue)/\(launcher.appID)。"
+            + "这类 bundle 的「应用大小」量的就是启动器本身，不是已装游戏；"
+            + "我们只读了这份启动脚本，没有按游戏逐个认，所以说不出装了哪些、各自多大。"
+    }
+}
+
 /// 行内来源标记：比 `MMBadge` 小一号（列表行只有两行文字的空间），
 /// 对应设计稿 `.src` 那枚 16pt 高的等宽小胶囊。
 private struct SourceChip: View {
@@ -1573,6 +1615,9 @@ struct AppListRow: View {
                             SourceChip(text: chip.text, tint: chip.tint)
                         }
                         if let chip = app.sourceChip {
+                            SourceChip(text: chip.text, tint: chip.tint)
+                        }
+                        if let chip = app.steamLauncherChip {
                             SourceChip(text: chip.text, tint: chip.tint)
                         }
                         // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
@@ -1663,6 +1708,10 @@ struct AppDetailView: View {
                     if let badge = app.sourceBadge {
                         MMBadge(badge.text, tint: badge.tint, systemImage: badge.symbol)
                     }
+                    // 「来源」与「是启动器」是正交的两句：brew 装的 Steam 启动器两枚同时挂。
+                    if let badge = app.steamLauncherBadge {
+                        MMBadge(badge.text, tint: badge.tint, systemImage: badge.symbol)
+                    }
                 }
                 Text("\(app.bundleID) · \(MMFormat.bytes(app.size)) · \((app.path as NSString).deletingLastPathComponent)")
                     .font(.caption.monospaced())
@@ -1733,6 +1782,15 @@ struct AppDetailView: View {
                 MMKeyRow("开发者", app.developer.isEmpty ? "" : "\(app.developer)（来自代码签名）")
                 MMKeyRow("最低系统", app.minSystemVersion)
                 MMKeyRow("可执行文件", app.executable)
+                if let launcher = app.steamLauncherValue {
+                    MMKeyRow("启动器", launcher, monospaced: true)
+                    if let basis = app.steamLauncherBasis {
+                        Text(basis)
+                            .font(.caption)
+                            .foregroundStyle(MMColor.secondaryLabel)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 MMKeyRow("修改时间", MMFormat.dateTime(app.modificationDate))
                 MMKeyRow("所在文件夹", (app.path as NSString).deletingLastPathComponent)
             }
@@ -1864,31 +1922,46 @@ struct AppDetailView: View {
 
 /// 复用 `MMItemRow` 的行高与勾选框语义，右侧再加一列"在访达中显示"。
 /// 只读项由 `MMItemRow` 自动禁用勾选框，因此不会出现在删除列表里。
+/// `caveat` 走行下方独立的一行小字，不挤进副标题：`MMItemRow` 的副标题只有一行、
+/// 且中间省略，"路径 · 证据 · 提醒"三样在窗口硬最小宽度下放不进去
+/// （判据是 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`，
+/// 修复后的同一档在 `11-steam-self-narrow-window.png`）。
 struct ResidualRow: View {
     let item: ResidualItem
     @Binding var isSelected: Bool
     let onToggle: () -> Void
 
     var body: some View {
-        MMItemRow(
-            title: item.name,
-            subtitle: "\(item.displayPath) · \(item.reason)",
-            value: MMFormat.bytes(item.size),
-            risk: item.risk,
-            systemImage: item.category.icon,
-            isSelected: $isSelected
-        ) {
-            Button {
-                MMReveal.open(item.path)
-            } label: {
-                Image(systemName: "folder")
+        VStack(alignment: .leading, spacing: 0) {
+            MMItemRow(
+                title: item.name,
+                subtitle: "\(item.displayPath) · \(item.reason)",
+                value: MMFormat.bytes(item.size),
+                risk: item.risk,
+                systemImage: item.category.icon,
+                isSelected: $isSelected
+            ) {
+                Button {
+                    MMReveal.open(item.path)
+                } label: {
+                    Image(systemName: "folder")
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+                .help("在访达中显示")
             }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            .help("在访达中显示")
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onToggle)
+
+            if let caveat = item.caveat {
+                Text(caveat)
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, MMGap.md)
+                    .padding(.bottom, MMGap.xs)
+            }
         }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onToggle)
     }
 }
 

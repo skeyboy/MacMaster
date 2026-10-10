@@ -595,3 +595,104 @@ regular 1）。注释是编译输入、进指纹，于是 `+e7579651` 变成 `+b
 根因未记；现在的兜底是 `# windows(pid=…)` 那行——再落错页，日志会当场说出这个 pid 有几扇窗、
 各是什么标题，不用猜。
 
+## 14. P32b 追加（2026-10-10）：v1.1 第 2 条「认出 Steam 启动器」十一档 + 一张修复前
+
+P32a 那八张（`docs/verification/p32-steam/`，审计文档 = `docs/analysis/uninstaller-steam-launcher.md`，
+落地记录在 `feature-roadmap.md` §10）拍的是**现状**：这一族在界面上被说成"一个 593 字节的普通应用"。
+这一族拍的是**实现之后**，四件事各有一档以上：详情面板「启动器」行的成立与不成立（不成立那一档
+是判据，不是配角）、反向那一条（卸载 Steam 本体时 `Application Support/Steam` 有没有点名 `steamapps`）、
+敏感度钩子 `MM_UNINSTALL_SENSITIVITY`（审计 §5 第 5 条与 `feature-roadmap.md` §10 都记过的取证缺口，本轮三档补齐）、钩子写错值。
+夹具与 P32a 同一支脚本（`Scripts/p32-steam-fixture.sh`，本轮补了第六份 bundle `SteamTwoEntries`），两族照片可以直接对读。
+
+```sh
+./Scripts/make-app.sh -o /tmp/mm-app-p32b -s /tmp/mm-scratch-p32b
+FIX=/tmp/macmaster-steam-fixture.DnwjwO \
+  ./Scripts/p32b-steam-launcher-capture.sh /tmp/mm-app-p32b/MacMaster.app docs/verification/p32b-steam
+ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
+```
+
+| 档 | env（除共用的假 home、`MM_OPEN_MODULE=uninstaller`） | 画面上必须有的（哨兵） |
+|---|---|---|
+| 01 steamgame-launcher-row | `SELECT=SteamGame` | 标题旁「Steam 启动器」徽章 + 列表行「启动器」chip + 键值行「Steam 生成的启动脚本 · SteamGame（appid 1091500）」+ 依据两句；同一张上「应用大小 593 字节」仍在（**它量的是启动器，这句话就是为它写的**） |
+| 02 runsh-launcher-row | `SELECT=SteamRunSh` | 那一行的脚本名是 `run.sh`（appid 440），依据首句跟着写成 `Contents/MacOS/run.sh`——**名字不影响识别**；包名「—」、残留 0 项 |
+| 03 plain-tool-control | `SELECT=PlainTool`（本体 8,389,057 B） | **否定档：那三样一个字都不能有**。这一张之外，其余十张的列表里 PlainTool 也一直不带 chip，是否定判据的交叉面。顺带在这张上又看见一次「版本 1.0 ()」（`CFBundleVersion` 缺失那处口径，审计 §5 第 6 条，**本轮未动**） |
+| 04 noid-launcher-row | `SELECT=SteamNoId` | 没有 `CFBundleIdentifier` 仍识别（Mole 两处注释都承认真机这类 bundle 常常没包名）：徽章 + chip + 「启动器 … `SteamNoId`（appid 220）」三样都在，而同一张上「包名 —」「来源 无法判定」「残留 0 项」——**识别与残留是两条腿，一条断了另一条照走** |
+| 05 two-entries-fallback | `SELECT=SteamTwoEntries` | 「可执行文件 Launcher」+「启动器 … `run.sh`（appid 570）」**同时**在画面上：第一条入口按合同不成立（两段命令），走第二条兜底——这一张证的正是"两条入口都试"那句取舍 |
+| 06 steam-self-caveat | `SELECT=Steam`，`1400x1000` | 反向那一条：残留 1 项、`~/Library/Application Support/Steam` 25.2 MB、谨慎、未勾（页脚「已选 0 项残留 · 0 字节」），**行下方独立那一整句**「这一项内含 steamapps 目录，已装游戏通常在它下面；删掉这一项会连游戏一起删。」 |
+| 07 enhanced-steamgame-residuals | `SELECT=SteamGame`，`enhanced` | 3 项 524 KB，**没有 `steamapps/common/SteamGame` 这一行**（那 25,165,832 B 不作为残留出现） |
+| 08 deep-steamgame-residuals | 同上，`deep` | 与 07 **同一份清单**：这一族的候选全在 0 层，增强与深度对它没有差别——"三档都到不了游戏"现在有照片，不再只有层数推导 |
+| 09 deep-steam-self-residuals | `SELECT=Steam`，`deep` | 4 项；谨慎组里 Steam 那一行仍带整句提醒（1400 宽），跨应用那条也在同一张上（见 §14.3 末） |
+| 10 bad-hook-value-fallback | `SELECT=SteamGame`，`SENSITIVITY=enhance`（非法值） | 选择器停在「严格」；日志里 stderr 那一行「含非法取值（enhance），只接受 strict\|enhanced\|deep，已回落 strict 档」 |
+| 11 steam-self-narrow-window | `SELECT=Steam`，`1000x1000` | 窗口硬最小宽度那一档：06 那一句**仍然整句可见**，卡片边框包住两行 |
+| 11a narrow-window-truncation-before-fix | 同上（**修复前**） | 判据照片：提醒当时是拼在副标题里的，画面上只剩 `~/Library/Application` 与 `已装游戏通常在其下` 两段，中间连 `steamapps` 这个词都被省略号吃掉 |
+
+十一份日志的 `# digest:` 全是 `tree=fdf0f95+71d7740f`；11a 是 `+1f91a012`，
+**这两处不同源是故意的**——11a 要留的就是"改之前长什么样"，它不该跟着重拍。
+`# repo:` 两边都写 `fdf0f95-dirty`（本轮改动未提交时拍的，提交后 `git status` 该族变干净）。
+
+**未喂 `MM_WINDOW_SIZE` 的那几档（01–05、10）尺寸不是脚本给的**：两次整族重跑之间，
+01–05 从 1000×652 变成 1000×1000、10 从 1400×1000 变成 1000×1000。
+所以这一族的判据不挂在它们的高度上；十二张每张都单独对过一次
+`# windows(pid=…)` 记的实际 bounds 与 png 的 pixel 尺寸，**当次跑内一一对上**。
+
+### 14.1 照片抓出来的两处，都不是单测能抓的
+
+1. **同屏自相矛盾**（06 与 01 对读出来的）：依据那一句原先收尾在"也说不出它们在哪"，
+   而同一屏的残留行写着"内含 steamapps"并给着 25.2 MB。改成
+   「我们只读了这份启动脚本，没有按游戏逐个认，所以说不出装了哪些、各自多大」——
+   **没成立的东西一个字都不能占一格**，这一句现在也进了测试禁词表
+   （`SteamLauncherPresentationTests` 里"说不出它们在哪"是禁词，它记录的是本轮真实踩过的那次越界）。
+2. **窄窗截断**（11a → 11）：行内提醒最初是拼进 `MMItemRow` 副标题的，
+   而副标题固定 `.lineLimit(1)` + 中间省略（`MMDesign.swift:858-860`），
+   光路径 `~/Library/Application Support/Steam` 就有 **35 个字符**（`printf '%s' … | wc -c` 现读），
+   接在"路径 · 证据"后面等于没写。改法是给 `ResidualItem` 加一个独立字段
+   `caveat`（`ResidualScanner.swift:159`），由 `ResidualRow` 画在行下方
+   （`MMUninstaller.swift:1929-1964`，`.fixedSize(horizontal: false, vertical: true)`）。
+   **顺带把另一处截断分了性质**：1000 宽时身份头那行也是中间省略
+   （`com.valvesoftware.Steam_re…/DnwjwO/Applications`），但它复述的包名与文件夹
+   在下面各有一行完整的，所以那一处不藏判据——与 11a 不同性质，本轮不动它。
+
+### 14.2 提醒只挂在它该挂的那一行
+
+`ResidualCollector.add` 是三条扫描路的唯一收口点，命中判定放在新建候选那一刻
+（`ResidualCollector.swift:59` 与 `:120-124`）：只认 `Application Support` 这一类、
+只看**直接子项**里有没有 `steamapps`、不递归不数大小。
+五条单测钉住它（`ResidualCollectorSteamTests`，含"同一个路径命中两次不许接两遍"与
+"目录读不到时保留原句、不因异常丢行"）。08 那张是这条边界的照片侧对照：
+`~/Library/Application Support/SteamGame` 也是一条 `Application Support` 候选（1 MB、谨慎），
+它下面直接就是 Preferences 那一行，**一个字提醒都没加**——命中条件不是"凡是 Application Support 都提醒"。
+
+**为什么 25.2 MB 那个数值得单独一句**：`du -sk` 现读，夹具里
+`Application Support/Steam` 24,592 KB、其下 `steamapps/common/SteamGame` 24,580 KB——
+**那一行的体积 99.95% 是游戏**。分组那句"可能包含登录态或未同步数据"讲的是账号，
+而画面右侧那个数是游戏库，这就是提醒必须由这一行自己说的理由。
+
+### 14.3 这一族没验到的，写在明处
+
+- **真机上的 `Steam.app` 长什么样，本机无从验**（没装 Steam，`/Applications/Steam.app` 与
+  `~/Library/Application Support/Steam` 两条都现读不存在）。所以照片里 Steam 本体自己也挂着
+  「Steam 启动器」徽章、appid 0——那是**夹具的构造**（`make_launcher Applications Steam Steam com.valvesoftware.Steam 0`
+  给它写了同样的启动脚本），不是对 Valve 那份 bundle 的主张。
+  合同只说"满足这套判据的 bundle 会被这样标"，**不能拿这十一张断言真机不会挂、也不能断言它会挂**。
+- **`steamapps` 之下到底几层能到，仍然只有推导**：07/08 证到的是"增强与深度两档，
+  游戏目录都不作为残留行出现"，至于要放宽到哪一档才够到，本轮没有去改层数试（那是审计 §5 第 4 条里"改清单"那一档，待人拍板）。
+- **09 顺出来的那条不在本轮范围内**：深度档"名称包含应用名"会跨应用收残留，
+  且 `Caches/com.example.steamgame` 归到 Steam 名下**默认勾选**（页脚「已选 1 项残留 · 524 KB」）。
+  本轮一个字没动它，另立 P33a 审计（任务 #161）。
+- **测试**：九包 **706 / 0 失败 / 1 跳过**（`Scripts/run-all-tests.sh`，本轮在最终树上跑过两次，
+  两份输出 `diff` 为空），其中 MMUninstaller 148 → **186**（+38，其余八格与
+  `docs/verification/p31-citations/run-all-tests.log` 那份逐字相同——这一句是 `diff` 出来的，不是推的）：
+  Steam 这一族三个新文件共 **34** 条
+  （`SteamLauncherProbeTests` 24 + `SteamLauncherPresentationTests` 5 + `ResidualCollectorSteamTests` 5），
+  余下 4 条在改过的那份 `ResidualSensitivityTests` 里（6 → 10，+36 行；两头现读：
+  `git show HEAD:` 那一份数 `func test` 得 6，跑出来的日志数该 suite 得 20 行 = 10 条 × started/passed）。
+  结论行入库 `docs/verification/p32b-steam-citations/run-all-tests.log`，
+  **那一格的头部还记着一件与本轮无关、但下一个人一定会撞上的事**：
+  `git add` 之后 `mm_source_digest` 的后半截从 `71d7740f` 变成 `c6baaaa5`，
+  而内容一个字节都没改——配方里已跟踪的走 `git diff HEAD`（带头）、未跟踪的走 `cat`（不带），
+  `SteamLauncherProbe.swift` 搬过这条线就换了一次算法。复算对不上的人不必翻二进制。
+- **整族重拍的代价，本轮付了两次**：第二次的原因是只改了一句**源码注释**
+  （`SteamLauncherProbe.swift:191` 里那句引号中的文案已经不是我实现的那句了）。
+  注释是编译输入、进指纹，于是 `+1f91a012` → `+71d7740f`，门禁当场拒拍。
+  与 §13 那一次同一笔账：多花四分钟重建重跑，换来这十一张与现在这份源码确实同源。
+

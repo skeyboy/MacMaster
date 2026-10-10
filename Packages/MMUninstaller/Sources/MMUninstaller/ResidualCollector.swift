@@ -15,6 +15,7 @@ struct ResidualCollector {
         let category: ResidualCategory
         let risk: MMRisk
         let reason: String
+        let caveat: String?
         let size: UInt64?
     }
 
@@ -43,7 +44,8 @@ struct ResidualCollector {
             if let existing = candidates[id], riskPriority(risk) > riskPriority(existing.risk) {
                 candidates[id] = Candidate(path: existing.path, displayPath: existing.displayPath,
                                            name: existing.name, category: existing.category,
-                                           risk: risk, reason: existing.reason, size: existing.size)
+                                           risk: risk, reason: existing.reason,
+                                           caveat: existing.caveat, size: existing.size)
             }
             return
         }
@@ -54,6 +56,7 @@ struct ResidualCollector {
             category: category,
             risk: risk,
             reason: reason,
+            caveat: Self.steamGameLibraryCaveat(path: path, category: category),
             size: measure(path)
         )
         order.append(id)
@@ -76,7 +79,8 @@ struct ResidualCollector {
                 category: candidate.category,
                 risk: candidate.risk,
                 reason: candidate.reason,
-                size: candidate.size
+                size: candidate.size,
+                caveat: candidate.caveat
             )
         }
         .sorted { lhs, rhs in
@@ -105,6 +109,18 @@ struct ResidualCollector {
         guard Darwin.lstat(path, &info) == 0 else { return false }
         // 不可变标志（uchg）会让 trashItem 直接失败，显示只读比给一个坏按钮诚实。
         return (info.st_flags & UInt32(UF_IMMUTABLE)) == 0
+    }
+
+    // MARK: 这一行自己的提醒
+
+    /// `Application Support` 这一类的行只在候选新建时看一次直接子项：
+    /// 命中 `steamapps` 就把"这一行里装的是什么"交给这一行下方那一句话。
+    /// 只做一次目录列举、不递归、不数大小——分组那句"可能包含登录态或未同步数据"
+    /// 说的是账号，游戏库是另一件事，得由这一行自己说。
+    private static func steamGameLibraryCaveat(path: String, category: ResidualCategory) -> String? {
+        guard category == .applicationSupport else { return nil }
+        let children = try? FileManager.default.contentsOfDirectory(atPath: path)
+        return SteamGameLibraryCaveat.note(children: children)
     }
 
     /// `/var` 与 `/private/var` 是同一个目录的两种写法，不先解析就会静默不等。

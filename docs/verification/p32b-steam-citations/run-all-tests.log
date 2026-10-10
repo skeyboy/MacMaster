@@ -1,0 +1,56 @@
+# run-all-tests.sh  P32b（v1.1 第 2 条「认出 Steam 启动器」）  2026-10-10 19:46:36 +0800（结论行完成时刻）
+# repo: fdf0f95-dirty branch=main
+# digest: fdf0f95+71d7740f
+# 说明：格式续 `docs/verification/p31-citations/run-all-tests.log`。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成）。
+#       **这一跑在作者的工作树上，不是干净克隆**：跑测那一刻本轮的四处源码改动
+#       （`MMUninstaller.swift` / `ResidualCollector.swift` / `ResidualScanner.swift` / `UninstallerModel.swift`）
+#       与新增的 `SteamLauncherProbe.swift` 都还没提交，`# repo:` 因此带 `-dirty`。
+#       它与照片同源这一条由本轮那**十一**份日志背书：`# digest: tree=fdf0f95+71d7740f app=fdf0f95+71d7740f`
+#       （十二份里 11a 那一份是 `+1f91a012`，它是故意留在"改之前"的，所以这一句写的是十一份——
+#       `grep -h '^# digest' docs/verification/p32b-steam/*.log | sort | uniq -c` 现读 11 与 1 两行）。
+#       出片 19:40:33（末档 11，倒数第二档 10 在 19:40:22），跑测 19:46:36，中间一行编译输入都没动：
+#       `stat -f '%Sm %N' Packages/MMUninstaller/Sources/MMUninstaller/*.swift` 现读最新的一份是
+#       `SteamLauncherProbe.swift` 19:36:49，正好是那次改注释的时刻，也在重建（19:38）之前。
+#
+#       **后半截这个数在提交前就已经不是它自己了，这一句是给下一个读它的人排的坑**：
+#       20:22 那一次 `git add` 之后现读 `mm_source_digest` = `fdf0f95+c6baaaa5`，
+#       而后半截变了的那 6 位**对应的一个字节都没改**。原因是配方本身：
+#       `Scripts/mm-provenance.sh:51-53` 把编译输入分成两股——已跟踪的走
+#       `git diff HEAD --binary`（带 `diff --git` / `new file mode` / `+++` 这些头），
+#       未跟踪的走 `cat`（只有文件内容）。`SteamLauncherProbe.swift` 从"未跟踪"搬进"暂存"
+#       就是从一个算法换到另一个算法，所以 `add` 这个动作本身会让指纹变，
+#       哪怕内容一字未动（核对：`git ls-files --others --exclude-standard -- Sources Packages
+#       Resources Package.swift ':(exclude)Packages/*/Tests/**'` 现读 **0**，
+#       也就是说这一族当时唯一的未跟踪编译输入就是它，而它现在整份都在 `git diff HEAD` 里）。
+#       这和 `release-readiness.md` §1「照片与二进制同源的门禁」那一格已经写过的
+#       "提交让**前半截**（短 sha）失配"是同一支配方上的两处性质，
+#       只是这一处换的是**后半截**，而且发生在 commit 之前的 `add` 那一刻。
+#       所以拿这一行去复算的人会得到 `c6baaaa5`：**这不是照片与产物不同源的证据**，
+#       这一族真正的同源凭证是出片当场那两行相等的 `tree=`/`app=`——门禁在 19:40 就替它签过一次了，
+#       而门禁的设计是"当场拒"（`Scripts/mm-provenance.sh:14-16`），事后复算从来不在它的合同里。
+#
+#       **本轮不是发版核验的一遍**：只跑了 §10 的第 1 步（九包全量），没跑第 2、3 步
+#       （签名/plist/spctl 与那三张基础照片），所以"第几遍"那个数不加——验收不变量第 2 条
+#       （feature-roadmap.md §7）要的是真跑过第 3 步，拍了多少张照片都不算。
+#       数字变化只有一格：MMUninstaller 148 → **186**（+38）。逐包求和 = 706，与合计那一格一致
+#       （自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
+#       +38 的出处（从 /tmp 那一份原始日志现数，口径先写在明处：
+#       `grep -c "Test Case.*<suite>"` 数到的是"每条测试的 started 行 + passed 行"，所以要除以 2）：
+#         ResidualCollectorSteamTests 5（全新）、SteamLauncherProbeTests 24（全新）、
+#         SteamLauncherPresentationTests 5（全新）、ResidualSensitivityTests 6 → 10（+4，
+#         旧的那 6 条现读 `git show HEAD:…/ResidualSensitivityTests.swift | grep -c 'func test'`）。
+#       5+24+5+4 = 38，与那一格的净增对得上——**这一行不是"三.new 文件相加"凑出来的**，
+#       是逐条从跑出来的日志与旧文件里两头读回来再合的。
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=186  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no
+
+合计：706 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log

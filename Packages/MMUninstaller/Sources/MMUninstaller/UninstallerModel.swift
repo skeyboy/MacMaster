@@ -30,13 +30,17 @@ public struct UninstallCandidate: Identifiable, Sendable {
     /// 怎么来到这台机器上的（只读凭据推断，见 `AppProvenance.swift`）。
     /// 载入时一次算好贴在条目上：证据是"账本 + 设备号"，与残留扫描无关，不必跟着敏感度重算。
     public let provenance: AppProvenance
+    /// 这是一个 Steam 启动器型 bundle（本体只是一个 `open steam://run/<数字>` 脚本）。
+    /// nil = 没成立。与 `provenance` 是**两个维度**：brew 装的启动器两句同时成立，
+    /// 所以它刻意不并进 `AppProvenance.Source`（判定与合同见 `SteamLauncherProbe.swift`）。
+    public let steamLauncher: SteamLauncherInfo?
 
     init(id: String, name: String, bundleName: String, path: String, bundleID: String, version: String,
          build: String, minSystemVersion: String, executable: String, developer: String, teamID: String,
          modificationDate: Date?, size: UInt64? = nil, fileCount: Int? = nil,
          residuals: [ResidualItem] = [], residualSize: UInt64? = nil,
          residualScanFailed: Bool = false, isSystemOwned: Bool = false,
-         provenance: AppProvenance = .unknown) {
+         provenance: AppProvenance = .unknown, steamLauncher: SteamLauncherInfo? = nil) {
         self.id = id
         self.name = name
         self.bundleName = bundleName
@@ -56,6 +60,7 @@ public struct UninstallCandidate: Identifiable, Sendable {
         self.residualScanFailed = residualScanFailed
         self.isSystemOwned = isSystemOwned
         self.provenance = provenance
+        self.steamLauncher = steamLauncher
     }
 }
 
@@ -173,7 +178,11 @@ public final class UninstallerModel: ObservableObject {
     /// 缺席 = 还没读过，界面这时什么都不说（`.notRunning` 是一种主张，不能当默认值）。
     @Published public private(set) var runningStates: [String: AppRunningState] = [:]
 
-    public init() {}
+    public init() {
+        // 取证钩子：拍"增强/深度两档到底能说到哪一句"用得上它。写错值会回落 strict
+        // 并在 stderr 留一行（`MMHookValue` 那套规矩），所以不会有"照片停在另一档而日志不说"的事。
+        sensitivity = MMHookValue.selected(key: "MM_UNINSTALL_SENSITIVITY", fallback: .strict)
+    }
 
     public var selectedApp: UninstallCandidate? {
         apps.first { $0.id == selectedAppID }
@@ -229,8 +238,15 @@ public final class UninstallerModel: ObservableObject {
         let provenances = await Task.detached(priority: .userInitiated) {
             Self.provenanceMap(for: discovered, prefixes: prefixes, receiptsRoot: receiptsRoot)
         }.value
+        // 启动器判定和来源识别一样是"每条目一次 plist + 一两次 stat"，不遍历树，
+        // 所以同样放在测大小之前：列表出来那一秒就该知道谁是启动器。
+        let launchers = await Task.detached(priority: .userInitiated) {
+            Self.steamLauncherMap(for: discovered)
+        }.value
 
-        apps = discovered.map { makeCandidate(from: $0, provenance: provenances[$0.path]) }
+        apps = discovered.map {
+            makeCandidate(from: $0, provenance: provenances[$0.path], steamLauncher: launchers[$0.path])
+        }
         // 运行状态跟着清单一起读：这一次遍历覆盖整张列表，等测大小那几十秒过去再读，
         // 列表里那些"运行中"就已经是过期结论了。
         refreshRunningStates()
@@ -273,7 +289,25 @@ public final class UninstallerModel: ObservableObject {
         return map
     }
 
-    private func makeCandidate(from app: DiscoveredApp, provenance: AppProvenance?) -> UninstallCandidate {
+    /// 路径 → 启动器凭据。没成立的不入表（nil 就是默认值）。
+    /// 成本：每个应用多一次 `Contents/Info.plist` 读取加一到两次 `lstat`，
+    /// 正文只可能是启动器的形状才读（可执行且 ≤4096 字节），几十兆的 Mach-O 不会被 slurp 进内存。
+    nonisolated private static func steamLauncherMap(for discovered: [DiscoveredApp])
+        -> [String: SteamLauncherInfo] {
+        var map: [String: SteamLauncherInfo] = [:]
+        for app in discovered {
+            let executable = AppScanner.stringValue(AppScanner.infoDictionary(at: app.path),
+                                                    "CFBundleExecutable")
+            let candidates = SteamLauncherProbe.read(appPath: app.path, bundleExecutable: executable)
+            if let info = SteamLauncherProbe.resolve(candidates: candidates) {
+                map[app.path] = info
+            }
+        }
+        return map
+    }
+
+    private func makeCandidate(from app: DiscoveredApp, provenance: AppProvenance?,
+                               steamLauncher: SteamLauncherInfo?) -> UninstallCandidate {
         let info = AppScanner.infoDictionary(at: app.path)
         let signature = AppScanner.signatureInfo(of: app.path)
         return UninstallCandidate(
@@ -290,7 +324,8 @@ public final class UninstallerModel: ObservableObject {
             teamID: signature.teamID,
             modificationDate: AppScanner.modificationDate(of: app.path),
             isSystemOwned: AppScanner.isSystemOwned(bundleID: app.bundleID),
-            provenance: provenance ?? .unknown
+            provenance: provenance ?? .unknown,
+            steamLauncher: steamLauncher
         )
     }
 

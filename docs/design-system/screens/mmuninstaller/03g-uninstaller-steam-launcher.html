@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:24px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px;align-items:center}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.win{height:auto}
+.split{flex:1;min-height:0;display:flex}
+.applist{width:268px;flex:0 0 268px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow.sel{background:var(--c-accent-soft)}
+.arow .ic{width:32px;height:32px;border-radius:8px;flex:0 0 32px;display:grid;place-items:center;
+          color:#fff;font-size:12px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+              display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.arow .z small{display:block;font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+.src{display:inline-flex;align-items:center;height:16px;padding:0 5px;border-radius:var(--r-xs);
+     font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.2px;flex:0 0 auto}
+.src.brew{background:var(--c-accent-soft);color:var(--c-accent)}
+.src.steam{background:color-mix(in srgb, var(--c-info) 16%, transparent);color:var(--c-info)}
+.detail{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.dsec{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);overflow:hidden}
+.dsec+.dsec{border-top:1px solid var(--c-separator)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-2)}
+.cards .c{border:1px solid var(--c-separator);border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);
+          display:flex;flex-direction:column;gap:2px;background:var(--c-card-bg-alt)}
+.cards .c i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.cards .c b{font-family:var(--font-mono);font-size:var(--fs-title3);font-weight:500}
+/* 「启动器」这一行就住在基本信息里：紧跟「可执行文件」，依据小字接在同一行下面。
+   实现是 MMKeyRow + 一段 caption，所以这里也用 dl 的一行 + 一行缩进小字。 */
+dl.kv dd.basis{grid-column:2;font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.55}
+.rrow{display:flex;align-items:center;gap:var(--sp-3);min-height:44px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator)}
+.rrow .cb{width:14px;height:14px;border:1px solid var(--c-separator);border-radius:3px;flex:0 0 14px}
+.rrow .m{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.rrow .m b{font-weight:500;font-size:var(--fs-body)}
+.rrow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);white-space:nowrap;overflow:hidden;
+              text-overflow:ellipsis;font-family:var(--font-mono)}
+/* 提醒走副标题下方那一行，不拼进上面那行等宽小字：上面那行是 nowrap + ellipsis，
+   窗口硬最小宽度下路径自己就把它占满了（现读判据：
+   docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png）。 */
+.rblock{border-bottom:1px solid var(--c-separator)}
+.rblock .rrow{border-bottom:none}
+.rnote{padding:0 var(--sp-3) 8px var(--sp-3);font-size:var(--fs-caption);
+       color:var(--c-label-secondary);line-height:1.5}
+.matrix{display:grid;grid-template-columns:150px 1fr;gap:1px;background:var(--c-separator);
+        border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:920px}
+.matrix>div{background:var(--c-card-bg);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption)}
+.matrix .h{background:var(--c-card-bg-alt);font-weight:600;color:var(--c-label-secondary)}
+.matrix .k{font-family:var(--font-mono);color:var(--c-label-secondary)}
+.matrix .v{display:flex;flex-direction:column;gap:5px}
+.matrix .v .mono{font-family:var(--font-mono)}
+.matrix .v .sub{color:var(--c-label-tertiary);line-height:1.55}</style></head>
+<body>
+
+<!-- ───────────── 画板 1：列表「启动器」+ 详情「启动器」行 ───────────── -->
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span><span class="pct">6% 可用</span></div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>6 个应用 · 合计 33.0 MB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow sel"><span class="ic" style="background:#1B2838">Sg</span>
+              <div class="m"><b>SteamGame</b><span><i class="src steam">启动器</i>1.0 · 593 B</span></div>
+              <div class="z">3 项残留<small>524 KB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#1B2838">S2</span>
+              <div class="m"><b>SteamTwoEntries</b><span><i class="src steam">启动器</i>1.0 · 205 B</span></div>
+              <div class="z">0 项残留<small>—</small></div></div>
+            <div class="arow"><span class="ic" style="background:#1B2838">St</span>
+              <div class="m"><b>Steam</b><span>1.0 · 593 B</span></div>
+              <div class="z">1 项残留<small>25.2 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#8E8E93">Pt</span>
+              <div class="m"><b>PlainTool</b><span>1.0 · 8.0 MB</span></div>
+              <div class="z">0 项残留<small>—</small></div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">6 个应用 · 已测 6</span></div>
+        </div>
+
+        <div class="detail">
+          <div class="dsec">
+            <div class="row-h" style="gap:var(--sp-3)">
+              <span class="ic" style="width:38px;height:38px;border-radius:9px;background:#1B2838;display:grid;place-items:center;color:#fff;font-weight:700">Sg</span>
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span class="row-h" style="gap:var(--sp-2)"><span class="t-title2">SteamGame</span>
+                  <span class="badge info"><svg class="i" style="width:11px;height:11px"><use href="#i-game"></use></svg>Steam 启动器</span></span>
+                <span class="t-mono ter" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">com.example.steamgame · 593 B · /private/tmp/macmaster-steam-fixture.DnwjwO/Applications</span></div>
+              <div style="margin-left:auto" class="row-h"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>打开所在文件夹</span></div>
+            </div>
+            <div class="cards">
+              <div class="c"><i>应用大小</i><b>593 B</b></div>
+              <div class="c"><i>包含文件</i><b>2</b></div>
+              <div class="c"><i>残留大小</i><b>524 KB</b></div>
+              <div class="c"><i>残留项</i><b>3</b></div>
+            </div>
+          </div>
+
+          <div class="dsec">
+            <span class="section-title">基本信息</span>
+            <dl class="kv" style="margin:0">
+              <dt>来源</dt><dd>无法判定</dd>
+              <dt>包名</dt><dd>com.example.steamgame</dd>
+              <dt>版本</dt><dd class="plain">1.0 (1)</dd>
+              <dt>可执行文件</dt><dd>SteamGame</dd>
+              <dt>启动器</dt><dd class="plain">Steam 生成的启动脚本 · SteamGame（appid 1091500）</dd>
+              <dd class="basis">判定依据：Contents/MacOS/SteamGame 是可执行脚本（≤ 4096 字节），正文只有一行 open steam://run/1091500。这类 bundle 的「应用大小」量的就是启动器本身，不是已装游戏；我们只读了这份启动脚本，没有按游戏逐个认，所以说不出装了哪些、各自多大。</dd>
+              <dt>修改时间</dt><dd>2026-10-10 18:05</dd>
+              <dt>所在文件夹</dt><dd>/private/tmp/macmaster-steam-fixture.DnwjwO/Applications</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>03g-1 · 识别成立时，界面上多出三处话：列表行那枚「启动器」、标题旁那枚「Steam 启动器」、基本信息里紧跟「可执行文件」的那一行及其判定依据小字。</b>
+  这一屏的实物：<code>docs/verification/p32b-steam/01-steamgame-launcher-row.png</code>（夹具 <code>Scripts/p32-steam-fixture.sh</code>，
+  假 home 走 <code>MM_UNINSTALL_CONFIRM_FIXTURE_HOME</code>）。画面上「应用大小 593 B」与「残留 524 KB」都还是原样——
+  <b>这一版不改删除集合，也不改任何已存在的数字</b>，只把"那个数字量的是谁"说出来。
+  对照基准是 P32a 的 <code>docs/verification/p32-steam/01-steamgame-list-detail.png</code>：同一份夹具、同一个选中项，
+  那一轮画面上<b>一处都没有</b>这一族的话。</div>
+</div>
+
+<!-- ───────────── 画板 2：反向那一条——残留行里的 steamapps ───────────── -->
+<div class="artboard">
+<div style="width:760px;border:1px solid rgba(0,0,0,.18);border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden;background:var(--c-window-bg)">
+  <div style="padding:var(--sp-3) var(--sp-4);border-bottom:1px solid var(--c-separator)">
+    <span class="section-title">将一并移除的残留</span>
+    <span class="t-cap" style="margin-left:8px">Steam · 按包名与容器证据匹配 · 不含其他应用的共享文件</span>
+  </div>
+  <div class="rblock"><div class="rrow"><span class="cb"></span>
+    <div class="m"><b>Steam</b><span>~/Library/Application Support/Steam · 名称与包名对应</span></div>
+    <span class="badge warn">谨慎</span></div>
+    <div class="rnote">这一项内含 steamapps 目录，已装游戏通常在它下面；删掉这一项会连游戏一起删。</div>
+  </div>
+  <div class="rrow"><span class="cb"></span>
+    <div class="m"><b>com.valvesoftware.Steam.plist</b><span>~/Library/Preferences/com.valvesoftware.Steam.plist · 包名同名的偏好文件</span></div>
+    <span class="badge warn">谨慎</span></div>
+  <div class="rrow"><span class="cb"></span>
+    <div class="m"><b>SteamGame</b><span>~/Library/Application Support/Steam/steamapps/common/SteamGame · 不会出现在这里：三档都够不到（见画板 3 末行）</span></div>
+    <span class="badge readonly">只读示意</span></div>
+</div>
+<div class="cap" style="max-width:760px"><b>03g-2 · 反方向那一条（审计 §5.4，优先级高于"认出启动器"）：卸载 Steam 本体时，
+  <code>~/Library/Application Support/Steam</code> 本来就是一条谨慎残留，而真机上那一个目录装着全部已装游戏。</b>
+  这一行原来只有分组那句"可能包含登录态或未同步数据"——说的是账号，不是游戏库。
+  现在判定只看这个目录的<b>直接子项里有没有 <code>steamapps</code> 这一个名字</b>：不猜、不数、不算大小。
+  实物：<code>docs/verification/p32b-steam/06-steam-self-caveat.png</code>。
+  第三条是<b>否定项示意</b>（画出来是为了把"够不到"这句话放在合同里）：游戏目录不作为一条残留出现，
+  严格/增强/深度三档都如此，照片分别是 06/07/08/09 那四张。</div>
+</div>
+
+<!-- ───────────── 画板 3：文案合同 ───────────── -->
+<div class="artboard">
+<div class="cap" style="max-width:920px"><b>03g-3 · 四个档位，逐字照 <code>MMUninstaller.swift</code>「启动器型 bundle 的呈现口径」一节与
+  <code>SteamLauncherProbe.swift</code>。</b>事实层只回答"这个 bundle 的可执行文件是不是一份 <code>steam://</code> 启动脚本"；
+  颜色、措辞、哪一档占列表一格，全在呈现层。</div>
+<div class="matrix">
+  <div class="h">档位</div><div class="h">列表 chip ／ 标题徽章 ／ 详情值 ／ 判定依据</div>
+
+  <div class="k">识别成立<br>第一条入口<br><span class="mono">CFBundleExecutable</span></div>
+  <div class="v">
+    <div class="line">chip：<b>启动器</b>（信息色）· 徽章：<b>Steam 启动器</b>（gamecontroller）</div>
+    <div class="line">值：Steam 生成的启动脚本 · SteamGame（appid 1091500）</div>
+    <div class="line">依据：判定依据：Contents/MacOS/SteamGame 是可执行脚本（≤ 4096 字节），正文只有一行 open steam://run/1091500。这类 bundle 的「应用大小」量的就是启动器本身，不是已装游戏；我们只读了这份启动脚本，没有按游戏逐个认，所以说不出装了哪些、各自多大。</div>
+    <div class="sub">实物：<code>01-steamgame-launcher-row.png</code>；没有包标识那一份同样成立（识别不看包名）：<code>04-noid-launcher-row.png</code>。</div>
+  </div>
+
+  <div class="k">识别成立<br>第二条入口<br><span class="mono">run.sh</span></div>
+  <div class="v">
+    <div class="line">同一套话，只有脚本名换：<span class="mono">Steam 生成的启动脚本 · run.sh（appid 570）</span></div>
+    <div class="line">依据里的凭据跟着变成 <span class="mono">Contents/MacOS/run.sh … open steam://run/570</span></div>
+    <div class="sub">两份参考对"脚本叫什么"没有共识（Mole 读 <code>CFBundleExecutable</code>，Pearcleaner 写死 <code>run.sh</code>），
+      所以判定层<b>两条都试</b>：plist 指的那一段不成立才轮到写死的名字。夹具里 <code>SteamTwoEntries.app</code> 就是专门造来撞这一条的
+      （plist 指向的 <code>Launcher</code> 是两段命令，按合同不算；同目录的 <code>run.sh</code> 才是那一行）。
+      实物：<code>05-two-entries-fallback.png</code>。</div>
+  </div>
+
+  <div class="k">识别不成立</div>
+  <div class="v">
+    <div class="line">chip：无 · 徽章：无 · 「启动器」这一整行不出现（不是写成"—"，也不是"不是启动器"）</div>
+    <div class="sub">对照组本体真有 8 MiB 的普通应用：<code>03-plain-tool-control.png</code>。
+      这一档的判据与"没有凭据就不许说成有"同源（03d 的 <code>unknown</code> 不写成"手动安装"）：
+      <b>没成立的东西一个字都不能占一格</b>。脚本超限（&gt;4096）、不可执行、正文两行、URL 动词不在
+      <code>run|rungameid|launch</code>、appid 不是 ASCII 数字——全部落回这一档。</div>
+  </div>
+
+  <div class="k">残留行里的<br>steamapps</div>
+  <div class="v">
+    <div class="line">行下方独立那一行：<b>这一项内含 steamapps 目录，已装游戏通常在它下面；删掉这一项会连游戏一起删。</b></div>
+    <div class="line">追加条件：这一条是 <code>Application Support</code> 类的候选，<b>且它的直接子项里有 <code>steamapps</code></b>；两个条件少一个就一个字不加。</div>
+    <div class="sub">追加发生在 <code>ResidualCollector.add</code>——三条扫描路的唯一收口点，所以同一个路径命中两次也不会挂两遍。</div>
+    <div class="sub"><b>它为什么不拼进副标题</b>：副标题那一行是等宽小字 + 单行 + 中间省略，
+      窗口硬最小宽度 1000 时光 <code>~/Library/Application Support/Steam</code>（35 个字符）就把它占满，
+      后半句只剩尾巴——被省略号吃掉的正好是 <code>steamapps</code> 那个词本身。
+      判据：<code>docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png</code>（修复前），
+      修复后的同一档：<code>11-steam-self-narrow-window.png</code>。承载字段因此是 <code>ResidualItem.caveat</code>，
+      渲染在 <code>ResidualRow</code> 里 <code>MMItemRow</code> 的下方。</div>
+    <div class="sub"><b>分组那句"可能包含登录态或未同步数据"没改</b>：<code>MMRisk.groupNote</code> 是全站共用的一句
+      （清理、磁盘、守护三页都在用），为这一族改它会把别处一起改掉。本轮走的是"行内说清楚"这一档，
+      <b>改 <code>ResidualCatalog</code> 清单</b>那一档仍待人拍板（审计 §5.4）。</div>
+  </div>
+
+  <div class="k">敏感度三档<br>与取证钩子</div>
+  <div class="v">
+    <div class="line">钩子 <span class="mono">MM_UNINSTALL_SENSITIVITY=strict|enhanced|deep</span>；档位名与界面选择器同源（<code>ResidualSensitivity.allCases</code>）</div>
+    <div class="line">写错值：回落 <span class="mono">strict</span> + stderr 留一行"含非法取值（enhance），只接受 strict|enhanced|deep，已回落 strict 档"（实物 <code>10-bad-hook-value-fallback.png</code>）</div>
+    <div class="sub">这一档是 P32a §5.5 承认的取证缺口补上的：在那之前"增强/深度到不到得了游戏目录"只有代码推导。
+      三档实测都<b>收不到</b> <code>steamapps/common/&lt;游戏&gt;</code>：包含匹配的方向是"文件名包含应用名"
+      （<code>ResidualNameMatcher.swift:83-92</code>），而最深只检查到 <code>common</code> 这一层的名字。
+      照片：<code>06-steam-self-caveat.png</code>（严格）、<code>07-enhanced-steamgame-residuals.png</code>、
+      <code>08-deep-steamgame-residuals.png</code>、<code>09-deep-steam-self-residuals.png</code>。</div>
+  </div>
+</div>
+<div class="cap" style="max-width:920px"><b>这一页不该说的话</b>：不写游戏的大小（我们没数过）、不写"游戏在别处所以我们不管"、
+  不写"这里没有你的游戏"、不写"已含全部游戏数据"。合同原文见
+  <code>docs/analysis/uninstaller-steam-launcher.md</code> §5.3：这一层只读过那一个脚本，
+  所以能说的只有"大小量的是启动器"这一句——与 P31a「只有包名对上」那一档只说"写法不同"是同一条纪律。
+  <b>删除集合一行都不改</b>：认出来不等于替用户决定，参考项目里做这一档的 Mole 也只改显示
+  （<code>docs/github-references/Mole/lib/uninstall/steam.sh</code> 出结论，<code>bin/uninstall.sh</code> 把大小换成 <code>N/A (Steam-managed)</code>）。</div>
+</div>
+
+</body></html>
