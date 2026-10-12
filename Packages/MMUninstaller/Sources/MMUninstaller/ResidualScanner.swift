@@ -293,15 +293,22 @@ public struct ResidualScanOptions: Sendable {
     /// 仅作为孤儿归属线索读取，不进入残留候选或删除清单。
     public var receiptsRoot: String?
     public var sensitivity: ResidualSensitivity
+    /// 本机其它已安装应用的身份，用于「归属复核」（两条线索：这一项本身、它的上层目录；
+    /// 判据见 `ResidualOwnershipReview`）。
+    /// 空数组 = 不复核，命中项的风险档完全由类别决定（旧行为，也是单测的默认）。
+    /// 调用方给整张清单即可：引擎自己剔除"待扫描的那一个"，不需要在传之前过滤。
+    public var foreignApps: [InstalledAppIdentity]
 
     public init(home: String? = nil, systemRoot: String? = nil, receiptsRoot: String? = nil,
-                sensitivity: ResidualSensitivity = .strict) {
+                sensitivity: ResidualSensitivity = .strict,
+                foreignApps: [InstalledAppIdentity] = []) {
         self.home = Self.normalizeHome(home ?? NSHomeDirectory())
         // 默认不扫系统域：真实机型的 /Library 需要 root 才读得动，
         // 而启动项那一路已在 `LaunchServiceScanner` 显式覆盖两个域。
         self.systemRoot = systemRoot ?? ""
         self.receiptsRoot = receiptsRoot
         self.sensitivity = sensitivity
+        self.foreignApps = foreignApps
     }
 
     static func normalizeHome(_ value: String) -> String {
@@ -472,13 +479,40 @@ public enum ResidualScanner {
             bundleID: bundleID,
             matcher: ResidualNameMatcher(appName: appName, bundleID: bundleID)
         )
-        var collector = ResidualCollector(home: options.home, measure: measure ?? DirectoryResidualSizeMeasurer.size(of:))
+        var collector = ResidualCollector(home: options.home,
+                                          measure: measure ?? DirectoryResidualSizeMeasurer.size(of:),
+                                          ownership: ownershipReview(for: options, appName: appName,
+                                                                     bundleID: bundleID))
 
         scanCatalogs(context: context, collector: &collector)
         ContainerScanner.scan(context: context, collector: &collector)
         LaunchServiceScanner.scan(context: context, appPath: appPath, collector: &collector)
 
         return ResidualScanReport(items: collector.items(), inaccessiblePaths: collector.inaccessiblePaths)
+    }
+
+    /// 归属复核用的身份：清单里剔除"待扫描的这一个"之后才有意义——
+    /// 自己主张自己的上层目录是常态（`Foo.app` 的 `~/Library/Caches/Foobar/baz-foo`），
+    /// 把它算进主人名单，就会把自己每一层嵌套的弱证据项都降成谨慎。
+    /// 剔除按两条独立线索分别比：包名（相等）与归一化后的名称（相等），
+    /// 因为废纸篓那一路传进来的 name 可能是显示名而不是目录名。
+    ///
+    /// 这一层是 internal 而不是 private：端到端拿不到"自己主张上层目录而子项仍被收进来"的形状
+    /// （自己一主张那一层，`enumerate` 就收下它并 `continue`，下探根本到不了子项），
+    /// 所以剔除逻辑由 `ResidualOwnershipReviewTests` 在这个函数上直接钉。
+    static func ownershipReview(for options: ResidualScanOptions,
+                                appName: String,
+                                bundleID: String) -> ResidualOwnershipReview? {
+        let normalizedSelf = ResidualNameMatcher.normalize(appName)
+        let trimmedID = bundleID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let foreign = options.foreignApps.compactMap { identity -> (name: String, matcher: ResidualNameMatcher)? in
+            let id = identity.bundleID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if trimmedID.isEmpty == false, id == trimmedID { return nil }
+            if ResidualNameMatcher.normalize(identity.name) == normalizedSelf { return nil }
+            return (identity.name, ResidualNameMatcher(appName: identity.name, bundleID: identity.bundleID))
+        }
+        guard foreign.isEmpty == false else { return nil }
+        return ResidualOwnershipReview(home: options.home, appName: appName, foreign: foreign)
     }
 
     struct ResidualScanContext {

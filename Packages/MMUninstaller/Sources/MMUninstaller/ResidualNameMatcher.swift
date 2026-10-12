@@ -87,7 +87,7 @@ public struct ResidualNameMatcher: Sendable {
             // 否则 "App" 这种名字会把半个 Library 收进来。
             if allowContains, candidate.compressed.count >= 4,
                compressedFile.contains(candidate.compressed) {
-                return "名称包含应用名"
+                return "名称包含应用名（非包名对应）"
             }
         }
         return nil

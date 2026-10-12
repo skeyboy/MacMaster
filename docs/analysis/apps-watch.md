@@ -129,7 +129,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 1. 删除通路已经有一条测透的 —— 卸载后遗症页（`scanOrphans` + 逐条勾选 + 撤回）。
    再造一条能删文件的平行状态，就是再造一批要防的错（P1.5 那条通路的注释里
    就写着"绝不能走 `deletionPaths`，它会把本体一起加上"这类坑）。
-2. **孤儿判定的依据正是"本机已装应用清单"**（`UninstallerModel.swift:443` 把 `apps`
+2. **孤儿判定的依据正是"本机已装应用清单"**（`UninstallerModel.swift:577` 把 `apps`
    映射成 `InstalledAppIdentity` 交给 `OrphanScanner`）。而消失发生的那一刻，
    清单**还是旧的、里面仍有那个应用** —— 直接扫会把它自己的残留判成"有主人"，
    **恰好漏掉我们正要提示的那几项**。所以动作必须是**先刷新归属清单、再扫**，
@@ -137,7 +137,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 
 因此卡片的唯一动作是「重新载入并扫描」：`loadApps()` → `scanOrphans()` → 切到后遗症页。
 清单刷新要**只等枚举、不等体积测量**：`loadApps()` 在 `apps` 就位后就把 `isScanningApps` 置回
-`false`，慢的 `enrich` 在后面（`UninstallerModel.swift:196-199`），
+`false`，慢的 `enrich` 在后面（`UninstallerModel.swift:212-217`），
 所以拆一个"只重举清单"的入口出来即可，不用为这一路等几十秒的体积测量。
 说明行要把这个因果写在脸上，不能让用户以为刷新和扫描是两步无关的操作。
 
@@ -173,7 +173,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 ## 5. 顺带查出来的 P1.5 缺陷：自我回声
 
 `uninstallAppOnly()` / `uninstallAppWithSelection()` 都走 `FileTrashService.moveToTrash`
-（`UninstallerModel.swift:361-375`），本体是真的进了 `~/.Trash`。于是我们自己的卸载动作
+（`UninstallerModel.swift:465-481`，两条都汇到 `move(to:)` 那一次 `moveToTrash`），本体是真的进了 `~/.Trash`。于是我们自己的卸载动作
 会触发自己的监听，弹出一张写着「**刚拖进废纸篓**：X」的卡（`MMUninstaller.swift:657-668`
 的 `syncTrashNotice` 不看这条是谁造成的）。
 
@@ -203,7 +203,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 凭据本该来自卸载动作本身。`FileTrashService` 在移动时就回填了目的地
 （`TrashRecord.trashPath`），包标识与显示名卸载前已经读好——一个字节都不必再读废纸篓。
 
-改法（`UninstallerModel.swift:396-410` / `TrashArrival(selfMovedPath:)`）：
+改法（`UninstallerModel.swift:483-498` / `TrashArrival(selfMovedPath:)`）：
 
 - 「仅卸载应用」成功时，模型记下 `selfEchoArrival`（目的地路径 + 名字 + 包标识，不读盘）。
 - 视图只在**监听读不动废纸篓**时拿它兜底（`syncTrashNotice` 里的 `echoFallback`）。

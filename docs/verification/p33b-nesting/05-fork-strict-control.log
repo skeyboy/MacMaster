@@ -1,0 +1,17 @@
+# p33b-nesting-capture.sh 05-fork-strict-control  2026-10-12 11:42:04 +0800  app=/tmp/mm-app-p33b/MacMaster.app  fixture=/tmp/macmaster-p33b-nesting.4sX5cI
+# repo: f7bca94-dirty   # app-repo: f7bca94-dirty
+# digest: tree=f7bca94+6bb866e9 app=f7bca94+6bb866e9
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_WINDOW_SIZE=1400x1000 MM_UNINSTALL_SELECT=Fork MM_UNINSTALL_CONFIRM_MODE=none 
+# 敏感度：（未设钩子，走生产默认严格档）
+# 预期行：见 docs/verification/p33b-nesting/fixture-rows.log 的「## strict 档 / ### Fork」一节（开拍前由探针在同一棵夹具树上现跑生成）
+# sentinel: Caches/IDEFoo/AssetsFork = 3145728 B
+# sentinel: Caches/IDEFoo/ts-go-fork-embedded = 1048576 B
+# sentinel: Caches/ForkExtras = 1048576 B
+# sentinel: Caches/Fork = 2097152 B
+# sentinel: Caches/IDEFoo（含上面两条嵌套的）= 8388608 B
+# 清单应恰为夹具根 Applications 下三份（AssetsFork/Fork/IDEFoo）；应用根由钩子改成 $home/Applications
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p33b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# windows(pid=58681): windowid=5679 pid=58681 layer=0 title=MacMaster bounds=["Y": 43, "Height": 1000, "X": 285, "Width": 1400]
+# post-shot: 三份本体仍在磁盘

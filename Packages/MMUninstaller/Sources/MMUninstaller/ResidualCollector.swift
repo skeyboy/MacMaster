@@ -4,6 +4,63 @@ import MMCore
 
 // MARK: - 候选收集与去重
 
+/// 「归属复核」（P33b B 档）的输入：除本应用以外的已装应用身份。
+///
+/// 判据只有一条：**这一项的归属证据只有「名称包含应用名」，而别人对它有更强的主张**。
+/// 包含匹配说的是"这个名字里带着应用名"，它到不了归属。别人的主张从两个方向来，
+/// 由近到远各问一次：
+///   · **这一项本身**——另一个已装应用用包名或精确名称在同一路径上主张它
+///     （`Caches/AssetsFork` 躺在 Fork 的清单里，而 AssetsFork 给它的是硬证据）；
+///   · **它的某个上层目录**——主人是那层目录的应用
+///     （`JetBrains/IntelliJIdea2026.2/ts-go-fork-embedded` 就是 IntelliJ 的目录里
+///     一个名字带 fork 的子项）。
+///
+/// 第一条不是补装饰：审计 `docs/analysis/uninstaller-deep-residual-scope.md` §4 记的那个完整形态
+/// （`Caches/com.example.steamgame` 被归到 Steam 名下、524 KB、默认勾选）撞的是**同层**，
+/// 它的上层只有 `Caches`，谁都不主张——只做祖先那一层的复核对这一族一个字都不会说。
+/// `Scripts/p33b-nesting-fixture.sh` 把这一族钉进了夹具。
+///
+/// 复核**不减少召回**：条目照样出现在清单里，只是不再默认勾选，主人写进行下方那句提醒。
+/// 上层目录的主人同样按包含语义找（与扫描同语义）——真主人常常也是靠名称认领自己产品目录的，
+/// 要求它给硬证据就等于这条判据永远不成立（P33a 审计 §3：同路径严格主张本机只有 1 条，
+/// 补上祖先这一层才抓出默认勾选的那 3 条）。反过来，认领**这一项本身**要的就是硬证据：
+/// 弱对弱只是两个人一起猜，不构成主张。
+struct ResidualOwnershipReview {
+    let home: String
+    /// 待复核应用的显示名，只用于提醒文案里"可能不是 X 的数据"那一句。
+    let appName: String
+    let foreign: [(name: String, matcher: ResidualNameMatcher)]
+
+    /// 另一个已装应用是否用**硬证据**（包名或精确名称）主张这一项本身。
+    /// `allowContains: false` 是这一条的整个分量所在：这里要的是"别人给了证据"，
+    /// 不是"别人的猜测和我的猜测同名"。
+    func hardClaim(on path: String) -> (name: String, evidence: String)? {
+        let url = URL(fileURLWithPath: path, isDirectory: true)
+        for other in foreign {
+            if let evidence = other.matcher.reason(for: url, bundleID: "", allowContains: false) {
+                return (other.name, evidence)
+            }
+        }
+        return nil
+    }
+
+    /// 往上逐层问别人"这一层归不归你"，只走到**第一个有主人的**那一层为止：
+    /// 更外层的主人由那个主人自己的清单去报。走到 home 或文件系统根就停。
+    func foreignOwner(of path: String) -> (name: String, ancestor: String)? {
+        var parent = (path as NSString).deletingLastPathComponent
+        while parent.count > 1, parent != home {
+            for other in foreign {
+                let url = URL(fileURLWithPath: parent, isDirectory: true)
+                if other.matcher.reason(for: url, bundleID: "", allowContains: true) != nil {
+                    return (other.name, parent)
+                }
+            }
+            parent = (parent as NSString).deletingLastPathComponent
+        }
+        return nil
+    }
+}
+
 /// 三个扫描路（目录清单 / 容器反查 / 启动项）都往这里投候选。
 /// 收口只做一件事：以"解析符号链接后的绝对路径"为主键合并，
 /// 于是 `/var` 与 `/private/var` 这类同一文件的不同写法不会各算一次。
@@ -22,13 +79,18 @@ struct ResidualCollector {
     private let home: String
     /// 大小在命中时就量好（同步口径，扫描本身在后台线程）。
     private let measure: (String) -> UInt64
+    /// nil = 不做归属复核（旧调用、单测、以及"没传已装清单"的场合）。
+    private let ownership: ResidualOwnershipReview?
     private var order: [String] = []
     private var candidates: [String: Candidate] = [:]
     private(set) var inaccessiblePaths: [String] = []
 
-    init(home: String, measure: @escaping (String) -> UInt64 = DirectoryResidualSizeMeasurer.size(of:)) {
+    init(home: String,
+         measure: @escaping (String) -> UInt64 = DirectoryResidualSizeMeasurer.size(of:),
+         ownership: ResidualOwnershipReview? = nil) {
         self.home = home
         self.measure = measure
+        self.ownership = ownership
     }
 
     /// 同一个路径只保留第一次命中的证据；风险取更保守（更宽）的那一档，
@@ -71,16 +133,17 @@ struct ResidualCollector {
     func items() -> [ResidualItem] {
         order.compactMap { id in
             guard let candidate = candidates[id] else { return nil }
+            let reviewed = reviewed(candidate)
             return ResidualItem(
                 id: id,
-                path: candidate.path,
-                displayPath: candidate.displayPath,
-                name: candidate.name,
-                category: candidate.category,
-                risk: candidate.risk,
-                reason: candidate.reason,
-                size: candidate.size,
-                caveat: candidate.caveat
+                path: reviewed.path,
+                displayPath: reviewed.displayPath,
+                name: reviewed.name,
+                category: reviewed.category,
+                risk: reviewed.risk,
+                reason: reviewed.reason,
+                size: reviewed.size,
+                caveat: reviewed.caveat
             )
         }
         .sorted { lhs, rhs in
@@ -88,6 +151,45 @@ struct ResidualCollector {
             if lhs.category != rhs.category { return lhs.category.sortIndex < rhs.category.sortIndex }
             return lhs.path.localizedCaseInsensitiveCompare(rhs.path) == .orderedAscending
         }
+    }
+
+    // MARK: 归属复核
+
+    /// 包含匹配的证据串前缀。真源在 `ResidualNameMatcher`，这里只认前缀：
+    /// `descend` 会往后追加「（位于 X 内）」，A 档也在后面补了「（非包名对应）」。
+    static let containmentEvidence = "名称包含应用名"
+    static let ownerMarker = "上层目录归 "
+    static let selfClaimMarker = "这一项本身归 "
+
+    /// 「包含匹配 + 别人有更硬的归属主张」这一族在这里定档：默认勾选由 `MMRisk.isDefaultSelected`
+    /// 决定，而降级必须发生在建 item 之前（`ResidualItem.risk/caveat` 都是 `let`），
+    /// 否则徽章、勾选集、合计三者会各说一套。复核只在出清单时做一次：
+    /// 每个唯一路径只看一次，也不看子项。
+    private func reviewed(_ candidate: Candidate) -> Candidate {
+        guard candidate.risk == .safe,
+              candidate.reason.hasPrefix(Self.containmentEvidence),
+              let ownership else { return candidate }
+        // 两条线索按"离这一项更近"的顺序问，第一条成立就不问第二条：同一件事不用说两遍。
+        let claim: String
+        if let hard = ownership.hardClaim(on: candidate.path) {
+            claim = "\(Self.selfClaimMarker)\(hard.name)（\(hard.evidence)）。"
+        } else if let owner = ownership.foreignOwner(of: candidate.path) {
+            claim = "\(Self.ownerMarker)\(owner.name)（\(Self.display(owner.ancestor, home: home))）。"
+        } else {
+            return candidate
+        }
+        // 主人的名字进下方那句提醒，不进副标题：副标题只有一行且中间省略，
+        // 路径已经占满它（判据 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`）。
+        let note = claim + "这一项只按「名称包含应用名」收进来，可能不是 \(ownership.appName) 的数据，"
+            + "已默认取消勾选，确认后再勾。"
+        // 证据串不动：`Candidate` 的字段是 `let`，重建一条比就地改更直白，
+        // 也钉住"复核只动风险档与提醒这两样"。
+        // 已经挂着别句提醒的行（Steam 游戏库那一族）不覆盖，两句都留在行下方。
+        return Candidate(path: candidate.path, displayPath: candidate.displayPath,
+                         name: candidate.name, category: candidate.category,
+                         risk: .caution, reason: candidate.reason,
+                         caveat: candidate.caveat.map { note + " " + $0 } ?? note,
+                         size: candidate.size)
     }
 
     // MARK: 风险判定

@@ -6,18 +6,21 @@
 - 一句话结论：**这台机上"跨应用收残留"和"弱证据默认勾选"两件事各自都真实发生了，
   只是各被另一个无关的性质救了一次——而那两个性质都不是这条判据自己给的。**
 - 本轮**不改任何代码**：§5 是建议分档，选哪一档等你拍板。任务 #161，排期见 §7。
+  **下一轮已按 §5 建议的 B + A 落地**（同日，任务 #162），落地那一节是 §8——
+  本文 §1–§6 的结论与读数一律保持审计当时的原样，只有 §4 的照片引用与 §7 的最后一句是错的，
+  两处都在原地改了并写明"此前写错了"。
 
 ## 1. 这条证据是怎么产生的
 
 包含匹配住在 `ResidualNameMatcher.swift:88`：把应用名归一化再压掉分隔符，只要**文件名压完之后含有这串**就返回
 「名称包含应用名」。唯一的安全垫是 `candidate.compressed.count >= 4`——三个字母的名字（`QQ`、`App`）不放行，
-四个起就放行。放行宽度由档位决定：`ResidualScanner.swift:529` 只在档位高于 strict 时打开 `allowContains`，
+四个起就放行。放行宽度由档位决定：`ResidualScanner.swift:563` 只在档位高于 strict 时打开 `allowContains`，
 容器与启动项两路同构（`ContainerScanner.swift:41`、`LaunchServiceScanner.swift:39`）。
 所以 strict 档按构造不可能有这类命中，本探针因此只跑增强与深度两档（这是一条否证，不是"没跑"）。
 
 ## 2. 默认勾选为什么不看这条证据
 
-风险不是按证据强度定的，是按**类别**定的：`ResidualCollector.swift:98` 取 `category.defaultRisk`，
+风险不是按证据强度定的，是按**类别**定的：`ResidualCollector.swift:200` 取 `category.defaultRisk`，
 而 `ResidualScanner.swift:99` 把 `cache/savedState/log/httpStorage/webKit/containerCache` 六类一律标 `safe`；
 `Risk.swift:39` 里 `isDefaultSelected == (self == .safe)`，页面按它建勾选集（`UninstallerModel.swift:87`）。
 **这两条链在同一个格子里错过：一句「名称包含应用名」只要落在 Caches 上，就是默认勾选。**
@@ -49,11 +52,14 @@
 
 ## 4. 夹具那一档才是机制的正面实物
 
-`docs/analysis/feature-roadmap.md:1364` 记的 P32b 现场是这一族的完整形态：
+`docs/analysis/feature-roadmap.md:1363` 记的 P32b 现场是这一族的完整形态：
 `~/Library/Caches/com.example.steamgame · 名称包含应用名` 被归到 **Steam** 名下、
-页脚「已选 1 项残留 · 524 KB」——**跨应用 + 默认勾选同时成立**，照片在
-`docs/verification/p32b-steam/07-enhanced-steamgame-residuals.png` 与 `08-deep-steamgame-residuals.png`，
-逐档说明在 `docs/analysis/fidelity-uninstaller.md:598` 那一节。
+页脚「已选 1 项残留 · 524 KB」——**跨应用 + 默认勾选同时成立**。
+照片是 `docs/verification/p32b-steam/09-deep-steam-self-residuals.png`（选中 **Steam** 那一张）。
+**本文此前把这一条写成 07 与 08，那是错的**：那两张选中的是 **SteamGame** 自己，
+同一条路径在它自己名下是「包名完全对应」（硬证据），按 §5 的 B 档合同改动前后一个字都不会变——
+拿它们当"修好了"的照片就是假绿。这一处是 §8 落地时现读两张照片才发现的。
+逐档说明在 `docs/analysis/fidelity-uninstaller.md` 的 §14 那一节。
 本机没跑出这个完整形态，只是因为这台机的应用清单里没有一个"名字被 Steam 包住、又落在 Caches 里"的邻居；
 夹具替我们把形状钉住了。这也是本审计不写"实机没有 ⇒ 不是问题"的理由。
 
@@ -110,4 +116,176 @@ C 只有在"我们不想为归属复核付任何扫描成本"时才选，D 单�
 
 `feature-roadmap.md` v1.1 §2 只有四条，本项**不在其中**（`docs/analysis/feature-roadmap.md:1366` 已记），
 排在那四条之后。若采纳 §5 的 B 档，它是一次独立实现轮：判据 + 单测（含"祖先归别人 ⇒ 不许默认勾选"的正反两判据）
-+ 夹具那一档照片（夹具已经有现成形状，`Scripts/p32-steam-fixture.sh` 的 `SteamGame` 邻居就是这一族）。
++ 夹具那一档照片。
+
+**这一节最后一句是错的，落地时才发现**：原文写"夹具已经有现成形状，`Scripts/p32-steam-fixture.sh`
+的 `SteamGame` 邻居就是这一族"。它不是——那一族里 `Library/Caches/com.example.steamgame` 这一行
+在 **SteamGame 自己**名下是「包名完全对应」（硬证据），改动前后一个字都不变；
+能变的只有 §4 说的那一张 09。所以实现轮另摆了一棵夹具（`Scripts/p33b-nesting-fixture.sh`），
+它同时钉住祖先那一层，而那是 Steam 夹具里根本没有的形状。
+落地全过程见 §8。
+
+## 8. 落地（同日，P33b，任务 #162）：B + A 已实现，B 比本文多了一条线索
+
+采纳的是 §5 的建议顺序 **B + A**。实现轮做的和本文写的有**三处不一样**，每一处都记在这儿，
+因为下一个人读 §5 时会按 §5 的话去核对代码，而对不上。
+
+**① B 从"看一次祖先"变成"按远近问两条线索"。** §5 那句只写了祖先归属，落地时在同一条判据里
+多问了一条更近的：先问**另一个已安装应用是否直接主张这一项本身**（`hardClaim(on:)`，
+只收硬证据，`allowContains: false`），不成立才问**它是否主张这一项的某个上层目录**
+（`foreignOwner(of:)`，从这一项往上走到 home 为止）。第一条线索不是新授权范围——它和祖先那条
+是**同一件事的两种形态**，而本文 §4 举的正面实物（09 那张 `com.example.steamgame`）**正是第一条线索**：
+它的邻居主张的是这一项本身，祖先那一层根本问不到。只做祖先那一层，§4 的照片就不会变。
+**弱对弱不算主张**：两条线索都要对方给硬证据（包名那几族），因为"两个名字都只是包含匹配"
+只是两个人一起猜，不构成"这一项有主人"这句话。判据只有一处
+（`ResidualCollector.swift:28` 的 `ResidualOwnershipReview`，两条线索分别是 `:37` 与 `:49`；
+用它在 `:168` 的 `reviewed(_:)`），两条线索按离这一项
+更近的顺序问，第一条成立就不问第二条（单测 `testNearestOwnedAncestorWins` 钉的就是"不许说两遍"）。
+
+**② 主人写进 `caveat`，不写进 `reason`。** §5 原话是"把那句主人写进证据里"，落地改成写进**行下方那句
+提醒**，证据串一个字不动。原因是量出来的，不是审美：副标题是 `displayPath · reason`
+（`MMUninstaller.swift:1938`），由 `MMItemRow` 做**中间省略**（`MMUI/Sources/MMUI/MMDesign.swift:807`），
+路径本身就已经把它占满（判据照片 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`）；
+写进 `reason` 的后半句会被吃掉，那就退回 §7.5 那个教训。`caveat` 那一族是 `fixedSize(vertical)`、
+会折行不会被截（`MMUninstaller.swift:1956`），1000 pt 宽实拍在
+`docs/verification/p33b-nesting/02-fork-narrow-window.png`：整句"…已默认取消勾选，确认后再勾。"
+两行显示完，一个省略号都没有。
+
+**③ 落点不在 §5 说的"定档那一步"，而在它之后。** `ResidualScanOptions` 多了一个
+`foreignApps: [InstalledAppIdentity] = []`（`ResidualScanner.swift:300`；**空数组 = 完全不复核 = 旧行为**，所有旧调用点与全部旧单测
+一个字节都没改就仍然成立），`ResidualScanner` 用 `ownershipReview(for:appName:bundleID:)`（`:503`）把名单里
+"待扫描的这一个"剔掉再交给收集器——**剔除是必须的**：自己主张自己的上层目录是常态
+（`Foobar/baz` 挂在 `Foo` 名下），不剔除就会把自己每一层嵌套的弱证据项全降成谨慎。
+这一层做成 `internal` 而不是 `private`，因为端到端拿不到那个形状（自己一主张那一层，
+`enumerate` 就收下并 `continue`，下探到不了子项），所以剔除逻辑只能在这支函数上直接钉。
+调用侧 `UninstallerModel` 传的是**整张清单**（`installedIdentities`，`UninstallerModel.swift:227-229`）、用 `bundleName` 而不是显示名（产生那条弱证据的扫描
+本身就是按目录名做的，`enrich` 传 `appName: app.bundleName`），三处接入：`loadApps` 的 enrich、
+`rescanSelectedApp`、`scanTrashResiduals`。孤儿那一路不接（`scanOrphans` 判的是"有没有主人"，
+不是"这一项归谁"）。A 档措辞落在一行字符串上：`ResidualNameMatcher.swift:90`
+「名称包含应用名」→「名称包含应用名（非包名对应）」，`>= 4` 那个地板与档位闸门都不动。
+
+**C 档（清单档）没做，等人拍板**：`ResidualCatalog` 的类别口径一个字都没改。D 档没做。
+
+### 8.1 召回没降，这一条是量出来的不是说的
+
+`Scripts/p33b-ownership-review-probe.sh` 在本机真 home 上把卸载页那条链编成一个合成模块
+（10 个真源文件 + 探针，判定一行都不在探针里），**每个应用每一档扫两遍**：
+`foreignApps=[]`（复核前）与 `foreignApps=45 条整张清单`（现在页面的传法）。
+读数在 `docs/verification/p33b-nesting/ownership-review.log`（`# digest: f7bca94+6bb866e9`）：
+
+| 档 | 包含命中 | 被降级 | 默认勾选 前 → 后 | 清单条目集合两遍是否相同 |
+|---|---|---|---|---|
+| enhanced | 48 | 0 | 48 → 48 | 是 |
+| deep | 356 | 2 | 51 → 49 | 是 |
+
+**「集合两遍相同」就是召回不变的那条直接读数**（不一致会打 ⚠ 行并列出差集）。
+本机被点名的两行不是我们造的，是真形状：`Fork`（Git 客户端）名下
+`~/Library/Caches/JetBrains/{IntelliJIdea2026.2,WebStorm2026.2}/ts-go-fork-embedded`，
+两条走的都是**第二条线索**（「上层目录归 IntelliJ IDEA / WebStorm」），字节读数 0——
+那一格来自 `DirectoryResidualSizeMeasurer.size(of:)` 的真返回值，不是探针省了这一步（探针只对被点名的降级项量）。
+enhanced 档 0 条被降级只说明这台机上那些弱证据行两条线索都不成立，**不说明机制不成立**——
+机制的正面实物在夹具那一棵树上。
+
+### 8.2 夹具、照片，以及"为什么降级行只有两条"
+
+`Scripts/p33b-nesting-fixture.sh` 另摆了一棵树（`Fork` / `IDEFoo` / `AssetsFork` 三份本体 + 六条残留），
+同时钉住两条线索的形状；`Scripts/p33b-nesting-capture.sh` 出六张，全在
+`docs/verification/p33b-nesting/`，六份日志的头部都是 `# digest: tree=f7bca94+6bb866e9 app=f7bca94+6bb866e9`：
+
+- **01** Fork/enhanced，1400×1050：残留项 4，chip「2 项默认不勾选」，页脚「已选 2 项残留 · 3.1 MB」；
+  安全组两条仍勾选（`Caches/Fork` 名称与包名对应、`Caches/ForkExtras` 包含匹配但两条线索都不成立），
+  谨慎组两条就是两条线索各一行——`AssetsFork` 那行说「这一项本身归 AssetsFork（名称与包名对应）」，
+  `ts-go-fork-embedded` 那行说「上层目录归 IDEFoo」。逐行的应然读数不靠我看照片：
+  `fixture-rows.log` 由**同一棵夹具树上的真扫描**在开拍前现跑生成，日志头一句就指着它。
+- **02** 同一画面 1000 宽：提醒整句两行显示完（§8② 的判据）。
+- **03** 选 `IDEFoo`：两行一字不变——复核不许把别人的正确结论改坏。
+- **04** 选 `AssetsFork`：它那一条本来就走硬证据，仍在安全组、仍默认勾选。
+- **05** strict 档对照：包含匹配按构造到不了这一档。
+- **06** deep 档：与 01 同。
+- **交叉验证** `p32b-crosscheck/09-deep-steam-self-residuals.png`：本文 §4 那张原样重拍在 P32b 的
+  Steam 夹具上，这一族**从勾选/安全翻成未勾选/谨慎**，页脚「已选 0 项残留 · 0 字节」。
+  这一张才是 §4 说的"改动前后确实不同"的实物；07/08 两张按 B 档合同一个字都不会变，
+  所以本轮没重拍它们，也没拿它们当证据。
+
+**一度有四条降级行，删了两条**，理由写在夹具脚本头里：能装进画面的行数由屏幕决定。
+`MM_WINDOW_SIZE=1400x1250` 请求会被系统夹到 **1400×1050**（`sips` 量像素确认），
+而卸载页详情区上部（四张统计卡 + 运行状态卡 + 八行基本信息）吃掉约 700 pt，
+剩下的高度只放得下两条带提醒的降级行。被删掉的那两个形状没有失踪：
+一个进了上面的交叉验证照片（同一条路径在主人名下是硬证据），一个进了单测。
+
+### 8.3 这一轮付的三笔账
+
+- **注释是编译输入，第三次付账**：一句源码注释里那句话已经不是我实现的那句，改了它——
+  `f7bca94+a18f4eb8` → `f7bca94+6bb866e9`，门禁当场拒拍已经拍好的六张。重拍六张，多花一轮构建。
+  前两次分别记在 `fidelity-uninstaller.md` §13 与 §14；这一条现在有三个实例。
+- **照片的期望值必须机器生成**：本轮唯一一次"我以为画面上有四句提醒"被照片自己驳回去。
+  从此 `p33b-nesting-capture.sh` 的应然行来自 `fixture-rows.log`（真扫描），
+  并且复用前先验一句 `# 夹具模式：home=$FIX`，防止拿上一棵树的读数当这一棵的期望。
+- **`Scripts/p29-anchor-drift-audit.sh:30` 补了 `|| true`**：那一行在"本轮只改测试文件"时
+  `grep -v` 不吐行并以 1 退出，`set -e` 让量尺在打印任何一行之前死掉。顺手跑了它，
+  量出本轮把 **13 条**入库锚点顶漂了（`ResidualCollector` +102、`ResidualScanner` +34、
+  `UninstallerModel` +12/+13/+14 三档），已在 `fidelity-uninstaller.md`、
+  `uninstaller-deep-residual-scope.md`、`uninstaller-steam-launcher.md`、`apps-watch.md`、
+  `hook-ledger.md` 五份文档里逐条重指。**这里有一条对工具本身的更正**：
+  p29 的"可照抄新锚点"回答的是"**HEAD 那一行的文字现在搬到哪儿去了**"，
+  它不问"这一条引用当初指对没有"。本轮有 **6 条**引用在 `f7bca94` 就已经指着别的块
+  （`apps-watch.md:132/140/176/206`、`fidelity-uninstaller.md:118`、`uninstaller-steam-launcher.md:99` 等），
+  照抄会把错锚再搬一次家。所以九条"可照抄"里我只直接用了能对上一半的那几条，
+  其余全部按句意现读代码重新定位（每条都读过落点那一行的原文）。
+
+### 8.4 单测与全测
+
+新增 `ResidualOwnershipReviewTests` **14 条**（`Packages/MMUninstaller/Tests/MMUninstallerTests/`）：
+两条线索各自的出现与不出现、同层主张优先于祖先、「这一项本身归」与「上层目录归」不许同时出现、
+弱对弱不算主人、祖先归别人但这一项走硬证据 ⇒ 不降级、已经是 caution 的类别不叠第三句、
+strict 档按构造没有包含命中（§8.2 那张对照照片的判据在单测这一侧）。
+`./Scripts/run-all-tests.sh` 实跑 **720 个测试 / 0 失败 / 1 跳过**，
+MMUninstaller **186 → 200**，逐包求和 = 720 与合计那一格一致；
+结论行入库 `docs/verification/p33b-citations/run-all-tests.log`（那一格还记了本轮实现过程中
+我自己把这一格写成 196/716 的中间草稿——没跑出来过的读数不是读数，规则没变）。
+
+### 8.5 复跑时会有的两处已知差异
+
+- `Scripts/p33a-contains-scope-probe.sh:102` 与 `Scripts/p33b-ownership-review-probe.sh:108`
+  那两行日志头原先把 `import MMCore` 写在双引号的 `print -r --` 里，反引号被 zsh 当命令替换吃掉了；
+  已在 P33b 修好。**入库的那份 `docs/verification/p33a-contains-scope/contains-scope.log:16`
+  仍然留着那个洞**，所以这一族重跑会与档案差正好一行——差的是修好的那一行，不是结论。
+- 本轮代码与照片都产生于 `f7bca94` 之上的工作树（`# repo: f7bca94-dirty`、digest `f7bca94+6bb866e9`）。
+  **提交后两个数都会变，而且变得比"只换前缀"更多**：前半截跟着新短 sha 走，
+  后半截**不是"编译输入不变所以不变"**——`mm_source_digest` 量的是"相对 HEAD 的脏度"（`git diff HEAD` ∪ 未跟踪源文件），
+  提交让那批改动不再脏，后半截于是落到空流前缀 `e3b0c442`（配方 `Scripts/mm-provenance.sh:49-56`，
+  与 P25/P28/P30 那几份 `+e3b0c442` 同一支）。
+  **所以别指望提交后复跑还能对出照片头上那个 `6bb866e9`**：要复现它得把这一轮的四个源文件改动叠在 `f7bca94` 之上
+  （临时树里 `git checkout f7bca94` 再把那四个文件贴回去），当前 HEAD 上重跑只会得到 `<新 sha>+e3b0c442` 这一对。
+  这两对指向同一批源码，这是这一族门禁从 P23 起就有的性质，不是本轮的坑。
+- **引用门禁的"提交前那一跑会红"这一条本轮第一次量到**（先前几轮都是提交前恰好没有新脚本，所以没撞上）：
+  p16 的文件索引来自 `git ls-files`（`Scripts/p16-citation-audit.sh:53`），**未跟踪的文件对它不存在**，
+  所以本文 §8.5 上面那条引用 `Scripts/p33b-ownership-review-probe.sh:108` 在 `git add` 之前被判成
+  「两头都不到」，**硬失败 1、退出码 1**；同一份文本在 `git add` 之后重跑是**硬失败 0、退出码 0**。
+  两份归档都在 `docs/verification/p33b-citations/`：`audit-preadd.log`（972 / 802 / 命本仓库 709 / 死符号 0 /
+  位置存疑 126 / **硬失败 1**，索引 1096）与 `audit.log`（同 972 / 802、命本仓库 **710**、126 / **硬失败 0**，索引 1119）。
+  **两者只有那一格不同**：那条引用从"都不到"挪进"命本仓库"，`diff` 出来另外的差异是索引与词汇表两行
+  （跟踪文件 1096→1119、源码 token 8168→8232）——**新源文件进索引会把符号面词汇表一起抬高**，
+  这一条对下一个人有用：拿两份归档对"我这轮有没有弄断引用"时，那两行也该在对照清单里。
+  结论：**引用本轮新写脚本的文档，提交前那一跑红是预期的，别照着它改文档**——先看红的那条是不是
+  `?? ` 状态的文件（`git status --porcelain -- <那个路径>`），是就说明引用是对的。
+  **记账这一段自己跑了三遍，数字跟着这段字的改动上下走，这一串值得留在这儿**：
+  第三跑 975 / 804 / 命本仓库 712（比第二跑多三处出现、两处唯一——就是这段新字写的两处锚点加一次对同一探针脚本的再引）；
+  第四跑 979 / 808 / 716（这一段又把两处引用写成"省略目录前缀的简写"，**同一条文件同一行，
+  带目录写和不带目录写在唯一面里是两条**——它按写下来那串字符去重、只按后缀去找文件，
+  所以"唯一 802"这类数比的是**写法有几种**，不是"被引的位置有几处"，抄表的人按这个数对账会对不上）；
+  第五跑把那两个简写改回普通叙述，回到 **976 / 805 / 命本仓库 713 / 死符号 0 / 位置存疑 126 / 硬失败 0、exit 0**，
+  **这一跑就是入库的 `audit-final.log`，也是与本段文字同源的那一份**。
+  中间两跑的档案被后一跑覆盖了（p16 固定往输出目录写同名文件），这是本族第三次盖掉自己刚写的日志
+  （前两次与"每跑换目录再改名"的规矩都在审计那一份的 §6 末尾）。
+  这一段之后不要再加任何"路径:行"，否则下一跑又会比这段抄的多出几处，而这轮的差本来只该是源码差；
+  **改数字不会动这些数**——最后一跑就是照着这份定稿文本跑的，两者同源。
+  索引与词汇表两行从第二跑起一位没动（1119 / 8232），**因为这些记账不是源码**。
+  **软层从 P32b 的 124 走到 126，而本轮指认不出是哪两条**：脚本按设计只印前 40 条
+  （`Scripts/p16-citation-audit.sh:292` 那句 `head -40`），两份归档的可见段里 MMUninstaller 那三条逐字相同，
+  所以增量落在打印范围之外。本轮做的是**逐条现读自己这一轮改过与新增的全部锚点**
+  （`ResidualCollector` 28/37/49/121/168/222、`ResidualScanner` 300/413/503/576-577、
+  `UninstallerModel` 227-229、`ResidualNameMatcher` 90——每条都读过落点那一行的原文，全部对得上），
+  所以这 +2 不是本轮新写的引用造成的；**要让它可指认，得先给那一层加一个按文件或包过滤的档**，
+  那是工具轮的工作，不是本轮的。兜底的仍然是硬失败那一层（0）。
+

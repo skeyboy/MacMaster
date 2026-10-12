@@ -1,0 +1,39 @@
+# run-all-tests.sh  P33b（残留归属复核降级 B+B′ + 证据措辞 A 档）  2026-10-12 11:51:46 +0800（结论行完成时刻）
+# repo: f7bca94-dirty branch=main
+# digest: f7bca94+6bb866e9
+# 格式续 docs/verification/p32b-steam-citations/run-all-tests.log。逐包原始输出在 /tmp/macmaster-tests/，
+#       那一份不入库（swift test 的全文，体积大且每轮重生成，脚本每次 `rm -rf` 重来）。
+#
+# 这一跑在作者的工作树上，不是干净克隆：跑测那一刻本轮的四处源码改动
+# （ResidualCollector.swift / ResidualScanner.swift / UninstallerModel.swift / ResidualNameMatcher.swift）
+# 与新增的 ResidualOwnershipReviewTests.swift 都还没提交，`# repo:` 因此带 `-dirty`。
+#
+# **与照片同源这一条是现读对出来的，不是推的**：归档时重跑
+# `source Scripts/mm-provenance.sh && mm_source_digest .` 得 `f7bca94+6bb866e9`，
+# 与六张照片、`fixture-rows.log`、以及真机探针 `ownership-review.log` 头部那一行逐字节相同。
+# 跑测窗口（11:50:44 首包 → 11:51:46 末包，取 /tmp/macmaster-tests/*.log 的 mtime）内
+# 唯一的编辑是 `Scripts/p29-anchor-drift-audit.sh`——Scripts/ 不在 `mm_source_digest` 的编译输入里
+# （配方只取 Sources、Packages、Resources、Package.swift），所以那一次编辑不可能动这个指纹。
+# 结论：跑测与出片之间，编译输入一行都没动。
+#
+# 本轮 +14 条（新增测试族 `ResidualOwnershipReviewTests`）。这一句不是照抄脚本的合计，是单独核的：
+#   grep "Test Case" /tmp/macmaster-tests/MMUninstaller.log | grep -c "ResidualOwnershipReviewTests.*' passed"  → 14
+# 对照口径：与入库的上一轮那一格（MMUninstaller 186）相比是 +14；**逐包求和 720 = 合计那一格**，
+# 这一条自 P11c 起每轮都当自证用。
+#
+# 一处自我更正，留给下一个人省一趟：本轮实现过程中我自己的中间笔记把这一格写成过 196 / 总数 716，
+# 那是**没有跑出来过的读数**（14 条测试族分批写完时的心算）。现读结果是 200 / 720。
+# 规则没变：计数只认脚本的结论行，上轮自报与自己本轮的草稿都要现读复核。
+
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=200  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=54   swift-testing=0   skipped=0  该包失败=no 
+
+合计：720 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log

@@ -1,0 +1,95 @@
+# p33b-ownership-review-probe.sh  2026-10-12 11:41:22 +0800
+# repo: f7bca94-dirty  branch=main
+# digest: f7bca94+6bb866e9
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 参与编译的真源文件（10 个 + 探针）：
+#   42 行  Packages/MMCore/Sources/MMCore/Risk.swift
+#   169 行  Packages/MMCore/Sources/MMCore/HookValues.swift
+#   120 行  Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift
+#   175 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift
+#   196 行  Packages/MMUninstaller/Sources/MMUninstaller/OrphanScanner.swift
+#   281 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualCollector.swift
+#   619 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift
+#   143 行  Packages/MMUninstaller/Sources/MMUninstaller/ContainerScanner.swift
+#   114 行  Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift
+#   209 行  Packages/MMUninstaller/Sources/MMUninstaller/SteamLauncherProbe.swift
+#   187 行  Scripts/p33b-ownership-review-probe.swift
+# 唯一机械改动 = 去掉这些文件里的「import MMCore」一行（合成模块里 import 必报 no such module）：
+#   ResidualCollector.swift 281→280
+#   ResidualScanner.swift 619→618
+# 剥之前后各记一次行数，差一条不等于 1 行脚本就当场退出。
+# 每个应用每一档扫两遍：foreignApps=[]（复核前）与 foreignApps=整张已装清单（现在页面的传法）。
+# 本轮是**夹具档**：home=/tmp/macmaster-p33b-nesting.4sX5cI（假 home，由 Scripts/p33b-nesting-fixture.sh 生成），三档全打。
+# 这份表是截图脚本的预期行来源：照片上每一行的证据、勾选、提醒都取自这里。
+
+# 夹具模式：home=/tmp/macmaster-p33b-nesting.4sX5cI
+# 应用清单（home/Applications，非递归，与页面同一个根）：AssetsFork, Fork, IDEFoo
+# 每档每个应用扫两遍，本表只打后一遍（foreignApps=3 条）；两遍的 id 集合不等会当场打 ⚠
+
+## strict 档
+
+### AssetsFork（com.example.assetsfork）：0 行
+
+（这一档这一份应用没有行）
+
+### Fork（com.example.fork）：1 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/Fork|cache|名称与包名对应|safe|是|2097152|（无）|
+
+### IDEFoo（com.example.idefoo）：2 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Application Support/IDEFoo|applicationSupport|名称与包名对应|caution|否|2097152|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo|cache|名称与包名对应|safe|是|8388608|（无）|
+
+## enhanced 档
+
+### AssetsFork（com.example.assetsfork）：1 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/AssetsFork|cache|名称与包名对应（位于 IDEFoo 内）|safe|是|3145728|（无）|
+
+### Fork（com.example.fork）：4 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/Fork|cache|名称与包名对应|safe|是|2097152|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/ForkExtras|cache|名称包含应用名（非包名对应）|safe|是|1048576|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/AssetsFork|cache|名称包含应用名（非包名对应）（位于 IDEFoo 内）|caution|否|3145728|这一项本身归 AssetsFork（名称与包名对应）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/ts-go-fork-embedded|cache|名称包含应用名（非包名对应）（位于 IDEFoo 内）|caution|否|1048576|上层目录归 IDEFoo（/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+
+### IDEFoo（com.example.idefoo）：2 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Application Support/IDEFoo|applicationSupport|名称与包名对应|caution|否|2097152|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo|cache|名称与包名对应|safe|是|8388608|（无）|
+
+## deep 档
+
+### AssetsFork（com.example.assetsfork）：1 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/AssetsFork|cache|名称与包名对应（位于 IDEFoo 内）|safe|是|3145728|（无）|
+
+### Fork（com.example.fork）：4 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/Fork|cache|名称与包名对应|safe|是|2097152|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/ForkExtras|cache|名称包含应用名（非包名对应）|safe|是|1048576|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/AssetsFork|cache|名称包含应用名（非包名对应）（位于 IDEFoo 内）|caution|否|3145728|这一项本身归 AssetsFork（名称与包名对应）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo/ts-go-fork-embedded|cache|名称包含应用名（非包名对应）（位于 IDEFoo 内）|caution|否|1048576|上层目录归 IDEFoo（/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+
+### IDEFoo（com.example.idefoo）：2 行
+
+| 路径 | 类别 | 证据（原样） | 风险 | 默认勾选 | 字节 | 行下方提醒 |
+|---|---|---|---|---|---|---|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Application Support/IDEFoo|applicationSupport|名称与包名对应|caution|否|2097152|（无）|
+|/private/tmp/macmaster-p33b-nesting.4sX5cI/Library/Caches/IDEFoo|cache|名称与包名对应|safe|是|8388608|（无）|
+

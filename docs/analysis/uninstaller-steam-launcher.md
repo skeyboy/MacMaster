@@ -83,9 +83,9 @@ Mole 的测试夹具 `tests/uninstall_steam_launcher.bats:38-48` 用的包标识
 
 | 现象 | 机制 | 出处 |
 | --- | --- | --- |
-| 本体大小是真话，但不是"这个游戏有多大" | 「本体」= 遍历累加 `st_size` | `Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:65`，取数在 `UninstallerModel.swift:343-355` 那一趟 |
-| 游戏本体在任何一档都进不了残留清单 | `Application Support` 那条 entry（`ResidualScanner.swift:208`）没有传 `extraDescent`，默认 0（`init` 在 `:195`），下探层数 = 敏感度秩 + 0 ⇒ 严格 0 层 / 增强 1 层 / 深度 2 层；而 `Steam/steamapps/common/SteamGame` 在第三层。第二层 `common` 名字对不上就不再往下走。**另一条能探更深的路径也够不到**：Library 根那条 entry（`:218`，增强起、`extraDescent: 1`）在深度档层数到 3，最深检查到的是 `common` 这一层的名字，仍然不是游戏目录 | `ResidualScanner.swift:208`（entry）、`:218`（Library 根 entry）、`:239-242`（层数）、`:506`（取层数）、`:530-549`（逐层判，命中即停、不整目录收） |
-| 但 Steam 本体自己会把整个游戏库当一条残留 | 同名直接子项，严格档第 0 层就命中「名称与包名对应」 | 同上 `:208` + `ResidualNameMatcher.swift:83-85`；风险档来自 `ResidualCategory.defaultRisk`（`applicationSupport` = caution，`:88-96`） |
+| 本体大小是真话，但不是"这个游戏有多大" | 「本体」= 遍历累加 `st_size` | `Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:65`，取数在 `UninstallerModel.swift:355-367` 那一趟 |
+| 游戏本体在任何一档都进不了残留清单 | `Application Support` 那条 entry（`ResidualScanner.swift:222`）没有传 `extraDescent`，默认 0（`init` 在 `:209`），下探层数 = 敏感度秩 + 0 ⇒ 严格 0 层 / 增强 1 层 / 深度 2 层；而 `Steam/steamapps/common/SteamGame` 在第三层。第二层 `common` 名字对不上就不再往下走。**另一条能探更深的路径也够不到**：Library 根那条 entry（`:232`，增强起、`extraDescent: 1`）在深度档层数到 3，最深检查到的是 `common` 这一层的名字，仍然不是游戏目录 | `ResidualScanner.swift:222`（entry）、`:232`（Library 根 entry）、`:253-256`（层数）、`:554`（取层数）、`:578-597`（逐层判，命中即停、不整目录收） |
+| 但 Steam 本体自己会把整个游戏库当一条残留 | 同名直接子项，严格档第 0 层就命中「名称与包名对应」 | 同上 `:222` + `ResidualNameMatcher.swift:83-85`；风险档来自 `ResidualCategory.defaultRisk`（`applicationSupport` = caution，`:97-105`） |
 | 没有包标识 ⇒ 证据面一起变窄 | `bundleIdentifier` 读不到就返回空串，界面上「包名 —」，来源必然「无法判定」，残留只剩名字一条腿 | `AppScanner.swift:63-67`、`MMUninstaller.swift:1731`、`AppProvenance.swift:40-48`（五档里没有"启动器"这一档） |
 | 子目录里的快捷方式看不见 | 应用根只有 `/Applications` 与 `~/Applications`，且只枚举直接子项的 `.app` | `AppScanner.swift:27-29`、`:41`；照片 01/08 的清单里确实没有 `DeepShortcut` |
 | 运行状态一律「未检测到」 | 这一族从没启动过（夹具是 shell 脚本，`open` 它会真的去叫 `steam://`，本机没有 Steam 只会弹报错） | 八张的「未检测到运行中的进程」；启动之后那一行会不会变，本轮**没测**（§6） |
@@ -96,7 +96,7 @@ Mole 的测试夹具 `tests/uninstall_steam_launcher.bats:38-48` 用的包标识
 > （P32b 照片 06/09 的 25.2 MB，`du -sk` 现读其中 24,580/24,592 KB 是 `steamapps/common/SteamGame`）。
 > 现在这一族多了一句行内提醒（§5 第 4 条的落地形态），"说不出"收窄成"说不出装了什么、各自多大"，
 > 依据那一句也照这个口径改过（见 §5 第 3 条的标注）。
-前者是运气还是设计？现在的答案是"清单语义的副产品"——`ResidualScanner.swift:528-529` 的注释写的是
+前者是运气还是设计？现在的答案是"清单语义的副产品"——`ResidualScanner.swift:576-577` 的注释写的是
 "下探厂商目录（`~/Library/Application Support/Google/Chrome` 这种形态）"，
 `Steam/steamapps/common` 恰好不在那个形状的覆盖范围里。P32b 不该把这句副产品当合同用。
 

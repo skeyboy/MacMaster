@@ -1,0 +1,13 @@
+# p32b-steam-launcher-capture.sh 09-deep-steam-self-residuals  2026-10-12 11:44:43 +0800  app=/tmp/mm-app-p33b/MacMaster.app  fixture=/tmp/macmaster-steam-fixture.NOGUfF
+# repo: f7bca94-dirty   # app-repo: f7bca94-dirty
+# digest: tree=f7bca94+6bb866e9 app=f7bca94+6bb866e9
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_WINDOW_SIZE=1400x1000 MM_UNINSTALL_SELECT=Steam  MM_UNINSTALL_SENSITIVITY=deep
+# sentinel: 本体 Applications/Steam.app = 581 B / 2 个文件（find -type f 现算，口径同界面「本体」）
+# sentinel: 本体之外的游戏目录 steamapps/common/SteamGame = 25165832 B
+# 应否出现: 游戏目录不作为残留行（判据=包含方向是「文件名包含应用名」，不是路径包含）
+# 清单应含夹具根 Applications 下的六个 .app（PlainTool/Steam/SteamGame/SteamNoId/SteamRunSh/SteamTwoEntries），不应含 Steam Shortcuts/DeepShortcut：应用根非递归
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p33b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# windows(pid=60191): windowid=5703 pid=60191 layer=0 title=MacMaster bounds=["Width": 1400, "X": 285, "Y": 43, "Height": 1000]
+# post-shot: 本体仍在磁盘

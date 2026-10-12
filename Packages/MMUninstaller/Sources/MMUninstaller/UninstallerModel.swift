@@ -213,7 +213,19 @@ public final class UninstallerModel: ObservableObject {
         await reloadListing()
         let options = optionsFactory()
         await enrich(options: ResidualScanOptions(home: options.home, systemRoot: options.systemRoot,
-                                                  sensitivity: sensitivity))
+                                                  sensitivity: sensitivity,
+                                                  foreignApps: installedIdentities))
+    }
+
+    /// 已装应用的身份清单，交给残留引擎做「归属复核」。
+    ///
+    /// 用 `bundleName`（`.app` 之外的目录名）而不是显示名：产生那条弱证据的扫描本身用的
+    /// 就是目录名（`enrich` 传 `appName: app.bundleName`），两边同一个名字，
+    /// "上层目录归谁"这句话才对得上。孤儿那一路按显示名判（`scanOrphans`），
+    /// 那是另一个问题，不共用这份名单。
+    /// 这里给整张清单，剔除自己由引擎负责（`ResidualScanner.ownershipReview`）。
+    private var installedIdentities: [InstalledAppIdentity] {
+        apps.map { InstalledAppIdentity(name: $0.bundleName, bundleID: $0.bundleID) }
     }
 
     /// 只重举清单与来源凭据，**不等体积测量**。
@@ -439,7 +451,8 @@ public final class UninstallerModel: ObservableObject {
     public func rescanSelectedApp() {
         guard let app = selectedApp, app.isSystemOwned == false else { return }
         let base = optionsFactory()
-        let options = ResidualScanOptions(home: base.home, systemRoot: base.systemRoot, sensitivity: sensitivity)
+        let options = ResidualScanOptions(home: base.home, systemRoot: base.systemRoot,
+                                          sensitivity: sensitivity, foreignApps: installedIdentities)
         Task { [weak self] in
             guard let self else { return }
             let enriched = await Self.enrich(app: app, options: options)
@@ -661,7 +674,8 @@ public final class UninstallerModel: ObservableObject {
         isScanningTrashResiduals = true
         defer { isScanningTrashResiduals = false }
 
-        let options = ResidualScanOptions(home: home, sensitivity: sensitivity)
+        let options = ResidualScanOptions(home: home, sensitivity: sensitivity,
+                                          foreignApps: installedIdentities)
         let report = await Task.detached(priority: .userInitiated) {
             ResidualScanner.scan(appName: arrival.name, bundleID: arrival.bundleID,
                                  appPath: arrival.path, options: options)

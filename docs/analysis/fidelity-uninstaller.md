@@ -115,7 +115,7 @@
 | 目录不存在走另一文案且**不放授权按钮** | `TrashWatcher.start` `TrashWatcher.swift:140-148` `needsFullDiskAccess:false` → `MMPermissionBanner(settingsPane:nil)` | ✅ | 实现区分 ENOENT（目录不存在，无按钮）与 EPERM/EACCES（要授权），与 `trash-watch-fda.md` 红线 2 一致 |
 | 页面其余部分不受影响（列表/卸载动作不依赖读废纸篓） | `trashRegion` 仅替换卡片区，列表/详情照常 | ✅ | 与稿"页面其余部分不受影响"一致；`uninstaller-no-fda-banner.jpg` 已证 |
 | 横幅底色 warning 10% | `MMPermissionBanner` `soft(caution,0.10)` | ✅ | 与稿 `color-mix(warning 10%)` 一致 |
-| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `MMUninstaller.swift:1251` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（调用 `MMUninstaller.swift:1252`，定义 `ResidualScanner.swift:392`），与红线 3 一致 | 低 | 设计稿该改 S5 |
+| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `MMUninstaller.swift:1251` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（调用 `MMUninstaller.swift:1252`，定义 `ResidualScanner.swift:413`），与红线 3 一致 | 低 | 设计稿该改 S5 |
 | `MM_SHOW_TRASH_CONFIRM` 触发确认面板 | `trashConfirmHook` `MMUninstaller.swift:777-779`（需 `fixtureScanHome() != nil` 且环境变量=1） | ⚠️ 文档缺口 | 单设 `MM_SHOW_TRASH_CONFIRM=1` **不会**触发，必须同时设 `MM_TRASH_SCAN_HOME`（且限 /tmp）；稿/README 描述"自动开确认面板"未写此互锁 | **中** | 两边都改·提协调者 B2 |
 
 ### 1.8 状态覆盖核对
@@ -340,7 +340,7 @@
 这一轮不拍新档，改的是**已有那条日志的可信度**。`MM_ORPHAN_FIXTURE_HOME` 那趟自动扫描
 （`runOrphanScan`，`MMUninstaller.swift:485`）过去在 `await model.scanOrphans(home:)` 之后
 **无条件**写一行「已用夹具目录 … 自动勾选并打开确认面板」。而 `scanOrphans` 在
-"应用清单还在枚举"或"清单为空"时是**静默 return** 的（`UninstallerModel.swift:490`）。
+"应用清单还在枚举"或"清单为空"时是**静默 return** 的（`UninstallerModel.swift:574` 那道 guard）。
 两件事叠起来的结果：扫描根本没跑，日志照样是绿的——取证脚本替夹具作伪证。
 
 改法两步（同一处，`Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift`）：
@@ -355,13 +355,13 @@
 `（1 条）`；指一棵空 home → `（0 条）`。两种都落到"打开了面板"，只有条数不同，
 正是这条日志要区分的东西。
 
-**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:216`）。
+**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:237`）。
 上一轮审计把它列为"`MM_APPS_WATCH_AUTO_SCAN` 会抹掉 `MM_UNINSTALL_SELECT` 的选中"，
 现读之后判定它**不是缺陷**：清单重新反映了磁盘，选中项可能已经不存在，留在旧 id 上是悬空引用；
 而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`MMUninstaller.swift:881`），
 拍的是后遗症页不是应用详情，两者不在同一屏。`runOrphanScan` 跑在
 `await model.reloadListing()` **之后**（`:877`→`:878`），`reloadListing` 落回时
-`apps` 已填（`UninstallerModel.swift:233`）、`isScanningApps=false`（`:237`），所以新加的那道前置判断不会在这条路上误报。
+`apps` 已填（`UninstallerModel.swift:245`）、`isScanningApps=false`（`:265`），所以新加的那道前置判断不会在这条路上误报。
 
 ## 11. P6.7 追加：`MM_TRASH_FIXTURE_DIR` 被拒绝时现在会说清后果
 
@@ -655,7 +655,7 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
 ### 14.2 提醒只挂在它该挂的那一行
 
 `ResidualCollector.add` 是三条扫描路的唯一收口点，命中判定放在新建候选那一刻
-（`ResidualCollector.swift:59` 与 `:120-124`）：只认 `Application Support` 这一类、
+（`ResidualCollector.swift:121` 与 `:222-226`）：只认 `Application Support` 这一类、
 只看**直接子项**里有没有 `steamapps`、不递归不数大小。
 五条单测钉住它（`ResidualCollectorSteamTests`，含"同一个路径命中两次不许接两遍"与
 "目录读不到时保留原句、不因异常丢行"）。08 那张是这条边界的照片侧对照：
@@ -676,9 +676,10 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
   合同只说"满足这套判据的 bundle 会被这样标"，**不能拿这十一张断言真机不会挂、也不能断言它会挂**。
 - **`steamapps` 之下到底几层能到，仍然只有推导**：07/08 证到的是"增强与深度两档，
   游戏目录都不作为残留行出现"，至于要放宽到哪一档才够到，本轮没有去改层数试（那是审计 §5 第 4 条里"改清单"那一档，待人拍板）。
-- **09 顺出来的那条不在本轮范围内**：深度档"名称包含应用名"会跨应用收残留，
+- **09 顺出来的那条已在同日落地**：深度档"名称包含应用名"会跨应用收残留，
   且 `Caches/com.example.steamgame` 归到 Steam 名下**默认勾选**（页脚「已选 1 项残留 · 524 KB」）。
-  本轮一个字没动它，另立 P33a 审计（任务 #161）。
+  P33a 审计（任务 #161，`docs/analysis/uninstaller-deep-residual-scope.md`）量完 → P33b（任务 #162）按 §5 的
+  B + A 实现，落地记录是那份的 §8，取证是本文 §15。**09 那一张本轮重拍过，翻成了未勾选/谨慎。**
 - **测试**：九包 **706 / 0 失败 / 1 跳过**（`Scripts/run-all-tests.sh`，本轮在最终树上跑过两次，
   两份输出 `diff` 为空），其中 MMUninstaller 148 → **186**（+38，其余八格与
   `docs/verification/p31-citations/run-all-tests.log` 那份逐字相同——这一句是 `diff` 出来的，不是推的）：
@@ -695,4 +696,63 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
   （`SteamLauncherProbe.swift:191` 里那句引号中的文案已经不是我实现的那句了）。
   注释是编译输入、进指纹，于是 `+1f91a012` → `+71d7740f`，门禁当场拒拍。
   与 §13 那一次同一笔账：多花四分钟重建重跑，换来这十一张与现在这份源码确实同源。
+
+## 15. P33b 追加（2026-10-12）：残留归属复核六档 + 一张交叉验证
+
+判据本体不在本文复述——它在 `docs/analysis/uninstaller-deep-residual-scope.md` §8（两条线索、
+按远近问、弱对弱不算主人、`foreignApps=[]` 就是旧行为）。本文只管**这一族的画面侧**：
+`Scripts/p33b-nesting-fixture.sh`（一棵三份本体、六条残留的夹具树）+
+`Scripts/p33b-nesting-capture.sh`（六张 + 一张交叉），证据目录
+`docs/verification/p33b-nesting/`，七份日志头部都是
+`# digest: tree=f7bca94+6bb866e9 app=f7bca94+6bb866e9`（**照片、二进制、跑测的输入同源，这一句是现读对出来的**，
+见 `docs/verification/p33b-citations/run-all-tests.log` 那段）。
+
+### 15.1 逐张：每一张钉哪一句
+
+| 张 | 画面 | 它钉住的东西 |
+|---|---|---|
+| 01-fork-nested-downgraded | Fork / enhanced / 1400×1050 | 残留项 4，chip「2 项默认不勾选」，页脚「已选 2 项残留 · 3.1 MB」。**两条线索各占一行**：`Caches/IDEFoo/AssetsFork` 说「这一项本身归 AssetsFork（名称与包名对应）」，`Caches/IDEFoo/ts-go-fork-embedded` 说「上层目录归 IDEFoo」；同屏两条仍默认勾选的（`Caches/Fork` 硬证据、`Caches/ForkExtras` 包含匹配但两条线索都不成立）证明降级不是一刀切 |
+| 02-fork-narrow-window | 同一画面 / 1000×1050 | 提醒整句折成两行显示完，**一个省略号都没有**——这一条是"主人写 `caveat` 不写 `reason`"那个决定的实物（副标题是中间截断那一族，`MMUninstaller.swift:1938` + `MMDesign.swift:807`；提醒是 `fixedSize(vertical)`，`MMUninstaller.swift:1956`） |
+| 03-owner-app-unchanged | 选 IDEFoo | 主人自己名下两行一字不变：复核不许把别人的正确结论改坏 |
+| 04-assetsfork-hard-evidence | 选 AssetsFork | 那一条本来就走硬证据（「名称与包名对应（位于 IDEFoo 内）」），仍在安全组、仍默认勾选 |
+| 05-fork-strict-control | Fork / strict | 严格档只有 1 行：包含匹配按构造到不了这一档（单测 `testStrictTierHasNoContainmentHit` 是同一件事的另一侧） |
+| 06-fork-deep-tier | Fork / deep | 与 01 同——这一族在增强与深度两档行为一致 |
+| p32b-crosscheck/09 | Steam / deep（P32b 那棵旧夹具） | **改动前后唯一对得上的实物**：同一条 `com.example.steamgame` 从勾选/安全翻成未勾选/谨慎，页脚「已选 0 项残留 · 0 字节」。本文 §14.3 那条"09 顺出来的"就靠这一张收口 |
+
+逐行的应然读数不靠我看照片：`fixture-rows.log` 由**同一棵夹具树上的真扫描**在开拍前现跑生成
+（`Caches/IDEFoo/AssetsFork` = 3145728 B、`ts-go-fork-embedded` = 1048576 B、`ForkExtras` = 1048576 B、
+`Fork` = 2097152 B，都是 `dd` 出来的真字节，不是 `st_blocks` 的估），
+六份 `.log` 的"预期行"那一格直接指向它的对应小节；复用前还验一句 `# 夹具模式：home=$FIX`，
+防止拿上一棵树的读数当这一棵的期望。
+
+### 15.2 屏幕给的高度决定照片里有几条（这一族一度有四条）
+
+`MM_WINDOW_SIZE=1400x1250` 会被系统夹回 **1400×1050**（请求 1050 那一档才会原样生效，
+01 的日志第 15 行就写着"请求 1400x1050pt，窗口实际 1400x1050pt"；夹没夹用 `sips` 量像素确认过，
+不看日志自己怎么说）。卸载页详情区上部（四张统计卡 + 运行状态卡 + 八行基本信息）吃掉约 700 pt，
+带提醒的降级行只放得下两条。我一度按"四条都在画面里"写了 capture 的头部说明，**照片自己把它驳回了**——
+这是本轮唯一一次被实物反驳的期望值。改法是减夹具而不是加窗口高度：被删掉的两个形状
+一个进了上面那张交叉验证照片，一个进了单测，脚本头里写明去哪找。
+
+### 15.3 本轮三笔账
+
+- **注释是编译输入，第三次**：改一句源码注释（`ResidualCollector.swift` 里那句"主人写进提醒、不写进副标题"
+  的原文已经不是我实现的那句）→ `f7bca94+a18f4eb8` → `f7bca94+6bb866e9` → 门禁拒拍已出的六张 → 整族重拍。
+  §13 一次、§14 一次、本轮一次，三个实例同一笔账。
+- **锚点债**：`Scripts/p29-anchor-drift-audit.sh` 本轮量出四处源码改动把 **13 条**入库锚点顶漂
+  （`ResidualCollector` +102、`ResidualScanner` +34、`UninstallerModel` +12/+13/+14 三档），
+  已在五份文档里逐条重指。**同一轮的新教训是关于工具本身的**：p29 的"可照抄新锚点"回答的是
+  "HEAD 那一行的文字搬去哪儿了"，它**不问这条引用当初指对没有**——本轮有 **6 条**在 `f7bca94` 就已经
+  指着别的块（`apps-watch.md:132/140/176/206`、本文 `:118` 的 `deletionRoots`、`uninstaller-steam-launcher.md:99`
+  的 descend 注释），照抄只会把错锚再搬一次家。所以九条"可照抄"只直接用了能对上句意的那几条，
+  其余按句意现读代码重新定位，每条都读过落点原文。另外 p29 只认**带文件名**的引用，
+  文档里裸写的相对行号（本轮那处 `:237`→`:265`）对它完全不可见。
+- **顺手修了量尺自己**：`p29-anchor-drift-audit.sh:30` 补 `|| true`——"本轮只改测试文件"时那行
+  `grep -v` 不吐行并以 1 退出，`set -e` 让量尺在打印任何一行之前死掉。
+
+**测试**：九包 **720 / 0 失败 / 1 跳过**，其中 MMUninstaller 186 → **200**（+14，全部来自新增的
+`ResidualOwnershipReviewTests`；逐包求和 = 720 与合计那一格一致，这一格自 P11c 起每轮自证）。
+新增那一族的实跑计数是单独核的：`grep "Test Case" … | grep -c "ResidualOwnershipReviewTests.*' passed"` → 14。
+结论行入库 `docs/verification/p33b-citations/run-all-tests.log`，那份头部还记了一件本轮的自查：
+实现过程中我自己的中间笔记把这一格写成过 196/716，那是没跑出来过的读数——**上轮自报与自己本轮的草稿都要现读复核**。
 

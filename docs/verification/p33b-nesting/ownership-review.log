@@ -1,0 +1,65 @@
+# p33b-ownership-review-probe.sh  2026-10-12 11:45:19 +0800
+# repo: f7bca94-dirty  branch=main
+# digest: f7bca94+6bb866e9
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 参与编译的真源文件（10 个 + 探针）：
+#   42 行  Packages/MMCore/Sources/MMCore/Risk.swift
+#   169 行  Packages/MMCore/Sources/MMCore/HookValues.swift
+#   120 行  Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift
+#   175 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift
+#   196 行  Packages/MMUninstaller/Sources/MMUninstaller/OrphanScanner.swift
+#   281 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualCollector.swift
+#   619 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift
+#   143 行  Packages/MMUninstaller/Sources/MMUninstaller/ContainerScanner.swift
+#   114 行  Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift
+#   209 行  Packages/MMUninstaller/Sources/MMUninstaller/SteamLauncherProbe.swift
+#   187 行  Scripts/p33b-ownership-review-probe.swift
+# 唯一机械改动 = 去掉这些文件里的「import MMCore」一行（合成模块里 import 必报 no such module）：
+#   ResidualCollector.swift 281→280
+#   ResidualScanner.swift 619→618
+# 剥之前后各记一次行数，差一条不等于 1 行脚本就当场退出。
+# 每个应用每一档扫两遍：foreignApps=[]（复核前）与 foreignApps=整张已装清单（现在页面的传法）。
+# 扫的是本机真 home（只读）；probe 不调用删除接口，大小只对被点名的降级项量。
+
+# 应用清单：45 个 .app，剔除 com.apple.* 后 41 个参与扫描
+# home=/Users/lee
+# 每个应用扫两遍：foreignApps=[] 与 foreignApps=45 条整张清单
+
+## 一、enhanced 档：复核前后的差值
+
+- 包含匹配命中条数（后一遍，按 id 去重前逐应用累计）：48
+- 被复核降级的条数：0
+- 默认勾选条数合计：前 48 → 后 48
+- 清单条目集合是否两遍相同：是
+
+本机这一档没有行被降级（不代表机制不成立，只代表这台机上这些弱证据行既没有
+别的应用在同一路径上以更硬证据主张，上层目录也没有）。
+
+## 二、deep 档：复核前后的差值
+
+- 包含匹配命中条数（后一遍，按 id 去重前逐应用累计）：356
+- 被复核降级的条数：2
+- 默认勾选条数合计：前 51 → 后 49
+- 清单条目集合是否两遍相同：是
+
+### 被降级的行（风险档、勾选、提醒三样都来自真函数返回值）
+
+| 挂在谁名下 | 路径 | 类别 | 证据（原样） | 现在的风险 | 字节 | 行下方那句提醒 |
+|---|---|---|---|---|---|---|
+|Fork|~/Library/Caches/JetBrains/IntelliJIdea2026.2/ts-go-fork-embedded|cache|名称包含应用名（非包名对应）（位于 IntelliJIdea2026.2 内）|caution|0|上层目录归 IntelliJ IDEA（~/Library/Caches/JetBrains/IntelliJIdea2026.2）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+|Fork|~/Library/Caches/JetBrains/WebStorm2026.2/ts-go-fork-embedded|cache|名称包含应用名（非包名对应）（位于 WebStorm2026.2 内）|caution|0|上层目录归 WebStorm（~/Library/Caches/JetBrains/WebStorm2026.2）。这一项只按「名称包含应用名」收进来，可能不是 Fork 的数据，已默认取消勾选，确认后再勾。|
+
+## 四、口径与边界
+
+- 复核动手要两件事同时成立：这一项的证据只有「名称包含应用名」，且**另一个已安装应用**
+  对同一件事有更硬的证据——要么它直接主张这一项本身，要么它主张这一项的某个上层目录；
+  两条线索按离这一项更近的顺序问，第一条成立就不问第二条。
+  判据实现只有一处（`ResidualCollector.reviewed`），本探针不复述它。
+- 动作只有两个：风险档 safe→caution（于是默认不勾选，`MMRisk.isDefaultSelected` 只认 safe），
+  以及行下方那句 `caveat` 写上主人（「这一项本身归 X」或「上层目录归 X」）。
+  证据串、命中集合、类别都不动。
+- 「清单条目集合两遍相同」就是这条不变量的直接读数：不一致会打 ⚠ 行并列出差集。
+- 大小只对被点名的降级项量（`DirectoryResidualSizeMeasurer.size(of:)` 同步口径），
+  两遍扫描本身的 measure 一律返回 0，避免整轮变成全盘遍历。
+- strict 档不跑：包含匹配按构造到不了那一档（`enumerate` 的 allowContains 闸门），
+  这一条由 `ResidualOwnershipReviewTests.testStrictTierHasNoContainmentHit` 钉住。

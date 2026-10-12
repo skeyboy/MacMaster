@@ -13,6 +13,8 @@
 # Risk 与 HookValues 两个文件；UI 文件（MMUninstaller.swift 引 SwiftUI/MMUI）与
 # UninstallerModel.swift（引 MMFileScanner）**不参与**，页面调用 scan 时传的参数形态由
 # 本探针按 UninstallerModel.swift:379 那一行逐字照抄（appName 用 bundleName，不用显示名）。
+# OrphanScanner.swift 只定义 `InstalledAppIdentity`（P33b 之后 `ResidualScanOptions.foreignApps`
+# 引用它），只 import Foundation，所以拉进来不会牵进 UI 依赖。
 #
 # 这台机器是**真 home**：探针只读（contentsOfDirectory / lstat / PropertyListSerialization），
 # 不调用任何删除接口；大小只对被点名的跨应用项量，不是全盘遍历。
@@ -40,6 +42,7 @@ typeset -a SOURCES=(
   "$MMC/HookValues.swift"
   "$MMU/AppScanner.swift"
   "$MMU/ResidualNameMatcher.swift"
+  "$MMU/OrphanScanner.swift"
   "$MMU/ResidualCollector.swift"
   "$MMU/ResidualScanner.swift"
   "$MMU/ContainerScanner.swift"
@@ -96,7 +99,7 @@ emit() {
   for f in "${SOURCES[@]}"; do
     print -r -- "#   $(wc -l <"$f" | tr -d ' ') 行  $f"
   done
-  print -r -- "# 唯一机械改动 = 去掉这些文件里的 `import MMCore` 一行（合成模块里 import 必报 no such module）："
+  print -r -- "# 唯一机械改动 = 去掉这些文件里的「import MMCore」一行（合成模块里 import 必报 no such module）："
   if [[ ${#STRIPPED[@]} -eq 0 ]]; then
     print -r -- "#   （本轮没有任何文件需要剥 import）"
   else

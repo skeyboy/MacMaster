@@ -112,7 +112,7 @@
 
 ## 0. 结论先行
 
-- **功能面：可以发。** 九个包全绿：`706` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
+- **功能面：可以发。** 九个包全绿：`720` 个测试、`0` 个失败、`1` 个跳过（跳过原因见 §1）。
   （**这一格 P25 那一轮漏改了一整轮**：§1 的表走到了 629，这一行还写着 622——现读 HEAD 那一份可复核。
   这正是 §1 末尾那条老教训的形状："加一轮只往 §1 追加一个数，不等于全文档同步"，
   而漂移发生在**引用计数的句子**上、这一次连"结论先行"自己都在内。本轮起 §0/§1/§7.x 的数同一批改，
@@ -148,6 +148,15 @@
   **第二跑退出码 1**：本格加的这 6 行把 §7.21 边界第 2 条那句自引（当时写作 `release-readiness.md:723`）顶进了空白行，**空白面判据当场抓住**；
   而它在被顶之前**就已经错了 73 行**（`git show HEAD` 那一棵里 `:723` 是另一条 bullet），第三跑把它改回现读、硬失败归 0，
   定稿那一跑走到 **939 / 777 / 685**（多的五处引用就是这段记账自己写的）；细节、p29 那支量尺的覆盖缺口与缓解都在 `feature-roadmap.md` §11 那一段。
+  **P33b 再走同一条命令：当前值走到 720**（MMUninstaller 186 → **200**，+14 全部来自新增的
+  `ResidualOwnershipReviewTests`，判据侧的记录在 `docs/analysis/uninstaller-deep-residual-scope.md` §8、
+  取证侧在 `docs/analysis/fidelity-uninstaller.md` §15）。本轮把副本面逐格现读扫了一遍并一并改到 720
+  （§0 这一格、§1 抬头、§1 抬头下面那段逐包分布与它自己那句"求和 = NNN"、§6 壳层那一格、
+  §10 第 1 步的期望值、README 那三格、`RELEASE-NOTES.md` 那句"同一条脚本现读是 NNN 个测试"）。
+  **这一轮多还了一笔别的债**：四处源码改动（`ResidualCollector` +102、`ResidualScanner` +34、
+  `UninstallerModel` +12/+13/+14）把 **13 条**入库行号锚点顶漂，p29 量出来之后逐条重指了；
+  同一轮里另外发现 **6 条**引用在 `f7bca94` 就已经指着别的块——那一类错 p29 结构上看不见
+  （它问的是"HEAD 那一行的文字搬去哪儿了"，不问"这条引用当初指对没有"），照抄它的建议只会把错锚再搬一次家。
   这条命令之所以还有效，正是因为它按形态数、不按位置数：它不看"这一串在 §1 的第几行"，
   所以它既抓得到写在开头的、也抓不到写在开头的（后者要靠逐格现读，本轮就是靠逐格现读补上的）。
   六个业务模块都有真机照片级别的取证，且本轮之前发现的"界面上说了代码库支撑不了的话"已收口（§7）。
@@ -272,7 +281,7 @@
 
 | 指标 | 值 | 怎么量的 |
 | --- | --- | --- |
-| 测试总数 | **706** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置；**P22 于 2026-10-06 现跑**，那一份输出已归档在 `docs/verification/p22-citations/run-all-tests.log`；**P21 那一跑**的日志是 `/tmp/mm-p21b-tests.log`——**它没入库，所以这一格从 P22 起换成了"结论行入库、逐包原始输出留 /tmp"**，理由见 §7.13）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了。**P14 再重跑：579 → 583**（+4，`GuardianHeaderContractTests`：页头副标题的段数合同，见 §7.5）。**P15：583 → 590**（+7：`CommandRunnerPipeTests` 5 条 >64 KB 管道的读法判据、`LaunchctlRunnerTests` 1 条真机只读、`SystemSpaceReportTests` 1 条同族；见 §7.6）。**P18：590 → 612**（+22，全在 MMCore：`HookValueTests` 钉住"写错值必须回落默认档 + 生成那一行留痕文案"，`LaunchHookTests` 钉住 `MM_APPEARANCE`/`MM_WINDOW_SIZE` 的解析；见 §7.9）。**P21：612 → 621**（+9：`DeletionGuardTests` +3 钉住 `/dev`、`/private` 与"字面问和全量问不许给两种答案"，`DiskRiskTests` 全新 6 条钉住"界面标签不许和闸门唱反调"；见 §7.12）。**P22：621 → 622**（+1：`DiskScannerHierarchyTests.testNestedProtectedSkipIsDisclosed`，钉住"跳过发生在每一层，披露就必须覆盖每一层"；见 §7.13。**这一条 +1 值得多说一句**：改动的代码是 +42 行，判据只 +1——因为这一轮的病不是"某个函数算错"，是"两处读同一份名单、数的范围不一样"，能钉住它的断言天然只有一条）。**P23 又跑了一遍：622 / 0 / 1，逐包九格与 P22 归档那一份一格不差**（本轮一行编译输入都没改，判据 **+0**；结论行入库 `docs/verification/p23-citations/run-all-tests.log`。**"没改代码所以没重跑"这种话本轮不说了**——重跑很便宜，而且它正是"这一轮的改动确实只在工具链"这条主张的证据。**P24 又跑了一遍：仍是 622 / 0 / 1，逐包九格与 P22、P23 那两份归档一格不差**（判据 +0，结论行入库 `docs/verification/p24-citations/run-all-tests.log`。这一遍跑的时候工作树是 dirty 的，脏的是两支 `Scripts/*.sh` 与这份文档自己——`git status --porcelain -uno` 加上编译输入那组路径限定符现读 **0 行**，所以"这 622 条量的还是那 92 个编译输入"这句话有指纹背书，不需要谁去记）。**P25：622 → 629**（判据 **+7**，一笔，全在 MMCleaner：`CleanerHeaderContractTests.swift` 全新 92 行 7 条，钉的是清理页副标题的**段序与长度决定**——见 §7.16。这一轮和 P21/P22 同形：**改了哪一屏，判据就只加在哪一包**——所以要看的是"除 MMCleaner 之外那八包逐包现读一个数没变"，而不是抄一句"其余不变"；本轮归档那一份的九格是 73 / 17 / 117 / **25** / 121 / 73 / 53 / 96 / 54，其中 MMCleaner 从 18 走到 **25**，而那 18 条旧判据也全绿、其中没有一条断言过副标题的段序，这一点在 §7.16 里单独说过。结论行入库 `docs/verification/p25-citations/run-all-tests.log`）**P26：629 → 633**（判据 **+4**，一笔，全在 MMDisk：`DiskHeaderContractTests.swift` 全新 60 行 4 条，钉磁盘页页头副标题的**段序与"页头不许有第二个数字"**——见 §7.17。与 P25 同形：改了哪一屏，判据只加在哪一包。本轮九格现读 73 / 17 / 117 / 25 / 121 / **77** / 53 / 96 / 54，只有 MMDisk 从 73 走到 **77**，其余八格与 P25 归档那份逐字相同；**这 77 条里没有一条曾经断言过旧的四段顺序**，所以 +4 是净增，不是替换。结论行入库 `docs/verification/p26-citations/run-all-tests.log`。**P27 又跑了一遍：仍是 633 / 0 / 1，逐包九格与 P26 归档那一份一格不差**（判据 +0——本轮一行编译输入都没改，也没有新写判据；结论行入库 `docs/verification/p27-citations/run-all-tests.log`，**这是第二份出自 `git clone` 树的测试结论行**（第一份是 P20 那一遍，但那一遍的归档规矩还没立起来），跑的时候那棵树 `git status --porcelain` 只有本轮那三张照片未跟踪、编译输入脏行数现读 0，所以"633 条量的是那 92 个编译输入"这一句在**别人的克隆**里也成立））。**P28 又跑了一遍：仍是 633 / 0 / 1，逐包九格与 P26、P27 那两份归档一格不差**（判据 **+0**，但这一轮的 +0 与 P27 那种"一行源码没动"的 +0 **不是一回事**：本轮确实改了一个测试文件（那条 CPU 跨度判据，+17/−7），**动的是同一条测试方法内部的断言形状**，方法数没变、所以 54 那一格没变——这是现读出来的，不是推出来的。**这一跑真正的看点在跑它的那支脚本**：`Scripts/run-all-tests.sh` 的失败计数那行正则从 `failures` 改成了 `failures?`（XCTest 按数字单复数变形，1 条失败时那行是单数，原来整体不匹配、`f` 落回 0），所以**这是修好之后第一跑，也是这一格第一次跑在"知道会漏读单数"的位置上**；这 9 行与 /tmp 那 9 份原始日志的 `Executed` 行本轮逐包重抽对过（同一串数），因为这一格自己就是"结论行与原始日志各说一套"那一类事故现场。跑的时候工作树是 dirty 的（`# repo:` 因此带 `-dirty`；这一格里不写总脏行数，理由同那一格日志头——它每 add 一步都在变，跑测那一刻的值事后测不出来），**编译输入脏行数现读 0**，`mm_source_digest` 因此仍是 `1da6924+e3b0c442`，与本轮那份产物的 `MMSourceDigest` 逐字相等（`docs/verification/p28-package/package.log`）——唯一进的源码改动落在 `Packages/*/Tests/**`，那正是归因指纹按设计排除的那一支。结论行入库 `docs/verification/p28-citations/run-all-tests.log`）。**P29：633 → 641**（判据 **+8**，两笔，全在改了代码的那两包：`Packages/MMCore/Tests/MMCoreTests/MMSettingsPaneTests.swift` 全新 46 行 4 条（**MMCore 73 → 77**），钉的是深链拼接"只许有一个 scheme"——这一条性质本轮刚以双前缀的形态坏过一次，见 §7.21 第 1、2 条；`Packages/MMMonitor/Tests/MMMonitorTests/NotificationStatusTests.swift` 全新 40 行 4 条（**MMMonitor 53 → 57**），钉 `caption(for:)` 与 `needsSystemSettings(for:)` 那两个纯函数——授权读数本身要系统状态，单测钉不了"读到什么"，只能钉"读到这个状态应当说哪句话"，这两件事分开写才不会有人以为这 4 条测的是系统）。逐包九格现读 **77** / 17 / 117 / 25 / 121 / 77 / **57** / 96 / 54，其余七格与 P26、P27、P28 那几份归档逐字相同——**判据只加在改了代码的那两包**，与 P25（只涨 MMCleaner）、P26（只涨 MMDisk）同形。结论行入库 `docs/verification/p29-citations/run-all-tests.log`，**那一跑是本轮最后一次源码改动（`SettingsView.swift` 通知那一节的段序）之后重跑的**，不是沿用改动前那一读。**P30 更正的是这一格开头那个数**：P29 把 641 那笔账写进了这一格的叙述，开头却仍留着 633——**同一格里"活数"与"史账"是两个位置，往后追加一段不会自动抬走抬头**，这是 §0 那一格两次漏改（P25 抓到、本轮又抓到）之外的第三种形状：那一格漏的是另一格，这一格漏的是**它自己开头**。本轮按 §0 那条对账命令把四处活数一起改（§0、这一格、§6 壳层那一格、§10 第 1 步的期望值），逐处现读。**P30 又跑了一遍：仍是 641 / 0 / 1，九格与 P29 那份归档逐字相同**（判据 **+0**——本轮一行编译输入都没动，产物指纹 `54ca105+e3b0c442`；这一跑**整棵树来自 `git clone`**（`/tmp/mm-clone-p30`，跑第 1 步那一刻 `git status --porcelain` 为空、编译输入脏行数现读 0），所以它是**第三份从克隆树归档的测试结论行**，也是第二份带同源门禁的（P27 是第一份，P20 那一遍归档规矩还没立）。**"与 P29 逐字相同"是两份归档 `diff` 出来的**（九格那九行做键，输出为空），不是从"本轮没改源码"推的——见 §11 末尾那条判据 ②。结论行入库 `docs/verification/p30-citations/run-all-tests.log`）。**P31：641 → 668**（判据 **+27**，一笔，
+| 测试总数 | **720** | `./Scripts/run-all-tests.sh`（九包逐个 `swift test`，默认 debug 配置；**P22 于 2026-10-06 现跑**，那一份输出已归档在 `docs/verification/p22-citations/run-all-tests.log`；**P21 那一跑**的日志是 `/tmp/mm-p21b-tests.log`——**它没入库，所以这一格从 P22 起换成了"结论行入库、逐包原始输出留 /tmp"**，理由见 §7.13）。**P11 于 2026-10-05 重跑**：P7 落地时 566，P8 +5（MMDisk 4 + MMFileScanner 1，见 §7.1），P10 不变，P11 +10（MMGuardian 活动卡那三处读法的判据，见 §3）。**P11c 于同日重跑：581 → 579**——删掉 10 条日志拆行判据（被测函数随那一族一起撤下）、加 8 条文案合同判据（`ActivityCardContractTests`），净 −2；**这不是覆盖率退步**，被删的那 10 条测的读法已经从界面上没了。**P14 再重跑：579 → 583**（+4，`GuardianHeaderContractTests`：页头副标题的段数合同，见 §7.5）。**P15：583 → 590**（+7：`CommandRunnerPipeTests` 5 条 >64 KB 管道的读法判据、`LaunchctlRunnerTests` 1 条真机只读、`SystemSpaceReportTests` 1 条同族；见 §7.6）。**P18：590 → 612**（+22，全在 MMCore：`HookValueTests` 钉住"写错值必须回落默认档 + 生成那一行留痕文案"，`LaunchHookTests` 钉住 `MM_APPEARANCE`/`MM_WINDOW_SIZE` 的解析；见 §7.9）。**P21：612 → 621**（+9：`DeletionGuardTests` +3 钉住 `/dev`、`/private` 与"字面问和全量问不许给两种答案"，`DiskRiskTests` 全新 6 条钉住"界面标签不许和闸门唱反调"；见 §7.12）。**P22：621 → 622**（+1：`DiskScannerHierarchyTests.testNestedProtectedSkipIsDisclosed`，钉住"跳过发生在每一层，披露就必须覆盖每一层"；见 §7.13。**这一条 +1 值得多说一句**：改动的代码是 +42 行，判据只 +1——因为这一轮的病不是"某个函数算错"，是"两处读同一份名单、数的范围不一样"，能钉住它的断言天然只有一条）。**P23 又跑了一遍：622 / 0 / 1，逐包九格与 P22 归档那一份一格不差**（本轮一行编译输入都没改，判据 **+0**；结论行入库 `docs/verification/p23-citations/run-all-tests.log`。**"没改代码所以没重跑"这种话本轮不说了**——重跑很便宜，而且它正是"这一轮的改动确实只在工具链"这条主张的证据。**P24 又跑了一遍：仍是 622 / 0 / 1，逐包九格与 P22、P23 那两份归档一格不差**（判据 +0，结论行入库 `docs/verification/p24-citations/run-all-tests.log`。这一遍跑的时候工作树是 dirty 的，脏的是两支 `Scripts/*.sh` 与这份文档自己——`git status --porcelain -uno` 加上编译输入那组路径限定符现读 **0 行**，所以"这 622 条量的还是那 92 个编译输入"这句话有指纹背书，不需要谁去记）。**P25：622 → 629**（判据 **+7**，一笔，全在 MMCleaner：`CleanerHeaderContractTests.swift` 全新 92 行 7 条，钉的是清理页副标题的**段序与长度决定**——见 §7.16。这一轮和 P21/P22 同形：**改了哪一屏，判据就只加在哪一包**——所以要看的是"除 MMCleaner 之外那八包逐包现读一个数没变"，而不是抄一句"其余不变"；本轮归档那一份的九格是 73 / 17 / 117 / **25** / 121 / 73 / 53 / 96 / 54，其中 MMCleaner 从 18 走到 **25**，而那 18 条旧判据也全绿、其中没有一条断言过副标题的段序，这一点在 §7.16 里单独说过。结论行入库 `docs/verification/p25-citations/run-all-tests.log`）**P26：629 → 633**（判据 **+4**，一笔，全在 MMDisk：`DiskHeaderContractTests.swift` 全新 60 行 4 条，钉磁盘页页头副标题的**段序与"页头不许有第二个数字"**——见 §7.17。与 P25 同形：改了哪一屏，判据只加在哪一包。本轮九格现读 73 / 17 / 117 / 25 / 121 / **77** / 53 / 96 / 54，只有 MMDisk 从 73 走到 **77**，其余八格与 P25 归档那份逐字相同；**这 77 条里没有一条曾经断言过旧的四段顺序**，所以 +4 是净增，不是替换。结论行入库 `docs/verification/p26-citations/run-all-tests.log`。**P27 又跑了一遍：仍是 633 / 0 / 1，逐包九格与 P26 归档那一份一格不差**（判据 +0——本轮一行编译输入都没改，也没有新写判据；结论行入库 `docs/verification/p27-citations/run-all-tests.log`，**这是第二份出自 `git clone` 树的测试结论行**（第一份是 P20 那一遍，但那一遍的归档规矩还没立起来），跑的时候那棵树 `git status --porcelain` 只有本轮那三张照片未跟踪、编译输入脏行数现读 0，所以"633 条量的是那 92 个编译输入"这一句在**别人的克隆**里也成立））。**P28 又跑了一遍：仍是 633 / 0 / 1，逐包九格与 P26、P27 那两份归档一格不差**（判据 **+0**，但这一轮的 +0 与 P27 那种"一行源码没动"的 +0 **不是一回事**：本轮确实改了一个测试文件（那条 CPU 跨度判据，+17/−7），**动的是同一条测试方法内部的断言形状**，方法数没变、所以 54 那一格没变——这是现读出来的，不是推出来的。**这一跑真正的看点在跑它的那支脚本**：`Scripts/run-all-tests.sh` 的失败计数那行正则从 `failures` 改成了 `failures?`（XCTest 按数字单复数变形，1 条失败时那行是单数，原来整体不匹配、`f` 落回 0），所以**这是修好之后第一跑，也是这一格第一次跑在"知道会漏读单数"的位置上**；这 9 行与 /tmp 那 9 份原始日志的 `Executed` 行本轮逐包重抽对过（同一串数），因为这一格自己就是"结论行与原始日志各说一套"那一类事故现场。跑的时候工作树是 dirty 的（`# repo:` 因此带 `-dirty`；这一格里不写总脏行数，理由同那一格日志头——它每 add 一步都在变，跑测那一刻的值事后测不出来），**编译输入脏行数现读 0**，`mm_source_digest` 因此仍是 `1da6924+e3b0c442`，与本轮那份产物的 `MMSourceDigest` 逐字相等（`docs/verification/p28-package/package.log`）——唯一进的源码改动落在 `Packages/*/Tests/**`，那正是归因指纹按设计排除的那一支。结论行入库 `docs/verification/p28-citations/run-all-tests.log`）。**P29：633 → 641**（判据 **+8**，两笔，全在改了代码的那两包：`Packages/MMCore/Tests/MMCoreTests/MMSettingsPaneTests.swift` 全新 46 行 4 条（**MMCore 73 → 77**），钉的是深链拼接"只许有一个 scheme"——这一条性质本轮刚以双前缀的形态坏过一次，见 §7.21 第 1、2 条；`Packages/MMMonitor/Tests/MMMonitorTests/NotificationStatusTests.swift` 全新 40 行 4 条（**MMMonitor 53 → 57**），钉 `caption(for:)` 与 `needsSystemSettings(for:)` 那两个纯函数——授权读数本身要系统状态，单测钉不了"读到什么"，只能钉"读到这个状态应当说哪句话"，这两件事分开写才不会有人以为这 4 条测的是系统）。逐包九格现读 **77** / 17 / 117 / 25 / 121 / 77 / **57** / 96 / 54，其余七格与 P26、P27、P28 那几份归档逐字相同——**判据只加在改了代码的那两包**，与 P25（只涨 MMCleaner）、P26（只涨 MMDisk）同形。结论行入库 `docs/verification/p29-citations/run-all-tests.log`，**那一跑是本轮最后一次源码改动（`SettingsView.swift` 通知那一节的段序）之后重跑的**，不是沿用改动前那一读。**P30 更正的是这一格开头那个数**：P29 把 641 那笔账写进了这一格的叙述，开头却仍留着 633——**同一格里"活数"与"史账"是两个位置，往后追加一段不会自动抬走抬头**，这是 §0 那一格两次漏改（P25 抓到、本轮又抓到）之外的第三种形状：那一格漏的是另一格，这一格漏的是**它自己开头**。本轮按 §0 那条对账命令把四处活数一起改（§0、这一格、§6 壳层那一格、§10 第 1 步的期望值），逐处现读。**P30 又跑了一遍：仍是 641 / 0 / 1，九格与 P29 那份归档逐字相同**（判据 **+0**——本轮一行编译输入都没动，产物指纹 `54ca105+e3b0c442`；这一跑**整棵树来自 `git clone`**（`/tmp/mm-clone-p30`，跑第 1 步那一刻 `git status --porcelain` 为空、编译输入脏行数现读 0），所以它是**第三份从克隆树归档的测试结论行**，也是第二份带同源门禁的（P27 是第一份，P20 那一遍归档规矩还没立）。**"与 P29 逐字相同"是两份归档 `diff` 出来的**（九格那九行做键，输出为空），不是从"本轮没改源码"推的——见 §11 末尾那条判据 ②。结论行入库 `docs/verification/p30-citations/run-all-tests.log`）。**P31：641 → 668**（判据 **+27**，一笔，
 全在 MMUninstaller：三个新文件 `RunningAppProbeTests` 13 + `RunningAppStatePresentationTests` 10 +
 `UninstallerRunningStateModelTests` 4，钉的是 v1.1 第 1 条「卸载前发现应用在跑」的两半——
 纯判据那一半（`AppRunningState.resolve` 只吃快照值类型，含一条"`isUnattributable` 由**两个字段同时缺**定义"
@@ -291,7 +300,19 @@ Steam 那一族三个新文件 34 条（`SteamLauncherProbeTests` 24 / `Residual
 结论行入库 `docs/verification/p32b-steam-citations/run-all-tests.log`——
 **那一格还替下一个人排了一个坑**：`git add` 一个新源文件会让指纹**后半截**变
 （`71d7740f` → `c6baaaa5`，内容一字未动；已跟踪的走 `git diff HEAD` 带头、未跟踪的走 `cat` 不带），
-与本格从前记过的"提交让前半截（短 sha）失配"是同一支配方上的两处性质） |
+与本格从前记过的"提交让前半截（短 sha）失配"是同一支配方上的两处性质）。
+**P33b：706 → 720**（判据 **+14**，还是一笔只加在一包：MMUninstaller 186 → **200**，
+十四条全部来自新增的 `ResidualOwnershipReviewTests.swift`，每条单独现读（`Test Case … ' passed` 计数 = 14），
+钉的是残留归属复核那两条线索各自的出现与不出现，外加一条否证：strict 档没有包含命中 ⇒ 复核一轮都不跑
+（`testStrictTierHasNoContainmentHit`）。**其余八格与 P32b 归档那份逐字相同**，与 P25/P26/P29/P31/P32b 同形。
+结论行入库 `docs/verification/p33b-citations/run-all-tests.log`（`# repo: f7bca94-dirty`、
+指纹 `f7bca94+6bb866e9`，跑测窗口内唯一的改动是 `Scripts/p29-anchor-drift-audit.sh` 一支 shell，
+不是编译输入——所以"这 720 条量的是同一棵编译输入"有指纹背书）。
+**这一格差点写进一个从没跑出来的数**：本轮实现过程中的中间笔记记的是 MMUninstaller 196 / 合计 716，
+两头现读都是 **200 / 720**——草稿数字落进文档就是假话，落地记录 §8.4 与 `fidelity-uninstaller.md` §15.3 各记了一次。
+**注释第三次进指纹**：改一句源码注释（`SteamLauncherProbe.swift:191` 里那句引号中的文案已经不是实现的那句）
+让指纹后半截从 `a18f4eb8` 变成 `6bb866e9`，同源门禁当场拒拍已经拍好的六张照片，整族重拍——
+与 P31（上面那两遍）、P32b（`1f91a012 → 71d7740f`）是同一笔账，本轮又付了一次） |
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
 | 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（**P15 现读复核**：函数声明在 `:167`，XCTest 日志回的是里面那句 `try XCTSkipIf` 的 `:173`——**两个数都对，指的是两件事**，从前在这两行之间来回改过一次）。跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
 | 生产代码量 | **27,082 行** | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（**P22 于 2026-10-06 现跑**；**P21 时 26,688**；**P18 时 26,645**：P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**，P14 +18 是 `GuardianPageCopy` 那一份清单与两条注释，P15 +95 = `CommandRunner.swift` 120 行 − 两处调用点各自删掉的旧读法 25 行；P18 新增 `Packages/MMCore/Sources/MMCore/HookValues.swift` **169 行**（取证钩子的判定层），其余十个源文件净 **+21**。**P21 +43**，四笔全在删除闸门那一条链上：新增 `Packages/MMDisk/Sources/MMDisk/DiskRisk.swift` **37 行**（从 `MMDisk.swift` 里提出来的风险标签），`DeletionGuard.swift` 165 → **180**（+15：`/dev`、`/private` 两条与 `literalRejection` 那一对入口），`MMDisk.swift` 2037 → **2026**（−11：`risk(of:)` 那 14 行换成一行委托），`Packages/MMDisk/Package.swift` +2（测试目标要依赖 MMCore）。**P22 +42，一笔**：`MMDisk.swift` 2026 → **2068**——`ProtectedSkipLedger` 那一整类（含注释 25 行）、三处调用点各加一个可选参数、`skippedDisclosure(_:)` 那 8 行浮层截断，同一次改动里删掉的只有 `skippedProtectedNames(rootPath:)` 那 6 行。**这一格从来是"当轮现跑"，不是"上一格 + 增量"**：P18 前的 HEAD 现读 26,455，与 P15 记的 26,453 差 2 行——那 2 行是 P15 之后落地的别的改动，抄表的人不会知道，所以每一轮都重跑同一条命令。**P22 现读 HEAD 那一跑是 26,688，与工作区 26,730 差 42，与上面那一笔逐文件对得上**。对照命令**必须逐 blob**：`git ls-tree -r HEAD --name-only \| xargs wc -l` 看着像在量 HEAD，其实 `wc` 打开的是工作树里那个同名文件，**它量出来会恰好等于现值 26,730，差异被抹成 0**（那一句写于 P22，当时的工作区现值就是 26,730；本轮 26,776，**坑的性质不随数值变**——照着抄的人会把"恰好等于"读成"没有差异"），本轮真就这么错了一次，是那个"差 0"看着太可疑才回去重跑的。正确写法是 `while read f; do git cat-file blob "HEAD:$f"; done \| wc -l` 逐项求和。**P23 现读仍是 26,730，与 P22 那一格逐字相同**——本轮只动 `Scripts/*.sh`，而 .sh 不是编译输入；这一格之所以还要重跑，是因为"没动源码"这句话本轮是要拿来当判据用的（§7.14 那条指纹主张的前提就是"编译输入一模一样"）。**P24 现读仍是 26,730**——本轮动的两处全在 `Scripts/` 那两支 .sh，而 .sh 不是编译输入。**P25 现读 26,776（+46，一笔）**：`MMCleaner.swift` 964 → **1010**（副标题的构造从调用点抽成 `CleanerHeaderCopy`，调用点本身反而 −7，净 +46）。**HEAD 逐 blob 那一跑也是 26,776**（`git cat-file blob` 逐项求和，与 §7.14 那条"必须逐 blob"的写法同一条命令）——**两值相同正是"这一轮的源码改动全部已入库、工作树里再没有未提交的编译输入"的证据**，也就是产物指纹 `fc2a7b2+e3b0c442` 后半截还是空流前缀的原因。**P26 现读 26,798（+22，两笔）**：`MMDisk.swift` `git diff --numstat` 现读 **+29 / −11 = +18**（新写的 `DiskHeaderCopy` 那 7 行代码连同它上面 14 行合同注释，换掉旧 `headerSubtitle` 的 8 行注释与 2 行字符串拼接，另外删掉 `scanDuration` 那两行——它随"用时"一起出的页头），`MMDesign.swift` **+4**（`.help(subtitle)` 一行，加它上面三行判据注释）。**HEAD 逐 blob 那一跑本轮也是 26,798**（`git cat-file blob "HEAD:$f"` 逐项求和，与 §7.14 那条"必须逐 blob"的写法同一条命令）——两值相同，所以"这 633 条量的还是那 92 个编译输入"这句话在 P26 的三份取证产物（`59e653b` / `6aa897e` / `17f4371`）上都有指纹背书，不需要谁去记）。**P29 现读 27,082**，两笔要分开看，因为这一轮**第一次出现"上一格记的表值不等于本轮的 HEAD 值"是别的轮次欠的**：HEAD 逐 blob 那一跑现读 **26,806**，比 P26 记的 26,798 多 **8 行**——那 8 行是 §7.20 那一轮（CI-4b）把 `MonitorFixtureHooks.swift:217-231` 那个编译超时的表达式拆成带类型的局部量，**它动的是 `Packages/*/Sources/**`，不是测试目录**，所以它进了生产代码量，而那一轮的 §1 这一格没有重跑（它重跑的是测试结论行）。**这是一笔真账，不是量法不同**：P26 那一格往后，任何一格抄 26,798 都少 8 行。本轮工作区 27,082 = HEAD 26,806 **+276**，那 276 对得上分解——十个已跟踪文件 `git diff --numstat` 净 **+183**（`LaunchBehavior.swift` +79、`SettingsView.swift` +40、`MenuBarManager.swift` +37、`MacMasterApp.swift` +26，其余六处合计 +1），加两个新文件 `SystemSettings.swift` 41 行与 `NotificationStatus.swift` 52 行 = **93**，**183 + 93 = 276 与总量差逐位相等**，这个等式就是"没有第三个文件被顺手动过"的自证（与 P21 那句"136 = 101 + 35"、P25/P26 那句"行数差 = 那个新文件的 `wc -l`"同一手法） |
@@ -514,26 +535,32 @@ P26 那一格刚说过"这一读不可能包含关于自己的那段话"，这�
 5 / 22 是 P23 那一读，P26 已把它推到 7 / 20 并记在 §7.17 与 §7.14 残余第 ② 条，**本行这一格当时没跟着改**——
 本轮把它改成现读数，为的是别再让同一份文档里两个格各报一个数 |
 
-逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-10 **P32b** 重跑，归档 `docs/verification/p32b-steam-citations/run-all-tests.log`；
-**P31 那一跑**的归档在 `docs/verification/p31-citations/run-all-tests.log`，本轮九格里除 MMUninstaller 那一行外与它逐字相同——
-`diff` 两份归档的九行、输出只有一条 `5c5`；
+逐包分布（同一条 `run-all-tests.sh` 输出，2026-10-12 **P33b** 重跑，归档 `docs/verification/p33b-citations/run-all-tests.log`；
+**P32b 那一跑**的归档在 `docs/verification/p32b-steam-citations/run-all-tests.log`，本轮九格里除 MMUninstaller 那一行外与它相同——
+`diff` 两份归档的九行**先要说清量到了什么**：按字面 `diff` 会报九行全不同，因为 P32b 那份归档的行尾空格被剥掉了、
+而本轮这份是脚本原样输出（`Scripts/run-all-tests.sh:68` 那条 `printf` 末尾就多一个 `%s` 的空格）。
+**剥掉行尾空格再 `diff` 才是本轮真正想说的 `5c5`**（只有 MMUninstaller 那一行）。
+这条不是吹毛求疵，是"逐字相同"这种主张的代价：它把 shell 的格式也当成主张的一部分，
+下一轮拿 `diff` 复算的人会被一行数字之外的噪声绊住——写"逐字相同"之前先 `sed 's/[[:space:]]*$//'`。
 **这一行从前写的是 P26 那一跑**——P29 加了 8 条判据、把表值抬到 641，却没回头改这一段，
-它是 §0 那条"活数与史账在同一格里是两个位置"的**第五个副本面**，本轮一并扫到）：
-MMCore 77 · MMUI 17 · MMFileScanner 117 · MMCleaner 25 · MMUninstaller **186** ·
+它是 §0 那条"活数与史账在同一格里是两个位置"的**第五个副本面**，P32b 一并扫到）：
+MMCore 77 · MMUI 17 · MMFileScanner 117 · MMCleaner 25 · MMUninstaller **200** ·
 MMDisk 77（含 1 跳过）· MMMonitor 57 · MMGuardian 96 · MMOptimizer 54。
-**逐包求和 = 706**，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
-**本轮只加粗一格**：MMUninstaller 148 → **186**（+38 = Steam 那一族三个新文件 34 条
-+ `ResidualSensitivityTests` 6 → 10 的 +4），其余八格与 P31 归档那份逐字相同（见上那两句 `diff`）。
+**逐包求和 = 720**，与合计那一格一致（这一条自 P11c 起每轮都当自证用：抄来的数不会同时抄错九格）。
+**本轮只加粗一格**：MMUninstaller 186 → **200**（+14 全部来自新增的 `ResidualOwnershipReviewTests.swift`），
+其余八格与 P32b 归档那份相同（见上那一段 `diff` 的口径）。
+上一格是 **P32b：148 → 186**（+38 = Steam 那一族三个新文件 34 条
++ `ResidualSensitivityTests` 6 → 10 的 +4），其余八格与 P31 归档那份逐字相同。
 **P31 那一跑**是 MMUninstaller 121 → **148**（+27，三个新测试文件），其余八格与 P29、P30 那两份归档逐字相同。
-上一次变的是 **P29，动了两包**：MMCore 73 → **77**
+**最近一次动两包的是 P29**：MMCore 73 → **77**
 （`MMSettingsPaneTests.swift` 4 条，钉"一次跳转只许拼出一个 scheme"）、MMMonitor 53 → **57**
 （`NotificationStatusTests.swift` 4 条，钉授权状态的文案与判据），其余七包一格没变；
 形状与 P21 相同——**改的是哪一屏，判据就加在哪一包**。
 **加粗只标本轮变了的那一格**（P25 那一行加粗了五格，那是各轮累计的"曾变过"，读起来像"本轮变了五格"——本轮起改成只加粗本轮的差，下一轮好对账）。
 **撞车这一格要更正**：从前这里写着"P25 那一跑 MMCore 与 MMDisk 都是 73、撞过一格，P26 里 MMDisk 走到
-77 之后撞车解开"——**P29 把 MMCore 抬到 77，两处又撞成同一个字了**（本轮现读：九格里 77 出现两次，
-分别叫 MMCore 与 MMDisk）。所以这条自证**更要按包名读**：117 与 77 里那个 `7` 是同一个字，
-"求和 = 706"能不能对上，取决于你按名字取九格还是按"某个数出现过没有"取。
+77 之后撞车解开"——**P29 把 MMCore 抬到 77，两处又撞成同一个字了**（P32b 现读：九格里 77 出现两次，
+分别叫 MMCore 与 MMDisk；本轮重跑仍是这两格撞着）。所以这条自证**更要按包名读**：117 与 77 里那个 `7` 是同一个字，
+"求和 = 720"能不能对上，取决于你按名字取九格还是按"某个数出现过没有"取。
 P15 只动了三包：MMCore +5（`CommandRunnerPipeTests`）、MMFileScanner +1、MMGuardian +1。
 **P18 只动了一包**：MMCore 48 → **70**（+22，`HookValueTests` 15 + `LaunchHookTests` 7），其余八包一个数没变——
 这一条本身就是"这轮没顺手改坏别处"的旁证（钩子接线改了七个包的源码，但判定全在 MMCore，别的包没有新增断言）。
@@ -901,9 +928,10 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 一组里其余都勾完之后最后一份的框变禁用（`isKeepRequired`，`:424-428`，至少留一份）、
 勾到受保护路径时由服务层拒绝并回一条 PROTECTED 回执（`FileTrashService.swift:44`，UI 不拦、闸门拦）。
 发版说明按这三条写，不写"不给删除入口" |
-| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 **706** 个测试（**P27 现读更正**：这一格从前停在 612，那是 P18 之后的数；P21 621、P22 622、P25 629、P26 633，四笔都没回写到这里；**P29 也没回写，本轮 P30 才跟上**——这一格当时是第三次被同一句话抓到；**P31 当轮回写了**（641 → 668），**P32b 也当轮回写**（668 → 706；
-"壳层零测试"这件事本轮一个字没变——新加的 38 条判据全在 MMUninstaller 那一包的判定与呈现层，
-壳层那一侧还是只靠实机照片兜），这是 §0 那条命令从 P25 起每轮都在量的同一件事）一个都不覆盖壳层——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里。**P18 把这一格的边界往 MMCore 那边推了一格，但没有加测试目标**：壳层里那三处钩子判定（`MM_OPEN_MODULE` 的目的地、`MM_APPEARANCE`、`MM_WINDOW_SIZE`）现在只剩"调 `MMHookValue.selected` / `MMLaunchHook.resolve*` + 把结果交给 AppKit"，**判定本身在 MMCore 的 77 条里有名字**（这一格从前写 70，那是 P18 之后的读数；P21 +3、P29 +4 后是 77，本轮现读）——`HookValueTests` 15 条打的是共用的档位/数字/开关解析与"留痕必须落在 stderr"（`MM_OPEN_MODULE` 走的就是这一条），`LaunchHookTests` 7 条打的是外观别名与 `900x600` 那支尺寸解析；留在壳里的仍是那条没法单测的：窗口有没有真的被改大、sheet 有没有真的打开。**这一格判"可发布"的理由不变**（照片 + 现在多了判定层），但"零测试"这四个字**没有被 P18 消掉**，别在下一次抄表时把它写成"已补" |
+| 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 **720** 个测试（**P27 现读更正**：这一格从前停在 612，那是 P18 之后的数；P21 621、P22 622、P25 629、P26 633，四笔都没回写到这里；**P29 也没回写，本轮 P30 才跟上**——这一格当时是第三次被同一句话抓到；**P31 当轮回写了**（641 → 668），**P32b 也当轮回写**（668 → 706；
+"壳层零测试"那一轮一个字没变——新加的 38 条判据全在 MMUninstaller 那一包的判定与呈现层，
+壳层那一侧还是只靠实机照片兜），**P33b 同样当轮回写**（706 → 720，+14 全在 MMUninstaller 的归属复核判定层，
+壳层那一边这一轮连一行都没动），这是 §0 那条命令从 P25 起每轮都在量的同一件事）一个都不覆盖壳层——导航、窗口、设置页绑定全靠实机照片兜。**这是 v1.0 唯一一处"能力靠肉眼而不是靠测试"的地方**。P8 动过壳层（`DashboardModel.measureReclaimable` 现读设置拼 scope），**能单测的那一半已下沉**（`CacheScanScope.selected` 在 MMFileScanner，有单测），壳里剩下的三行只能靠 `p8-dashboard-scope/` 那三张照片。**P11c 现读补一句**：§4 写侧第 3 项那个登录项开关（`Sources/MacMaster/LaunchBehavior.swift`）也落在这一格"零测试"里，它的对照记录在 `fidelity-shell.md`，不在任何一条自动断言里。**P18 把这一格的边界往 MMCore 那边推了一格，但没有加测试目标**：壳层里那三处钩子判定（`MM_OPEN_MODULE` 的目的地、`MM_APPEARANCE`、`MM_WINDOW_SIZE`）现在只剩"调 `MMHookValue.selected` / `MMLaunchHook.resolve*` + 把结果交给 AppKit"，**判定本身在 MMCore 的 77 条里有名字**（这一格从前写 70，那是 P18 之后的读数；P21 +3、P29 +4 后是 77，本轮现读）——`HookValueTests` 15 条打的是共用的档位/数字/开关解析与"留痕必须落在 stderr"（`MM_OPEN_MODULE` 走的就是这一条），`LaunchHookTests` 7 条打的是外观别名与 `900x600` 那支尺寸解析；留在壳里的仍是那条没法单测的：窗口有没有真的被改大、sheet 有没有真的打开。**这一格判"可发布"的理由不变**（照片 + 现在多了判定层），但"零测试"这四个字**没有被 P18 消掉**，别在下一次抄表时把它写成"已补" |
 | MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉 |
 | 对外文案 `docs/website/index.html` | **不在产物里·P17 已过完一轮** | 这一页从前**从来没有跟实现对照过**：改动前 `grep -rn website docs/analysis/` 是 **0 命中**，九张 fidelity 对照表里也没有它的位置。P11c 撤下统一日志之后，页里那句"管理登录项，**监控系统活动**"当场变成假话，P14 那轮只改了被证伪的这两句、其余记成待办。**P17 把待办清完了**：逐句判定表 16 行在 `docs/analysis/website-audit.md`，三处"说不到"（一键清理、更快更流畅、两个下载死链）已换成界面上真实存在的动作与「现在还没有能下载的安装包」，四个占位框已换成四档夹具实拍（`Scripts/p17-website-capture.sh`，`docs/website/assets/`）。**发版说明仍要标注的两条**：①画面上侧栏那条卷名与占用百分比、磁盘页「卷可用」**没有夹具钩子**，是拍摄那台机器的真实状态——页面上已经明说这一点（§7.8 第 2 条）；②清理那张图是「开发产物」tab，不是缓存清单（同条第 1 条）。**待人的只剩页脚 `© 2026` 那一行**，它和 §2.3 的许可是同一批决定 |
 
@@ -2420,7 +2448,7 @@ git clone --no-local <本仓库> /tmp/mm-clone && cd /tmp/mm-clone
 #     为什么要有第 0 步：前六遍核验全跑在作者自己的工作树上，那棵树里有 .gitignore 排掉的参考仓库、
 #     有空目录、有上一轮的夹具。P20 正是从一棵干净树上跑才撞出"引用门禁在别人的机器上跑不动"（§7.11）。
 
-# 1. 全量测试（期望 706/0/1、MMUninstaller 186、MMGuardian 96、MMCore 77、MMMonitor 57、MMDisk 77；数字变了要回写本文 §1）
+# 1. 全量测试（期望 720/0/1、MMUninstaller 200、MMGuardian 96、MMCore 77、MMMonitor 57、MMDisk 77；数字变了要回写本文 §1）
 #     P22 起把**结论行**归档一份进本轮的证据目录（`> docs/verification/pNN-citations/run-all-tests.log`），
 #     前八遍只留在 /tmp——那一格引用的是一个别人 clone 之后不存在的路径（§7.13）。
 #     **这一行 P25 那轮也漏改了**：它当时应写 629，实读仍是 622（与 §0 那一格同批漏的，见 §7.17）。

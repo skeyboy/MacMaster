@@ -27,7 +27,9 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 # ---- 1. 本轮被改过的源码文件（含新增未跟踪的：它们还没有 HEAD 版本，另行标注）----
-git diff --name-only HEAD -- '*.swift' | grep -v '^Packages/.*/Tests/' > "$TMP/files"
+# `|| true` 不是装饰：本轮只改测试文件时，上面那条 `grep -v` 会一行都不吐并以 1 退出，
+# `set -e` 于是让脚本在打印任何一行之前死掉——量尺把自己的读数吃掉了。
+git diff --name-only HEAD -- '*.swift' | grep -v '^Packages/.*/Tests/' > "$TMP/files" || true
 testsChanged=$(git diff --name-only HEAD -- '*.swift' | grep -c '^Packages/.*/Tests/' || true)
 newFiles=$(git ls-files --others --exclude-standard '*.swift' | grep -v '/Tests/' || true)
 
