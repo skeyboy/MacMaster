@@ -1,0 +1,139 @@
+# p33a-contains-scope-probe.sh  2026-10-12 10:01:14 +0800
+# repo: 55de1e1  branch=main
+# digest: 55de1e1+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 参与编译的真源文件（9 个 + 探针）：
+#   42 行  Packages/MMCore/Sources/MMCore/Risk.swift
+#   169 行  Packages/MMCore/Sources/MMCore/HookValues.swift
+#   120 行  Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift
+#   175 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift
+#   179 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualCollector.swift
+#   585 行  Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift
+#   143 行  Packages/MMUninstaller/Sources/MMUninstaller/ContainerScanner.swift
+#   114 行  Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift
+#   209 行  Packages/MMUninstaller/Sources/MMUninstaller/SteamLauncherProbe.swift
+#   208 行  Scripts/p33a-contains-scope-probe.swift
+# 唯一机械改动 = 去掉这些文件里的  一行（合成模块里 import 必报 no such module）：
+#   ResidualCollector.swift 179→178
+#   ResidualScanner.swift 585→584
+# 剥之前后各记一次行数，差一条不等于 1 行脚本就当场退出。
+# 探针里没有一行判定逻辑：包含匹配、类别默认风险、默认勾选全走上面这些真函数。
+# 扫的是本机真 home（只读）；probe 不调用删除接口，大小只对被点名的项量。
+
+# 应用清单：45 个 .app，剔除 com.apple.* 后 41 个参与扫描
+# home=/Users/lee
+
+## 一、哪几类的命中会默认勾选（真值来自 ResidualCategory.defaultRisk 与 MMRisk.isDefaultSelected）
+
+| 类别 | defaultRisk | 默认勾选 |
+|---|---|---|
+|cache|safe|是|
+|applicationSupport|caution|否|
+|preference|caution|否|
+|savedState|safe|是|
+|log|safe|是|
+|httpStorage|safe|是|
+|webKit|safe|是|
+|cookie|caution|否|
+|applicationScript|caution|否|
+|container|caution|否|
+|containerCache|safe|是|
+|groupContainer|caution|否|
+|launchService|caution|否|
+
+## 二、enhanced 档：`名称包含应用名` 的命中编目
+
+- 命中总数：63 条，涉及 24 个应用
+- 其中**别的应用以更硬的证据在同一路径上也主张这一项**（跨应用）：0 条，去重后 0 个路径
+- 其中**祖先目录归别的应用**（住在别人的残留里）：0 条，去重后 0 个路径；这些里默认勾选的 0 条
+- 其中默认勾选（risk=safe）：18 条；跨应用且默认勾选：0 条
+
+本机没有跑出跨应用命中（不代表机制不成立，只代表这台机的应用清单撞不上）。
+
+### 默认勾选且证据只有「名称包含应用名」的项（逐条列，含体积）
+
+| 挂在谁名下 | 路径 | 类别 | 体积字节 | 有没有第二个主张者 |
+|---|---|---|---|---|
+|IntelliJ IDEA|~/Library/Caches/JetBrains/IntelliJIdea2026.2|cache|2166001664|无|
+|PyCharm|~/Library/Caches/JetBrains/PyCharm2026.2|cache|515624960|无|
+|RustRover|~/Library/Caches/JetBrains/RustRover2026.2|cache|1141424128|无|
+|WebStorm|~/Library/Caches/JetBrains/WebStorm2026.2|cache|241393664|无|
+|Qoder CN|~/Library/Caches/com.qodercn.app|cache|81920|无|
+|Tencent Lemon|~/Library/Caches/com.tencent.LemonMonitor|cache|2281472|无|
+|WorkBuddy|~/Library/Caches/com.tencent.workbuddy.mac|cache|4366336|无|
+|Clash Verge|~/Library/Caches/io.github.clash-verge-rev.clash-verge-rev|cache|12288|无|
+|Qoder CN|~/Library/Caches/qoder-cn-updater|cache|503877632|无|
+|Postgres|~/Library/HTTPStorages/com.postgresapp.Postgres2|httpStorage|57344|无|
+|Qoder CN|~/Library/HTTPStorages/com.qodercn.app|httpStorage|57344|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonMonitor|httpStorage|172032|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonMonitor.binarycookies|httpStorage|4096|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonUpdate|httpStorage|61440|无|
+|WorkBuddy|~/Library/HTTPStorages/com.tencent.workbuddy.mac|httpStorage|172032|无|
+|IntelliJ IDEA|~/Library/Logs/JetBrains/IntelliJIdea2026.2|log|9863168|无|
+|WorkBuddy|~/Library/WebKit/com.tencent.workbuddy.mac|webKit|299008|无|
+|Clash Verge|~/Library/WebKit/io.github.clash-verge-rev.clash-verge-rev|webKit|397312|无|
+
+## 三、deep 档：`名称包含应用名` 的命中编目
+
+- 命中总数：372 条，涉及 25 个应用
+- 其中**别的应用以更硬的证据在同一路径上也主张这一项**（跨应用）：1 条，去重后 1 个路径
+- 其中**祖先目录归别的应用**（住在别人的残留里）：3 条，去重后 3 个路径；这些里默认勾选的 3 条
+- 其中默认勾选（risk=safe）：21 条；跨应用且默认勾选：0 条
+
+### 祖先目录归别人的命中（往上只走到第一个有主人的那一层）
+
+| 挂在谁名下 | 路径 | 类别 | 风险 | 默认勾选 | 主人（祖先目录 + 证据） | 字节 |
+|---|---|---|---|---|---|---|
+|Fork|~/Library/Caches/JetBrains/IntelliJIdea2026.2/ts-go-fork-embedded|cache|safe|是|IntelliJ IDEA 的 IntelliJIdea2026.2（名称包含应用名）|0|
+|Fork|~/Library/Caches/JetBrains/PyCharm2026.2/ts-go-fork-embedded|cache|safe|是|PyCharm 的 PyCharm2026.2（名称包含应用名）|0|
+|Fork|~/Library/Caches/JetBrains/RustRover2026.2/ts-go-fork-embedded|cache|safe|是|RustRover 的 RustRover2026.2（名称包含应用名）|0|
+
+- 这一族里**默认勾选**的按删除根口径合计：**0 字节**
+
+### 跨应用命中明细（大小只对这一族量，真值来自 DirectoryResidualSizeMeasurer）
+
+| 被勾选进谁的清单 | 路径 | 类别 | 风险 | 默认勾选 | 更硬的主张者（allowContains=false） | 字节 |
+|---|---|---|---|---|---|---|
+|WeChat|~/Library/Application Scripts/com.tencent.workbuddy.mac.WechatShare|applicationScript|caution|否|WorkBuddy（包名完全对应）|0|
+
+- 跨应用且默认勾选的项按删除根口径合计：**0 字节**（父目录已计入时不再加子项）
+
+- 按被勾选方汇总：WeChat=1
+
+### 默认勾选且证据只有「名称包含应用名」的项（逐条列，含体积）
+
+| 挂在谁名下 | 路径 | 类别 | 体积字节 | 有没有第二个主张者 |
+|---|---|---|---|---|
+|IntelliJ IDEA|~/Library/Caches/JetBrains/IntelliJIdea2026.2|cache|2166038528|无|
+|Fork|~/Library/Caches/JetBrains/IntelliJIdea2026.2/ts-go-fork-embedded|cache|0|无|
+|PyCharm|~/Library/Caches/JetBrains/PyCharm2026.2|cache|515624960|无|
+|Fork|~/Library/Caches/JetBrains/PyCharm2026.2/ts-go-fork-embedded|cache|0|无|
+|RustRover|~/Library/Caches/JetBrains/RustRover2026.2|cache|1141424128|无|
+|Fork|~/Library/Caches/JetBrains/RustRover2026.2/ts-go-fork-embedded|cache|0|无|
+|WebStorm|~/Library/Caches/JetBrains/WebStorm2026.2|cache|241393664|无|
+|Qoder CN|~/Library/Caches/com.qodercn.app|cache|81920|无|
+|Tencent Lemon|~/Library/Caches/com.tencent.LemonMonitor|cache|2281472|无|
+|WorkBuddy|~/Library/Caches/com.tencent.workbuddy.mac|cache|4366336|无|
+|Clash Verge|~/Library/Caches/io.github.clash-verge-rev.clash-verge-rev|cache|12288|无|
+|Qoder CN|~/Library/Caches/qoder-cn-updater|cache|503877632|无|
+|Postgres|~/Library/HTTPStorages/com.postgresapp.Postgres2|httpStorage|57344|无|
+|Qoder CN|~/Library/HTTPStorages/com.qodercn.app|httpStorage|57344|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonMonitor|httpStorage|172032|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonMonitor.binarycookies|httpStorage|4096|无|
+|Tencent Lemon|~/Library/HTTPStorages/com.tencent.LemonUpdate|httpStorage|61440|无|
+|WorkBuddy|~/Library/HTTPStorages/com.tencent.workbuddy.mac|httpStorage|172032|无|
+|IntelliJ IDEA|~/Library/Logs/JetBrains/IntelliJIdea2026.2|log|9912320|无|
+|WorkBuddy|~/Library/WebKit/com.tencent.workbuddy.mac|webKit|299008|无|
+|Clash Verge|~/Library/WebKit/io.github.clash-verge-rev.clash-verge-rev|webKit|397312|无|
+
+## 四、口径与边界
+
+- 跨应用的判据是「别的应用用 allowContains=false 也主张这一项」，方向单调：更硬证据不含包含匹配，
+  所以这一条成立时，删除动作拿走的是**另一个仍在盘上的应用**的数据，而不是本应用的孤儿文件。
+- 但同层判据不够：真主人常常主张的是**父目录**（`~/Library/Caches/JetBrains/IntelliJIdea2026.2` 这种
+  厂商/产品嵌套形态），所以另列「祖先目录归别人」那一族——它才是这台机上跑得出数的那一族。
+- 主张者池子含 com.apple.*（它们不进扫描清单，但它们的文件是真的归属），
+  也含这次没扫的 owner 自己以外的全部 .app。
+- 包含命中但没有任何安装应用严格主张的项，本探针不计入跨应用（可能是孤儿，也可能是尚未安装的第二方），
+  这一族的条数在上面的「命中总数 − 跨应用」里；默认勾选的那些逐条列在明细表里，交人工判。
+- 大小只对本机跑出的跨应用项与默认勾选项量，避免整轮扫描变成全盘遍历。
