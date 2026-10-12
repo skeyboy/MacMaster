@@ -289,3 +289,12 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 而 HEAD 那份的结论行已经入库——`docs/verification/p33b-citations/run-all-tests.log:38`
 「合计：720 个测试，0 个失败，1 个跳过」描述的仍是当前这棵树。
 一旦 P34b 动 `Packages/MMOptimizer`，这一句立刻作废，那时要重跑并另立结论行。
+
+提交后同族又跑了一次并归位成 `docs/verification/p34a-citations/audit-postcommit.log`
+（换目录再改名，没覆盖提交前那一份，照 `f7bca94` 立的那条规矩）。
+两份 `diff` 出来**只有 `# date:` 与 `# repo:` 两行**，181 行对 181 行，
+六个业务读数（条次 / 唯一面 / 命本仓库 / 死符号 / 位置存疑 / 硬失败）逐字相同。
+这一份的 `# repo:` 是 `b073aa4`，**不带 `-dirty`**——与 P33b 那一份不同：那一轮的提交后跑
+头上还挂着"文档未提交"，所以它当不了"工作树干净"的自证，本轮这一份能当。
+本轮不再给"提交换出处、不换判据"这句话数序：同一句在旧文档里已经被数成过互不相容的几个序数，
+再加一个只会多一笔没人能复核的账。
