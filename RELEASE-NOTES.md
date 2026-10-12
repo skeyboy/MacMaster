@@ -121,7 +121,9 @@ MMMonitor 53、MMGuardian 96、MMOptimizer 54。结论行入库在
 **这一格量的是"本构建"，不是仓库当前那一棵**：设置页修复之后同一支脚本读到 **641 / 0 / 1**
 （MMCore 73→77、MMMonitor 53→57，其余七格逐字相同；日志 `docs/verification/p29-citations/run-all-tests.log`），
 那 8 条判据对应的改动**不在这一版产物里**。卸载页「正在运行」那一族落地后又读到 **668 / 0 / 1**
-（MMUninstaller 121→148，其余八格逐字相同；日志 `docs/verification/p31-citations/run-all-tests.log`）——
+（MMUninstaller 121→148，其余八格逐字相同；日志 `docs/verification/p31-citations/run-all-tests.log`），
+Steam 启动器那一族之后现读到 **706 / 0 / 1**（MMUninstaller 148→**186**，其余八格逐字相同；
+日志 `docs/verification/p32b-steam-citations/run-all-tests.log`）——
 **这一格往后每轮都会变，它只说明"默认分支现在多远"，不说明你手上这份产物里有什么**。
 
 ## 拿到源码的人怎么自证
@@ -135,9 +137,10 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh          # 产物 build/MacMaster.ap
 ./Scripts/p7-release-check.sh build/MacMaster.app /tmp/evidence   # 三张实机照片 + 签名/plist/Gatekeeper
 ```
 
-上面那行期望值只对 `v1.0.0` 那一棵树。默认分支已经带着设置页那九项修复与卸载页「正在运行」那一族，
-同一条脚本现读是 **668 个测试、0 失败、1 跳过**（MMCore 73→77、MMMonitor 53→57、MMUninstaller 121→148，
-其余六格逐字相同，结论行入库 `docs/verification/p31-citations/run-all-tests.log`）——
+上面那行期望值只对 `v1.0.0` 那一棵树。默认分支已经带着设置页那九项修复、卸载页「正在运行」那一族与
+Steam 启动器识别那一族，同一条脚本现读是 **706 个测试、0 失败、1 跳过**（MMCore 73→77、MMMonitor 53→57、
+MMUninstaller 121→148→**186**，其余六格逐字相同，结论行入库
+`docs/verification/p31-citations/run-all-tests.log` 与 `docs/verification/p32b-steam-citations/run-all-tests.log`）——
 **这两个数不是矛盾，是两棵树**。
 
 **构建机要 Xcode 26 / Swift 6.3 或更高**，这是实测下限而不是清单里那行版本号：`Package.swift` 声明

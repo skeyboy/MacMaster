@@ -32,7 +32,7 @@ on:
         default: 'v1.0.0'
         required: true
       run_tests:
-        description: 打包前先跑九包全量单测（633 条）
+        description: 打包前先跑九包全量单测（条数以 docs/analysis/release-readiness.md §1 那一格为准，这里不挂数）
         type: boolean
         default: true
       upload:

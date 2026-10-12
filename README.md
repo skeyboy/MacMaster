@@ -98,8 +98,8 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
-现测（**2026-10-10，P31a 在作者工作树上重跑；上一读是 2026-10-09 P30 那棵 `git clone` 的树**）：
-**668 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（**2026-10-10，P32b 在作者工作树上重跑；上一读是同日 P31a 那一跑，再上一读是 2026-10-09 P30 那棵 `git clone` 的树**）：
+**706 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
@@ -118,7 +118,15 @@ P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunn
 `RunningAppStatePresentationTests` 10 条钉四档各说哪句话，含一条否证——「两档都算『正在运行』」这句
 在"两个进程、同一档"的画面上不许出现；`UninstallerRunningStateModelTests` 4 条钉"缺席 = 一个字都不说"）
 → **668**，全在 MMUninstaller 那一包。
-**逐包求和 = 668**（**77** / 17 / 117 / 25 / **148** / 77 / **57** / 96 / 54），这一条自 P11c 起每轮都当自证用。
+**P32b 在同一个包里加 38 条**（`SteamLauncherProbeTests` 24 条钉判定与读取两层：两条入口按优先级试、
+shebang 只收 `sh/bash/zsh/env`、动词只收 `run|rungameid|launch`、4096 字节成本闸门，含一条"名字里带路径分隔符的
+`CFBundleExecutable` 直接不算"和一条"读取永远不离开 `Contents/MacOS`"；`SteamLauncherPresentationTests` 5 条
+钉界面那三样元素各自的出现/不出现，其中一条禁词表把"依据那句不许说证据之外的量"钉死——`GB`、`MB`、「游戏在」
+都不许出现；`ResidualCollectorSteamTests` 5 条钉那句反向提醒**只挂 `applicationSupport` 那一行、
+只在直接子项里有 `steamapps` 时挂、同一条路径只挂一次**；`ResidualSensitivityTests` 6 → 10 的 +4 条钉新钩子
+`MM_UNINSTALL_SENSITIVITY`：档位名必须与选择器 `allCases` 同源，写错值回落 strict 且**必须在 stderr 留痕**）
+→ **706**，同样全在 MMUninstaller 那一包。
+**逐包求和 = 706**（**77** / 17 / 117 / 25 / **186** / 77 / **57** / 96 / 54），这一条自 P11c 起每轮都当自证用。
 **P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，P26 MMDisk 走到 77 之后撞车解开**——
 **而 P29 把它们撞回来了**：MMCore 也走到 77，于是这一跑里"77"同时是 MMCore 和 MMDisk。
 所以这条自证**要按包名读**这件事现在有了实指，不再只是一句提醒：117 与 77 里那个 `7` 是同一个字，
