@@ -1,0 +1,62 @@
+# p34a-prefs-plist-probe.sh  2026-10-12 12:46:43 +0800
+# repo: 2a78491  branch=main
+# digest: 2a78491+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 探针源文件：437 行  Scripts/p34a-prefs-plist-probe.swift（单文件编译，不链任何生产源文件）
+# 扫的是本机真 home（只读）。plutil 只在本探针里当对照 oracle，生产实现不 spawn 它。
+
+home=/Users/lee
+扫到的 .plist 条数=625
+Foundation 一趟（枚举+读取+解析，不含 plutil 对照）耗时=226 ms
+解析成功=614  0 字节=0  解析失败=0  读不到=11
+格式分布: binary=613 xml=1
+根对象分布: dict=614
+
+---- 被 Foundation 判为非正常的每一条（含 plutil 对照）----
+~/Library/Preferences/com.apple.madrid.plist  bytes=3944  mtime=2026-10-12  plutil="(The file “com.apple.madrid.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.madrid.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.MobileSMS.CKDNDList.plist  bytes=101  mtime=2026-07-10  plutil="(The file “com.apple.MobileSMS.CKDNDList.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.CKDNDList.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.TV.plist  bytes=2214  mtime=2026-09-16  plutil="(The file “com.apple.TV.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.TV.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.AddressBook.plist  bytes=217  mtime=2026-10-11  plutil="(The file “com.apple.AddressBook.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.AddressBook.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.homed.notbackedup.plist  bytes=92  mtime=2026-06-13  plutil="(The file “com.apple.homed.notbackedup.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.homed.notbackedup.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.MobileSMS.plist  bytes=11451  mtime=2026-09-16  plutil="(The file “com.apple.MobileSMS.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.Music.plist  bytes=7654  mtime=2026-09-16  plutil="(The file “com.apple.Music.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.Music.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.homed.plist  bytes=1055  mtime=2026-10-12  plutil="(The file “com.apple.homed.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.homed.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/com.apple.messages.pinning.plist  bytes=205  mtime=2026-07-10  plutil="(The file “com.apple.messages.pinning.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.messages.pinning.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/ByHost/com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  bytes=5155  mtime=2026-09-07  plutil="(The file “com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+~/Library/Preferences/ByHost/com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  bytes=80  mtime=2026-09-16  plutil="(The file “com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+
+---- 解析成功但根对象不是字典（对照档：这类算不算异常要人决定）----
+（无）
+
+---- 两种判据的全量对读（Foundation × plutil，每一条都比）----
+全量=625  都正常=614  都不正常=11  只有 Foundation 报=0  只有 plutil 报=0  对不上号的行=0
+
+---- 受保护名那一族（com.apple.* / .GlobalPreferences* / loginwindow.plist）的真实构成 ----
+受保护名条数=407  其中被 Foundation 判为非正常=11
+  ~/Library/Preferences/com.apple.madrid.plist  bytes=3944  plutil="(The file “com.apple.madrid.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.madrid.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.MobileSMS.CKDNDList.plist  bytes=101  plutil="(The file “com.apple.MobileSMS.CKDNDList.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.CKDNDList.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.TV.plist  bytes=2214  plutil="(The file “com.apple.TV.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.TV.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.AddressBook.plist  bytes=217  plutil="(The file “com.apple.AddressBook.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.AddressBook.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.homed.notbackedup.plist  bytes=92  plutil="(The file “com.apple.homed.notbackedup.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.homed.notbackedup.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.MobileSMS.plist  bytes=11451  plutil="(The file “com.apple.MobileSMS.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.Music.plist  bytes=7654  plutil="(The file “com.apple.Music.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.Music.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.homed.plist  bytes=1055  plutil="(The file “com.apple.homed.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.homed.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/com.apple.messages.pinning.plist  bytes=205  plutil="(The file “com.apple.messages.pinning.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.messages.pinning.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/ByHost/com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  bytes=5155  plutil="(The file “com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+  ~/Library/Preferences/ByHost/com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  bytes=80  plutil="(The file “com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.)"  Foundation=读不到 Cocoa 257：The file “com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+
+---- 这一族里有多少条是我们自己的单测留下的（名字含 Tests）----
+条数=91  合计字节=3822
+  ~/Library/Preferences/MMCoreTests-53B76755-A007-4DB0-AEB6-0D2C1CBB8351.plist  bytes=42  mtime=2026-10-08  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-48B9787F-1DF8-4DFB-96A1-05A3A7D75127.plist  bytes=42  mtime=2026-10-01  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-6625161B-2DFD-495D-B81A-1C9553D95BC2.plist  bytes=42  mtime=2026-10-06  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-8488B1AC-715B-4B3F-B76D-EFF9377895FE.plist  bytes=42  mtime=2026-10-05  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCleaner.ExclusionStoreTests.A15AE24C-8E54-4561-8501-18B7CC4655AA.plist  bytes=42  mtime=2026-09-29  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-6406DEC9-FCDB-4104-B2D6-863B34D6FC7B.plist  bytes=42  mtime=2026-10-06  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-6A508E29-4983-4DA7-AE6B-44ADB73B1CAF.plist  bytes=42  mtime=2026-10-07  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-9EF23D77-FF5E-48BD-AF41-6AB2C755AA57.plist  bytes=42  mtime=2026-10-06  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-BAF98CD9-935C-4318-94C2-3DEACBDE7445.plist  bytes=42  mtime=2026-10-05  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-596CA6E9-99EC-410B-AE58-343E684A6BC7.plist  bytes=42  mtime=2026-10-09  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-5EAB4AF2-B29C-480B-BBFF-F3569DC29E80.plist  bytes=42  mtime=2026-10-09  Foundation=正常(binary, 根=dict)
+  ~/Library/Preferences/MMCoreTests-60FF25E8-D021-440C-AB5B-9EA59CE024D3.plist  bytes=42  mtime=2026-10-07  Foundation=正常(binary, 根=dict)
+  ……共 91 条，只打前 12 条

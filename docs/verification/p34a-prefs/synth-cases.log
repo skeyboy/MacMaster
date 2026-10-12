@@ -1,0 +1,26 @@
+# p34a-prefs-plist-probe.sh  2026-10-12 12:48:31 +0800
+# repo: 2a78491  branch=main
+# digest: 2a78491+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 探针源文件：437 行  Scripts/p34a-prefs-plist-probe.swift（单文件编译，不链任何生产源文件）
+# 本轮是**夹具档**：探针自己造 12 条已知答案的样本（好/坏/看着坏其实正常）放进一棵 /tmp 假 home，
+# 再用与真 home **同一条采集路径**过一遍，逐条对 Foundation 判据、plutil 判据与登记的期望。
+# 它问的是「我们的判据边界在哪」——真 home 上这一族几乎全是好的，这个问题在真机上问不出来。
+
+---- 夹具档：已知答案的样本过同一条采集路径 ----
+样本数=12（造了 12 条）
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/ByHost/byhost-truncated.plist  bytes=8  Foundation=正常但根不是字典  plutil="OK"  期望=正常但根不是字典  格式=openStep
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/empty-dict.plist  bytes=42  Foundation=正常  plutil="OK"  期望=正常  格式=binary
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/garbage-text.plist  bytes=43  Foundation=解析失败  plutil="(Unexpected character è at line 1)"  期望=解析失败  Cocoa 3840：The data couldn’t be read because it isn’t in the correct format.
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/perm-000.plist  bytes=86  Foundation=读不到  plutil="(The file “perm-000.plist” couldn’t be opened because you don’t have permission to view it.)"  期望=读不到  Cocoa 257：The file “perm-000.plist” couldn’t be opened because you don’t have permission to view it.
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/root-array.plist  bytes=50  Foundation=正常但根不是字典  plutil="OK"  期望=正常但根不是字典  格式=binary
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/root-string.plist  bytes=204  Foundation=正常但根不是字典  plutil="OK"  期望=正常但根不是字典  格式=xml
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/truncated-binary.plist  bytes=12  Foundation=解析失败  plutil="(Unexpected character b at line 1)"  期望=解析失败  Cocoa 3840：The data couldn’t be read because it isn’t in the correct format.
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/valid-binary.plist  bytes=86  Foundation=正常  plutil="OK"  期望=正常  格式=binary
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/valid-openstep.plist  bytes=52  Foundation=正常  plutil="OK"  期望=正常  格式=openStep
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/valid-xml.plist  bytes=302  Foundation=正常  plutil="OK"  期望=正常  格式=xml
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/xml-unclosed.plist  bytes=282  Foundation=解析失败  plutil="(Encountered unexpected EOF)"  期望=解析失败  Cocoa 3840：The data couldn’t be read because it isn’t in the correct format.
+  /private/tmp/mm-p34a-probe.1V0qWd/prefs-home/Library/Preferences/zero-byte.plist  bytes=0  Foundation=0 字节  plutil="(Cannot parse a NULL or zero-length data)"  期望=0 字节  
+与期望一致=12  不一致=0
+Foundation 与 plutil 判「异常/不异常」分开的条数=0
+夹具已清理：/tmp/mm-p34a-probe.1V0qWd/prefs-home
