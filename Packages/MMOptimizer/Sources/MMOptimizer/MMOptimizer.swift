@@ -36,13 +36,14 @@ final class CancelFlag: @unchecked Sendable {
 // MARK: - View
 
 public struct OptimizerView: View {
-    /// MM_OPEN_TAB=duplicates|browser|status|devtools：只用于逐屏截图核对设计稿，
+    /// MM_OPEN_TAB=duplicates|browser|status|devtools|preferences：只用于逐屏截图核对设计稿，
     /// 正常启动不会带这个变量。
     @State private var tab: OptimizerTab = MMHookValue.selected(key: "MM_OPEN_TAB", fallback: .duplicates)
     @StateObject private var duplicates = DuplicateScanModel()
     @StateObject private var diagnostics = SystemDiagnosticsModel()
     @StateObject private var browser = BrowserCacheModel()
     @StateObject private var devTools = DevToolCacheModel()
+    @StateObject private var preferences = PreferenceFilesModel()
 
     public init() {}
 
@@ -66,6 +67,7 @@ public struct OptimizerView: View {
             case .browser: browserView
             case .status: statusView
             case .devtools: DevToolCacheView(model: devTools)
+            case .preferences: PreferencesFilesView(model: preferences)
             }
         }
         .background(MMColor.contentBackground)
@@ -83,7 +85,7 @@ public struct OptimizerView: View {
         }
         guard result.rejected.isEmpty else { return }
 
-        // 顺序很要紧：**四个 tab 的夹具先同步落完，再启动没给夹具那一档的真实扫描**。
+        // 顺序很要紧：**五个 tab 的夹具先同步落完，再启动没给夹具那一档的真实扫描**。
         // 反过来写（逐个 if/else 边落边扫）时，真实重复检测一跑就是几十秒，排在它后面的
         // 浏览器/系统状态/开发工具夹具**根本来不及注入**——P6.6 第一次跑这套脚本时，
         // `browser:rows` 与 `browser:empty` 两张照片 md5 完全相同、`status:allReadOnly` 拍出来是
@@ -99,6 +101,7 @@ public struct OptimizerView: View {
         if let tier = result.browser { browser.applyFixture(tier) }
         if let tier = result.status { diagnostics.applyFixture(tier) }
         if let tier = result.devtools { devTools.applyFixture(tier) }
+        if let tier = result.preferences { preferences.applyFixture(tier) }
         if result.protected {
             // PROTECTED 拒绝态：注入一条 DeletionGuard 拒绝回执，覆盖 08d 底部的
             // shield/caution 分档排版。不触发任何真实删除。
@@ -113,6 +116,7 @@ public struct OptimizerView: View {
         if result.browser == nil { await browser.scanIfNeeded() }
         if result.status == nil { await diagnostics.refresh() }
         if result.devtools == nil { await devTools.refreshIfNeeded() }
+        if result.preferences == nil { await preferences.refreshIfNeeded() }
     }
 
     // MARK: 重复文件
@@ -262,7 +266,7 @@ public struct OptimizerView: View {
 }
 
 enum OptimizerTab: String, CaseIterable, Identifiable, MMHookKeyed {
-    case duplicates, browser, status, devtools
+    case duplicates, browser, status, devtools, preferences
     var id: String { rawValue }
     var hookKey: String { rawValue }
     var label: String {
@@ -271,6 +275,7 @@ enum OptimizerTab: String, CaseIterable, Identifiable, MMHookKeyed {
         case .browser: "浏览器缓存"
         case .status: "系统状态"
         case .devtools: "开发工具"
+        case .preferences: "偏好文件"
         }
     }
 }

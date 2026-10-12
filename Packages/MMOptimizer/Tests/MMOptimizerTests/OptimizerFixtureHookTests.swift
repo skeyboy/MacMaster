@@ -13,6 +13,7 @@ final class OptimizerFixtureHookTests: XCTestCase {
             XCTAssertNil(r.browser)
             XCTAssertNil(r.status)
             XCTAssertNil(r.devtools)
+            XCTAssertNil(r.preferences)
             XCTAssertNil(r.caveat)
             XCTAssertFalse(r.protected)
             XCTAssertTrue(r.rejected.isEmpty)
@@ -28,6 +29,10 @@ final class OptimizerFixtureHookTests: XCTestCase {
         XCTAssertEqual(OptimizerFixture.parse("status:allReadOnly").status, .allReadOnly)
         XCTAssertEqual(OptimizerFixture.parse("devtools:notInstalled").devtools, .notInstalled)
         XCTAssertEqual(OptimizerFixture.parse("devtools:unreadable").devtools, .unreadable)
+        XCTAssertEqual(OptimizerFixture.parse("prefs:broken").preferences, .broken)
+        XCTAssertEqual(OptimizerFixture.parse("prefs:unreadable").preferences, .unreadable)
+        XCTAssertEqual(OptimizerFixture.parse("prefs:empty").preferences, .empty)
+        XCTAssertEqual(OptimizerFixture.parse("prefs:partial").preferences, .partial)
         XCTAssertTrue(OptimizerFixture.parse("protected").protected)
         XCTAssertTrue(OptimizerFixture.parse("protected").rejected.isEmpty)
     }
@@ -47,6 +52,17 @@ final class OptimizerFixtureHookTests: XCTestCase {
         XCTAssertNil(r.duplicates)
         XCTAssertNil(r.devtools)
         XCTAssertEqual(r.rejected, ["devtools:notinstal"])
+    }
+
+    /// prefs 那一族同一条铁律：写错一个字母就整批作废（`prefs:brokenn`）。
+    func testPrefsTierTypoVoidsWithTheWholeHook() {
+        let r = OptimizerFixture.parse("prefs:brokenn")
+        XCTAssertNil(r.preferences)
+        XCTAssertEqual(r.rejected, ["prefs:brokenn"])
+        // 与别的 tab 叠加时也不许只落 prefs 之外的那一半。
+        let mixed = OptimizerFixture.parse("browser:rows,prefs:unreadablee")
+        XCTAssertNil(mixed.browser)
+        XCTAssertNil(mixed.preferences)
     }
 
     func testZeroOrNegativeGroupCountIsRejected() {
@@ -120,6 +136,34 @@ final class OptimizerFixtureHookTests: XCTestCase {
             XCTAssertTrue(rows[0].root.hasPrefix("/tmp/mm-optimizer-fixture/"))
         }
     }
+
+    /// 偏好文件四档各自的形状：两栏各归各的，夹具路径一眼可辨，
+    /// 而且 `prefs:broken` 那档必须带一条非字典根（§5 那条脚注唯一能被拍到的入口）。
+    func testPrefsFixtureTiersHaveTheirOwnShapes() {
+        for tier: OptimizerFixture.PrefsTier in [.broken, .unreadable, .empty, .partial] {
+            let scan = OptimizerFixture.prefsScan(tier: tier)
+            XCTAssertTrue(scan.rows.allSatisfy { $0.path.hasPrefix("/tmp/mm-optimizer-fixture/Library/Preferences/") },
+                          "\(tier)")
+        }
+        let broken = OptimizerFixture.prefsScan(tier: .broken)
+        XCTAssertEqual(broken.badRows.count, 2)
+        XCTAssertTrue(broken.unreadableRows.isEmpty)
+        XCTAssertEqual(broken.nonDictRootCount, 1)
+
+        let unreadable = OptimizerFixture.prefsScan(tier: .unreadable)
+        XCTAssertEqual(unreadable.unreadableCount, 2)
+        XCTAssertTrue(unreadable.badRows.isEmpty, "「读不到」不许混进「读不出来或空的那些」")
+
+        let empty = OptimizerFixture.prefsScan(tier: .empty)
+        XCTAssertTrue(empty.badRows.isEmpty)
+        XCTAssertTrue(empty.unreadableRows.isEmpty)
+        XCTAssertFalse(empty.isPartial)
+
+        let partial = OptimizerFixture.prefsScan(tier: .partial)
+        XCTAssertTrue(partial.isPartial)
+        XCTAssertEqual(partial.notInspectedCount, 10_416)
+        XCTAssertTrue(PreferencesCopy.headline(partial).contains("剩下的 10416 个没看"))
+    }
 }
 
 /// 钉住 P6.6 实机撞到的那个坑：视图自己的 `.task` 会启动真实扫描，
@@ -153,5 +197,22 @@ final class OptimizerFixturePinTests: XCTestCase {
         await model.scanIfNeeded()
         XCTAssertTrue(model.hasScanned)
         XCTAssertFalse(model.isScanning)
+    }
+
+    /// 新加的偏好文件 tab 自带 `.task`，而本机一趟只要两三百毫秒——
+    /// 比脚本等待的时间快，正是 P6.6 那个"夹具被真实扫描盖掉"的坑的形态。
+    func testPreferencesFixtureSurvivesALaterRealScan() async {
+        let model = PreferenceFilesModel()
+        model.applyFixture(.broken)
+        XCTAssertEqual(model.scan?.badRows.count, 2)
+        await model.refresh()
+        XCTAssertEqual(model.scan?.badRows.count, 2, "夹具注入后真实那一趟不许把行盖掉")
+        XCTAssertTrue(model.scan?.rows.allSatisfy { $0.path.hasPrefix("/tmp/mm-optimizer-fixture/") } == true)
+    }
+
+    func testUnpinnedPreferencesModelScansNormally() async {
+        let model = PreferenceFilesModel()
+        await model.refreshIfNeeded()
+        XCTAssertNotNil(model.scan, "没给夹具时生产路径必须真的跑一趟")
     }
 }

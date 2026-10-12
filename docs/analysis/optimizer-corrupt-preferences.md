@@ -186,10 +186,15 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 - 读全量 plist 的内存代价本轮也没量。`.mappedIfSafe`（`p34a-prefs-plist-probe.swift:227`）
   是探针的做法，实现照做即可，但**别据此主张"低内存"**。
 
+**→ P34b 把 §8 欠的那一刀补了**（三段拆分、逐条分布、上千条的形状、预算按条数还是按体积），
+读数与结论在 §14.3。内存代价这一条**仍没量**，那句"别据此主张低内存"照旧有效。
+
 ## 9. 呈现落点：三档建议
 
-`OptimizerTab` 现在是四个 case（`MMOptimizer.swift:264-265`，`id` 与 `hookKey` 都取 `rawValue`），
+`OptimizerTab` 在 P34a 那一跑是四个 case（`MMOptimizer.swift:264-265`，`id` 与 `hookKey` 都取 `rawValue`），
 `MM_OPEN_TAB` 逐 tab 触发截图（`:41`）。`v1.1` 那一格已经定了方向：**新 tab 复用开发工具页版式**。
+**→ P34b 已落地第五个 case**：现在是 `case duplicates, browser, status, devtools, preferences`
+（`MMOptimizer.swift:268-269`，行号本轮现读），`hookKey` 仍取 `rawValue`，所以钩子取值是 `preferences`。
 
 - **A 档（推荐，判据 + 呈现的最小闭环）**
   第五个 tab `preferences`；纯判定层照 `DevToolCacheAuditor.entries(env:home:presenceProbe:sizeProbe:toolProbe:)`
@@ -229,15 +234,22 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 
 1. **GUI 起的那个 `.app`（非沙盒、ad-hoc 签名）读这 11 条是什么答复**——本轮的数来自一个没有
    FDA 的 shell。若 GUI 进程能看到更多/更少，§5 那句"N 个我们没看到"的 N 就不是本机那个 11。
+   **→ 已答（§14.4）：同一答复，两档进程都是 11 条读不到、0 条坏。**
 2. **给了 FDA 的进程读不读得到 data vault 里那些文件**（§3 末句）。这决定"读不到"这一栏的
    语义是"系统不给看"还是"我们可以选择不去看"。
+   **→ 仍未确认（§14.4 末条）**：本机没有可给的 FDA 路径，本轮不写"给了权限会怎样"。
 3. **枚举/读取/解析三段的耗时拆分**（§8），以及上千条时的形状——预算数值要由它给。
+   **→ 已量（§14.3）**：解析是大头，预算按条数不按体积，2000 ms 在本机撞不到、在规模档撞得到。
 4. **ByHost 递归的真实深度**：本轮跟 Mole 一样递归（`p34a-prefs-plist-probe.swift:68-79`），
    但没统计过这一层在本机贡献了多少条，也没量过有没有环/软链。
+   **→ 已量（§14.3）**：37 条、最深 1 层、软链 0、子目录 0。
 5. **别的机器**：Mac mini 之外没有第二台可测（同 `feature-roadmap.md:1094` 那条限制）。
-   0 故障是本机的数，不是产品承诺。
+   0 故障是本机的数，不是产品承诺。**→ P34b 没有改变这一条**，界面上的文案按这一条写（§14.7 第 2 项）。
 
 ## 12. 给 P34b 的检查单
+
+**→ P34b 落地后这六条的逐条对账在 §14.1。这一节原文不动，因为它是判据与验收的出处，
+不是进度表；改它会让"当时要求的是什么"变成只有实现者自己说得清的东西。**
 
 1. 纯函数层：`Verdict` 四态 + `isBad`（不含非字典根）搬进 `MMOptimizer`，12 条夹具等价物进单测；
    **注入形状照 `entries(env:home:presenceProbe:sizeProbe:toolProbe:)`（`DevToolCacheAudit.swift:99`），
@@ -290,6 +302,13 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 「合计：720 个测试，0 个失败，1 个跳过」描述的仍是当前这棵树。
 一旦 P34b 动 `Packages/MMOptimizer`，这一句立刻作废，那时要重跑并另立结论行。
 
+**P34b 动了，所以那一句从它落地那天起就是历史。** 新的结论行是
+`docs/verification/p34b-prefs/run-all-tests.log:11`「合计：737 个测试，0 个失败，1 个跳过」
+（+17 = 新测试族 13 + 夹具钩子 4，逐包那一格见 §14.1 第 ⑥ 条）；
+P34b 自己的证据族在 `docs/verification/p34b-prefs/`（文件清单 §14.1、出处纪律 §14.6），
+引用门禁那一族在 `docs/verification/p34b-citations/`。上面那三行 P34a 的读数不作废，
+它们描述的是 `2a78491` 那棵树。
+
 提交后同族又跑了一次并归位成 `docs/verification/p34a-citations/audit-postcommit.log`
 （换目录再改名，没覆盖提交前那一份，照 `f7bca94` 立的那条规矩）。
 两份 `diff` 出来**只有 `# date:` 与 `# repo:` 两行**，181 行对 181 行，
@@ -298,3 +317,131 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 头上还挂着"文档未提交"，所以它当不了"工作树干净"的自证，本轮这一份能当。
 本轮不再给"提交换出处、不换判据"这句话数序：同一句在旧文档里已经被数成过互不相容的几个序数，
 再加一个只会多一笔没人能复核的账。
+
+## 14. P34b 落地记录（2026-10-12，实现侧）
+
+### 14.1 落点
+
+| 文件 | 行数 | 是什么 |
+|---|---|---|
+| `Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift` | 378 | 判据本体：`PrefsVerdict` 四态 + `isBad`/`isUnreadable`/`badgeText`、`PreferenceFileCheck`、`PreferencesScan`（含 `inspectedCount`/`notInspectedCount`/`nonDictRootCount`）、`PreferencesAuditor.list`/`verdict`/`readData`/`scan`/`liveScan`、`PreferencesCopy` 文案合同 |
+| `Packages/MMOptimizer/Sources/MMOptimizer/PreferencesView.swift` | 234 | 第五 tab：`PreferenceFilesModel`（含 `fixturePinned`）、`PreferencesFilesView`（两栏 + 空态 + 脚注）、`SectionHeader`、`PreferenceFileRow` |
+| `Packages/MMOptimizer/Tests/MMOptimizerTests/PreferencesAuditTests.swift` | 293 | 13 条：§4 那 12 条夹具等价物 + 预算截断（注入时钟，不靠 sleep） |
+| `OptimizerFixtureHooks.swift`（改） | 274 | `prefs:broken/unreadable/empty/partial` 四档（`:226-273`） |
+| `Scripts/p34b-prefs-capture.sh` | 177 | 七档实拍（含非法值那一档），当场比对产物指纹 |
+| `Scripts/p34b-prefs-scan-probe.sh` / `.swift` | 96 / 245 | 耗时形状探针，**链的是生产 `PreferencesAudit.swift`**（不是抄一份判据），所以它量到的是要被发布的那段代码 |
+
+§12 那六条的对账：① 判据层落成了**全注入**的 `scan(prefs:budgetMillis:listing:read:attributes:clock:)`，
+没有读 env 的假系统快照；② 两栏分开、图标分开（`eye.slash`+灰 / `exclamationmark.triangle`+橙）；
+③ 预算 2000 ms + `partial` + 页头那句话；④ 四档夹具 + 非法值整批作废；⑤ 照片与 08f 设计稿；
+⑥ 九包 737/0/1（`docs/verification/p34b-prefs/run-all-tests.log:11`，上一格是 720，+17 = 新测试族 13 + 夹具钩子 4）。
+§9 的 C 档（bundle id→主人名）按建议**没做**。
+
+### 14.2 与 §5 文案合同的两处偏离
+
+合同照 §5 逐行落，只有两处是落的时候才改的：
+
+1. `badgeText` 里 `.zeroByte` 写成**「可能是写到一半」**而不是"空文件"——它描述的是可疑形态，
+   不是结论；配套建议那句仍是 §5 的"可能是上次写入中断"。
+2. 页头那句的**主语换成"检查过 N 个偏好文件"**，N 取 `rows.count`（真下过判据的条数）而不是
+   `foundFiles`（枚举到的条数）。§5 原本只写了"检查过 N 个"，没钉死 N 是哪一把尺；
+   截断档一进来这两把尺就必须分开，否则"检查过 10418 个"是一句假话。
+
+### 14.3 实测形状（这一节关掉 §11.3、§11.4）
+
+现读自 `docs/verification/p34b-prefs/scan-shape.log`（digest `69eddb6+8ba05eda`，本机真 home，只读）：
+
+- **枚举**：3.9 ms / 625 条，非正则跳过 0，读不到的根 0。顶层 588 条 + ByHost 37 条
+  ——**§11.4 那句"ByHost 这一层在本机贡献多少条"的答案就是 37 条（5.9%）**，
+  遍历形状是 37 个条目、最深 1 层、其中 plist 37 条、软链 0 条、子目录 0 个。
+  生产实现用 `FileManager.enumerator` + `isRegularFile` 过滤（`PreferencesAudit.swift:200-207`），
+  所以环与指向族外的软链都到不了判据，这一点探针也统计过（软链 0）。
+- **三段拆分**（§8 欠的那一刀）：同一趟连跑三遍——冷趟 枚举 3.3 / 读取 73.7 / 解析 116.9 = **193.9 ms**，
+  第二遍 39.0 ms，第三遍 34.6 ms。**解析始终是大头**（暖趟占五成多），读取那一半冷趟多出来的是页缓存。
+- **预算该对齐条数还是体积**：逐条读取 625 条中位 0.0 / p99 0.1 / 最慢 0.2 ms，
+  而最慢那 5 条里排第一的是 **42 字节**的那个（`MMCoreTests-….plist`）——**最慢的不是最大的那些**，
+  所以 `scan` 的预算检查放在**每个文件之前**、按累计时间判，不按体积判（`PreferencesAudit.swift:258`）。
+- **规模档**（`scale-shape.log`，假 home）：2000 条小文件一趟 44.9 ms；200 条约 48 KB 文件一趟 45.3 ms
+  （其中解析 40.9 ms，占九成）。把预算压到 12 ms 时截断真会发生：小文件档读到 **163/2000** 就停，
+  大文件档读到 **47/200** 就停——页头那句话在真机上不是假想态，只是本机 625 条撞不到它。
+
+**绝对值不可复现**：同一判据、同一批文件，本轮在机器被并发占满时量到过安静那一跑的约三倍。
+入库的只有安静那一跑（193.9 / 39.0 / 34.6）。所以 `PreferencesAudit.swift:156-166` 那段注释
+**故意只写量级不写毫秒**——把会漂的数写进源码注释，下一跑 log 就和注释打架，而注释本身是编译输入、
+改了会动指纹。
+
+### 14.4 §11.1 有答案了，§11.2 没有
+
+- **§11.1（GUI 那个 `.app` 读这 11 条是什么答复）：与裸二进制同一答复**。实拍
+  `01-prefs-real-gui.png`（非沙盒、ad-hoc 签名、`/tmp/mm-app-p34b/MacMaster.app`）页头是
+  「检查过 625 个偏好文件；其中 11 个我们没能读。」，栏标题「这一族我们没看到（11）」，
+  与 `scan-shape.log:36` 那行「解析成功 614 / 读不到 11 / 坏 0 / 根不是字典 0」逐字对得上。
+  所以 §5 那句"N 个我们没看到"的 N 在本机两档进程下都是 11，**这一栏的语义不用按进程分叉**。
+- **§11.2（给了 FDA 的进程读不读得到）仍未确认**，本轮没有任何可给的 FDA 路径：
+  授权要人在系统设置里手点，而合成点击是红线；探针能证明的只是"这一跑的进程没有它"
+  （`scan-shape.log:15-20` 那四行对照：Mail/Safari/Messages 全是 `couldn't be opened because you don't have permission to view it`）。
+  所以"读不到"这一栏的语义**只写到"系统拒绝读取"为止**，不写"给权限就能看到"，也不写"给权限也看不到"。
+  这条留给以后真要给 TCC/FDA 做一轮的时候一起收。
+
+### 14.5 一处真机 bug：空态那一屏整窗溢出（照片拍出来才看得见）
+
+第一版把脚注当 `MMEmptyState` 的 **VStack 兄弟**挂上去，`04` 那张照片里页头和页脚同时被裁出画面。
+没有靠猜：`MM_PROBE_WINDOW=1`（`Sources/MacMaster/WindowProbe.swift`）在 0.2…16 s 逐点打帧，
+量到 `AppKitPlatformViewHost` 是 **1183 pt @Y-115**，而窗口 content 高 900
+（`00-probe-prefs-empty-before-fix.log`）；同一张空态在浏览器 tab 上没有兄弟，host 就是 900@Y0
+（`00-probe-browser-empty-control.log`）。判据是这一条，不是"看着对不对"。
+
+根因：`MMEmptyState` 自带 `.frame(maxWidth:.infinity, maxHeight:.infinity)`（`MMDesign.swift:476`），
+站内空态的"居中"就是它自己撑满实现的；再挂一个 `fixedSize(horizontal:false, vertical:true)` 的长文本当兄弟，
+SwiftUI 算这组的理想尺寸时按极窄宽度折行，理想高度炸到 1183，`AppKitPlatformViewHost` 跟着长高，
+整窗内容上下溢出。**修法**：脚注改成 `.overlay(alignment:.bottom)`（`PreferencesView.swift:107-113`）——
+overlay 的内容不参与基准视图的理想尺寸，贪心视图单独存在。修后 host 回到 900@Y0
+（`00-probe-prefs-empty-after-fix.log`），照片重拍即 `04`。
+
+这一条**只有实拍能发现**：判据单测全绿、`swift build` 无警告、页面在满数据档（02/03/05/06）都正常。
+它也是 §12 第 5 条"照片必须由夹具出"的另一半理由——空态那一档真机上根本拍不到内容。
+
+### 14.6 证据族与出处纪律
+
+`docs/verification/p34b-prefs/`：七张照片 + 七份同名 log + 两份耗时 log，
+**十份 `# digest:` 全部是 `69eddb6+8ba05eda`**，七张照片的 log 里 `tree=` 与 `app=` 两半相同
+（`mm_provenance_check` 不等就拒拍，所以这一行是当场算的而不是事后补的）。
+四份排障探针留在**自己的**出处上（修前 `f8211ac0`、修后 `73366150`）——它们记录的就是"改之前长什么样"，
+把它们重跑成最终指纹反而抹掉了那一刀。
+
+本轮撞了两次顺序错：**改一行注释也会动指纹**（注释在编译输入里），所以第一次重跑了探针+照片之后
+再动注释，整族证据又旧了一次。定下来的链是：**源码定稿 → make-app → 探针（要安静机器）→ 实拍 → 九包 → 门禁 → 提交**，
+中间不再碰 `Packages/`。
+
+md5 交叉核对：`01` 与 `07` 相同是**允许的**（07 的判据是 stderr 那句
+`MM_OPTIMIZER_FIXTURE 含非法取值（prefs:brokenn），整个钩子已忽略`，画面按定义就该回落到真扫那一屏），
+其余 `02`–`06` 两两不同、且都不等于 `01`。
+
+**引用门禁这一族（`docs/verification/p34b-citations/`）跑了三遍，前两遍都在同一件事上**：
+提交前第一跑**退出码非 0，硬失败 1**——红的不是本轮新写的字，而是 `fidelity-cleaner.md:253` 那份
+**P20 的十一个 `MMFailurePanel` 调用点清单**：本轮在 `MMOptimizer.swift` 的 161 那一行以上净插入 4 行
+（`@StateObject preferences`、`switch` 里那条 `case .preferences`、夹具注入行与它的真实扫描 guard），
+`161` 被顶进整段空白、`235` 跟着漂到 239，量出来正好是 §0 那条老规矩的另一面——
+**这一族的锚点会随每一轮源码移动，而"改过源码行数的那一轮自己现读重指"这句话本轮由判据方执行了一次**。
+第二跑按现读把两个数改成 165 / 239 后**硬失败 0**，同一条命令的读数是
+**条次 1071 / 唯一 875 / 命本仓库 768 / 命参考仓库 106 / 两头都不到 0 / 整段空白 0 / 位置存疑 130**
+（位置存疑那一格本轮只提示、不当门；130 里有多少是"引用当初就指错"这一类，p16 结构上答不了，见 `uninstaller-deep-residual-scope.md` §8.5）。
+**提交之后同一棵干净的树再跑一遍，归档 `audit-postcommit.log`**——这一族的规矩是提交前那份会引到还没 `git add` 的文件，
+所以只有提交后那一份才是能给别人复现的那一份。
+
+### 14.7 仍然开放
+
+1. **§11.2**（上面那条）。
+2. **§11.5 没变**：所有数都是这一台 Mac mini 的。"0 条坏"不是产品承诺，页头与空态文案都按这个写
+   （空态那句 detail 是"这一句只说明这一台机器、这一条判据下没抓到"）。
+3. **`skippedRoots` 那一栏在本机永远是空的**（`~/Library/Preferences` 本身读得到）。
+   它有代码、有文案（`PreferencesCopy.skippedRootsNote`）、有 `MMPermissionBanner` 挂载点，
+   但**没有照片**——四档夹具都没造这一态。要拍到得再加一档夹具，或者等一台真读不到的机器。
+4. **`skippedNonRegular` 在本机是 0**，所以"跳过了 N 个非常规条目"这句话在本机永远不会说出口；
+   它同样没有照片，理由同上。
+5. **C 档（主人名映射）** 仍按 §9 的建议暂缓。
+6. **一处已知的过期注释**：`MMOptimizer.swift:78` 那句还写着 `MM_OPTIMIZER_FIXTURE` 是
+   "**四 tab** 空/失败/PROTECTED 态的纯展示注入"，P34b 之后它是五 tab、十四档。
+   **本轮故意没改**：注释在编译输入里，动它指纹就变，而上面那一族照片与两份耗时 log 全部钉在
+   `69eddb6+8ba05eda` 上——为了五个字重跑一遍耗时探针，换来的数还更不可复现（§14.3 末段）。
+   它排在 P35b 那一轮一起动（那一轮本来就要动编译输入、重出它自己的证据族）。

@@ -35,7 +35,7 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 `Info.plist`，而那份 plist 是 `make-app.sh` 写的——不要去脚本里改字面量。
 
 **产物自带出处**（P19 起）：`make-app.sh` 往同一份 plist 写 `MMGitCommit`（工作区不干净时后缀 `-dirty`）。
-**P23 起还写 `MMSourceDigest`**——那 92 个编译输入（`Sources` / 九个包的 `Sources` 与 `Package.swift` /
+**P23 起还写 `MMSourceDigest`**——那 **98** 个编译输入（P34b 现数：已跟踪 96 + 未跟踪 2；`Sources` / 九个包的 `Sources` 与 `Package.swift` /
 根 `Package.swift` / `Resources/AppIcon.icns`，**不含测试源码**）的**内容**哈希，前缀拼 HEAD 短 sha。
 为什么要它：`-dirty` 只说"工作区有改动"，不说改了哪个文件哪一行，
 而 P22 撞的那一次（搬动一个私有辅助函数的位置）恰好是 commit、脏净态与画面**三条线都看不见**的改动。
@@ -98,8 +98,8 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
-现测（**2026-10-12，P33b 在作者工作树上重跑；上一读是 2026-10-10 的 P32b，再上一读是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
-**720 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（**2026-10-12，P34b 在作者工作树上重跑；上一读是同日的 P33b，再上一读是 2026-10-10 的 P32b，再往前是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
+**737 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
@@ -130,7 +130,12 @@ shebang 只收 `sh/bash/zsh/env`、动词只收 `run|rungameid|launch`、4096 �
 祖先目录被**另一个已安装应用**主张、或同层里那一个更像主人的候选不是本应用时，整条降级为「谨慎」并默认不勾选，
 主人名写进证据行；两条线索各自有出现/不出现两条判据，外加一条否证 `testStrictTierHasNoContainmentHit`：
 strict 档没有包含命中 ⇒ 复核一轮都不跑）→ **720**，还是全在 MMUninstaller 那一包。
-**逐包求和 = 720**（**77** / 17 / 117 / 25 / **200** / 77 / **57** / 96 / 54），这一条自 P11c 起每轮都当自证用。
+**P34b 加 17 条，一格都没动别的包**（`PreferencesAuditTests` 全新 13 条：偏好文件四态判据——空文件、读不出来的 plist、
+解析成功但根不是字典、以及"系统拒绝读取"这一态必须和"它坏了"分成两栏说；再加时间预算截断那两对
+（`testBudgetTruncatesAndCountsTheRemaining` / `testGenerousBudgetScansEverything`）与一条文案不许过度声称
+（`testCopyNeverOverclaims`）；`OptimizerFixtureHookTests` 14 → 18 的 +4 条全钉新增的 `prefs:*` 那一族——
+档位名拼错要整支钩子作废、四档各有各的形状、夹具落地后真实扫描后到不许把它覆盖掉）→ **737**。
+**逐包求和 = 737**（**77** / 17 / 117 / 25 / **200** / 77 / **57** / 96 / **71**），这一条自 P11c 起每轮都当自证用。
 **P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，P26 MMDisk 走到 77 之后撞车解开**——
 **而 P29 把它们撞回来了**：MMCore 也走到 77，于是这一跑里"77"同时是 MMCore 和 MMDisk。
 所以这条自证**要按包名读**这件事现在有了实指，不再只是一句提醒：117 与 77 里那个 `7` 是同一个字，

@@ -1,0 +1,9 @@
+# p34b-prefs-capture.sh 06-prefs-narrow-window  2026-10-12 14:49:45 +0800  app=/tmp/mm-app-p34b/MacMaster.app
+# repo: 69eddb6-dirty   # app-repo: 69eddb6-dirty
+# digest: tree=69eddb6+8ba05eda app=69eddb6+8ba05eda
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=optimizer MM_OPEN_TAB=preferences MM_WINDOW_SIZE=1000x760 MM_OPTIMIZER_FIXTURE=prefs:broken
+# 夹具：prefs:broken
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p34b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1000x760 请求 1000x760pt，窗口实际 1000x760pt
+# windows(pid=42862): windowid=7025 pid=42862 layer=0 title=MacMaster bounds=["X": 485, "Y": 103, "Height": 760, "Width": 1000]

@@ -3,6 +3,7 @@
 //
 //  还原度审计（fidelity-optimizer）补的缺口：四 tab 内「空/失败/超大列表/PROTECTED 拒绝态」
 //  此前都只有 MM_OPEN_TAB 一个入口，无法无头截图核对（§5 #1–7）。
+//  P34b 起再加一族 `prefs:*`（偏好文件那一屏的四档）。
 //
 //  铁律（照 GuardianFixtureHooks / MonitorFixtureHooks 的口径）：
 //  - 钩子只在环境变量存在且取值合法时生效，未设置时生产路径逐字节不变；
@@ -26,6 +27,7 @@ enum OptimizerFixture {
         let browser: BrowserTier?
         let status: StatusTier?
         let devtools: DevToolsTier?
+        let preferences: PrefsTier?
         let caveat: CaveatCounts?
         let protected: Bool
         let rejected: [String]
@@ -58,15 +60,31 @@ enum OptimizerFixture {
         case unreadable
     }
 
+    /// 偏好文件那一族（P34b）。四档各拍一屏：
+    /// - `broken`：「读不出来或空的那些」两行（0 字节 + 解析失败）；
+    /// - `unreadable`：「这一族我们没看到」那一栏——真机上它是唯一非零的异常栏，
+    ///   也是唯一会被写错的一栏，所以**必须能拍到**；
+    /// - `empty`：两栏都空的排版；
+    /// - `prefs:partial`：B 档的时间预算截断态。审计 §12 第 4 条只点了前三档，
+    ///   第四档是本轮补的：本机 625 条一趟 226 ms，截断那一句话在真机上永远拍不到，
+    ///   没有夹具就等于那句只能靠单测（理由与 `prefs:unreadable` 同一类）。
+    enum PrefsTier: Sendable, Equatable {
+        case broken
+        case unreadable
+        case empty
+        case partial
+    }
+
     static func parse(_ raw: String?) -> Result {
         guard let raw, !raw.isEmpty else {
-            return Result(duplicates: nil, browser: nil, status: nil, devtools: nil, caveat: nil,
-                          protected: false, rejected: [])
+            return Result(duplicates: nil, browser: nil, status: nil, devtools: nil,
+                          preferences: nil, caveat: nil, protected: false, rejected: [])
         }
         var duplicates: DuplicatesTier?
         var browser: BrowserTier?
         var status: StatusTier?
         var devtools: DevToolsTier?
+        var preferences: PrefsTier?
         var caveat: CaveatCounts?
         var protected = false
         var rejected: [String] = []
@@ -112,6 +130,16 @@ enum OptimizerFixture {
                 devtools = .unreadable
             } else if token.hasPrefix("devtools:") {
                 rejected.append(token)
+            } else if token == "prefs:broken" {
+                preferences = .broken
+            } else if token == "prefs:unreadable" {
+                preferences = .unreadable
+            } else if token == "prefs:empty" {
+                preferences = .empty
+            } else if token == "prefs:partial" {
+                preferences = .partial
+            } else if token.hasPrefix("prefs:") {
+                rejected.append(token)
             } else {
                 rejected.append(token)
             }
@@ -125,11 +153,12 @@ enum OptimizerFixture {
 
         // 任一项非法 → 整体作废：半真半假的夹具比没有更危险。
         if !rejected.isEmpty {
-            return Result(duplicates: nil, browser: nil, status: nil, devtools: nil, caveat: nil,
-                          protected: false, rejected: rejected)
+            return Result(duplicates: nil, browser: nil, status: nil, devtools: nil,
+                          preferences: nil, caveat: nil, protected: false, rejected: rejected)
         }
         return Result(duplicates: duplicates, browser: browser, status: status,
-                      devtools: devtools, caveat: caveat, protected: protected, rejected: [])
+                      devtools: devtools, preferences: preferences, caveat: caveat,
+                      protected: protected, rejected: [])
     }
 
     // MARK: 合成数据
@@ -185,6 +214,61 @@ enum OptimizerFixture {
                 bytes: nil, ownerCommand: "npm cache verify",
                 why: "夹具值：模拟目录不可读。",
                 caveat: "读不动这个位置，所以大小和状态都不知道；下面不显示数字。")]
+        }
+    }
+
+    /// 偏好文件四档（P34b）。全部挂在 `/tmp/mm-optimizer-fixture/Library/Preferences/` 下，
+    /// 一眼可辨是夹具值；合成的是**展示数据**，不写盘、不 spawn、不读真实 home。
+    ///
+    /// `broken` 那一档顺手带一条 `.parsed(root:"array")`：§5 那句"根不是字典不列行、
+    /// 只在脚注提"的分支在真机上拍不到（本机 614 条解析成功的根全是 dict），
+    /// 不给夹具就等于那条脚注永远不会出现在照片里。
+    static func prefsScan(tier: PrefsTier) -> PreferencesScan {
+        func check(_ name: String, bytes: Int?, inByHost: Bool = false,
+                   verdict: PrefsVerdict) -> PreferenceFileCheck {
+            let dir = "/tmp/mm-optimizer-fixture/Library/Preferences/\(inByHost ? "ByHost/" : "")"
+            return PreferenceFileCheck(id: dir + name, name: name, path: dir + name,
+                                       inByHost: inByHost, bytes: bytes,
+                                       modified: Date(timeIntervalSince1970: 1_700_000_000),
+                                       verdict: verdict)
+        }
+        let ok = check("MMFixture-healthy.plist", bytes: 86, verdict: .parsed(root: "dict"))
+        switch tier {
+        case .broken:
+            return PreferencesScan(
+                rows: [
+                    check("MMFixture-halfwritten.plist", bytes: 0, verdict: .zeroByte),
+                    check("MMFixture-broken.plist", bytes: 282, inByHost: true,
+                          verdict: .unparsable(reason: "夹具值：Cocoa 384：The data is not in the correct format.")),
+                    check("MMFixture-root-array.plist", bytes: 50, verdict: .parsed(root: "array")),
+                    ok,
+                ],
+                skippedRoots: [], skippedNonRegular: 0, foundFiles: 4, isPartial: false,
+                millis: PrefsMillis(enumerate: 0.4, read: 1.1, parse: 0.6))
+        case .unreadable:
+            return PreferencesScan(
+                rows: [
+                    check("com.apple.MMFixtureVault.plist", bytes: 2_214,
+                          verdict: .unreadable(reason: "夹具值：Cocoa 257：没有权限")),
+                    check("MMFixture-locked.plist", bytes: nil, inByHost: true,
+                          verdict: .unreadable(reason: "夹具值：Cocoa 257：没有权限")),
+                    ok,
+                ],
+                skippedRoots: [], skippedNonRegular: 0, foundFiles: 3, isPartial: false,
+                millis: PrefsMillis(enumerate: 0.3, read: 0.9, parse: 0.4))
+        case .empty:
+            return PreferencesScan(
+                rows: [ok, check("MMFixture-second.plist", bytes: 42, verdict: .parsed(root: "dict"))],
+                skippedRoots: [], skippedNonRegular: 0, foundFiles: 2, isPartial: false,
+                millis: PrefsMillis(enumerate: 0.2, read: 0.5, parse: 0.3))
+        case .partial:
+            return PreferencesScan(
+                rows: [
+                    check("MMFixture-halfwritten.plist", bytes: 0, verdict: .zeroByte),
+                    ok,
+                ],
+                skippedRoots: [], skippedNonRegular: 0, foundFiles: 10_418, isPartial: true,
+                millis: PrefsMillis(enumerate: 1.8, read: 2_004.6, parse: 0.0))
         }
     }
 }

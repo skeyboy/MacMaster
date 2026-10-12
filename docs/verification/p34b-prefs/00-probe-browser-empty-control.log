@@ -1,0 +1,24 @@
+# P34b 溢出排障探针（MM_PROBE_WINDOW=1，二进制 digest 69eddb6+f8211ac0，2026-10-12 15:0x +0800）
+# 用法：env MM_OPEN_MODULE=optimizer MM_OPEN_TAB=<tab> MM_WINDOW_SIZE=1400x900 MM_PROBE_WINDOW=1 MM_OPTIMIZER_FIXTURE=<档> MacMaster
+# 判据：AppKitPlatformViewHost 的高必须等于窗口 content 高（900）；不等=整窗内容上下溢出，照片表现为页头/页脚同时被裁。
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p34b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+PROBE win t=0.2 AppKitWindow vis=true title=MacMaster frame=W1400xH900@Y112 content=W1400xH900@Y0 bounds=W1400xH900@Y0 layout=W1400xH848@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1400xH900@Y0
+PROBE win t=0.2 NSStatusBarWindow vis=true title=Item-0 frame=W82xH0@Y0 content=W82xH0@Y0 bounds=W82xH0@Y0 layout=W82xH0@Y0 | sub NSView W82xH22@Y-11
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+PROBE win t=1.0 AppKitWindow vis=true title=MacMaster frame=W1400xH900@Y112 content=W1400xH900@Y0 bounds=W1400xH900@Y0 layout=W1400xH848@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1400xH900@Y0
+PROBE win t=1.0 NSStatusBarWindow vis=true title=Item-0 frame=W82xH30@Y1050 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=1.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=1.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=2.0 AppKitWindow vis=true title=MacMaster frame=W1400xH900@Y112 content=W1400xH900@Y0 bounds=W1400xH900@Y0 layout=W1400xH848@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1400xH900@Y0
+PROBE win t=2.0 NSStatusBarWindow vis=true title=Item-0 frame=W82xH30@Y1050 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=2.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=2.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=4.0 AppKitWindow vis=true title=MacMaster frame=W1400xH900@Y112 content=W1400xH900@Y0 bounds=W1400xH900@Y0 layout=W1400xH848@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1400xH900@Y0
+PROBE win t=4.0 NSStatusBarWindow vis=true title=Item-0 frame=W82xH30@Y1050 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=4.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=4.0 NSStatusBarWindow vis=true title= frame=W82xH30@Y-30 content=W82xH30@Y0 bounds=W82xH30@Y0 layout=W82xH30@Y0 | sub NSView W82xH22@Y4
+PROBE win t=6.0 AppKitWindow vis=true title=MacMaster frame=W1400xH900@Y112 content=W1400xH900@Y0 bounds=W1400xH900@Y0 layout=W1400xH848@Y0 | sub AppKitPlatformViewHost<PlatformViewRepresentableAdaptor<NavigationSplitRepresentable>> W1400xH900@Y0
+PROBE win t=6.0 NSStatusBarWindow vis=true title=Item-0 frame=W177xH30@Y1050 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=6.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4
+PROBE win t=6.0 NSStatusBarWindow vis=true title= frame=W177xH30@Y-30 content=W177xH30@Y0 bounds=W177xH30@Y0 layout=W177xH30@Y0 | sub NSView W177xH22@Y4

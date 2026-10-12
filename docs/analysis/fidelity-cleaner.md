@@ -250,9 +250,12 @@
    （**P20 现读重跑，判据换成能罩住壳层的那一条**：
    `grep -rn 'MMFailurePanel(' --include='*.swift' Packages Sources | grep -v 'struct MMFailurePanel' | wc -l` = 11，
    逐个位置是 `MMCleaner.swift:376`、`SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、
-   `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:161`、
-   `MMOptimizer.swift:235`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
-   `Sources/MacMaster/MainWindow.swift:242`。
+   `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:165`、
+   `MMOptimizer.swift:239`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
+   `Sources/MacMaster/MainWindow.swift:242`。**这两处 `MMOptimizer.swift` 的锚点是 P34b 顶漂的**（那一轮在 161 这一行以上
+   净插入 4 行——`@StateObject preferences`、`switch` 里那一条 `case .preferences`、夹具注入行与它的真实扫描 guard——
+   整段往下推 4 行：161→165、235→239，本轮按 §0 那条"改过源码行数的那一轮自己现读重指"的规矩重指；
+   P20 那一读 161/235 当时是对的，`grep -n MMFailurePanel` 现读就是这两个新数）。
    **原来这一格写的是"10 个"，少的那一个不是漏看而是命令本身罩不住**——旧命令
    `grep -n 'MMFailurePanel(' Packages/*/Sources` 的 glob 只展开 `Packages/<模块>/Sources`，
    壳层 `Sources/MacMaster` 在仓库根，永远不在它的搜索范围里。而 `release-readiness.md` §6

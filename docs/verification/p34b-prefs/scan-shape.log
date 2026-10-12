@@ -1,0 +1,72 @@
+# p34b-prefs-scan-probe.sh  2026-10-12 14:49:10 +0800
+# repo: 69eddb6-dirty  branch=main
+# digest: 69eddb6+8ba05eda
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 探针源文件：245 行  Scripts/p34b-prefs-scan-probe.swift
+# 参与编译的生产源文件：378 行  Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift（判据本体在这一份里，探针不重写）
+# 扫的是本机真 home（只读）。这一档的进程是裸二进制、不是 .app——
+# GUI 那个进程对「读不到」那一栏的答复由实拍照片（真机档）给出，两支合起来才是 §11.1 的答案。
+
+## 进程身份（这一条决定下面那些读数是谁拿到的）
+  bundle id：（无：裸二进制，不是 .app）
+  可执行文件：/tmp/mm-p34b-probe.L6lu9b/probe
+  home：/Users/lee
+
+## 这个进程的 FDA 现状（对照路径，决定「读不到」那一栏的语义）
+  Library/Mail：读不到 — The file “Mail” couldn’t be opened because you don’t have permission to view it.
+  Library/Safari：读不到 — The file “Safari” couldn’t be opened because you don’t have permission to view it.
+  Library/Messages：读不到 — The file “Messages” couldn’t be opened because you don’t have permission to view it.
+  Library/Application Support/com.apple.TCC：读不到 — The file “com.apple.TCC” couldn’t be opened because there is no such file.
+  对照：Library/Preferences 本身读得到（下面整段就是它的数据）
+
+## 枚举段（PreferencesAuditor.list）
+  单层计时：3.9 ms   条数：625   非正则跳过：0   读不到的根：0
+  顶层 588 条 / ByHost 37 条（§11.4 那句「ByHost 递归在本机贡献多少条」的答案就是这行）
+  ByHost 遍历形状：条目 37 个，最深 1 层，其中 plist 37 条、软链 0 条、目录 0 个
+      深度 1：37 条
+
+## 整趟 PreferencesAuditor.liveScan（默认预算 2000 ms）
+  第 1 遍：枚举 3.3 ms / 读取 73.7 ms / 解析 116.9 ms = 合计 193.9 ms   检查 625/625 条   截断=false
+  第 2 遍：枚举 4.0 ms / 读取 14.6 ms / 解析 20.4 ms = 合计 39.0 ms   检查 625/625 条   截断=false
+  第 3 遍：枚举 3.5 ms / 读取 13.1 ms / 解析 18.0 ms = 合计 34.6 ms   检查 625/625 条   截断=false
+  每条平均：读取 0.0 ms / 解析 0.0 ms（**这两段一个是 IO 一个是 CPU，预算该由大的那段定**）
+  外推：按第 3 遍的形状，2000 ms 预算大约够 36112 条（这是「这一台机器、这一批文件」的外推，不是产品承诺）
+
+## 四态计数（与界面页头/两栏用的是同一批属性）
+  检查过 625 条：解析成功 614 / 读不到 11 / 坏的那一栏 0 / 根不是字典 0
+  页头会打成：「检查过 625 个偏好文件；其中 11 个我们没能读。」
+
+## 「读不到」逐条归因（§11.1：GUI 进程是不是同样的答复，由实拍照片那一档回答）
+  com.apple.madrid.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.madrid.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.MobileSMS.CKDNDList.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.MobileSMS.CKDNDList.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.TV.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.TV.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.AddressBook.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.AddressBook.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.homed.notbackedup.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.homed.notbackedup.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.MobileSMS.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.MobileSMS.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.Music.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.Music.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.homed.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.homed.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.messages.pinning.plist  保护名=true  ByHost=false  读不到
+      Cocoa 257：The file “com.apple.messages.pinning.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  保护名=true  ByHost=true  读不到
+      Cocoa 257：The file “com.apple.Music.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+  com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist  保护名=true  ByHost=true  读不到
+      Cocoa 257：The file “com.apple.MobileSMS.F21D8297-FCF5-55A9-9564-BA4DB0AA63E0.plist” couldn’t be opened because you don’t have permission to view it.
+
+## 逐条读取耗时分布（同一支生产 readData，重新走一遍）
+  条数 625：中位 0.0 ms / p90 0.0 ms / p99 0.1 ms / 最慢 0.2 ms
+  最慢 5 条（**看它是不是同时也是最大的那些**——是的话预算该看体积，不是的话看条数）：
+      0.2 ms  42 字节  MMCoreTests-B624DB3D-D816-46EB-B670-9FC4A574C5CA.plist
+      0.2 ms  97 字节  jetbrains.go.262.plist
+      0.1 ms  42 字节  MMCleaner.ExclusionStoreTests.ADACBFBE-8834-47CA-ACEE-662C049F0209.plist
+      0.1 ms  57 字节  com.apple.network.ServiceDiscovery.plist
+      0.1 ms  807 字节  com.carrot.desktop.plist
+  合计读取 13.3 ms，总体积 1978698 字节 → 0.0 ms/条、0.000 ms/字节
+

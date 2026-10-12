@@ -8,10 +8,14 @@
 .artboard{display:flex;flex-direction:column;gap:6px}
 .cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
 .cap b{color:var(--c-label-secondary);font-weight:600}
-/* 页头下方的分段页签行：VStack 默认居中，maxWidth 340 */
+/* 页头下方的分段页签行：VStack 默认居中，maxWidth 340。
+   width 用 auto 而不是 100%：340 是 SwiftUI `.frame(maxWidth:340)` 那个**上限**，
+   不是控件的实际宽度——实机照片里五档页签自然宽 334 pt、标签不折行（01-prefs-real-gui.png 量得）。
+   原来写 100% 时四档刚好没露馅，加第五档后每个标签被挤成两行，那是稿子的错不是实现的错。 */
 .segbar{display:flex;justify-content:center;padding:var(--sp-2) var(--sp-4);
         border-bottom:1px solid var(--c-separator);background:var(--c-content-bg)}
-.segbar .seg{max-width:340px;width:100%;justify-content:center}
+.segbar .seg{max-width:340px;width:auto;justify-content:center}
+.segbar .seg > span{white-space:nowrap}
 /* 重复文件/浏览器缓存页签顶部的口径行（44pt） */
 .headline-row{display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-4);
               min-height:44px;background:var(--c-content-bg)}
@@ -111,7 +115,29 @@
 .drow .r .acts{display:flex;align-items:center;gap:var(--sp-1)}
 /* 页脚说明（DevToolCacheCopy.footnote）：info.circle + caption，tertiaryLabel */
 .dfoot{display:flex;gap:var(--sp-1);align-items:flex-start;padding:var(--sp-2) var(--sp-3);
-       font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.5}</style></head>
+       font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.5}
+/* ── 偏好文件页签（P34b）专用 ─────────────────────────────────── */
+/* 两栏各自的分栏标题（SectionHeader）：caption semibold + 同色 10pt 图标。
+   bad=caution（exclamationmark.triangle），neutral=secondaryLabel（eye.slash）——两色两图标不许合并。 */
+.prefsec{display:flex;align-items:center;gap:var(--sp-1);padding:var(--sp-1) var(--sp-3) 0;
+         font-size:var(--fs-caption);font-weight:600}
+.prefsec svg{width:10px;height:10px;flex-basis:10px}
+.prefsec.bad{color:var(--c-warning)}
+.prefsec.neutral{color:var(--c-label-secondary)}
+/* 栏标题下那句整体说明（unreadableNote）：caption secondary，换行不截 */
+.prefnote{padding:2px var(--sp-3) 4px;font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:1.5}
+/* 行内徽章两色：读不到=灰（跟栏标题同色），另外两个坏态=橙 */
+.drow .m .t span.bad{color:var(--c-warning)}
+.drow .m .t span.tag{font-size:9px;color:var(--c-label-tertiary)}
+.drow .ic.bad{color:var(--c-warning)}
+.drow .r .dt{font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+/* 脚注块（nonDictRootNote + footnote）：caption tertiary，换行不截 */
+.pfoot{padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.5}
+/* 空态档：脚注用 .overlay(alignment:.bottom) 贴在空态容器下沿，不是 VStack 的兄弟
+   （兄弟会把整组理想高度撑爆，见 08f 说明与实拍 04） */
+.emptywrap{flex:1;display:flex;position:relative;min-height:300px}
+.emptywrap .empty{flex:1}
+.emptywrap .pfoot{position:absolute;left:0;right:0;bottom:0;text-align:left}</style></head>
 <body>
 
 <!-- ============================================================ -->
@@ -120,8 +146,8 @@
 本页是 <b>Packages/MMOptimizer/MMOptimizer.swift · OptimizerView</b> 的逐字还原：页头
 MMPageHeader("系统优化")，副标题绑 <b>diagnostics.updatedAt</b>——它只在"系统状态"页签被打开过
 （.task 触发 refresh）之后才有值，所以<b>默认首屏页头只有标题一行，没有副标题</b>，这不是稿子漏画。
-页签为分段控件（重复文件 / 浏览器缓存 / 系统状态 / 开发工具，maxWidth 340 居中），默认落在重复文件
-（可用 MM_OPEN_TAB=browser|status|devtools 逐屏截图核对）。顶行口径文案 + 「查找重复文件」；
+页签为分段控件（重复文件 / 浏览器缓存 / 系统状态 / 开发工具 / 偏好文件，maxWidth 340 居中），默认落在重复文件
+（可用 MM_OPEN_TAB=browser|status|devtools|preferences 逐屏截图核对）。顶行口径文案 + 「查找重复文件」；
 空态文案两档由 hasScanned 决定：<b>未扫 = "还未开始检测"</b>，扫过没找到 = "没有发现内容完全相同的文件"，
 绝不混用。范围行是硬编码的 Documents / Downloads / Desktop 三个目录，逐字照抄。
 底部 MMActionBar 常驻：未勾选时"移到废纸篓"置灰（disabled），说明句是"未勾选的文件不会被改动。"
@@ -158,7 +184,7 @@ MMPageHeader("系统优化")，副标题绑 <b>diagnostics.updatedAt</b>——�
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1></div>
       </div>
-      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
 
       <!-- 顶行：headline（未扫档）+「查找重复文件」（magnifyingglass，bordered） -->
       <div class="headline-row">
@@ -233,7 +259,7 @@ caveat 横幅（MMPermissionBanner）标题固定"部分文件没能参与判定
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1></div>
       </div>
-      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
 
       <div class="headline-row">
         <span class="hl">3 组 · 9 个文件内容完全相同 · 每组保留一份后可释放 3.7 GB</span>
@@ -343,7 +369,7 @@ help 文案："目录存在，但体积没能读出来；不是 0 字节。"它�
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1></div>
       </div>
-      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span class="on">重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
       <div class="headline-row">
         <span class="hl">正在按内容比对，未完成前不会给出结果。</span>
         <span class="btn">停止</span>
@@ -379,7 +405,7 @@ help 文案："目录存在，但体积没能读出来；不是 0 字节。"它�
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1></div>
       </div>
-      <div class="segbar"><span class="seg"><span>重复文件</span><span class="on">浏览器缓存</span><span>系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span class="on">浏览器缓存</span><span>系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
       <div class="headline-row">
         <span class="hl">4 个缓存目录 · 合计 3.7 GB（1 个目录没读到，未计入）</span>
         <span class="btn"><svg class="i"><use href="#i-refresh"></use></svg>重新扫描</span>
@@ -445,7 +471,7 @@ MMFailurePanel 逐条列失败路径 + 错误原文 + 错误码，超过 4 条�
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1><p>上次检测 2026-09-30 10:24</p></div>
       </div>
-      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
       <div class="scroll" style="gap:0;padding:var(--sp-2)">
         <div class="srow"><span class="ic" style="color:var(--c-success)"><svg class="i"><use href="#i-mem"></use></svg></span>
           <div class="m"><b>内存占用</b><span>已使用交换空间 2.3 GB，关掉占内存大的应用才会回落</span></div>
@@ -473,7 +499,7 @@ MMFailurePanel 逐条列失败路径 + 错误原文 + 错误码，超过 4 条�
       <div class="toolbar">
         <div class="title-block"><h1>系统优化</h1><p>上次检测 2026-09-30 10:24</p></div>
       </div>
-      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span class="on">系统状态</span><span>开发工具</span><span>偏好文件</span></span></div>
       <!-- 三行全部没量到：值列一律"—"，徽章一律"只读"，note 点名失败源。绝不渲染成"0 / 正常" -->
       <div class="scroll" style="gap:0;padding:var(--sp-2)">
         <div class="srow"><span class="ic" style="color:var(--c-label-secondary)"><svg class="i"><use href="#i-mem"></use></svg></span>
@@ -557,7 +583,7 @@ ProgressView。<b>下方那块是本机没跑出来的两档（未安装 / 读�
 
     <main class="content" style="min-width:0">
       <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
-      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span><span>偏好文件</span></span></div>
       <div class="scroll" style="gap:0;padding:var(--sp-2)">
 
         <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
@@ -653,7 +679,7 @@ ProgressView。<b>下方那块是本机没跑出来的两档（未安装 / 读�
   </div>
   <div class="body-row" style="min-height:0">
     <main class="content" style="min-width:0">
-      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span></span></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span class="on">开发工具</span><span>偏好文件</span></span></div>
       <div class="scroll" style="gap:0;padding:var(--sp-2)">
         <div class="drow"><span class="ic"><svg class="i"><use href="#i-hammer"></use></svg></span>
           <div class="m">
@@ -682,6 +708,239 @@ ProgressView。<b>下方那块是本机没跑出来的两档（未安装 / 读�
       </div>
     </main>
   </div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="artboard">
+<div class="cap"><b>08f · 偏好文件页签 —— 只判不删（PreferencesFilesView / PreferencesAuditor / P34b）。</b>
+第一块是<b>实机照片逐字还原</b>（<code>docs/verification/p34b-prefs/01-prefs-real-gui.png</code>，
+digest <code>69eddb6+8ba05eda</code>，MM_OPEN_TAB=preferences 冷启动、无夹具、无合成点击）。
+<b>两栏分离是硬要求</b>：「读不出来或空的那些」用橙 + exclamationmark.triangle，
+「这一族我们没看到」用灰 + eye.slash——同色或同图标就等于把"我们没看"说成"它们坏了"。
+页头那句话由 <code>PreferencesCopy.headline</code> 三片段拼：「检查过 N 个偏好文件」的 N 是
+<b>这一趟真下过判据的条数</b>（不是枚举到的总数），撞预算时插「就到了时间预算，剩下的 K 个没看」，
+有拒读时插「；其中 M 个我们没能读」。本机 625 条里 <b>0 条坏、11 条读不到</b>，
+M 那一档的语义是"系统拒绝读取（Cocoa 257）"，<b>既不许写成这 11 个坏了，也不许写成它们没坏</b>
+（栏说明原文就是这两句并列）。体积列 <code>bytes=nil</code> 显示 <b>—</b>，绝不折成 0
+（第三块 <code>MMFixture-locked.plist</code> 那一行是这一条的实物）。右列只有"显示"（在访达揭示），
+<b>没有任何删除、重设、覆盖入口</b>：这一屏不写盘，恢复得由那个 app 自己在下次启动时重设。
+第四块是空态档，脚注用 <code>.overlay(alignment:.bottom)</code> 贴在空态下沿<b>而不是当 VStack 的兄弟</b>：
+兄弟形态会在 1400×900 窗口里把 AppKitPlatformViewHost 撑到 1183 pt（@Y-115），页头页脚同时被裁出画面
+——证据是 <code>00-probe-prefs-empty-before-fix.log</code> 对照 <code>00-probe-browser-empty-control.log</code>，
+实拍见 <code>04-prefs-fixture-empty.png</code>。
+<b>时间预算 2000 ms 在本机撞不到</b>（625 条一趟，暖趟三十毫秒量级），所以"剩下的 K 个没看"那一档
+只能靠夹具拍（第五块）；截断本身在规模档里是真发生过的（<code>scale-shape.log</code>：
+把预算压到 12 ms，2000 条小文件时读到 163 条就停）。
+第 2–5 块是<b>夹具档</b>（MM_OPTIMIZER_FIXTURE=prefs:broken / unreadable / empty / partial），
+路径全挂在 <code>/tmp/mm-optimizer-fixture/</code> 下、一眼可辨，只顶替展示数据，不写盘不 spawn；
+非法取值（prefs:brokenn）整批作废并往 stderr 留一行、画面回落真扫，见 <code>07</code> 那张照片的 log。
+<b>第一块照片里可见 9 条</b>，第 10–11 条（ByHost 那两条）与脚注在 900 pt 高的窗口里落在滚动线以下，
+本稿不替它们编体积与日期，所以只画到第 9 条。</div>
+
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row" style="min-height:0">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理<span class="tail t-num">4.43 GB</span></div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+    </aside>
+
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span class="on">偏好文件</span></span></div>
+      <div class="headline-row"><span class="hl">检查过 625 个偏好文件；其中 11 个我们没能读。</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新检查</span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="prefsec neutral"><svg class="i"><use href="#i-eye-slash"></use></svg>这一族我们没看到（11）</div>
+        <div class="prefnote">系统对 11 个文件拒绝读取。这不代表它们坏了，也不代表它们没坏。</div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.madrid.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.madrid.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">4 KB</span><span class="dt">2026-10-12 13:53</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.MobileSMS.CKDNDList.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.MobileSMS.CKDNDList.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">101 字节</span><span class="dt">2026-07-10 09:22</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.TV.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.TV.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">2 KB</span><span class="dt">2026-09-16 18:11</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.AddressBook.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.AddressBook.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">217 字节</span><span class="dt">2026-10-12 13:40</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.homed.notbackedup.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.homed.notbackedup.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">92 字节</span><span class="dt">2026-06-13 19:59</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.MobileSMS.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.MobileSMS.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">11 KB</span><span class="dt">2026-09-16 17:20</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.Music.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.Music.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">8 KB</span><span class="dt">2026-09-16 18:11</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.homed.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.homed.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">1 KB</span><span class="dt">2026-10-12 14:05</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.messages.pinning.plist</b><span>读不到</span></div>
+            <div class="p">~/Library/Preferences/com.apple.messages.pinning.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">205 字节</span><span class="dt">2026-07-10 09:22</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <!-- 照片到这一行为止：第 10–11 条是 ByHost 那两条，体积与日期在滚动线以下没拍到，不编。 -->
+      </div>
+    </main>
+  </div>
+</div>
+
+<div style="display:flex;gap:22px;align-items:flex-start">
+
+<div class="win mm-screen" style="height:auto;width:540px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span class="on">偏好文件</span></span></div>
+      <div class="headline-row"><span class="hl">检查过 4 个偏好文件。</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新检查</span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="prefsec bad"><svg class="i"><use href="#i-warn"></use></svg>读不出来或空的那些（2）</div>
+        <div class="drow"><span class="ic bad"><svg class="i"><use href="#i-warn"></use></svg></span>
+          <div class="m"><div class="t"><b>MMFixture-halfwritten.plist</b><span class="bad">可能是写到一半</span></div>
+            <div class="p">/tmp/mm-optimizer-fixture/Library/Preferences/MMFixture-halfwritten.plist</div>
+            <div class="w">这个文件是空的，可能是上次写入中断。</div></div>
+          <div class="r"><span class="sz">0 字节</span><span class="dt">2023-11-15 06:13</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic bad"><svg class="i"><use href="#i-warn"></use></svg></span>
+          <div class="m"><div class="t"><b>MMFixture-broken.plist</b><span class="bad">读不成字典</span><span class="tag">ByHost</span></div>
+            <div class="p">/tmp/mm-optimizer-fixture/Library/Preferences/ByHost/MMFixture-broken.plist</div>
+            <div class="w">这份偏好文件读不出来。要恢复它得由那个 app 自己做（重设它的偏好），MacMaster 不动它。</div></div>
+          <div class="r"><span class="sz">282 字节</span><span class="dt">2023-11-15 06:13</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="pfoot">另有 1 个文件解析成功但根不是字典——两种判据都不认为这是坏，所以它们不列在上面。<br>
+          这一屏不删、不改这些文件，也不会替你重设任何 app 的偏好。MacMaster 只做只读判定，恢复得由那个 app 自己在下次启动时重设。</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="win mm-screen" style="height:auto;width:540px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span class="on">偏好文件</span></span></div>
+      <div class="headline-row"><span class="hl">检查过 3 个偏好文件；其中 2 个我们没能读。</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新检查</span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="prefsec neutral"><svg class="i"><use href="#i-eye-slash"></use></svg>这一族我们没看到（2）</div>
+        <div class="prefnote">系统对 2 个文件拒绝读取。这不代表它们坏了，也不代表它们没坏。</div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>com.apple.MMFixtureVault.plist</b><span>读不到</span></div>
+            <div class="p">/tmp/mm-optimizer-fixture/Library/Preferences/com.apple.MMFixtureVault.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <div class="r"><span class="sz">2 KB</span><span class="dt">2023-11-15 06:13</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="drow"><span class="ic"><svg class="i"><use href="#i-eye-slash"></use></svg></span>
+          <div class="m"><div class="t"><b>MMFixture-locked.plist</b><span>读不到</span><span class="tag">ByHost</span></div>
+            <div class="p">/tmp/mm-optimizer-fixture/Library/Preferences/ByHost/MMFixture-locked.plist</div>
+            <div class="w">这一条我们读不到。这不代表它坏了，也不代表它没坏。</div></div>
+          <!-- bytes=nil：属性都没读到，值列一律「—」，不写 0 字节 -->
+          <div class="r"><span class="sz nil">—</span><span class="dt">2023-11-15 06:13</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="pfoot">这一屏不删、不改这些文件，也不会替你重设任何 app 的偏好。MacMaster 只做只读判定，恢复得由那个 app 自己在下次启动时重设。</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+</div>
+
+<div style="display:flex;gap:22px;align-items:flex-start">
+
+<div class="win mm-screen" style="height:auto;width:540px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span class="on">偏好文件</span></span></div>
+      <div class="headline-row"><span class="hl">检查过 2 个偏好文件。</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新检查</span></div>
+      <div class="emptywrap">
+        <div class="empty" style="padding:0">
+          <span class="glyph"><svg class="i i-22"><use href="#i-doc-text"></use></svg></span>
+          <b style="font-size:var(--fs-headline);font-weight:600">没有发现读不出来的偏好文件</b>
+          <span class="t-sub" style="max-width:340px">这一句只说明这一台机器、这一条判据下没抓到，不代表偏好文件都是健康的。</span>
+        </div>
+        <div class="pfoot">这一屏不删、不改这些文件，也不会替你重设任何 app 的偏好。MacMaster 只做只读判定，恢复得由那个 app 自己在下次启动时重设。</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="win mm-screen" style="height:auto;width:540px">
+  <div class="body-row" style="min-height:0">
+    <main class="content" style="min-width:0">
+      <div class="toolbar"><div class="title-block"><h1>系统优化</h1></div></div>
+      <div class="segbar"><span class="seg"><span>重复文件</span><span>浏览器缓存</span><span>系统状态</span><span>开发工具</span><span class="on">偏好文件</span></span></div>
+      <div class="headline-row"><span class="hl">检查过 2 个偏好文件就到了时间预算，剩下的 10416 个没看。</span>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新检查</span></div>
+      <div class="scroll" style="gap:0;padding:var(--sp-2)">
+        <div class="prefsec bad"><svg class="i"><use href="#i-warn"></use></svg>读不出来或空的那些（1）</div>
+        <div class="drow"><span class="ic bad"><svg class="i"><use href="#i-warn"></use></svg></span>
+          <div class="m"><div class="t"><b>MMFixture-halfwritten.plist</b><span class="bad">可能是写到一半</span></div>
+            <div class="p">/tmp/mm-optimizer-fixture/Library/Preferences/MMFixture-halfwritten.plist</div>
+            <div class="w">这个文件是空的，可能是上次写入中断。</div></div>
+          <div class="r"><span class="sz">0 字节</span><span class="dt">2023-11-15 06:13</span>
+            <span class="acts"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>显示</span></span></div>
+        </div>
+        <div class="pfoot">这一屏不删、不改这些文件，也不会替你重设任何 app 的偏好。MacMaster 只做只读判定，恢复得由那个 app 自己在下次启动时重设。</div>
+      </div>
+    </main>
+  </div>
+</div>
+
 </div>
 </div>
 

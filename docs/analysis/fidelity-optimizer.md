@@ -12,6 +12,10 @@
 > **一张照片都还没拍**：`grep -r MM_OPTIMIZER_FIXTURE Scripts/` 无命中，`docs/verification/` 下没有 optimizer 夹具目录。
 > 也就是说这一页现在是"有钩子、无取证"，缺的是跑一遍夹具脚本，不再是缺能力。
 >
+> **P34b 追加（2026-10-12）：这一页现在是五个 tab。** 本文件通篇（含下面的章节标题）的"四 tab"是这份审计写下当天的事实，
+> 新增的是 `preferences`（偏好文件那一屏，`MMOptimizer.swift:269`）。本文件不重写历史结论，
+> 第五屏的对照、取证与**实拍抓出来的一个溢出缺陷**记在新增的 **§7**；稿侧对应的是新增的 **08f** artboard。
+>
 > **安全口径复核（核心交付）三条结论**：
 > ① 候选列表（Documents/Downloads/Desktop 内重复文件、~/Library/Caches 下浏览器缓存）
 > **全部经 `FileTrashService` → `DeletionGuard` 单一闸口**，与闸门三层口径无冲突，
@@ -27,8 +31,8 @@
 
 | 事项 | 值 |
 | --- | --- |
-| 设计稿 | `docs/design-system/screens/mmoptimizer/08-optimizer.html`（5 个 artboard：08 首屏未扫描 / 08b 扫描结果 / 08c 扫描中+浏览器 / 08d 系统状态+回执 / 08e 开发工具） |
-| 实现 | `Packages/MMOptimizer/Sources/MMOptimizer/`：`MMOptimizer.swift`、`DevToolCacheView.swift`、`DashboardMetrics.swift`、`DevToolCacheAudit.swift` |
+| 设计稿 | `docs/design-system/screens/mmoptimizer/08-optimizer.html`（审计当时 5 个 artboard：08 首屏未扫描 / 08b 扫描结果 / 08c 扫描中+浏览器 / 08d 系统状态+回执 / 08e 开发工具。**P34b 起为 6 个**：新增 **08f 偏好文件**，五个窗格——真实态整窗 + 破损/读不到两个 540 px 夹具窗 + 空态与截断态。渲染产物 `08-optimizer.png` 现为 2320x11402，审计当时那份是 2320x8020） |
+| 实现 | `Packages/MMOptimizer/Sources/MMOptimizer/`：`MMOptimizer.swift`、`DevToolCacheView.swift`、`DashboardMetrics.swift`、`DevToolCacheAudit.swift`（审计当时四文件）+ **P34b 新增 `PreferencesAudit.swift`（纯判定层）与 `PreferencesView.swift`（呈现层）** |
 | 渲染 | 本环境**无头、未运行 App、未截图**，不编像素数字；几何/像素项一律标 `⚠️待真机测量`，只从代码＋HTML+tokens 推导 |
 | 复用基准 | 共享组件 `MMFailurePanel`/`MMBadge`/`MMFormat` 取自 `Packages/MMUI/Sources/MMUI/MMDesign.swift`；闸门取自 `Packages/MMCore/Sources/MMCore/DeletionGuard.swift`、`FileTrashService.swift` |
 | 可用钩子 | 审计当时**只有 `MM_OPEN_TAB=duplicates\|browser\|status\|devtools`**（`MMOptimizer.swift:42`），故四 tab 内的空/失败/超大列表态无注入路径（§5 全部由此而来）。**复核 2026-10-04：这句在本文件提交那天就已经过期了**——`MM_OPTIMIZER_FIXTURE` 由 `969e548`（2026-09-30）落地，而它正是本文件 §6 #1 建议的那件事；两份文件都提交在 2026-09-30，`969e548` 还是 `e96c95b`（本文件入库那一笔）的**祖先提交**。所以不是"别人后来改了代码"，是**自己建议改完没回写建议**（`OptimizerFixtureHooks.swift:4-5` 的表头甚至引用了"§5 #1–7"，说明写钩子时这份审计已经在了）。入口：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`，解析点 `MMOptimizer.swift:80`；档位 `duplicates:<N>`（N>0 组数）/`duplicates:empty`/`duplicates:scannedEmpty`/`browser:rows`/`browser:empty`/`status:allReadOnly`/`devtools:notInstalled`/`devtools:unreadable`/`protected`，逗号可叠加，铁律与 monitor/guardian 同口径（只顶替展示数据、不写盘不 spawn 不读 /tmp、含非法值整钩作废）。README §2 矩阵同步已到位（`docs/design-system/README.md:43`）。**但没有任何脚本用过它**（`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中），§5 的七档仍是"能力有、照片无" |
@@ -313,3 +317,77 @@
    - **重跑后**：12 张图 `md5 -q *.png | sort | uniq -d` → **0 个重复**。
    → 协调层可复核的一点：`fixturePinned` 这套"夹具优先、真实结果丢弃"的写法，
      monitor / guardian 两个夹具钩子有没有同样的竞态（它们的视图级 `.task` 形状类似）。本轮没查那两个包。
+
+---
+
+## 7. P34b 追加：第五个 tab `preferences`（稿 ↔ 实现 ↔ 实拍）
+
+> 判定侧的规格与量尺在 `docs/analysis/optimizer-corrupt-preferences.md`（P34a 审计 + §14 落地记录），
+> 本节只做**设计稿 ↔ 实现 ↔ 照片**三层对照，不重述判据。
+> 证据族：`docs/verification/p34b-prefs/`（7 张照片 + 7 份同名日志 + 2 份形状量尺 + 4 份排障探针 + 九包结论）。
+> 脚本：`Scripts/p34b-prefs-capture.sh`（实拍）、`Scripts/p34b-prefs-scan-probe.sh`（判据形状与截断形状）。
+
+### 7.1 结构与文案对照（08f ↔ 实现）
+
+| 稿内条目 | 实现出处 | 一致? | 备注 |
+| --- | --- | --- | --- |
+| 第五个分段页签 `preferences` | `MMOptimizer.swift:269`（`case duplicates, browser, status, devtools, preferences`）、`:41`（`MM_OPEN_TAB`） | ✅ | 稿侧页签条改了一处 CSS：`.seg` 的 340 px 是 SwiftUI `.frame(maxWidth:340)` 的**上限**而非定宽，五 tab 时按内容收缩（实测 334 pt），原先写死 `width:100%` 会让每个标签折成两行 |
+| 页头一句「检查过 N 个偏好文件…」 | `PreferencesAudit.swift:355-364`（`headline`），视图 `PreferencesView.swift:53`/`:85-87` | ✅ | **N 的口径是"检查过"不是"找到了"**：`inspectedCount = rows.count`（`:125`）。截断态那句接「就到了时间预算，剩下的 K 个没看」，K 由 `notInspectedCount = max(0, foundFiles - rows.count)`（`:135`）给，而 `:258` 的预算检查在**每个文件之前**，所以 K 里不含读到一半的那个 |
+| 栏一「读不出来或空的那些」+ `exclamationmark.triangle` + caution | `PreferencesCopy.badSection`（`PreferencesAudit.swift:330`）、`PreferencesView.swift:120-121` | ✅ | |
+| 栏二「这一族我们没看到」+ `eye.slash` + 中性色，**独立成栏** | `PreferencesAudit.swift:331`、`PreferencesView.swift:129-130`、行图标 `:228` | ✅ | 这条是 P34a §9 A 档写死的判据（"读不到"不许与"损坏"共用图标），实拍与稿都分开 |
+| 栏二那句说明 | `unreadableNote(n)`（`PreferencesAudit.swift:335-337`）「系统对 n 个文件拒绝读取。这不代表它们坏了，也不代表它们没坏。」 | ✅ | **没把权限位写进文案**：P34a 在本机量到"属主是你、mode 0600 却仍被拒"，把它写成每台都成立的断言就是假话 |
+| 每行：文件名 / 路径 / 体积 / 修改时间 / 「显示」 | `PreferenceFileRow`（`PreferencesView.swift:180`，「显示」`:217`） | ✅ | `bytes == nil`（连体积都读不到）渲染「—」而不是 0，档 03 有一行专门拍这个 |
+| 建议进 `caveat` 而非单行 `reason` | `PreferencesCopy.advice`（`PreferencesAudit.swift:341-352`） | ✅ | 口径同 `DevToolCacheAudit`：`reason` 会被截断，`advice` 换行不截 |
+| 脚注「这一屏不删、不改…」 | `PreferencesCopy.footnote`（`:366-367`），空态挂在 `.overlay` 里（见 §7.3） | ✅ | |
+| 「根不是字典」不列行、只在脚注提一句 | `nonDictRootNote(c)`（`:370-372`） | ✅ | 档 02 有一行 `.parsed(root:"array")` 专门拍这句话出现 |
+| 整根读不到时的横幅 | `skippedRootsNote`（`:375-377`）+ `MMPermissionBanner` | ⚠️ | **本机这一栏从未非空，所以一张照片都没拍到**。它是"不许把没看渲染成干净"的唯一出口，下一轮若要拍得造钩子或造文件系统状态 |
+
+### 7.2 七张实拍（`MM_OPEN_TAB=preferences`，全部 1400x900 除注明）
+
+| # | 档 | 文件 | 图上读到什么 |
+| --- | --- | --- | --- |
+| 01 | 真实态 | `01-prefs-real-gui` | 页头「检查过 625 个偏好文件；其中 11 个我们没能读。」+ 栏二 11 行（第 10–11 行在折下，稿侧不替它们编数字）；栏一为空，整屏没有"损坏"行 |
+| 02 | `prefs:broken` | `02-prefs-fixture-broken` | 栏一两行（0 字节 / ByHost 里那份 282 字节读不成）+ 底部脚注出现「另有 1 个文件解析成功但根不是字典…」 |
+| 03 | `prefs:unreadable` | `03-prefs-fixture-unreadable` | 栏二两行 + 说明句，其中一行体积是「—」（`bytes: nil`） |
+| 04 | `prefs:empty` | `04-prefs-fixture-empty` | 空态「没有发现读不出来的偏好文件」+ 底部脚注（这一档是 §7.3 那个缺陷的现场） |
+| 05 | `prefs:partial` | `05-prefs-fixture-partial` | 页头「检查过 2 个偏好文件就到了时间预算，剩下的 10416 个没看。」+ 空态那句换成**「时间预算内没有发现」**——截断那一趟没资格说"没有" |
+| 06 | 真实态窄窗 | `06-prefs-narrow-window`（1000x760） | 五 tab 页签不折行、页头不断句、两栏行不重叠 |
+| 07 | 非法值作废 | `07-prefs-fixture-invalid-voided` | 日志里只有一句判据：`MM_OPTIMIZER_FIXTURE 含非法取值（prefs:brokenn），整个钩子已忽略`；照片回到真实态（与 01 **逐字节相同**，这是设计如此，不是夹具没生效） |
+
+同源核对：7 份日志的 `# digest:` 都是 `tree=69eddb6+8ba05eda app=69eddb6+8ba05eda`（照片与工作树、与产物 plist 三者当场同源）；
+两份形状量尺（`scan-shape.log`、`scale-shape.log`）同一把哈希。
+`md5 -q *.png | sort | uniq -c` → **只有一对重复**（01↔07，判据如上），其余五张两两不同。
+九包：`run-all-tests.log:11`「合计：737 个测试，0 个失败，1 个跳过」。
+
+### 7.3 实拍抓出来的一个缺陷（只有真机截图能抓到）
+
+空态那一屏在 1400x900 下**页头和页脚同时被裁出画面**。探针（`MM_PROBE_WINDOW=1`，零重编译）量到
+`AppKitPlatformViewHost` 高 **1183 pt @Y-115**，而窗口 content 高是 900：
+`MMEmptyState` 自带 `.frame(maxWidth:.infinity, maxHeight:.infinity)`（`MMDesign.swift:476`），
+它的"居中"就是靠把自己撑满实现的；把那句 `fixedSize(horizontal:false, vertical:true)` 的长脚注当**同一个 VStack 的兄弟**挂上去，
+SwiftUI 算整组理想尺寸时按极窄宽度折行，高度炸到 1183。
+
+修法：脚注改挂 `.overlay(alignment: .bottom)`（`PreferencesView.swift:107-113`）——overlay 不参与基准视图的理想尺寸。
+对照证据是同一张空态的**没有兄弟**那版（浏览器缓存页）探针读 `900@Y0`，见
+`00-probe-prefs-empty-before-fix.log`（炸）↔ `00-probe-browser-empty-control.log`（对照）↔ `00-probe-prefs-empty-after-fix.log`（修后 900@Y0）。
+
+**这条要进验收口径**：本站"空态 + 底部脚注"这个形状以后别再用 VStack 兄弟挂，
+而且**它不可能被单测发现**——单测跑的是判据与文案，画面上少半屏只有照片知道。
+
+### 7.4 这一屏的"拍不到"验收项（P34a §9 那句在这里落地）
+
+真机上栏一**是空的**（本机 625 个里 0 个坏，`scan-shape.log:36`「解析成功 614 / 读不到 11 / 坏的那一栏 0 / 根不是字典 0」）。
+所以：
+
+- **"有内容"那几屏只能由夹具出**（档 02/03/05），真机档永远拍不到栏一；
+- 真机档能拍的只有「检查过 625 个 + 其中 11 个没能读」这一屏，它同时是**唯一非零的异常栏**；
+- 反过来，档 04 那张"空"必须是**夹具造的空**（2 个健康文件），不是真机首屏的另一种写法——
+  两者在照片上应该长一样，这正是要分开拍的原因。
+
+### 7.5 第五屏仍未验的
+
+1. `skippedRoots` 横幅（§7.1 最后一行）——本机整根始终可读，从未非空，无照片。
+2. 栏一在**真机**上的排版——需要一台真有损坏偏好文件的机器（当前只有一台 Mac mini，P34a §11.5）。
+3. 「读不到」这一栏的语义到底是"系统不给看"还是"我们可以选择不去看"（P34a §11.2）——
+   给了 FDA 的进程能不能读到那些文件，本轮仍未量，因为它要手动在系统设置里点，而合成点击是红线。
+4. 主人名映射（C 档）未做，所以每行只有文件名与路径，没有"这条属于哪个 app"。

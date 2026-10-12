@@ -1,0 +1,12 @@
+MMCore         XCTest=77   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=200  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=77   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=57   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no 
+
+合计：737 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
