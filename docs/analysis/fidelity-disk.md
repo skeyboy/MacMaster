@@ -43,11 +43,11 @@
 
 实机测得的锚点（本表所有"一致"判定的基准，凡代码可静态核对的均列出处；凡只能真机看的标 ⚠️）：
 
-- 页头 46pt：`MMPageHeader` `MMMetric.toolbar = 46`（`MMDesign.swift:86,267`），与 `screen.css` `.toolbar { height: 46px }`、04 稿 `.toolbar` 一致 ✓。
+- 页头 46pt：`MMPageHeader` `MMMetric.toolbar = 46`（`MMDesign.swift:114,307`），与 `screen.css` `.toolbar { height: 46px }`、04 稿 `.toolbar` 一致 ✓。
 - 详情栏 268pt：`MMMetric.inspector = 268`（`MMDesign.swift:89`），与 `screen.css` `.inspector { width: 268px }`、04 稿 `.inspector` 一致 ✓。
 - treemap 圆角 3pt：`TreemapView.swift:464` `roundedRect: rect, cornerRadius: 3`，与 04 稿 `.blk { border-radius: 3px }` 一致 ✓。
 - 7 类色值：04 稿 `<div class="cap">` 配色与 `DiskClassify.color`（`DiskClassify.swift:28-37`）逐字相同 ✓。
-- 徽章高 18pt：`MMBadge` `.frame(height: 18)`（`MMDesign.swift:232`），与 `tokens.css` `.badge { height: 18px }` 一致 ✓。
+- 徽章高 18pt：`MMBadge` `.frame(height: 18)`（`MMDesign.swift:268`），与 `tokens.css` `.badge { height: 18px }` 一致 ✓。
 
 ## 1. 逐元素对照表
 
@@ -96,7 +96,7 @@
 | header 带（目录名带）默认高 20px | `TreemapLayoutOptions.headerHeight = 14`（`TreemapView.swift:116`） | ❌ | **P6.6 实测 14pt**（父块与嵌套子块同一个值，28px@2x）；稿默认 20px、稿自绘 16px | 低 | 实现该改 I9 |
 | 块内标签阈值（≥40pt 才画） | `TreemapView.swift:500-516` 宽≥68高≥30 / 宽≥34高≥16 | ⚠️ | 稿未给阈值；代码阈值与稿示意块大小能否容下文字需 ⚠️待真机测量 | 低 | ⚠️ |
 | treemap 背景 = under-page | 容器背景 | ⚠️ | 稿 `.treemap { background: var(--c-under-page) }`；实现 treemap 由 Canvas 绘制，块间空隙透出 content 背景，是否填 under-page ⚠️待真机测量 | 低 | ⚠️ |
-| 「其余 N 项」合并块 | `TreemapLayout.compute` `others:`（`TreemapView.swift:151-161`） | ✅（代码分支） | 面积守恒合并，稿未显式画；属 disktree 采纳项，稿未覆盖 | 低 | 设计稿该改 S2 |
+| 「其余 N 项」合并块 | `TreemapLayout.place` `others:`（`TreemapView.swift:151-161`；P36 现读：合并块在 `place`（`:140` 起）里组装，不在 `compute`（`:132`）里） | ✅（代码分支） | 面积守恒合并，稿未显式画；属 disktree 采纳项，稿未覆盖 | 低 | 设计稿该改 S2 |
 
 ### 1.5 图例
 
@@ -129,13 +129,13 @@
 | 「卷可用 28.1 GB」 | `:773` / `:283` actionBar summary（未标记时） | ✅（内容） | 未标记态文案一致 | — | — |
 | 「统计不含符号链接目标 · 硬链接只计一次」 | `:775` actionBar note | ✅ | 与稿逐字一致 | — | — |
 | 「标记后预计 76.7 GB」 | `:286` 面包屑徽章「卷可用 X → Y」 / `:1040` 确认 sheet | ⚠️ 部分 | 稿放在**底部状态栏**；实现放在**面包屑徽章 + 确认 sheet**，底部栏改为标记合计。位置不同但信息齐 | 低 | 实现该改 I8 |
-| 底部栏高 28px（状态栏） | `MMDesign.swift:313` `MMActionBar` `MMMetric.actionBar = 52` | ❌ | 稿 28pt 状态栏 vs 实现 52pt 动作栏；**内容一致**（未标记时），容器样式/高度不同 ⚠️待真机测量 | 低 | 实现该改 I8 |
+| 底部栏高 28px（状态栏） | `MMDesign.swift:349` `MMActionBar` `MMMetric.actionBar = 52` | ❌ | 稿 28pt 状态栏 vs 实现 52pt 动作栏；**内容一致**（未标记时），容器样式/高度不同 ⚠️待真机测量 | 低 | 实现该改 I8 |
 
 ### 1.8 「值得看一眼」面板（实现独有）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| （稿中无此面板） | `MMDisk.swift:298-362` `findingsPanel` | ❌ | 实现在面包屑下插入整块「值得看一眼 · N 项 · 合计 X」面板（disktree #4 采纳）；**04 稿完全没画**，无法核对排版/文案 | **中** | 设计稿该改 S1 |
+| （稿中无此面板） | `MMDisk.swift:390-453` `findingsPanel` | ❌ | 实现在面包屑下插入整块「值得看一眼 · N 项 · 合计 X」面板（disktree #4 采纳）；**04 稿完全没画**，无法核对排版/文案 | **中** | 设计稿该改 S1 |
 
 ### 1.9 状态：选中 / 标记 / 确认删除 / 撤回 toast
 
@@ -182,7 +182,7 @@
    → 建议：在 `MMDisk.swift` 的扫描钩子入口加 `root.hasPrefix("/tmp")` 判定，否则 `stderr` 写"MM_DISK_SCAN 仅接受 /tmp 之下路径"并 `return`。
    **本环境未修改**（硬约束 #4 优先"提请协调者"），见 §提请协调者。
    **✅ 已落地（`1145f05`，2026-09-30）**，且比建议更严：
-   - `MM_DISK_SCAN`：`MMDisk.swift:186-190`，同时认 `/tmp/` 与 `/private/tmp/`（后者是 `/tmp` 的真实身份，只判前缀会漏），
+   - `MM_DISK_SCAN`：`MMDisk.swift:178-182`，同时认 `/tmp/` 与 `/private/tmp/`（后者是 `/tmp` 的真实身份，只判前缀会漏），
      越界写 stderr「MM_DISK_SCAN=… 不在 /tmp 之下，忽略该钩子」后 `return`，不扫描；
    - `MM_DISK_SELECT`：`:1099-1104`，**任一**目标不在 /tmp 之下就把整个钩子忽略（不是逐条丢弃），
      理由是"预选并展开"会连带把真实目录的整层拉进截图；
@@ -243,17 +243,17 @@
    于是这一条变成**稿侧待改**——`docs/design-system/screens/mmdisk/04-disk.html:163` 仍写「文件数 42,180」，
    与 I3（`:154` 的 `#i-box`）、I6（`:164` 的绝对日期）可以并成一次重绘。
 5. **【低】I5 · 「占当前层」vs 稿「实际占比」**
-   `MMDisk.swift:714` 分母 `levelTotal` 随导航层变化；稿「实际占比」暗示占总扫描量。措辞/口径不一致。
+   `MMDisk.swift:685` 分母 `levelTotal` 随导航层变化；稿「实际占比」暗示占总扫描量。措辞/口径不一致。
    → 建议：稿明确"占当前层"，或实现在根层用 `scannedSize` 作分母并改标签。
    **✅ 已落地（`5e1dfe3`），走"改实现"这一支**：详情现为
    `MMStatItem("实际占比", MMFormat.percent(totalScanned > 0 ? Double(node.size) / Double(totalScanned) : 0))`
    （`MMDisk.swift:797`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:768`）——分母不再随下钻漂移，
-   标签与算法终于同一口径。**"占当前层"没有丢**：列表行仍按 `levelTotal` 算占比（`:674`），
+   标签与算法终于同一口径。**"占当前层"没有丢**：列表行仍按 `levelTotal` 算占比（`:685`），
    那里"这一层里谁大"才是有用信息。两处分别对应两个问题，是对的。
 6. **【低】I6 · 修改时间绝对 vs 相对**
-   `MMDisk.swift:718` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。
+   `MMDisk.swift:803` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。
    → 建议：保留相对，但稿应改为相对时间示例，避免"稿画绝对、实现相对"的落差。
-   **❌ 仍未做（复核 2026-10-04）**：`MMDisk.swift:811` 仍是 `MMFormat.relative(modDate(of: node.path))`，
+   **❌ 仍未做（复核 2026-10-04）**：`MMDisk.swift:803` 仍是 `MMFormat.relative(modDate(of: node.path))`，
    取舍理由写在紧邻注释里（`:798-799`：这格要答"多久没动过"，且完整时间戳会被截成"2026-09-30 01:…"）。
    没动的是**稿**（`04-disk.html:164` 仍画绝对日期）。这一条本来就判"两可"，缺的是稿侧一次改示例——
    与 I3 可以并成一次 `04-disk.html` 重绘，见 §3 末尾那条合并建议。
@@ -266,7 +266,7 @@
    比建议多做了一步的**是对的**：过滤态另给一句「过滤中：面积 = 命中占用 · 实色 = 命中 · 淡色 = 含命中的祖先」（`:589`），
    因为过滤时面积换成了命中体积，注脚若只有一份就会假报口径（`:585-586` 有说明）。
 8. **【低】I8 · 底部栏 52pt 动作栏 vs 稿 28pt 状态栏**
-   未标记态内容一致（卷可用 / 统计不含…），但容器是 `MMActionBar`(52pt,`MMDesign.swift:313`) 而非稿的 28pt 状态栏；"标记后预计"也被挪到面包屑。
+   未标记态内容一致（卷可用 / 统计不含…），但容器是 `MMActionBar`(52pt,`MMDesign.swift:349`) 而非稿的 28pt 状态栏；"标记后预计"也被挪到面包屑。
    → 建议：标记后底部栏出现动作按钮是合理的，但稿需补画"标记后动作栏"artboard；未标记态可考虑降级为更薄的状态条以贴合稿。
    **⚠️ 半件落地，且落地的那一半比原建议更重要（`f249ee0`，2026-10-01，P2）**：
    "标记后预计"这个投影被**取消**而不是挪位置——面包屑处现在只报当下事实
@@ -359,7 +359,7 @@
 ## 3. 设计稿该改（6 条）
 
 1. **【中】S1 · 04 稿缺「值得看一眼」面板**
-   实现 `MMDisk.swift:298-362` 在面包屑下插入整块发现面板（disktree #4 已采纳），稿完全没画。该面板是模块核心信息区，
+   实现 `MMDisk.swift:390-453` 在面包屑下插入整块发现面板（disktree #4 已采纳），稿完全没画。该面板是模块核心信息区，
    无 artboard 即无法核对其排版、徽标色（`kindTint`）、截断与合计文案。
    → 补一个 artboard：面包屑下 6 行发现（可回收/久未触碰/大文件 三色徽标 + 名称中段截断 + 原因 + 大小 + 箭头）。
 2. **【中】S2 · 04 稿状态覆盖严重不全**

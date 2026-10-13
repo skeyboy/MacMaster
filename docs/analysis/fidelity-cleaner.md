@@ -41,11 +41,11 @@
   segmented `Picker`（`缓存清理/用户文件夹/系统分析`），其下才是各页自己的 `MMPageHeader`。
 - 页头：`MMPageHeader`（`MMDesign.swift:238-271`）= `MMMetric.toolbar` 46pt + `contentBackground` + 底部 Divider。
 - 过滤条：`MMCleaner.swift:305-325`，`CleanerFilter` 四档 `全部/缓存/日志/临时`（`:896-921`，**P25 现读重指**，旧值那一对行号漂了约四十行）。
-- 分类表：`MMCleaner.swift:425-464` —— 内联卡（`background(MMColor.contentBackground)` + `MMRadius.card` 8 + separator 描边 + `MMGap.lg` 16 内边距），**没有调用 `MMCard`**。
-- 表头 26pt / 分组头 30pt / 行 44pt：`MMCleaner.swift:466-481`、`:500-520`、`MMItemRow`（`MMDesign.swift:688-748`，`MMMetric.rowRegular` 44）。
+- 分类表：`MMCleaner.swift:502-506` —— 内联卡（`background(MMColor.contentBackground)` + `MMRadius.card` 8 + separator 描边 + `MMGap.lg` 16 内边距），**没有调用 `MMCard`**。
+- 表头 26pt / 分组头 30pt / 行 44pt：`MMCleaner.swift:511-526`、`:545-565`、`MMItemRow`（`MMDesign.swift:807-873`，`MMMetric.rowRegular` 44）。
 - 动作栏：`MMActionBar`（`MMDesign.swift:280-317`）= `MMMetric.actionBar` 52pt + `cardBackground`。
 - 风险三档真源：`MMRisk`（`Packages/MMCore/Sources/MMCore/Risk.swift:9-41`），`groupTitle/groupNote/isDefaultSelected/allowsDeletion`。
-- 卡片 token 真源：`MMCard`（`MMDesign.swift:776-792`）= `MMColor.controlBackground`（`windowBackgroundColor`）+ 8pt 圆角 + 16pt 内边距；而本文页内卡用的是 `MMColor.contentBackground`（`textBackgroundColor`）→ 见 I4/S9。
+- 卡片 token 真源：`MMCard`（`MMDesign.swift:904-938`）= `MMColor.cardSurface`（`MMCardStyle.content`）+ 8pt 圆角 + 16pt 内边距；而本文页内卡用的是 `MMColor.contentBackground`（`textBackgroundColor`）→ 见 I4/S9。
 - 拒绝回执预演：`CleanerView.refusalPreview()`（`MMCleaner.swift:926-934`），三条由 `DeletionGuard.rejection(for:)` 现场算出。
 
 ## 1. 逐元素对照表
@@ -82,10 +82,10 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 表头列「类别 · 大小 · 风险 · **操作**」 | `tableHeader` `MMCleaner.swift:466-481` | ❌ | 实现最后一列表头是 `Text("")`（空），**没有「操作」列名**；列宽 `大小 minWidth 72 / 风险 44 / 操作 52` vs 稿 `78 / 92 / 60`（**`⚠️待真机测量`**） | 低 | 实现该改 I6 |
-| 分组头「可安全清理 N 类 · X」+ 右侧说明 | `groupHeader` `MMCleaner.swift:500-520`；文案真源 `MMRisk` | ✅ | 组名「可安全清理/需谨慎/只读 · 不会修改」与右注三句**逐字一致**（`Risk.swift:22-36`）；`N 类` 与合计按实算 | — | — |
+| 表头列「类别 · 大小 · 风险 · **操作**」 | `tableHeader` `MMCleaner.swift:511-526` | ❌ | 实现最后一列表头是 `Text("")`（空），**没有「操作」列名**；列宽 `大小 minWidth 72 / 风险 44 / 操作 52` vs 稿 `78 / 92 / 60`（**`⚠️待真机测量`**） | 低 | 实现该改 I6 |
+| 分组头「可安全清理 N 类 · X」+ 右侧说明 | `groupHeader` `MMCleaner.swift:545-565`；文案真源 `MMRisk` | ✅ | 组名「可安全清理/需谨慎/只读 · 不会修改」与右注三句**逐字一致**（`Risk.swift:22-36`）；`N 类` 与合计按实算 | — | — |
 | 分组右注文字 | 同上 `.frame(maxWidth: 280, alignment: .trailing)` + `.lineLimit(1)` | ✅ | **P6.6 实测**：最长那句（谨慎档 19 个汉字）完整显示、无 "…"，实宽 ≈187pt < 280pt 封顶 | 低 | ~~I9~~ 已量，非缺陷 |
-| 行结构：勾选 · 图标 · 名称/副标题 · **大小 → 风险徽章 → 操作** | `MMItemRow`（`MMDesign.swift:719-747`）：`勾选 → 图标 → 名称/副标题 → Spacer → 徽章 → accessory → 大小` | ❌ | **大小永远在最右**，徽章/折叠箭头/文件夹都在它左边；稿内大小在徽章**之前**。分类行与安装包行都如此 | **中** | 实现该改 I3 |
+| 行结构：勾选 · 图标 · 名称/副标题 · **大小 → 风险徽章 → 操作** | `MMItemRow`（`MMDesign.swift:838-868`，P36 现读重指：原引 `:719-747` 落在 `MMFailurePanel` 的 body 里，与这个组件无关）：`勾选 → 图标 → 名称/副标题 → Spacer → 徽章 → accessory → 大小` | ❌ | **大小永远在最右**，徽章/折叠箭头/文件夹都在它左边；稿内大小在徽章**之前**。分类行与安装包行都如此 | **中** | 实现该改 I3 |
 | 行内图标配色：安全档 `--c-warning`（橙）/ 谨慎档 secondary（灰）/ 只读 tertiary | `MMItemRow` 用 `risk?.color`（安全=绿 `systemGreen`、谨慎=橙、只读=secondary） | ❌ | 安全档图标实现是**绿**、稿内是**橙**；谨慎档实现是**橙**、稿内是**灰**。且稿内"安全徽章绿 + 图标橙"自身不一致 | 低 | 设计稿该改 S7 |
 | 只读行：虚线禁用复选框（`.chk.off-allowed`）+ 锁图标 + 「只读」徽章 | `categoryRows` `MMCleaner.swift:522-546` 传 `isSelectable: category.risk.allowsDeletion` → 只读档 **不渲染 Toggle** | ❌ | 实现**整列删掉复选框**（`MMItemRow` 里 `if isSelectable { Toggle }`），不是画虚线禁用框；后果是只读行的图标列相对可勾选行**左移、列不对齐** | **中** | 实现该改 I2 |
 | 只读行操作列 = info 图标 | `categoryRows` 仍按 `subItems` 非空给 `chevron.down/up` + `folder` | ❌ | 只读分类只要 `subItems` 非空就仍带**展开箭头**，稿内只给 info | 低 | 实现该改 I7 |
@@ -98,7 +98,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 左侧合计「已选 N 类 · X」+ 注脚「未勾选项不会被修改」 | `actionBar` `MMCleaner.swift:640-661`；`MMActionBar` 纵向两行 | ✅ | 结构一致（02 稿也是纵向两行） | — | — |
+| 左侧合计「已选 N 类 · X」+ 注脚「未勾选项不会被修改」 | `actionBar` `MMCleaner.swift:685-706`；`MMActionBar` 纵向两行 | ✅ | 结构一致（02 稿也是纵向两行） | — | — |
 | 右侧「排除名单 (N)」次按钮 | `MMCleaner.swift:647-648` `.disabled(空)` | ✅ | 一致（稿内无禁用态） | — | — |
 | 右侧主按钮「清理已选 N 类」= **蓝色 primary** | `MMCleaner.swift:650-659` `.tint(MMColor.destructive)`（红） | ❌ | 稿内是蓝 `btn primary lg`；实现是**红 destructive**。且 02b 稿与 `05-states` 危险确认用的都是红 | 低 | 设计稿该改 S4 |
 | 动作栏高度 52 | `MMMetric.actionBar` 52 | ✅ | 02 稿 52 一致 | — | — |
@@ -136,8 +136,8 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 加载态：进度一行 + skeleton，不显示 0 B | `MMCleaner.swift:391-412` → `MMScanProgress` + 5×`MMSkeletonRow` + 取消 | ✅ 结构 | 与 `05-states` 加载态一致；实现**不画「剩余约 00:14」**（`estimatedRemaining: nil`），且用「正在扫描 <类别名>」代替「第 2/5 步」 | 低 | 记录 |
-| 空态：标题「没有可清理的内容」+「已检查 N 个类别…」 | `MMCleaner.swift:413-419` | ❌ | 分支条件是 `categories.isEmpty`，此分支 detail 会拼出「**已检查 0 个类别**」；而真正"扫完但都干净"的态**不进这个分支**（会显示一张 `—` 全零的表格）。也就是说空态实际只在**取消于第一类完成前**才命中，标题却断言"没有可清理的内容" | **中** | 实现该改 I4 |
+| 加载态：进度一行 + skeleton，不显示 0 B | `MMCleaner.swift:431-441` → `MMScanProgress` + 5×`MMSkeletonRow` + 取消 | ✅ 结构 | 与 `05-states` 加载态一致；实现**不画「剩余约 00:14」**（`estimatedRemaining: nil`），且用「正在扫描 <类别名>」代替「第 2/5 步」 | 低 | 记录 |
+| 空态：标题「没有可清理的内容」+「已检查 N 个类别…」 | `MMCleaner.swift:451-464` | ❌ | 分支条件是 `categories.isEmpty`，此分支 detail 会拼出「**已检查 0 个类别**」；而真正"扫完但都干净"的态**不进这个分支**（会显示一张 `—` 全零的表格）。也就是说空态实际只在**取消于第一类完成前**才命中，标题却断言"没有可清理的内容" | **中** | 实现该改 I4 |
 | 取消按钮 | `MMCleaner.swift:407` `cancelScan()` 只置取消标志 | ✅ | 扫描提前结束、`isPartial=true`，副标题补「未完成」、动作栏注脚改口径——诚实 | — | — |
 
 ### 1.10 用户文件夹页 + 安装包残留（02b）
@@ -169,7 +169,7 @@
 | 侧栏 footer = 1px 线 + 平铺「设置」nav-item | 实机图左下是 **`Macintosh HD` + `7%` + 红色容量条 + 带边框「设置」按钮** | ❌ | 与 `fidelity-monitor` S1 同源：02/02b 沿用了 01–06 的错误画法 | **中** | 两边都改 S2 |
 | 侧栏尾数「系统清理 2.4 GB」「应用卸载 46」 | 无来源；实机 系统清理尾数随扫描变化（图上为 653.6 MB） | ❌ | 纯占位，见 monitor S2 | 低 | 设计稿该改 S8 |
 | 页面底 / 卡片底色 | `tokens.css` 用 `--c-content-bg`（白）；实机页底 = `windowBackgroundColor`、卡 = `textBackgroundColor` | ❌ | 全站性 token 差，见 monitor S3/S4 | 低 | 设计稿该改 S9 |
-| 页内卡未复用 `MMCard` | `MMCleaner.swift:458-461` 内联 `contentBackground`+8pt+描边，**不调用 `MMCard`**（后者是 `controlBackground`） | ❌ | 与 monitor I4 同类：同一 App 出现第三种"卡底 token" | **中** | 实现该改 I4（→ 协调者） |
+| 页内卡未复用 `MMCard` | `MMCleaner.swift:503-506` 内联 `contentBackground`+8pt+描边，**不调用 `MMCard`**（后者是 `cardSurface`） | ❌ | 与 monitor I4 同类：同一 App 出现第三种"卡底 token" | **中** | 实现该改 I4（→ 协调者） |
 | 侧栏宽 216 / 标题栏 38 | `MMMetric.sidebar` 216、`tokens --titlebar-h` 38 | ⚠️ | 实机 monitor 实测 220 / 52（monitor I10a/I10b），cleaner 继承同一骨架 | 低 | 记录（见 monitor） |
 
 ## 2. 实现该改（10 条，按严重度排序）
@@ -205,7 +205,7 @@
    **复核 2026-10-04：✅ 已落地（`c74f045`，2026-09-30，"只读行占位"就写在提交信息里）**——
    `MMDesign.swift:845-852` 现在给 `isSelectable == false` 一支画禁用 + `opacity(0.35)` 的空框，
    注释直接标着"I2"。共享组件那条路径走通了，§5 的对应提请可以撤。
-3. **【中】I3 · 行内要素顺序：大小永远最右**（`MMItemRow` `MMDesign.swift:720-741`）
+3. **【中】I3 · 行内要素顺序：大小永远最右**（`MMItemRow` `MMDesign.swift:838-868`，P36 现读重指：原引裸写 `:720-741` 落在 `MMFailurePanel` 的 body 里）
    稿内两处行（分类行 `02-cleaner.html:67-70`、安装包行 `02b:77-79`）顺序都是
    **名称 → 大小 → 风险徽章 → 操作**；实现是 **名称 → 徽章 → 操作 → 大小**。
    → 建议：二选一——要么 `MMItemRow` 支持"数值列提前"的排布，要么把稿改成与共享行一致。
@@ -213,14 +213,14 @@
    **复核 2026-10-04：✅ 已落地（`e84066a`，2026-09-30）**——`MMDesign.swift:863-867` 的顺序现在是
    数值（`Text(value)`，`minWidth: 72` 右对齐）→ `MMBadge(risk:)` → `accessory`，即建议里的"数值列提前"那一支。
    实现与稿子在这一格上同序了。
-4. **【中】I4 · 空态把"取消/未产出一类"说成"没有可清理的内容"**（`MMCleaner.swift:413-419`）
+4. **【中】I4 · 空态把"取消/未产出一类"说成"没有可清理的内容"**（`MMCleaner.swift:451-464`）
    分支条件 `model.categories.isEmpty` 只在**取消于第一类完成前**命中，detail 会拼出
    「**已检查 0 个类别**」；而真正"扫完都干净"的态**不**进这里（会显示全零表格）。
    标题却直接断言"没有可清理的内容"。
    → 建议：拆成两档——"扫描被取消/未完成"（标题写"扫描未完成，结果不完整"，给"重新扫描"）
    与"扫完确认无可清理"（给出检查范围与项数，照 `05-states` 空态的口径）；并把
    「已检查 0 个类别」改成不误导的措辞。
-   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:444-450`，`git blame` 全部落在 `e5634d3`（2026-09-29，
+   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:451-464`，`git blame` 全部落在 `e5634d3`（2026-09-29，
    **审计之前**），也就是说这一条一天都没人碰）。仍是**一个** `model.categories.isEmpty` 分支、
    标题仍断言「没有可清理的内容」；detail 里那句「扫描中途取消时结果不完整，请重新扫描」是原文就有的对冲，
    不是分档。**这条是 §2 现在剩下的一条"把不知道写成结论"**（与监控页 I1/I2 同性质），
@@ -277,9 +277,9 @@
    **复核 2026-10-04：⚠️ 主项已落地、两个顺带项没动**——表头 `MMCleaner.swift:504` 现在是
    `Text("操作").frame(width: 52)`（`e84066a`）；列宽仍是 44/52（稿 92/60，**这条的 `⚠️待真机测量` 至今没人量**）；
    I6b 的撤回开关仍只在缓存页 sheet（`:739`），另两页还是系统 `.alert`。
-7. **【低】I7 · 只读分类仍带展开 chevron**（`MMCleaner.swift:533-537`，只要 `subItems` 非空）——
+7. **【低】I7 · 只读分类仍带展开 chevron**（`MMCleaner.swift:578`，只要 `subItems` 非空；P36 现读重指：原引裸写 `:533-537` 落在「全选」binding 里，与 chevron 无关）——
    稿内只读行只给 info 图标。
-   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:564`，条件仍是 `!category.subItems.isEmpty`，
+   **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:578`，条件仍是 `!category.subItems.isEmpty`，
    没有 `allowsDeletion` 这一道闸）。
 8. **【低】I8 · 页头标题与页签名不同源**：页签「缓存清理」而页头「系统清理」
    （`CleanerContainerView.swift:9-11` vs `MMCleaner.swift:305`）。记录，非必要改。
@@ -315,9 +315,9 @@
     而 `MMFormat.bytes(nil)` = "测量中"（`MMDesign.swift:150`）。**同一条修了两遍、还剩两遍**，
     是"改了一处就当改完"的典型形状——剩下两处照抄已修好的那两行即可。
     **别把这一条的数量记成六处**（复核时容易数错）：`grep 已回收` 在本模块确实命中 6 行，
-    但另外两处是**撤回条**（`MMUndoToast`）不是失败回执——`MMCleaner.swift:696` 与
-    `DevArtifactView.swift:417`，它们的外层显示条件本身就是 `model.lastResult != nil`
-    （`MMCleaner.swift:407`、`DevArtifactView.swift:415`），nil 时整条不出，**构不成缺陷**。
+    但另外两处是**撤回条**（`MMUndoToast`）不是失败回执——`MMCleaner.swift:709-710` 与
+    `DevArtifactView.swift:446-447`，它们的外层显示条件本身就是 `model.lastResult != nil`
+    （`MMCleaner.swift:413-414`、`DevArtifactView.swift:445`），nil 时整条不出，**构不成缺陷**。
     所以 I10 的待修集是**四个回执点里的两个**，不是六个里的四个。
     **✅ 已修（P7a，2026-10-05）**：剩下两处照抄已修好的那两行——
     `MMCleaner.swift:370` 与 `DevArtifactView.swift:394` 现在都是
@@ -391,7 +391,7 @@
    影响 cleaner 三页 + 其它模块。期望：给出统一的失败回执规格并落到 `MMUI`。
 2. **`MMItemRow` 只读行丢列**（I2）：`isSelectable==false` 时整列复选框消失导致列不齐。
    期望：`MMItemRow` 保留禁用框占位（对齐 `05-states` 的 `.chk.off-allowed`），这是跨模块的列对齐地基。
-3. **卡片 token 第三套**（I4/S9）：`MMCard` = `controlBackground`，而本页内联卡 = `contentBackground`，
+3. **卡片 token 第三套**（I4/S9）：`MMCard` = `cardSurface`，而本页内联卡 = `contentBackground`，
    monitor 私有卡 = `underPage`。期望：`MMCard` 增加 `background:` 参数或补 `MMCardStyle`
    （`underPage` / `content`），cleaner 与 monitor 一起收口；顺带评估 `tokens.css` 是否补
    content-bg / under-page 两种卡 token（monitor S4 同问）。
@@ -596,7 +596,7 @@ roadmap 候选 #5 落地。四张实机照片在 `docs/verification/p61-continue
 逐个查了 `MM_DEV_EXPAND` / `MM_DEV_SELECT` / `MM_DEV_SCROLL` / `MM_DEV_CONFIRM`，三条结论：
 
 1. **`MM_DEV_SELECT=untouched` 没有 P6.6 那种竞态**：它的落点在扫描结果落地的那段收尾里
-   （`DevArtifactView.swift:243`，在 `report`/`batchCount` 等一次性赋完值之后），
+   （`DevArtifactView.swift:254-274`，在 `report`/`batchCount` 等一次性赋完值之后），
    不是"先 `await` 真实扫描再上夹具"那个形状；续扫那趟走 `applyMerged`（`:248`），
    它**不清空也不重放**勾选（`survivingSelection`，`:265`）——这是设计，不是漏：
    续扫只让已有行改结论，上一批的勾选必须跟着修剪而不是全撤。

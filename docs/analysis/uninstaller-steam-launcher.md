@@ -86,7 +86,7 @@ Mole 的测试夹具 `tests/uninstall_steam_launcher.bats:38-48` 用的包标识
 | 本体大小是真话，但不是"这个游戏有多大" | 「本体」= 遍历累加 `st_size` | `Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:65`，取数在 `UninstallerModel.swift:355-367` 那一趟 |
 | 游戏本体在任何一档都进不了残留清单 | `Application Support` 那条 entry（`ResidualScanner.swift:222`）没有传 `extraDescent`，默认 0（`init` 在 `:209`），下探层数 = 敏感度秩 + 0 ⇒ 严格 0 层 / 增强 1 层 / 深度 2 层；而 `Steam/steamapps/common/SteamGame` 在第三层。第二层 `common` 名字对不上就不再往下走。**另一条能探更深的路径也够不到**：Library 根那条 entry（`:232`，增强起、`extraDescent: 1`）在深度档层数到 3，最深检查到的是 `common` 这一层的名字，仍然不是游戏目录 | `ResidualScanner.swift:222`（entry）、`:232`（Library 根 entry）、`:253-256`（层数）、`:554`（取层数）、`:578-597`（逐层判，命中即停、不整目录收） |
 | 但 Steam 本体自己会把整个游戏库当一条残留 | 同名直接子项，严格档第 0 层就命中「名称与包名对应」 | 同上 `:222` + `ResidualNameMatcher.swift:83-85`；风险档来自 `ResidualCategory.defaultRisk`（`applicationSupport` = caution，`:97-105`） |
-| 没有包标识 ⇒ 证据面一起变窄 | `bundleIdentifier` 读不到就返回空串，界面上「包名 —」，来源必然「无法判定」，残留只剩名字一条腿 | `AppScanner.swift:63-67`、`MMUninstaller.swift:1731`、`AppProvenance.swift:40-48`（五档里没有"启动器"这一档） |
+| 没有包标识 ⇒ 证据面一起变窄 | `bundleIdentifier` 读不到就返回空串，界面上「包名 —」，来源必然「无法判定」，残留只剩名字一条腿 | `AppScanner.swift:63-67`、`MMUninstaller.swift:1780`、`AppProvenance.swift:40-48`（五档里没有"启动器"这一档） |
 | 子目录里的快捷方式看不见 | 应用根只有 `/Applications` 与 `~/Applications`，且只枚举直接子项的 `.app` | `AppScanner.swift:27-29`、`:41`；照片 01/08 的清单里确实没有 `DeepShortcut` |
 | 运行状态一律「未检测到」 | 这一族从没启动过（夹具是 shell 脚本，`open` 它会真的去叫 `steam://`，本机没有 Steam 只会弹报错） | 八张的「未检测到运行中的进程」；启动之后那一行会不会变，本轮**没测**（§6） |
 

@@ -1,6 +1,6 @@
 # 开发产物「两趟并一趟」调研（P6.3 · 吞吐）
 
-> 任务：`docs/analysis/feature-roadmap.md:747-749` 的 P6.3——把 `activityProbe` 与
+> 任务：`docs/analysis/feature-roadmap.md:776-780` 的 P6.3——把 `activityProbe` 与
 > `FileTreeWalker.stats` 两趟全遍历并成一趟，顺带作为 `fidelity-cleaner.md` §8.6
 > 「根报已扫完而组里挂着读不到」的修法窗口。
 > 前置：`dev-artifact-continuation.md`（P6.1a）§2 的实测与 §8 第一条「本轮不做」。
@@ -24,21 +24,21 @@
 对**每一个候选产物目录**各跑一遍子树。它们都不使用 `URLResourceKey`/`resourceValues`，
 读的字段全部来自 `Darwin.lstat`：`st_mode & S_IFMT`（类型）、`st_size`、`st_mtimespec`。
 
-### 1.1 趟一：`activityProbe(in:deadline:)`（`ProjectArtifactScanner.swift:619-640`）
+### 1.1 趟一：`activityProbe(in:deadline:)`（`ProjectArtifactScanner.swift:636-657`，P36 整段现读重指：本小节原记的锚点全部停在该文件 +49/+17 两次插行之前）
 
-- 走什么：**候选整棵子树**，含 `.` 开头的条目（枚举用 `listAllEntries`，`:626`；
-  该函数 `:1033-1055` 与 `readEntries` 同一份 lstat 口径，但保留点条目 `:1037` 前后、
-  且**跳过符号链接** `:1043`）。
-- 形状：串行 DFS（显式栈 `:621-622`，`popLast`），**无深度上限**。
-- 读什么：每个条目的 `modificationDate`（lstat 的 `st_mtimespec`，`:1050-1051`）
-  与 `threshold = now - minAgeDays*86400` 比较（`:620`）。
-- 预算：根级 `deadline`（`rootDeadline` `:662-666` = `min(每根 15 s, 整轮 60 s)`，
-  默认值 `:136-137`），**每弹出一个目录查一次** `Date() >= deadline`（`:623-625`），
+- 走什么：**候选整棵子树**，含 `.` 开头的条目（枚举用 `listAllEntries`，`:643`；
+  该函数 `:1082-1104` 与 `readEntries` 同一份 lstat 口径，但保留点条目 `:1079-1081` 前后、
+  且**跳过符号链接** `:1091-1092`）。
+- 形状：串行 DFS（显式栈 `:638-639`，`popLast`），**无深度上限**。
+- 读什么：每个条目的 `modificationDate`（lstat 的 `st_mtimespec`，`:1099-1100`）
+  与 `threshold = now - minAgeDays*86400` 比较（`:637` 定义、`:651` 处比较）。
+- 预算：根级 `deadline`（`rootDeadline` `:711-715` = `min(每根 15 s, 整轮 60 s)`，
+  默认值 `:136-137`），**每弹出一个目录查一次** `Date() >= deadline`（`:639-641`），
   另查 `Task.isCancelled`。
-- 截断语义（`:616-618` 注释是合同原文）：**只有完整跑完才许 `.noRecentFile`（`:639`）**；
-  超时/取消 → `.incomplete`（`:624`）；目录存在却一条都列不出（TCC/权限）→ `.incomplete`
-  （`:627-630`）。撞到第一个近期文件**早退** `.recentFileFound`（`:634-635`）。
-  `.incomplete` 经 `activity(rootModified:probe:…)`（`:760-780`）映射为 `.unknown`，
+- 截断语义（`:630-631` 注释是合同原文）：**只有完整跑完才许 `.noRecentFile`（`:656`）**；
+  超时/取消 → `.incomplete`（`:640-642`）；目录存在却一条都列不出（TCC/权限）→ `.incomplete`
+  （`:644-647`）。撞到第一个近期文件**早退** `.recentFileFound`（`:651-652`）。
+  `.incomplete` 经 `activity(rootModified:probe:…)`（`:809` 起）映射为 `.unknown`，
   绝不折成"很久没碰"（文件头纪律 3，`:17-19`）。
 
 ### 1.2 趟二：`FileTreeWalker.stats(path:)`（`FileTreeWalker.swift:73-135`）
@@ -81,7 +81,7 @@ probe 对所有可读候选都跑。真正"两趟全遍历"的对象是**非嵌�
 并成一趟反而把这个耦合消掉（一趟共享一份预算，见 §3.3）。
 
 那为什么分家？因为**合同不同**，而 stats 的合同是全站的：文件头纪律 2
-（`:15-16`）与 `FileTreeWalker.swift:230-231`（`DirectoryMetrics` 注释）明说"同一目录在
+（`:15-16`）与 `FileTreeWalker.swift:157-160`（`DirectoryMetrics` 注释）明说"同一目录在
 清理页与磁盘分析页显示的数字不许互相矛盾"。probe 需要的三个行为——含点条目
 （`.venv`/`.bin` 恰恰是目标，`ProjectArtifactScanner.swift:1029-1031` 注释）、无深度限、
 读不进必须 fail closed——每一个都违反 stats 的既有口径，塞进共用函数会改动
@@ -98,7 +98,7 @@ UserFolderScanner / SystemAnalyzer / InstallerScanner / MMUninstaller 四个消�
 
 | 维度 | stats/readEntries | activityProbe/listAllEntries | 合并后怎么办 |
 |---|---|---|---|
-| 点条目 | 整条排除（含不进入其子树）`FileTreeWalker.swift:54` | 枚举、遍历、查 mtime `ProjectArtifactScanner.swift:1037` | 遍历走宽集合（含点目录），但子树带 `counted=false` 继承标志：点目录内部**不计体积**，只供 mtime 判断 |
+| 点条目 | 整条排除（含不进入其子树）`FileTreeWalker.swift:54` | 枚举、遍历、查 mtime `ProjectArtifactScanner.swift:1082`（保留点条目那条理由在紧邻注释 `:1078-1081`） | 遍历走宽集合（含点目录），但子树带 `counted=false` 继承标志：点目录内部**不计体积**，只供 mtime 判断 |
 | 符号链接 | 计为文件、链接自身 st_size 入和（`:58-66` 无 S_IFLNK 分支） | 直接跳过、不进枚举（`:1043`） | 枚举保留它：计体积/计数（stats 侧），不查近期性、不下潜（probe 侧本来见不到它，维持不可见） |
 | 深度 | 20 + 3 静默截断（`:42`、`:94-101`、`:139`） | 无上限 | 遍历无上限（保 probe）；超过 23 层的子树停止**计入体积和**并置 `sizeDepthTruncated=true`，数值仍与今天的 stats 逐字节一致 |
 | 失败 | 静默计 0（`:49`、`:72`、`:58`） | `.incomplete`（`:627-630`） | 收集 `unreadableDirectories: [String]`（封顶条数，见 §4.2），stats 侧行为**不改**（其它页共用），新字段只服务本项目扫描器 |
@@ -247,7 +247,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
 2. **不做常驻/自动循环/预算递加**（D3/D7）：15/60 不动；attemptCounts 仍在内存。
 3. **不改共用 `stats`/`readEntries`/`DirectoryMetrics` 的语义**——§3.4 名单里其它
    五处消费方零改动，这是本方案与"直接给 stats 加 mtime"（continuation §8 提过的
-   另一条路）的关键区别：后者会牵动跨模块口径一致性（`FileTreeWalker.swift:230-231`）。
+   另一条路）的关键区别：后者会牵动跨模块口径一致性（`FileTreeWalker.swift:157-160`）。
 4. **不顺手改 verdict/嵌套判定/删除链路**：`verdict`、`nestedFlags`、`DeletionGuard`、
    `FileTrashService` 一概不碰；本调研连 §4.2(b) 的 size 收紧都只列为待拍板选项。
 5. **不把 probe 的早退在嵌套/无体积需求路径上改掉**（§3.2）——那会让"近期在用的大
@@ -290,7 +290,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
   双跑对拍样本；§5 的"趋近减半"只有 syscall 数推算，缺墙钟证据。
 - **符号链接计体积的口径差在真树上的影响**：`readEntries` 把符号链接按链接字节计入
   size/count、`listAllEntries` 完全跳过（`FileTreeWalker.swift:58-66` vs
-  `ProjectArtifactScanner.swift:1043`），理论上合并要保持两套记账，但没造夹具实测
+  `ProjectArtifactScanner.swift:1091-1092`），理论上合并要保持两套记账，但没造夹具实测
   node_modules 里 `.bin` 这类链接密集目录的差值幅度。缺一个含大量链接的夹具对拍。
 - **深度 23 层的静默截断**：由 `:42`、`:94-101`、`:139` 的代码阅读推得，
   没构造 >23 层目录实测 stats 的实际丢漏。

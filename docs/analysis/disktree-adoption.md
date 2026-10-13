@@ -68,7 +68,7 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 | disktree | marks 以**绝对路径**为键，重扫后凭路径重新挂回树、消失的 mark 归零重读（marks.rs:64-81）；标父吞子；四个屏幕 Explore/Review/Running/Done；commit 时 Trash 直接执行（可撤回），Permanent 必先弹确认并点名"什么会走、回来多少"；删除前 `plan()` 统一裁决：root 外路径 blocked、挂载点/家目录/系统树拒绝（removal.rs:97-191）；完成后以 statvfs 前后差报告**实际**回收 |
 | MacMaster | 磁盘模块 0 删除能力；`FileTrashService` 已是 disktree TrashBackend 的等价物，缺的是树上标记与安全裁决 |
 | 判定 | **ADAPT**——SwiftUI 里 selection-set + review sheet 完全可行，但要补三条纪律：按绝对路径存 marks、祖先吞并、永久删除单独确认 |
-| 落地 | `@State markedPaths: Set<String>`；`DiskScanStore.target(for:) -> MarkTarget?`；Tile 渲染加 danger 描边；新增 `RemovalReviewSheet`（列出 marks、合计字节、blocked 原因），Trash 走 `FileTrashService.shared`，永久删除加 `.confirmationDialog`；在现有 `protectedNames`（MMDisk.swift:561-570）之上加 root / 挂载盘 / `/System` 前缀拒绝 |
+| 落地 | `@State markedPaths: Set<String>`；`DiskScanStore.target(for:) -> MarkTarget?`；Tile 渲染加 danger 描边；新增 `RemovalReviewSheet`（列出 marks、合计字节、blocked 原因），Trash 走 `FileTrashService.shared`，永久删除加 `.confirmationDialog`；在现有 `protectedNames`（MMDisk.swift:1821-1830）之上加 root / 挂载盘 / `/System` 前缀拒绝 |
 | 代价 | M |
 
 ### 6. 空闲空间始终在视野

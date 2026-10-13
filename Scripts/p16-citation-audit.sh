@@ -288,8 +288,8 @@ report() {
   grep "^symdead"$'\t' "$TMP/lines.tsv" | while IFS=$'\t' read -r k syms loc src; do
     print -r -- "#   死符号 $loc ← 引于 $src；找不到：${syms//;/ /}"
   done || true
-  print -r -- "# ---- 明细：符号面·位置存疑（符号存在但不在那几行；噪声大，只列前 40 条）----"
-  grep "^sym"$'\t' "$TMP/lines.tsv" | head -40 | while IFS=$'\t' read -r k syms loc src; do
+  print -r -- "# ---- 明细：符号面·位置存疑（符号存在但不在那几行；噪声大，本跑最多列 ${P16_SYM_DETAIL:-40} 条，总条数看上面那一行）----"
+  grep "^sym"$'\t' "$TMP/lines.tsv" | head -${P16_SYM_DETAIL:-40} | while IFS=$'\t' read -r k syms loc src; do
     print -r -- "#   位置 $loc ← 引于 $src；点名：${syms//;/ /}"
   done || true
   print -r -- "# ---- 明细：两头都不到（路径写错了，或者引的根本不是文件）----"

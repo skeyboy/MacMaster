@@ -111,8 +111,8 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 
 学的是 `PearcleanerSentinel` 要解决的问题，不是它的部署形态。常驻代理意味着：
 安装时写 LaunchAgent、崩溃后要有人重启、退出后仍在监听用户目录 —— 这三件事我们都不欠用户。
-照 `TrashWatcher` 的形态做：`AppFolderWatcher` 在卸载页 `.task` 里 `start()`、
-`onDisappear` 里 `stop()`（`MMUninstaller.swift:185-199` 已有这条约束的注释：监听不能排在
+照 `TrashWatcher` 的形态做：`AppFolderWatcher` 在卸载页 `.onAppear`（P36 现读：落地在 `.onAppear`，不是 `.task`）里 `start()`、
+`onDisappear` 里 `stop()`（`MMUninstaller.swift:222-227` 起监听、`:255-257` 停；`:223-224` 那条注释写的正是这条约束：监听不能排在
 耗时的 `loadApps()` 之后，否则这段时间里的变化会漏掉）。
 
 ### 4.2 基线记的不只是名字，是身份

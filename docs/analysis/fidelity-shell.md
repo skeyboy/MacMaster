@@ -81,10 +81,10 @@
 
 | 稿内条目 | 实现出处 | 一致? | 差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 模块列表「系统清理 2.4 GB」「应用卸载 46」 | `MainWindow.swift:102-107` | ❌ | 稿子写死占位；实机仅在 `dashboard.reclaimState == .measured` 时显示真实值，否则该格为空（不显示 "—"） | 低 | 设计稿该改 S2 |
-| **侧栏 footer（S1）** | `MainWindow.swift:138-162` `volumeFooter` | ❌ | 实机 = `Macintosh HD` + 百分比 + 红色容量条（低空间转红）+ 带边框「设置」按钮；**稿子画成"分隔线 + 设置 nav-item"**，沿用 01–06 错误画法 | 中 | 设计稿该改 S1（全站） |
-| 隐私守护红点 | `01-dashboard.html:40` | ❌ | 稿子给"隐私守护"画了红点；实机 `SidebarView` 无任何模块红点逻辑 → **稿子虚构**，应删 | 低 | 设计稿该改 S2 |
-| 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:273-298` `statusBar` | ❌ | 稿子多画"索引正常""Spotlight 已排除 2 个路径"——实机状态栏**无这两段**（代码未输出） | 低 | 设计稿该改 S2 |
+| 模块列表「系统清理 2.4 GB」「应用卸载 46」 | `MainWindow.swift:105-110` | ❌ | 稿子写死占位；实机仅在 `dashboard.reclaimState == .measured` 时显示真实值，否则该格为空（不显示 "—"） | 低 | 设计稿该改 S2 |
+| **侧栏 footer（S1）** | `MainWindow.swift:141-166` `volumeFooter` | ❌ | 实机 = `Macintosh HD` + 百分比 + 红色容量条（低空间转红）+ 带边框「设置」按钮；**稿子画成"分隔线 + 设置 nav-item"**，沿用 01–06 错误画法 | 中 | 设计稿该改 S1（全站） |
+| 隐私守护红点 | `01-dashboard.html:40` | ✅（P36 现读） | 稿子 :40 现读是纯 nav-item、无红点——commit `0c61fbf`「清洗侧栏虚构占位（含隐私守护红点）」已删；实机 `SidebarView`（`MainWindow.swift:61` 起）本无模块红点逻辑 → 两侧一致，红点已不存在 | 低 | 设计稿该改 S2 → **稿侧已落地** |
+| 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:277-301` `statusBar` | ❌ | 稿子多画"索引正常""Spotlight 已排除 2 个路径"——实机状态栏**无这两段**（代码未输出） | 低 | 设计稿该改 S2 |
 | 侧栏宽 220（`--sidebar-w`）/ 标题栏 38（`--titlebar-h`） | `MainWindow.swift:22`（`.navigationSplitViewColumnWidth`，P29 现读：此前引 `:18` 落在那段解释注释上） / 实机 52pt | ✅ / ❌ | **P6.2b**：侧栏改前实测量 **200pt**（不是这里原记的 220），现 `min:220` 后实测 220pt，本条关闭；标题栏 52 vs 令牌 38 仍开，归集成阶段 | 低 | I10a **已落地** / I10b 待落地 |
 | 「可释放空间」卡右上「全部」（稿 `01-dashboard.html` 画的是 `全部 + chevron-right`） | `MainWindow.swift` `cardHeader("可释放空间", trailing:)` | ✅（P6.2b 起） | 改前只有一个蓝色"全部"，读起来像筛选开关；稿里那半枚 `chevron.right` 才是"点了会离开这一页"的唯一提示。现已补 `全部 ›`（`p62b-fidelity/02-dashboard-history-full.png`） | 低 | 实现该改 I11 → **已落地** |
 | 网络 / 磁盘 I/O 迷你图 `.spark i{flex:1}`（12 等分槽） | `MMDesign.swift` `MMSparkline`（`slotCount` 固定、`maxWidth:.infinity` 等分） | ✅（P6.2b 起） | 改前每根钉死 10pt 靠左排：首帧只有一根细柱孤零零贴在左边，读起来像图坏了，且柱子随采样次数往右爬、同一张图前后宽度不一样。现横轴满宽、柱从右端往左长（`01` 首帧 vs `02` 满轴两张） | 中 | 实现该改 I12 → **已落地** |

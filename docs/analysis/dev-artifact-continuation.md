@@ -210,9 +210,9 @@
 
 一条必须同时立的规矩：被续扫根里**这次没再发现**的行（目录被删了/改名了）要从勾选里
 消失。更要紧的是——**修剪的判据不是"路径还在"，而是"合并后这一行仍然 `isSelectable`"**：
-`isSelectable`（`DevArtifactView.swift:692`）的三条是"非嵌套 + 体积量到了 + 判为可回收"，
+`isSelectable`（`DevArtifactView.swift:1004-1008`）的三条是"非嵌套 + 体积量到了 + 判为可回收"，
 而 §4.3 的并集重算恰恰会把一行从"独立行"改成"已计入上一行"。那一行的勾选框必须一起消失，
-否则「已选 X GB」（`selectedSize`，`DevArtifactView.swift:71-82`）会把父和子各算一遍，用户按下删除时看到的
+否则「已选 X GB」（`selectedSize`，`DevArtifactView.swift:106-117`）会把父和子各算一遍，用户按下删除时看到的
 第一个数字就是虚高的——这一屏最不该骗人的那个数。
 
 规矩落在实现上的分工：`isSelectable` 是 MMCleaner 侧的判定（不在扫描器里），
@@ -277,9 +277,9 @@
 - 模型加 `continueTruncatedRoots()`：跑一批、成功后 `mergedReport` 替换 `report`，
   勾选按 §5.1 **修剪**；失败/取消**不换报表**（取消的一批不留半成品，沿用 `DevArtifactView.swift:95` 的
   `Task.isCancelled` 早退）。
-- 点名那行（`DevArtifactView.swift:306-316`）加一个 `Button("继续扫描这 N 个根")`；`isScanning` 期间禁用
+- 点名那行（`DevArtifactView.swift:386-394`）加一个 `Button("继续扫描这 N 个根")`；`isScanning` 期间禁用
   「重新扫描」，续扫按钮共用同一个 spinner 文案，别造两套忙态。
-- 副标题（`headerSubtitle`，`DevArtifactView.swift:263`）说清批次：`… · 含 2 批 · 1 个根没扫完`。
+- 副标题（`headerSubtitle`，`DevArtifactView.swift:464-485`）说清批次：`… · 含 2 批 · 1 个根没扫完`。
 - 第二次的文案按 D7 改口（"在 15 秒内扫不完" + 出路）。
 
 ### 7.3 钩子（要能拍到，且不碰真项目）
@@ -287,7 +287,7 @@
 - `MM_DEV_ROOT_BUDGET_SECONDS`：覆写 `rootBudgetSeconds`。续扫的取证必须有
   "第一批真的截断"，而夹具目录太小、默认预算下永远扫得完。取 `0.05` 这类小值
   让第一批确定性地截断、第二批扫完。**只认数值，解析失败忽略**。
-- 复用 `MM_PURGE_FIXTURE_HOME`（只认 `/tmp`，解析点 `DevArtifactView.swift:65`；本文更早的版本记的是 `:45`，P16 的引用审计把它归进"位置存疑"那一层——守卫从 45 行搬到 65 行是在 P5.1 之后的续扫改动里发生的）与
+- 复用 `MM_PURGE_FIXTURE_HOME`（只认 `/tmp`，解析点 `DevArtifactView.swift:70`；本文更早的版本记的是 `:45`，P16 的引用审计把它归进"位置存疑"那一层——守卫从 45 行搬到 70 行是在 P5.1 之后的续扫改动里发生的）与
   `Scripts/purge-fixture.sh`；夹具里造一个"父产物 + 内层嵌套产物"的配对，
   让 §4.3 的双重计数在照片里能被证伪（第一批只见父、第二批才见子）。
 - 不新增任何会落盘写真路径的钩子。
@@ -316,7 +316,7 @@
   或 `activityProbe` 的枚举结果喂给体积统计）。这是**吞吐的正解**，
   能把每个候选的两趟子树砍成一趟，真机上截断的根很可能就此扫得完。
   本轮不做的原因：它改的是 `process()`/`FileTreeWalker` 的度量口径，
-  牵动 `DirectoryMetrics` 与其他模块共用的一致性（`FileTreeWalker.swift:230` 的注释
+  牵动 `DirectoryMetrics` 与其他模块共用的一致性（`FileTreeWalker.swift:157-160` 的注释
   就是这条约束），风险等级和续扫不是一个量级。做完续扫之后作为独立候选提出。
 - 跨启动的续扫状态（游标、报表落盘）。P1.6 有删除历史持久化，不代表扫描结论也该持久化——
   产物目录随时被工具重写，落盘的清单比不落盘更容易骗人。

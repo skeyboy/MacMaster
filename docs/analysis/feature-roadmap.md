@@ -15,7 +15,7 @@
 | `MMFileScanner/DuplicateScanner` | 只哈希前 10MB 且用非确定性 `Swift.Hasher`；**读取失败返回 `""`，全部不可读文件会被归为同一组"重复文件"** | 写作时复核的是当时那份 `MMFileScanner.swift` 里的 14 行——**那个位置已不存在**（重写过：本仓库那份文件只剩 168 行，不足 211）。那份实现在 2026-09-29「重复文件检测改为可验证的安全实现」中整体移出成独立文件。现址逐条现读，全在 `DuplicateScanner.swift`：SHA256 `:244`；读失败一律 `.failure` 并计入 `unreadablePaths`（`:238-240`、字段 `:55`）；采样是**首尾各 4 MB**而非前 10 MB（`sampleSize` 默认 `:100`，分支 `:246-251`）。这一行描述的三个缺陷在当前代码里都不成立，只作为缺口快照的历史保留 |
 | `MMOptimizer.runOptimization` | **空操作**：只把状态改成 `.optimized`、detail 写"已完成"，不执行任何系统动作 | 写作时复核的是 `MMOptimizer.swift` 里当时的那 6 行；**该符号已不存在**（P16 现读：全仓 `grep -rn runOptimization` 零命中，那几个行号现在是失败面板的夹具赋值）。P0 §0.3 那条按"移除假动作"收口 |
 | `MMOptimizer.deleteSelected` | 用 `try? FileManager.default.trashItem`，**绕过 `FileTrashService`**（无撤回、无历史、错误被 `try?` 吞掉） | 写作时复核的是 `MMOptimizer.swift` 里当时的那 3 行；**该符号已不存在**，那几个行号现在是扫描中文案。优化页删除现走 `FileTrashService`（P16 现读：`MMOptimizer.swift:434`、`:457`（撤回）、`:685`） |
-| `MMUninstaller.findResiduals` | 只探测 11 个固定候选路径，无 Containers / Group Containers / LaunchAgents / receipts / Spotlight | 部分复核（**P29b 现读：本行五项全已落地，别再当缺口排期**——Containers 见 `ContainerScanner.swift:17`（`MCMMetadataIdentifier`）、Group Containers `:59`；LaunchAgents/Daemons 见 `LaunchServiceScanner.swift:44,98`；receipts 见 P1.8 的 `OrphanScanner.swift`；Spotlight 元数据即 `MCMMetadataIdentifier` 那条） |
+| `MMUninstaller.findResiduals`（**P36 现读：该符号已不存在**，全仓 Swift 源码 0 命中；扫描拆在 `ContainerScanner`、`LaunchServiceScanner`、`OrphanScanner` 三个文件） | 只探测 11 个固定候选路径，无 Containers / Group Containers / LaunchAgents / receipts / Spotlight | 部分复核（**P29b 现读：本行五项全已落地，别再当缺口排期**——Containers 见 `ContainerScanner.swift:17`（`MCMMetadataIdentifier`）、Group Containers `:59`；LaunchAgents/Daemons 见 `LaunchServiceScanner.swift:44,98`；receipts 见 P1.8 的 `OrphanScanner.swift`；Spotlight 元数据即 `MCMMetadataIdentifier` 那条） |
 | `MMGuardian` | 有 LaunchAgents/Daemons plist 扫描；对 `/Library` 域写 `Disabled` 键在无 root 时会静默失败；**完全没有摄像头/麦克风占用监控、没有 TCC 权限视图** | 部分复核（**P29b 现读：加粗那半句不成立**——`DeviceUsage.swift`/`DeviceUsageProbe.swift` 是占用检测，`TCCProbe.swift`/`TCCAuthorization.swift` 是只读授权视图，见下方「P3.1 落地」「P3.2 落地」两节；写 `Disabled` 那半句也已按 3.5 收口，`LaunchItemPolicy.swift:5` 明写"永远不尝试写"） |
 | `MMMonitor` | 菜单栏 CPU/内存/网络 + 阈值通知；无每核、无磁盘 IO、无电池/温度/风扇 | 部分复核（**P29b 现读：除电池外全已落地**——每核与磁盘 IO 在 `MetricReaders.swift`（`IOBlockStorageDriver` 六处命中），温度/风扇在 `SMC.swift`+`SensorSampler.swift`+`HotBand.swift`（P6.4）；**电池确实到现在也没有**，全仓 `battery`/`电池`/`AppleSmartBattery` 三查 0 命中，见本节末「v1.1 起的版本迭代规划」§1 的 v1.2） |
 | `MMCleaner/CacheScanner` | 7 个静态类别，全在 `~/Library` 下 | 部分复核（**P29b 现读：不成立**——`CacheScanner.swift` 里 `/private/var/folders` 命中 7 处，4.1/4.2 那两行说的系统缓存与沙盒容器缓存都在） |
@@ -65,7 +65,7 @@
 | 4.2 | 沙盒容器内缓存：`~/Library/Containers/*/Data/Library/Caches` | Mole `user.sh:1021-1279` | S |
 | 4.3 | 开发工具缓存**走 owner 命令**（`go clean -modcache`、`cargo cache`、`brew autoremove` 预览优先），并在进程状态未知时拒绝执行 | Mole `lib/clean/dev.sh:72-447` + AGENTS.md 恢复契约条款 | M |
 | 4.4 | 安装包残留查找（DMG/PKG/XIP + 按内容嗅探 ZIP） | Mole `bin/installer.sh:41-119` | M |
-| 4.5 | 白名单持久化（当前 `excludedPaths` 是会话级内存态） | Mole `lib/manage/whitelist.sh`；现状 `MMCleaner.swift:26` | S |
+| 4.5 | 白名单持久化（**P36 现读：已落地**——名单经 `CleanerExclusionStore` 持久化，`excludedEntries` 只是内存快照） | Mole `lib/manage/whitelist.sh`；现状 `MMCleaner.swift:26` | S |
 | 4.6 | APFS purgeable 与 Time Machine 本地快照**只读报告**（删除需 root，不做） | Mole `cmd/status/metrics_disk.go:336-399`、`cmd/analyze/snapshots.go` | S |
 
 ### P3 / P4 落地状态（2026-09-30 逐条对着代码复核）
@@ -966,7 +966,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
   **还欠一件**：`dev-artifact-walk-merge.md` §4.2(b) 的收紧（子树内读不进 → `size = nil`）仍是**待拍板口径变更**，
   现口径照旧静默计 0（`:615`、`:676-677`）。
 - **两处计数陷阱**：cleaner I10 的"已回收" `grep` 命中 6 行，但只有 4 行是失败面板汇总，
-  另 2 行是 `MMUndoToast` 的 message 且都有 nil 守卫（`MMCleaner.swift:407`、`DevArtifactView.swift:415`）
+  另 2 行是 `MMUndoToast` 的 message 且都有 nil 守卫（`MMCleaner.swift:710`、`DevArtifactView.swift:447`）
   → 缺陷集是"4 处里的 2 处"，不是"6 处"；disk I3 的 `:685` 是**列表行**图标而非详情页头，
   只有 `:769` 该计入。**匹配到的行数 ≠ 缺陷数**，每一条都得回到它的守卫条件上看一眼。
 - **判据反判的两条**：disk I10（实现 28pt 其实等于 `--row-h-compact: 28px`，那个"32px"是 `04-disk.html`

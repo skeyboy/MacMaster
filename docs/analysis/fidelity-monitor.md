@@ -77,7 +77,7 @@
 | 百分比 1 位小数（35.8% / 80.2%） | `MenuBarManager.percentText:169` → `MMFormat.percent` | ✅ | 0.4% 不会被压成 0% | — | — |
 | 速率 `compactBytes + "/s"`（1.9 MB/s、293.3 KB/s） | `MMMonitor.swift:64-67` | ✅ | 稿内数值取自实机 | — | — |
 | nil → 「—」（C 稿 CPU/磁盘四项） | `:65`、`MenuBarManager:170` | ✅ | 空值不塌成 0 | — | — |
-| 卡片几何：48pt 高、6pt 圆角、`cardBackground` + separator 描边、v8/h12 内边距 | `MMDesign.swift:363-373` | ✅ | 实机 48pt（115→162）与稿内一致 | — | — |
+| 卡片几何：48pt 高、6pt 圆角、`underPageSurface` + separator 描边、v8/h12 内边距 | `MMDesign.swift:404-408` | ✅ | 实机 48pt（115→162）与稿内一致 | — | — |
 | 网络速率（`networkUp/DownBytesPerSecond`） | 快照里有（`MetricTypes.swift`），菜单栏菜单里显示（`MenuBarManager:160-164`），**页面一处都不用** | ❌ | 页面叫「系统监控」却只有磁盘 IO 没有网络；同一份数据在两个出口口径不一致 | 低 | 实现该改 I8 |
 
 ### 1.3 每核 CPU 卡
@@ -99,7 +99,7 @@
 | 卡标题「磁盘 IO」+ `internaldrive` | `MMMonitor.swift:99` | ✅ | 一致 | — | — |
 | 「读取」「写入」两行，`monospaced: true` | `:102-103` | ✅ | 实机等宽数字成立 | — | — |
 | `.unavailable` → 两行「—」+ reason 原文整行 caption | `:104-110` | ✅ | D2 稿把 `DiskIOReader` 的四种 reason 原文照抄（`MetricReaders.swift`），含 `<machErrorString>` 占位 | — | — |
-| **首帧 `.ok` + 速率 nil** → 两行「—」且**没有**原因行 | `SystemMetricSampler.swift:94`（`interval` 为 nil 时不填 `diskRate`，`diskStatus` 仍 `.ok`）+ `MMMonitor.swift:160-164` | ✅ | ~~与 `.unavailable` 在 3 米外**完全同形**~~ **I3 已改**（`e84066a`，2026-09-30，复核 2026-10-04）：`.ok` 且任一速率为 nil 时补一行 caption「等待下一次采样计算速率」，三态在图元层可分 | — | ~~实现该改 I3~~ **已改**（见 §2.3） |
+| **首帧 `.ok` + 速率 nil** → 两行「—」且**没有**原因行 | `SystemMetricSampler.swift:96-101`（`diskStatus` 先置 `.ok`、`diskRate` 先留 nil，只有 `interval` 有值且 > 0 才填速率）+ `MMMonitor.swift:163-169` | ✅ | ~~与 `.unavailable` 在 3 米外**完全同形**~~ **I3 已改**（`e84066a`，2026-09-30，复核 2026-10-04）：`.ok` 且任一速率为 nil 时补一行 caption「等待下一次采样计算速率」，三态在图元层可分 | — | ~~实现该改 I3~~ **已改**（见 §2.3） |
 
 ### 1.5 内存卡
 
@@ -177,7 +177,7 @@
    未采样那一帧抢拍不到（`.onAppear` 立刻 `enable()`），按代码重绘，见 07 稿 D3a。
 2. **【高】I2 · 内存不可用的归因写死 —— ✅ 已改（2026-09-30）**
    「内存读数不可用（**host_statistics64 失败**），显示 —。」在 `.empty`（压根没采）时同样出现。
-   → `MMMonitor.swift:135-142` 按 `hasSampled` 分流：未采样走「尚未完成首次采样，这里还没有内存读数。」，
+   → `MMMonitor.swift:193-198` 按 `hasSampled` 分流：未采样走「尚未完成首次采样，这里还没有内存读数。」，
    真失败才点名 API。与磁盘 IO 卡（`.unavailable(reason:)`）的口径对齐了。
    仍留一半：`②host_statistics64 真失败` 与 `③vm_page_size 异常` 两种真失败在采样器里没区分，
    现在都归到同一句点名 API 的文案下——比原来准，但还没到"逐因逐句"。
@@ -200,14 +200,14 @@
    `background:` 参数或加一个 `MMCardStyle.underPage`，本页改为调用组件。
    **✅ 已落地（复核 2026-10-04）**：`MMCardStyle` 两档在 `MMDesign.swift:904-914`（`c74f045`，2026-09-30），
    本页 `card()` 只剩标题行 + 内容，容器是 `MMCard(padding: MMGap.md, style: .underPage)`
-   （`MMMonitor.swift:349-366`）。**内边距这一档没有统一到 16**：本页仍是 `MMGap.md`(12)，
+   （`MMMonitor.swift:355-372`）。**内边距这一档没有统一到 16**：本页仍是 `MMGap.md`(12)，
    这是选出来的而不是漏的——监控页六张卡的密度按 §0 实测的 22pt/36pt 行距定的，改到 16 会整体变长。
    组件侧的"两套底色"已收口，剩下的只是这一页主动选了另一档内边距。
-5. **【中】I5 · `MMKeyRow` 80pt 标签列撑不住长标签**（`MMDesign.swift:344` + `MMMonitor.swift:122`）
+5. **【中】I5 · `MMKeyRow` 80pt 标签列撑不住长标签**（`MMDesign.swift:366-380` + `MMMonitor.swift:189`）
    「联动保留(wired)」折行、破坏实机 22pt 行距。→ 建议：标签列改为按内容自适应（`Grid`/`alignmentGuide`）
    或把令牌提到 96pt；顺带决定「联动保留」是否保留英文括注（全站措辞惯例是纯中文，括注属例外）。
    **✅ 触发条件已消（复核 2026-10-04：`e84066a` 去掉了 `(wired)` 括注）**：本页标签现在是
-   「已用/活动/联动保留/压缩/Swap」（`MMMonitor.swift:181-186`），最长 4 汉字，80pt 装得下。
+   「已用/活动/联动保留/压缩/Swap」（`MMMonitor.swift:187-192`），最长 4 汉字，80pt 装得下。
    **令牌本身没动**（`MMDesign.swift:380` 仍是 `.frame(width: 80)`），所以这条的**结构风险还在**：
    5 汉字是实测上限（磁盘页的「所在文件夹」「可执行文件」正好顶格），6 个就折行。
    归"关闭 + 附条件"：下一次有页面写进 6 汉字标签时按建议改自适应，而不是等它先折行。
