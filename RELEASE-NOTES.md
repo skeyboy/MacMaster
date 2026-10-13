@@ -1,7 +1,32 @@
-# MacMaster 1.0.0（构建 1）
+# MacMaster 1.0.1（构建 1）
 
-发布日：2026-10-08。这一页是**对外那一页**：每一句都对着当前代码或入库的取证日志现读写过，
-量不到的直接写"没有"。核验轮次、判据与全部出处在 `docs/analysis/release-readiness.md`。
+发布日：2026-10-13。这一页是**对外那一页**：每一句都对着当前代码或入库的取证日志现读写过，
+量不到的直接写"没有"。核验轮次、判据与全部出处在 `docs/analysis/release-readiness.md`
+（这一版对应第十五遍核验那一节）。GitHub 上那条 v1.0.0 的 Release 正文是上一版的这一页，没有回改。
+
+## 这一版相对 1.0.0 改了什么
+
+六族，全部在产物里（每一族都是一个带源码的提交，判据数在文末那一格）：
+
+1. **设置页九项修复**——用户报的"设置里的功能几乎不可用"逐行对到后端之后的修法：
+   清理页那个「打开系统设置」从前按下去什么都不发生（深链被拼了两遍 scheme），现在收成一个枚举、
+   拼接只发生在一处；设置窗有了 **⌘,** 和菜单栏里的「设置…」，主窗口关了也进得去；
+   「开机自动启动」不再把"等系统批准"读成"关着"；**通知那一节现在真的读系统授权状态**，
+   被拒绝时明写"这两个开关拨成开也不会有任何通知"，不再永远显示"已开启"；
+   设置窗高度从钉死的 400 pt 放到 560，第二个页签以下的内容不再摆在画面之外；
+   另有两处清理页措辞与一句过期注释改成与实现同源。
+2. **应用卸载：先说出"这个 app 正在跑"**——卸载页列表与详情都会标出正在运行的应用，
+   **只提示不代杀**，要不要退由你决定。
+3. **应用卸载：认出 Steam 那一类启动器型 bundle**——外壳小、内容在别处的 bundle 不再被说成
+   "一个 593 字节的小应用"，详情里给的是启动器形态与真实体量。
+4. **应用卸载：深度档的残留归属复核**——"名称包含应用名"这一条证据会跨应用收残留，
+   所以现在多一步"这到底是谁的东西"的判定：看着像别人主人所有的会**降档并写明理由**，
+   默认勾选的范围因此比 1.0.0 收窄。
+5. **系统优化：新增第五页「偏好文件检查」**——只读地检查 `~/Library/Preferences` 里
+   损坏与读不到的 plist，**"读不到"与"损坏"分成两栏**（这是两件事，混在一起说会吓人也误导人），
+   不删、不改、不给删除入口。
+6. **磁盘分析：跨卷候选根**——磁盘页页头会报「还有 N 卷可切」，扫的是**最满的那一卷优先**；
+   概览页的卷数口径与之同源（隐藏卷不算进"可切"）。
 
 ## 这是什么
 
@@ -33,13 +58,13 @@ MacMaster 是一款 macOS 原生的系统清理与诊断工具，Swift/SwiftUI �
 
 | 屏 | 里面有什么 |
 | --- | --- |
-| 概览 | 卷占用与"可释放"实测值、CPU/内存/磁盘实时读数、底部状态条（卷数、文件系统、上次清理时间） |
+| 概览 | 卷占用与"可释放"实测值、CPU/内存/磁盘实时读数、底部状态条（卷数——**这一版起这个数数的是"我们能扫的卷"**，隐藏卷不计入、文件系统、上次清理时间） |
 | 系统清理 | 四页：缓存清理 / 用户文件夹 / 系统分析 / 开发产物；缓存页顶部可按 全部·缓存·日志·临时 过滤 |
-| 应用卸载 | 两页：已装应用 / 卸载后遗症（孤儿残留）。brew 装的应用在列表里带 `brew` 或「疑似 brew」标记，详情标题旁是完整来源徽章；「查不到来源」不做成徽章 |
-| 磁盘分析 | treemap 真实扫描 + 标记删除；触达深度上限 20 层的目录只量字节不列名字 |
+| 应用卸载 | 两页：已装应用 / 卸载后遗症（孤儿残留）。brew 装的应用在列表里带 `brew` 或「疑似 brew」标记，详情标题旁是完整来源徽章；「查不到来源」不做成徽章；**这一版新增**：正在运行的应用会在列表与详情里标出来（只提示、不替你杀），Steam 那一类启动器型 bundle 认得出形态与真实体量，深度档的"名称包含应用名"残留会先过一道归属复核 |
+| 磁盘分析 | treemap 真实扫描 + 标记删除；触达深度上限 20 层的目录只量字节不列名字；**这一版新增**：页头报「还有 N 卷可切」，默认扫的是最满的那一卷 |
 | 系统监控 | 六卡：概览 / 每核 CPU / 磁盘 / 内存 / 进程 / 温度与风扇（SMC，读不到就写读不到的原因）；页头有菜单栏开关 |
 | 隐私守护 | 四卡：摄像头与麦克风当前占用（手动测量，非实时监听）/ TCC 授权只读视图 / 登录项管理 / 密钥与自启配置的改动时间 |
-| 系统优化 | 四页：重复文件 / 浏览器缓存 / 系统状态 / 开发工具（开发工具页只读，没有删除入口） |
+| 系统优化 | 五页：重复文件 / 浏览器缓存 / 系统状态 / 开发工具 / **偏好文件检查（这一版新增）**（开发工具页与偏好文件检查页只读，没有删除入口） |
 | 设置 | 四页：通用 / 监控 / 清理 / 关于 |
 | 菜单栏 | 系统监控项常驻，展开有每核 CPU 与「打开 MacMaster」 |
 
@@ -65,6 +90,9 @@ darwin 用户缓存目录、系统级 `/Library/Caches` 与 `/Library/Logs`；iO
 不给删除入口；浏览器只看**缓存目录**（不读 History、不读 Cookies、不读密码库）；
 重复文件会读文件内容算 SHA-256（先头尾各采样，命中候选才整文件哈希，任何读失败都计入"读不了"，宁可漏报不误报）；
 `/var/db/receipts` 安装包收据与 Homebrew 账本只读；
+**这一版起多两处只读**：`~/Library/Preferences` 的**偏好文件健康检查**——列目录、取文件大小与修改时间、
+把 plist 读进内存解析，只为分出"读不到"与"损坏"两档，**不显示也不记录里面的键与值，不写、不删、没有删除入口**；
+运行中的应用只从 `NSWorkspace.runningApplications` 取（卸载页用它标出"这个 app 正在跑"，不读其他进程的内容，也不会替你退出谁）；
 `TCC.db` 以 `SQLITE_OPEN_READONLY` 打开、只跑 prepared SELECT，读五档授权状态
 （麦克风、摄像头、屏幕录制、辅助功能、输入监听）。
 
@@ -94,62 +122,53 @@ Mac App Store 版（沙盒会把已测的七行能力砍掉）；多语言（语
 - 壳层（导航、窗口、设置页绑定）**零自动化测试**：根 `Package.swift` 只有一个 `.executableTarget`、
   没有测试目标，下面那些测试一条都不覆盖壳层——这一层靠 `docs/verification/` 下的实机照片，不靠断言。
 - 清理页删除失败后的「重试失败项 / 复制诊断」补救按钮组件已经写好了，但**全仓 11 个调用点一个都没接**
-  （本轮现读：`Sources` 与 `Packages` 里除组件自身定义外，`onRetry`、`onCopyDiagnostics` 0 命中），
+  （2026-10-13 现读复核：`Sources` 与 `Packages` 里除组件自身定义外，`onRetry`、`onCopyDiagnostics` 0 命中，
+  而 `MMFailurePanel(` 的调用点是 11 个），
   所以现在统计行与页脚是死代码路径；撤回开关只在缓存页的 sheet 里，另两页走系统 alert；
   页签叫「缓存清理」而页头叫「系统清理」，两名不同源。
 - 磁盘页详情头部图标与设计稿不同、时间显示用相对时间而不是绝对日期。
 - 监控页的网络速率只在菜单栏显示，页面里不用。
 - 优化页失败面板的形态（通栏条 vs 带边框卡）与设计稿不一致。
 - 温度与风扇那一卡依赖本机 SMC，换机型/换系统要重验（`docs/analysis/release-readiness.md` §8 有这条单列档）。
-- **设置页这一版有四处够得着的缺陷**（2026-10-09 逐行核对，四处都在本构建的源码那一棵 `5e3b2ca` 上现读确认；
-  下面那两处行号是**那一棵**上的，工作区这一棵已经改过，别照当前文件去对）：
-  深链 `x-apple.systempreferences:` 被拼了两遍（`MMDesign.swift:516-517` 加一次、调用点传的字符串里已有一次），
-  点开不会有任何反应；没有 ⌘,，系统菜单栏里也没有「设置…」，只能从标题栏那枚齿轮进；
-  通知那一节不读系统的授权状态，脚注无论本机是什么档都写"已开启"；设置窗口高 400 pt
-  （`SettingsView.swift:54`），第二个页签以下的内容在画面之外。**这四处已在源码中修复**
-  （`docs/analysis/release-readiness.md` §7.21、取证照片 `docs/verification/p29-before/` 与 `p29-after/`），
-  但**不在本构建里**——它们会随下一版发出。
-- 壳层测试那一格要说得更准：本轮之后 MMCore 多了 4 条钉深链拼接的测试、MMMonitor 多了 4 条钉通知文案的测试，
+- **上一版（1.0.0）那四处够得着的设置页缺陷，在这一版里已经修掉了**：深链被拼了两遍 scheme
+  （点开不会有任何反应）→ 收成一个枚举、拼接只发生在一处；补上 **⌘,** 与菜单栏里的「设置…」，
+  主窗口关了也进得去；通知那一节改成**真的读系统授权状态**，被拒绝时明写而不是永远显示"已开启"；
+  设置窗高度从钉死的 400 pt 放到 560，第二个页签以下的内容露出来了
+  （判据与前后两族照片在 `docs/analysis/release-readiness.md` §7.21、`docs/verification/p29-before/` 与 `p29-after/`）。
+  与这两条相关的边界也一并写清：「开机自动启动」在系统还没批准时显示的是"等你去批"那一行说明，不是"开着"；
+  560 不是"高度自适应"——监控那一栏全展开约 700 pt，比主窗口的地板还高，自适应等于给你一张比窗口还高的窗。
+- **这一版新增的两处能力各有自己的边界**：偏好文件检查**只覆盖 `~/Library/Preferences`**，
+  系统级 `/Library/Preferences` 不在这一屏；磁盘页的「还有 N 卷可切」在只挂一卷的机器上就是不出现
+  （作者机现读候选根 1 条，默认挂载表里另外 13 条是隐藏卷），那不是坏了。
+- 壳层测试那一格要说得更准：设置页那一轮之后 MMCore 多了 4 条钉深链拼接的测试、MMMonitor 多了 4 条钉通知文案的测试，
   它们钉的都是包里的纯函数；上面那句"一条都不覆盖壳层"仍然成立，根 `Package.swift` 里没有测试目标。
 
-## 测试与规模（本轮现读）
+## 测试与规模（本构建）
 
-九包 **633** 个测试、**0** 个失败、**1** 个跳过（跳过原因见 `docs/analysis/release-readiness.md` §1）。
-逐包：MMCore 73、MMUI 17、MMFileScanner 117、MMCleaner 25、MMUninstaller 121、MMDisk 77、
-MMMonitor 53、MMGuardian 96、MMOptimizer 54。结论行入库在
-`docs/verification/p27-citations/run-all-tests.log`。
-**这一格量的是"本构建"，不是仓库当前那一棵**：设置页修复之后同一支脚本读到 **641 / 0 / 1**
-（MMCore 73→77、MMMonitor 53→57，其余七格逐字相同；日志 `docs/verification/p29-citations/run-all-tests.log`），
-那 8 条判据对应的改动**不在这一版产物里**。卸载页「正在运行」那一族落地后又读到 **668 / 0 / 1**
-（MMUninstaller 121→148，其余八格逐字相同；日志 `docs/verification/p31-citations/run-all-tests.log`），
-Steam 启动器那一族之后现读到 **706 / 0 / 1**（MMUninstaller 148→**186**，其余八格逐字相同；
-日志 `docs/verification/p32b-steam-citations/run-all-tests.log`），残留归属复核那一族之后走到
-**720 / 0 / 1**（MMUninstaller 186→**200**，+14 全在那一包，其余八格的 XCTest 数一个没动；
-日志 `docs/verification/p33b-citations/run-all-tests.log`），偏好文件健康检查那一族之后走到
-**737 / 0 / 1**（MMOptimizer 54→**71**，+17 全在那一包，其余八格逐字相同；
-日志 `docs/verification/p34b-prefs/run-all-tests.log`），磁盘卷枚举那一族之后走到
-**764 / 0 / 1**（MMCore 77→**96**、MMDisk 77→**85**，+19 与 +8，其余七格逐字相同；
-日志 `docs/verification/p35b-volumes/run-all-tests.log`）——
-**这一格往后每轮都会变，它只说明"默认分支现在多远"，不说明你手上这份产物里有什么**。
+九包 **764** 个测试、**0** 个失败、**1** 个跳过（跳过原因见 `docs/analysis/release-readiness.md` §1）。
+逐包：MMCore 96、MMUI 17、MMFileScanner 117、MMCleaner 25、MMUninstaller 200、MMDisk 85、
+MMMonitor 57、MMGuardian 96、MMOptimizer 71。结论行入库在
+`docs/verification/p35b-clone/run-all-tests.log`——**那一跑不是作者的工作树，是一棵 `git clone --no-local` 出来的树**。
+**这一格量的是"本构建"**：与 1.0.0 那一版的 633 相比 +131，全部来自上面那六族新增的判据，
+逐包对得回来（MMUninstaller 121→200、MMCore 73→96、MMOptimizer 54→71、MMDisk 77→85、MMMonitor 53→57，
+其余四格一位没动）。中间每一族的落点都有独立日志（`docs/verification/p29-citations/`、`p31-citations/`、
+`p32b-steam-citations/`、`p33b-citations/`、`p34b-prefs/`、`p35b-volumes/` 各自的 `run-all-tests.log`），
+最后那一跑在 `p35b-clone/`——**这一版发出去时，本构建与默认分支是同一棵树，所以两个数相同**。
 
 ## 拿到源码的人怎么自证
 
 ```
 git clone --no-local <本仓库> /tmp/mm-clone && cd /tmp/mm-clone
-git checkout v1.0.0                                   # 不落这一步，你编的是 main，不是本构建
-VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh          # 产物 build/MacMaster.app
+git checkout v1.0.1                                   # 不落这一步，你编的是 main，不是本构建
+VERSION=1.0.1 BUILD=1 ./Scripts/make-app.sh          # 产物 build/MacMaster.app
 ./Scripts/package-app.sh                              # zip + dmg + SHA256SUMS，并当场验一遍
-./Scripts/run-all-tests.sh                            # 期望：633 个测试，0 个失败，1 个跳过
+./Scripts/run-all-tests.sh                            # 期望：764 个测试，0 个失败，1 个跳过
 ./Scripts/p7-release-check.sh build/MacMaster.app /tmp/evidence   # 三张实机照片 + 签名/plist/Gatekeeper
 ```
 
-上面那行期望值只对 `v1.0.0` 那一棵树。默认分支已经带着设置页那九项修复、卸载页「正在运行」那一族、
-Steam 启动器识别那一族、残留归属复核那一族、偏好文件健康检查那一族与磁盘页跨卷枚举那一族，
-同一条脚本现读是 **764 个测试、0 失败、1 跳过**（MMCore 73→77→**96**、MMMonitor 53→57、
-MMUninstaller 121→148→186→**200**、MMOptimizer 54→**71**、MMDisk 77→**85**，其余四格逐字相同，结论行入库
-`docs/verification/p31-citations/run-all-tests.log`、`docs/verification/p32b-steam-citations/run-all-tests.log`、
-`docs/verification/p33b-citations/run-all-tests.log`、`docs/verification/p34b-prefs/run-all-tests.log`
-与 `docs/verification/p35b-volumes/run-all-tests.log`）——
+上面那行期望值只对 `v1.0.1` 那一棵树。想要上一版：`git checkout v1.0.0` 配 `VERSION=1.0.0 BUILD=1`，
+同一条脚本读到的是 **633 个测试、0 失败、1 跳过**（设置页那九项修复、卸载页「正在运行」那一族、
+Steam 启动器识别那一族、残留归属复核那一族、偏好文件健康检查那一族、磁盘页跨卷枚举那一族都不在那一棵上）——
 **这两个数不是矛盾，是两棵树**。
 
 **构建机要 Xcode 26 / Swift 6.3 或更高**，这是实测下限而不是清单里那行版本号：`Package.swift` 声明

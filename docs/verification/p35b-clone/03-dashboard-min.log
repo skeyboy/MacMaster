@@ -1,0 +1,10 @@
+# p7-release-check.sh 03-dashboard-min  2026-10-13 11:51:53 +0800  app=/tmp/mm-app-v15/MacMaster.app
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1000x600
+# repo: 698d44b branch=main
+# digest: tree=698d44b+e3b0c442 app=698d44b+e3b0c442
+# codesign: Identifier=com.macmaster.app flags=0x2(adhoc) Signature=adhoc TeamIdentifier=not set 
+# plist: CFBundleShortVersionString=1.0.1 CFBundleVersion=1 CFBundleIconFile=AppIcon MMGitCommit=698d44b
+# spctl: /tmp/mm-app-v15/MacMaster.app: rejected 
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-v15/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1000x600 请求 1000x600pt，窗口实际 1000x652pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）

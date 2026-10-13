@@ -5,7 +5,7 @@
 "没有任何未提交编译输入"的机械自证（配方在 `Scripts/mm-provenance.sh:49-56`，
 `Scripts/` 与 `docs/` 都不进编译输入）。
 
-要回答的是路线上那一格的原话：**"磁盘页跨卷枚举 + 最满的那卷优先"**（`feature-roadmap.md:1040`）。
+要回答的是路线上那一格的原话：**"磁盘页跨卷枚举 + 最满的那卷优先"**（`feature-roadmap.md:1046`）。
 参考实现是 disktree 的 `volumes()`（"Every volume worth offering as a scan root, fullest first"，
 `space.rs:540`）。本轮没有直接照任何一档落地，因为量完之后发现**三件被当成前提的事都不是真的**：
 

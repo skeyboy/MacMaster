@@ -1,6 +1,6 @@
 # 优化页「损坏偏好文件检测」审计（P34a，2026-10-12）
 
-**范围**：v1.1 四条里的第 3 条（`docs/analysis/feature-roadmap.md:1039` 那一格）——
+**范围**：v1.1 四条里的第 3 条（`docs/analysis/feature-roadmap.md:1045` 那一格）——
 `~/Library/Preferences` 里的 plist「损坏」检测，只报位置与建议、不代删。
 **本轮只审计，生产代码一行未动**；改动集中在两支取证探针（`Scripts/p34a-prefs-plist-probe.sh`
 与它的 Swift 主体）和两份证据日志。
@@ -104,7 +104,7 @@ errno 是 `Operation not permitted`；而跑探针的这个 shell **没有完全
 
 三条从量里出来的、不是查来的：
 
-1. **两种判据在这 12 条上完全不分家**。所以约束里"生产不 spawn `plutil`"（`feature-roadmap.md:1039`
+1. **两种判据在这 12 条上完全不分家**。所以约束里"生产不 spawn `plutil`"（`feature-roadmap.md:1045`
    那一格的后半句）**不会让我们看得更少**——用 `PropertyListSerialization` 不欠账。
 2. **只有 8 字节的 `bplist00`（魔数本身，后面什么都没有）两把尺子都说"正常"**：
    `plutil -lint` 给 OK，Foundation 把它当 **openStep** 解析出一个非字典根。
@@ -145,7 +145,7 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 - **它的卖点是"删"，我们这一条被约束成"只报"**。这不是我们弱一档，而是**两件事**：
   删掉一个数据损坏的偏好文件确实会让 app 下次启动重设偏好（Mole 在 `tasks.sh:379`
   写的 Expected outcome 就是这个），而这是一种我们没有主张过的权力
-  （同 P31a 对"结束进程"的处置：`feature-roadmap.md:1179`）。
+  （同 P31a 对"结束进程"的处置：`feature-roadmap.md:1185`）。
   **只报的那一半价值有限**——这是 §9 里 C 档存在的理由，不回避。
 - **Mole 自己的注释承认了本机量到的现象**：`maintenance.sh:48`
   "Preferences dirs can hold tens of thousands of plists (leaky test suites write one per run)"。
@@ -222,7 +222,7 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 2. **不为此 spawn `plutil`**。本轮对读证明少看了不存在的那一类（§4 第 1 条），所以这条约束不欠账。
 3. **不写任何偏好文件**。openStep 写不出去（§4 第 3 条），而"备份一份再改"的整个思路在这一族
    没有任何正当用途。
-4. **不请求 FDA**，不为这一族加 TCC 弹窗（v1.1 四条的前提就是零新权限，`feature-roadmap.md:1033`）。
+4. **不请求 FDA**，不为这一族加 TCC 弹窗（v1.1 四条的前提就是零新权限，`feature-roadmap.md:1039`）。
    读不到就说读不到。
 5. **不碰 `~/Library/Containers/*/Library/Preferences`**。沙盒应用的那一份在 `~/Library/Containers` 下
    另有目录，本轮一条都没扫；它是不是同一族语义（损坏的后果、保护名单、谁的主人）都没量过，
@@ -243,7 +243,7 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 4. **ByHost 递归的真实深度**：本轮跟 Mole 一样递归（`p34a-prefs-plist-probe.swift:68-79`），
    但没统计过这一层在本机贡献了多少条，也没量过有没有环/软链。
    **→ 已量（§14.3）**：37 条、最深 1 层、软链 0、子目录 0。
-5. **别的机器**：Mac mini 之外没有第二台可测（同 `feature-roadmap.md:1094` 那条限制）。
+5. **别的机器**：Mac mini 之外没有第二台可测（同 `feature-roadmap.md:1100` 那条限制）。
    0 故障是本机的数，不是产品承诺。**→ P34b 没有改变这一条**，界面上的文案按这一条写（§14.7 第 2 项）。
 
 ## 12. 给 P34b 的检查单
@@ -254,7 +254,7 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 1. 纯函数层：`Verdict` 四态 + `isBad`（不含非字典根）搬进 `MMOptimizer`，12 条夹具等价物进单测；
    **注入形状照 `entries(env:home:presenceProbe:sizeProbe:toolProbe:)`（`DevToolCacheAudit.swift:99`），
    不要读 env 的假系统快照**——判据读的是文件系统状态，合成值只能证明界面会写字，
-   证明不了写的是真话（P31a 为运行状态写的就是这一句，`docs/analysis/feature-roadmap.md:1110-1111`）。
+   证明不了写的是真话（P31a 为运行状态写的就是这一句，`docs/analysis/feature-roadmap.md:1116-1117`）。
 2. 呈现层：第五 tab + `caveat` 承载建议；文案照 §5 那张表逐行落，
    **"读不到"独立成栏且不与"损坏"共用图标**。
 3. 预算 + `partial`：数值现量现写，页头一句话。
@@ -263,7 +263,7 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 5. 照片：夹具档出"有内容"那几屏，真机档只许拍"检查过 N 个 + 读不到 M 个"；
    设计稿 `08-optimizer.html` 要同步加第五 tab，否则下一轮会拿旧稿当规格（§8 那条老风险）。
 6. 九包重跑 + 引用门禁 + `# digest:` 当场同源（v1.1 那四条共用的验收不变量，
-   `feature-roadmap.md:1081-1090`）。
+   `feature-roadmap.md:1087-1096`）。
 
 ## 13. 证据、命令与门禁
 
