@@ -1,0 +1,24 @@
+# p35b-release-verify.sh v1.0.1  2026-10-13 13:02:46 +0800
+# repo: 41631c6 branch=main
+# api: https://api.github.com/repos/skeyboy/MacMaster
+# release: id=411290463 tag=v1.0.1 name=MacMaster 1.0.1 target=41631c6 draft=False prerelease=False published=2026-10-13T04:56:37Z
+# release: body_len=7990 字符  body_head='# MacMaster 1.0.1（构建 1）\n'
+# asset: MacMaster-1.0.1-1-SHA256SUMS.txt  176 字节  id=635935986  api-digest=66089847b20a35e56a2eccdf0dac75f7f5f2608f0730cecf57c84ea38404ff31  state=uploaded
+# asset: MacMaster-1.0.1-1.dmg  3944864 字节  id=635935981  api-digest=4a7540eedfae9e9d3970fe47f236c430f3bdc9e2171c4a16bb774fa80a9b8a53  state=uploaded
+# asset: MacMaster-1.0.1-1.zip  3324846 字节  id=635935979  api-digest=bbdff8a676130579add17d68a2fe1235afb8079cbfbe9e60bee611f46f0cf7df  state=uploaded
+# notes: 逐字相等=True  剥尾部空白后相等=True  （正文 7990 字符 / 文件 7990 字符 / 文件 16293 字节）
+# sums-file: MacMaster-1.0.1-1-SHA256SUMS.txt（176 字节）
+# sums-line: bbdff8a676130579add17d68a2fe1235afb8079cbfbe9e60bee611f46f0cf7df  MacMaster-1.0.1-1.zip
+# sums-line: 4a7540eedfae9e9d3970fe47f236c430f3bdc9e2171c4a16bb774fa80a9b8a53  MacMaster-1.0.1-1.dmg
+# sha256: MacMaster-1.0.1-1.dmg  本地=4a7540eedfae9e9d3970fe47f236c430f3bdc9e2171c4a16bb774fa80a9b8a53  与 api 报的=相同  与清单里写的=相同
+# sha256: MacMaster-1.0.1-1.zip  本地=bbdff8a676130579add17d68a2fe1235afb8079cbfbe9e60bee611f46f0cf7df  与 api 报的=相同  与清单里写的=相同
+# plist: CFBundleShortVersionString=1.0.1;CFBundleVersion=1;LSMinimumSystemVersion=14.0;MMGitCommit=41631c6;MMSourceDigest=41631c6+e3b0c442;
+# check: 版本号 1.0.1（期望 1.0.1）构建 1 → 对
+# check: MMGitCommit=41631c6 → 干净树（不带 -dirty）
+# check: 指纹段 产物=e3b0c442 本地工作树=e3b0c442 → 编译输入 逐字相同
+# ci: 构建并打包（macOS latest arm64）  conclusion=success  html_url=https://github.com/skeyboy/MacMaster/actions/runs/38348525288/job/115135393062
+# verify: /var/folders/11/szm4hq2d6wz73phg6ggrk3780000gn/T//mm-release-verify.fmupoH/x/MacMaster.app: valid on disk
+# verify: /var/folders/11/szm4hq2d6wz73phg6ggrk3780000gn/T//mm-release-verify.fmupoH/x/MacMaster.app: satisfies its Designated Requirement
+# codesign: Identifier=com.macmaster.app CodeDirectory v=20400 size=23018 flags=0x2(adhoc) hashes=713+3 location=embedded Signature=adhoc TeamIdentifier=not set 
+# spctl: /var/folders/11/szm4hq2d6wz73phg6ggrk3780000gn/T//mm-release-verify.fmupoH/x/MacMaster.app: rejected
+# verdict: v1.0.1 的 Release 附件与本地核验过的同一棵编译输入树
