@@ -437,15 +437,16 @@ P20 那一遍归档规矩还没立起来，P27 是第一份）。过程在 §7.2
 "干净克隆 + `tree=` 与 `app=` 逐字相等 + `# plist:` 不带 `-dirty`"三项同时成立是**第三次**（P27、P30、本轮）；
 第 3e 步引用门禁也在同一棵克隆上跑（先 `clone-references.sh --fetch`，七份参考仓库全部取到），
 三个总数与四道硬判据与作者树**一位没动**（1083 / 886 / 779、硬失败 0）。
-**但这一族的门禁跑到收口一共读了五遍，只有最后一遍是与这一次提交内容同读的那一遍**：发版说明改成 1.0.1 那一页时，
+**但这一族的门禁跑到收口一共读了六遍，只有最后一遍是与这一次提交内容同读的那一遍**：发版说明改成 1.0.1 那一页时，
 `feature-roadmap.md` 一次加了 6 行，把 11 条指向它行号的引用整体顶漂 6 行——门禁只抓到其中 2 条（被顶进空行的那两条），
 其余 9 条落在还有字的行上、四道硬判据一声不响（`Scripts/p29-anchor-drift-audit.sh` 也看不见，它的文件集是非测试 `.swift`）。
 10 条活锚点逐条现读 +6 重指、1 处漂移的历史坐标改成裸写（连同另外 3 处没漂的历史坐标，这一遍全仓共 4 处裸写），
 之后**硬失败归 0**，定稿那一读
-（`docs/verification/p35b-final-citations/audit.log`，跑在 `git add` 之后；提交前又复读两份
-`docs/verification/p35b-postwrite-citations/`、`docs/verification/p35b-commit-citations/`，
-三个总数逐字相同、`# index:` 1211 → 1212 → 1213，每多归档一份就多一个跟踪文件）走到
-**1077 / 884 / 777**、死符号 2、存疑 133、`# index:` 从 **1211** 一路涨到 **1213**——三个总数**比 1083 / 886 / 779 少的正是那四处裸写**，
+（`docs/verification/p35b-final-citations/audit.log`，跑在 `git add` 之后；其后又复读三份
+`docs/verification/p35b-postwrite-citations/`、`docs/verification/p35b-commit-citations/`、
+`docs/verification/p35b-precommit-citations/`，
+三个总数逐字相同、`# index:` 1211 → 1212 → 1213 → 1214，每多归档一份就多一个跟踪文件）走到
+**1077 / 884 / 777**、死符号 2、存疑 133、`# index:` 从 **1211** 一路涨到 **1214**——三个总数**比 1083 / 886 / 779 少的正是那四处裸写**，
 两次失败与归零的归档（`p35b-releasenotes-citations/`、`p35b-anchorfix-citations/`）与逐条处置在
 `docs/analysis/release-readiness.md` §7.23。
 **本轮还抓到一件新的**：`make-icon.sh --check` 只跑了自己头部那两道判据里的"十档齐全"一道，
