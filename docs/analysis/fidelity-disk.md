@@ -17,8 +17,8 @@
 >    `MM_DISK_SCAN` 等扫描类钩子当时**没有 /tmp 越界拦截**，直接 `expandingTildeInPath` 后 `scan`，
 >    违反本项目"扫描类钩子只认 /tmp、越界即忽略"的明线纪律（README §5），
 >    一旦被设成真实用户目录会去枚举真实磁盘树，当时判 **实现该改 · 高**（I1）。
->    **现在两个钩子都有守卫**：`MMDisk.swift:170-175`（`MM_DISK_SCAN`，越界写 stderr「不在 /tmp 之下，
->    忽略该钩子」后 `return`）与 `MMDisk.swift:1070-1078`（`MM_DISK_SELECT`，含非 /tmp 路径则整钩子忽略）。
+>    **现在两个钩子都有守卫**：`MMDisk.swift:175-180`（`MM_DISK_SCAN`，越界写 stderr「不在 /tmp 之下，
+>    忽略该钩子」后 `return`）与 `MMDisk.swift:1086-1094`（`MM_DISK_SELECT`，含非 /tmp 路径则整钩子忽略）。
 >    这一条留在原文里是因为它是本项目"文档比代码老"最典型的一例：
 >    **四道硬判据抓不到它**（改前那条锚点指过去的行存在、非空白、不歧义，只是那一行已经不是那件事了），
 >    能抓它的只有"去源码里读一眼"——见 `release-readiness.md` §7.7 那条"路径存在、说法不成立"的盲区。
@@ -67,8 +67,8 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「磁盘分析」 | `MMDisk.swift:195` `MMPageHeader("磁盘分析", subtitle:)` | ✅ | 逐字一致 | — | — |
-| 副标题「~/Library · 695,682 个文件 · 271.4 GB · 扫描用时 7.6 s」 | `:230-236` `headerSubtitle` → `:1555-1561` `DiskHeaderCopy` | ❌ **P26 起不一致** | 实现是**三段**：`占用 · 路径 · N 个文件`，**没有"扫描用时"**。稿内四字段的顺序本来也与实现不同（实现把占用放最前，稿放最后）。P26 逐屏窄窗实拍把"用时"整段请出页头：1000 pt 下副标题是中间截断，第四段会被切成 `….1 s` 这种读起来像真数的半句（判据与两张照片见 `docs/analysis/header-truncation-audit.md` §8）。**改的是稿**：`:60` 与 `04b-disk-confirm.html:87` 的样例待同步 | 低 | 记录 → **设计稿该改（P26 新增）** |
+| 标题「磁盘分析」 | `MMDisk.swift:200` `MMPageHeader("磁盘分析", subtitle:)` | ✅ | 逐字一致 | — | — |
+| 副标题「~/Library · 695,682 个文件 · 271.4 GB · 扫描用时 7.6 s」 | `:235-241` `headerSubtitle` → `:1585-1591` `DiskHeaderCopy`（两处行号 **P35b 现读重指**，前一版是 230-236 / 1555-1561） | ❌ **P26 起不一致** | 实现是**三段**：`占用 · 路径 · N 个文件`，**没有"扫描用时"**。稿内四字段的顺序本来也与实现不同（实现把占用放最前，稿放最后）。P26 逐屏窄窗实拍把"用时"整段请出页头：1000 pt 下副标题是中间截断，第四段会被切成 `….1 s` 这种读起来像真数的半句（判据与两张照片见 `docs/analysis/header-truncation-audit.md` §8）。**改的是稿**：`:60` 与 `04b-disk-confirm.html:87` 的样例待同步 | 低 | 记录 → **设计稿该改（P26 新增）** |
 | 分段控件「Treemap / 列表」 | `:21-41` `ViewMode` rawValue | ⚠️ 部分 | **实现有 3 段**：Treemap/列表/大文件；04 稿只画 2 段，缺「大文件」段（但 README §2 钩子列 `MM_OPEN_TAB(large)`、产品规划 2.1 也列大文件，故属稿缺） | 低 | 设计稿该改 S3 |
 | 筛选框「筛选名称」宽 132 + 搜索图标 | `:203-205` `TextField.frame(width: 132)` | ✅ | 宽 132 与稿一致；系统 `roundedBorder` 是否带搜索图标 ⚠️待真机测量 | — | — |
 | 按钮「重新扫描」（refresh 图标） | `:209-214`（重新扫描）/ `:216-222`（选择目录） | ⚠️ 部分 | 实现有**两个**按钮：重新扫描（重枚举当前层）+ 选择目录（borderedProminent）；稿只画 1 个「重新扫描」。稿内单按钮语义≈重扫全根，实现"重新扫描"= 重枚举当前导航层 | 低 | 实现该改 I‑（见 §2 记一笔） |
@@ -88,7 +88,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 7 类色块：开发者/应用数据/媒体/文档/缓存/日志/其他 | `DiskClassify.swift:12-39` + `TreemapView` 布局 | ✅ | 色相与顺序逐字一致 | — | — |
-| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1926-1963` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
+| 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1983-2020` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现确用分配大小；但见 I7 图例文案漏注 | 低 | 实现该改 I7 |
 | 选中块：2px accent 描边 | `TreemapView.swift:527-528` `stroke(accent, lineWidth: 2)` | ✅ | 与稿 `.sel { outline: 2px #0A84FF }` 一致 | — | — |
 | 标记块：斜纹 + 右下勾标 | `TreemapView.swift:478-525` 白纹 + 勾标 | ⚠️ 部分 | 稿对 Xcode 同时画 **暗纹(reclaimable) + 勾标(marked)**；实现**标记后暗纹让位给白纹**。取舍不同，视觉略异 | 低 | 实现该改 I12 |
 | 可清理斜纹（hatch） | `TreemapView.swift:472-475` 暗纹 0.20 | ✅（语义） | 与稿斜纹语义一致（色相=种类、斜纹=可清） | — | — |
@@ -102,7 +102,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 7 色块 + 「可清理（斜纹）」+ 说明 | `MMDisk.swift:463-508` `legend` | ✅（结构） | 色块顺序一致 | — | — |
+| 7 色块 + 「可清理（斜纹）」+ 说明 | `MMDisk.swift:479-524` `legend` | ✅（结构） | 色块顺序一致 | — | — |
 | 说明「面积 = 实际磁盘占用（st_blocks × 512）· 双击下钻 · ⌘ 点击标记」 | `:499-501` | ❌ | 实现说明**省略了 `(st_blocks × 512)`** 注脚，写「面积 = 实际磁盘占用 · 双击下钻 · ⌘ 点击标记」。数据确为 st_blocks，但文案精度低于稿 | 低 | 实现该改 I7 |
 | 深度分段控件（1–4 层） | `:482-495` `Picker("深度")` | ⚠️ 部分 | 稿无此控件（对应 `MM_DISK_DEPTH` 钩子）；实现独有，稿缺 artboard | 低 | 设计稿该改 S2/S3 |
 
@@ -110,7 +110,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 头部图标 cube.box 紫（`i-box` + `--c-purple`） | `MMDisk.swift:673-674` `folder.fill/doc.fill` 按 `risk.color` | ❌ | 稿用 `i-box` 紫色图标；实现用 folder/doc 图标按风险色（safe=绿）。形状与颜色都不同 | 低 | 实现该改 I3 |
+| 头部图标 cube.box 紫（`i-box` + `--c-purple`） | `MMDisk.swift:689-690` `folder.fill/doc.fill` 按 `risk.color` | ❌ | 稿用 `i-box` 紫色图标；实现用 folder/doc 图标按风险色（safe=绿）。形状与颜色都不同 | 低 | 实现该改 I3 |
 | 徽章「可安全清理」(safe) | `:685` `MMBadge(risk:)` → `risk.label`（`Risk.swift:14-20` = "安全"） | ❌ | 稿文案「可安全清理」=`risk.groupTitle`；实现 `MMBadge(risk:)` 用的是 `risk.label`="安全"。徽章文案与稿不符 | 低 | 实现该改 I2 |
 | 路径「~/Library/Developer/Xcode」 | `:687` `node.path` | ✅ | 真实路径，夹具下为 /tmp 路径 | — | — |
 | 四宫格：占用 / 实际占比 / 文件数 / 最后修改 | `:701-708` `MMStatItem` | ⚠️ 部分 | 实现四格为**占用 / 占当前层 / 子项 / 修改** | 低 | 实现该改 I4/I5/I6 |
@@ -135,7 +135,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| （稿中无此面板） | `MMDisk.swift:293-357` `findingsPanel` | ❌ | 实现在面包屑下插入整块「值得看一眼 · N 项 · 合计 X」面板（disktree #4 采纳）；**04 稿完全没画**，无法核对排版/文案 | **中** | 设计稿该改 S1 |
+| （稿中无此面板） | `MMDisk.swift:298-362` `findingsPanel` | ❌ | 实现在面包屑下插入整块「值得看一眼 · N 项 · 合计 X」面板（disktree #4 采纳）；**04 稿完全没画**，无法核对排版/文案 | **中** | 设计稿该改 S1 |
 
 ### 1.9 状态：选中 / 标记 / 确认删除 / 撤回 toast
 
@@ -174,7 +174,7 @@
 > 这一轮同时把 §1 表里那两行的"⚠️待真机测量"改成实测量，别再让下一个人以为还要跑一次。
 
 1. **【高】I1 · `MM_DISK_SCAN` / `MM_DISK_SELECT` 缺 /tmp 越界拦截**
-   `MMDisk.swift:134-135` 直接 `guard ... let root = env["MM_DISK_SCAN"] ... await scan(rootPath: (root as NSString).expandingTildeInPath)`，
+   `MMDisk.swift:139-140` 直接 `guard ... let root = env["MM_DISK_SCAN"] ... await scan(rootPath: (root as NSString).expandingTildeInPath)`，
    不检查路径是否落在 `/tmp` 之下。`MM_DISK_SELECT`(:998) 同样不限前缀，只靠"先扫过才有节点"间接约束。
    按 README §5 红线——"钩子一律只认 /tmp 之下的夹具路径，越界就写 stderr 并忽略"——这是本模块对那条红线的
    **唯一破口**：一旦被设成真实目录（如 `MM_DISK_SCAN=~` 或 `/`），`scan()` 会去 `lstat`/`readdir` 真实磁盘树，
@@ -182,7 +182,7 @@
    → 建议：在 `MMDisk.swift` 的扫描钩子入口加 `root.hasPrefix("/tmp")` 判定，否则 `stderr` 写"MM_DISK_SCAN 仅接受 /tmp 之下路径"并 `return`。
    **本环境未修改**（硬约束 #4 优先"提请协调者"），见 §提请协调者。
    **✅ 已落地（`1145f05`，2026-09-30）**，且比建议更严：
-   - `MM_DISK_SCAN`：`MMDisk.swift:181-185`，同时认 `/tmp/` 与 `/private/tmp/`（后者是 `/tmp` 的真实身份，只判前缀会漏），
+   - `MM_DISK_SCAN`：`MMDisk.swift:186-190`，同时认 `/tmp/` 与 `/private/tmp/`（后者是 `/tmp` 的真实身份，只判前缀会漏），
      越界写 stderr「MM_DISK_SCAN=… 不在 /tmp 之下，忽略该钩子」后 `return`，不扫描；
    - `MM_DISK_SELECT`：`:1099-1104`，**任一**目标不在 /tmp 之下就把整个钩子忽略（不是逐条丢弃），
      理由是"预选并展开"会连带把真实目录的整层拉进截图；
@@ -196,38 +196,43 @@
    → 建议：徽章改取 `risk.groupTitle`，或 04 稿改文案为「安全」。两者择一。
    **✅ 本页已落地（`5e1dfe3`），但组件默认值没动，问题升级成站级的**：
    详情徽章现为 `MMBadge(risk.groupTitle, tint: risk.color, systemImage: risk == .readOnly ? "lock" : nil)`
-   （`MMDisk.swift:763`）。可共享的 `MMBadge.init(risk:)`（现 `MMDesign.swift:255-256`）**仍取 `risk.label`**，
+   （`MMDisk.swift:779`）。可共享的 `MMBadge.init(risk:)`（现 `MMDesign.swift:255-256`）**仍取 `risk.label`**，
    今天还有四个调用点在用「安全」这一套（P16 现读 `grep -rn "MMBadge(risk:"`，全仓恰好四处）：`MMDesign.swift:866`（`MMItemRow` 的行内徽章）、
-   `MMUninstaller.swift:1626`、`MMOptimizer.swift:527` 与 `:866`。
+   `MMUninstaller.swift:1871`、`MMOptimizer.swift:533` 与 `:872`。
+   （**P35b 现读重指**：这一串是 P16 那一次 grep 的读数，本轮重跑同一条命令，四处里**只有 `MMDesign.swift:866` 还落在原行上**，
+   其余三处已经各自走了一批行号；"恰好四处"这条主张仍然成立，所以门禁给的是**位置存疑**而不是硬失败——
+   行号不空、文件命中、句子不错，只有"它指的那一行是不是那句话说的东西"没人管。这一类本轮记进 `release-readiness.md` §1 那一格。）
    → 这不是漏改，是一个**没写下来的站级约定**：行内徽章用短标签（列宽只有 44–92pt，「可安全清理」放不下），
    分组/详情徽章用长说法（`risk.groupTitle` 本来就是分组标题）。建议按这个口径把约定写进 MMUI 注释并划掉本条，
    **而不是**统一成一种——统一成 `groupTitle` 会把三页的行内徽章撑破。归协调层。
 3. **【低】I3 · 详情头部图标不符稿**
-   稿用 `i-box`（cube.box）紫色；实现 `MMDisk.swift:673` 用 `folder.fill`/`doc.fill` 按 `risk.color`。形状与颜色都不同。
+   稿用 `i-box`（cube.box）紫色；实现 `MMDisk.swift:689` 用 `folder.fill`/`doc.fill` 按 `risk.color`。形状与颜色都不同。
    → 建议：统一为稿的 cube.box 紫，或更新稿说明图标随风险色变化。
-   **❌ 仍未做（复核 2026-10-04）**：详情头部图标现在是 `MMDisk.swift:764`
+   **❌ 仍未做（复核 2026-10-04）**：详情头部图标现在是 `MMDisk.swift:772`
    （`node.isDirectory ? "folder.fill" : "doc.fill"`，随风险色），稿侧对应处仍是
    `docs/design-system/screens/mmdisk/04-disk.html:154` 的 `#i-box` + `--c-purple`。
-   顺带纠正清单当时的一个混淆：`:685` 那处 `folder.fill`/`doc.fill` 是**列表视图的行图标**，不是详情头部，
-   稿在列表段没有画死图标，所以只有 `:769` 这一处算差异。**这一条倾向改稿**——"形状随类型、颜色随风险"
+   顺带纠正清单当时的一个混淆：`:688` 那处 `folder.fill`/`doc.fill` 是**列表视图的行图标**，不是详情头部，
+   稿在列表段没有画死图标，所以只有 `:772` 这一处算差异。**这一条倾向改稿**——"形状随类型、颜色随风险"
    比一律一个紫色方块携带的信息多，而且是实现先做对的。
 4. **【低】I4 · 详情「子项」≠ 稿「文件数」**
-   `MMDisk.swift:699` 显示 `children.count`（直接子节点数）；稿写「文件数 42,180」（递归文件数）。两者量的是不同东西。
+   `MMDisk.swift:800` 显示 `children.count`（直接子节点数）；稿写「文件数 42,180」（递归文件数）。两者量的是不同东西。
    → 建议：若需"文件数"，应递归累加 `collect` 得到的 `fileCount`；或稿改文案为「子项」。`disktree-adoption` 里 `fileCount` 已统计（`:1466`），可直接喂给详情。
-   **⚠️ 部分落地（`5e1dfe3`）——而且这一改留下了新的坑**：标签已换成「文件数」（`MMDisk.swift:792`），
-   数值仍是 `children.count`，代码里自己承认（`:795-796`「数值口径待真机确认…先只对齐标签文案」）。
-   也就是说这一格**现在读起来比改之前更容易误会**：「子项 12」没人会当递归数看，「文件数 12」会被当成"这个目录只有 12 个文件"。
+   **⚠️ 部分落地（`5e1dfe3`）——而且这一改留下了新的坑**：标签已换成「文件数」（当时在 `MMDisk.swift` 第 792 行，
+   **P35b 现读已在 `:800`**，且下一段会说明它随后又回退成「子项」），
+   数值仍是 `children.count`，代码里自己承认（当时那两行注释，现读在 `:798` 那一行——它已经把结论改成
+   「标签必须等于数值真实的口径：这里是**直接子项数**，不是稿里那个递归「文件数」」）。
+   也就是说这一格**当时读起来比改之前更容易误会**：「子项 12」没人会当递归数看，「文件数 12」会被当成"这个目录只有 12 个文件"。
    **并且建议里那句"`fileCount` 已统计、可直接喂"是错的**（复核确认）：`fileCount` 只有**扫描根级**那一份
    （`DiskScanResult.fileCount` 与 `ScanOutput.fileCount`，由 `performScan` 根上那段 `collect` 累加），
    `DiskTreeNode` 里**没有**每节点的递归文件数字段（结构体只有 size/isDirectory/children/category/
    modificationDate/descendantsMeasured 那一族，没有计数）。
    要真做出"文件数"必须给遍历器加一个每节点递归计数——这是 MMDisk 的 `FileTreeWalker` 改动，不是文案改动。
    **✅ 已收口（P8，2026-10-05）——走"回退标签"这一支，并补上封顶那一档**：标签回到「子项」
-   （`MMDisk.swift:792`），判定从视图里抽成可单测的纯函数 `DiskInspectorText.childCount(of:enumerated:)`
-   （`:1578-1584`）：文件→「—」、量到的目录→`MMFormat.count(直接子项数)`、
+   （`MMDisk.swift:800`），判定从视图里抽成可单测的纯函数 `DiskInspectorText.childCount(of:enumerated:)`
+   （`:1643-1647`，枚举声明在 `:1642`）：文件→「—」、量到的目录→`MMFormat.count(直接子项数)`、
    **`descendantsMeasured == false` 的封顶节点→「未枚举」**。最后这一档是复核时才查出来的、
-   比原条目更糟的一处：`if depth >= maxDepth`（`:1849`，`maxDepth = 20` 见 `:1714`）那一支造的节点
-   `children` 是空的（字节靠 `deepSize` 兜底，`:1857`），照 `children.count` 显示就是**对着一个 2.2 MB
+   比原条目更糟的一处：`if depth >= maxDepth`（`:1939`，`maxDepth = 20` 见 `:1779`）那一支造的节点
+   `children` 是空的（字节靠 `deepSize` 兜底，`:1943`），照 `children.count` 显示就是**对着一个 2.2 MB
    的目录说"文件数 0"**——那是把"没量到"写成"没有"，比标签错更严重。
    单测：`Packages/MMDisk/Tests/MMDiskTests/DiskInspectorTextTests.swift` 四档各一条
    （含"未枚举那一档不许出现 0"）。实机：`docs/verification/p8-disk-depth/`
@@ -238,17 +243,17 @@
    于是这一条变成**稿侧待改**——`docs/design-system/screens/mmdisk/04-disk.html:163` 仍写「文件数 42,180」，
    与 I3（`:154` 的 `#i-box`）、I6（`:164` 的绝对日期）可以并成一次重绘。
 5. **【低】I5 · 「占当前层」vs 稿「实际占比」**
-   `MMDisk.swift:698` 分母 `levelTotal` 随导航层变化；稿「实际占比」暗示占总扫描量。措辞/口径不一致。
+   `MMDisk.swift:714` 分母 `levelTotal` 随导航层变化；稿「实际占比」暗示占总扫描量。措辞/口径不一致。
    → 建议：稿明确"占当前层"，或实现在根层用 `scannedSize` 作分母并改标签。
    **✅ 已落地（`5e1dfe3`），走"改实现"这一支**：详情现为
    `MMStatItem("实际占比", MMFormat.percent(totalScanned > 0 ? Double(node.size) / Double(totalScanned) : 0))`
-   （`MMDisk.swift:781`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:752`）——分母不再随下钻漂移，
+   （`MMDisk.swift:797`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:768`）——分母不再随下钻漂移，
    标签与算法终于同一口径。**"占当前层"没有丢**：列表行仍按 `levelTotal` 算占比（`:674`），
    那里"这一层里谁大"才是有用信息。两处分别对应两个问题，是对的。
 6. **【低】I6 · 修改时间绝对 vs 相对**
-   `MMDisk.swift:702` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。
+   `MMDisk.swift:718` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。
    → 建议：保留相对，但稿应改为相对时间示例，避免"稿画绝对、实现相对"的落差。
-   **❌ 仍未做（复核 2026-10-04）**：`MMDisk.swift:795` 仍是 `MMFormat.relative(modDate(of: node.path))`，
+   **❌ 仍未做（复核 2026-10-04）**：`MMDisk.swift:811` 仍是 `MMFormat.relative(modDate(of: node.path))`，
    取舍理由写在紧邻注释里（`:798-799`：这格要答"多久没动过"，且完整时间戳会被截成"2026-09-30 01:…"）。
    没动的是**稿**（`04-disk.html:164` 仍画绝对日期）。这一条本来就判"两可"，缺的是稿侧一次改示例——
    与 I3 可以并成一次 `04-disk.html` 重绘，见 §3 末尾那条合并建议。
@@ -256,7 +261,7 @@
    数据确用分配大小（`MMDisk.swift` 的 `readEntries`，现 `:1893` 起、取值在 `:1916`），但 `legend(filtered:)`
    当时写「面积 = 实际磁盘占用」而稿写「面积 = 实际占用（st_blocks × 512）」——数据口径对，文案精度低于稿。
    → 建议：图例补回 `(st_blocks × 512)` 注脚，与稿对齐，也兑现 disktree 采纳的口径承诺。
-   **✅ 已落地（`5e1dfe3`）**：图例现为 `MMDisk.swift:582-584`，非过滤态
+   **✅ 已落地（`5e1dfe3`）**：图例现为 `MMDisk.swift:598-600`，非过滤态
    「面积 = 实际磁盘占用（st_blocks × 512）· 双击下钻 · ⌘ 点击标记」，与稿 `04-disk.html:148` 同口径。
    比建议多做了一步的**是对的**：过滤态另给一句「过滤中：面积 = 命中占用 · 实色 = 命中 · 淡色 = 含命中的祖先」（`:589`），
    因为过滤时面积换成了命中体积，注脚若只有一份就会假报口径（`:585-586` 有说明）。
@@ -265,7 +270,7 @@
    → 建议：标记后底部栏出现动作按钮是合理的，但稿需补画"标记后动作栏"artboard；未标记态可考虑降级为更薄的状态条以贴合稿。
    **⚠️ 半件落地，且落地的那一半比原建议更重要（`f249ee0`，2026-10-01，P2）**：
    "标记后预计"这个投影被**取消**而不是挪位置——面包屑处现在只报当下事实
-   （`MMDisk.swift:363` `MMBadge("卷可用 …")`），理由与实测都在注释里（`:358-362`）：
+   （`MMDisk.swift:379` `MMBadge("卷可用 …")`），理由与实测都在注释里（`:374-378`）：
    同卷把条目移进 `~/.Trash` 不改变可用空间（`Scripts/trash-space-measure.swift`，200 MiB 文件实测 0 变化），
    所以「卷可用 X → Y」的 Y 是一个**不会兑现的数**；投影只留在两块确认面板里，且分清口径
    （`:1168` 回收后"清空废纸篓后卷可用"、`:1212` 永久删除"这一步当场生效"）。
@@ -305,8 +310,8 @@
     实现 28pt == 令牌 28px 已经是代码级事实（`MMDesign.swift:111` ↔ `tokens.css:36`），
     量出来只会再确认一遍，而该改的是稿里那三行内联。留作**改稿后的一次复核**，不算取证欠账。
 11. **【低】I11 · 面包屑栏 34pt vs 稿 26px**
-    `.frame(height: 34)`（写作当时引的 291 行现已漂成别的内容，P16 现读全文件**只有这一处** `.frame(height: 34)`，在 `MMDisk.swift:374`）；稿 `.crumbs` 26px。⚠️待真机测量。
-    **❌ 仍未做**：锚点 `MMDisk.swift:374`，值没变；
+    `.frame(height: 34)`（写作当时引的 291 行现已漂成别的内容，P16 现读全文件**只有这一处** `.frame(height: 34)`，在 `MMDisk.swift:390`）；稿 `.crumbs` 26px。⚠️待真机测量。
+    **❌ 仍未做**：锚点 `MMDisk.swift:390`，值没变；
     稿侧 `screen.css:126` `.crumbs{… height: 26px}`。差 8pt，方向是实现更厚——这一条**先量再改**：
     34pt 是 P4 最小窗口核对（task #55）之后仍在的值，压到 26 要看面包屑里的徽章与
     「这些路径这次没扫到」提示（`:362-368`）会不会挤。量一次磁盘页即可同时结掉 I9/I10/I11 三个 `⚠️待真机测量`
@@ -354,7 +359,7 @@
 ## 3. 设计稿该改（6 条）
 
 1. **【中】S1 · 04 稿缺「值得看一眼」面板**
-   实现 `MMDisk.swift:293-357` 在面包屑下插入整块发现面板（disktree #4 已采纳），稿完全没画。该面板是模块核心信息区，
+   实现 `MMDisk.swift:298-362` 在面包屑下插入整块发现面板（disktree #4 已采纳），稿完全没画。该面板是模块核心信息区，
    无 artboard 即无法核对其排版、徽标色（`kindTint`）、截断与合计文案。
    → 补一个 artboard：面包屑下 6 行发现（可回收/久未触碰/大文件 三色徽标 + 名称中段截断 + 原因 + 大小 + 箭头）。
 2. **【中】S2 · 04 稿状态覆盖严重不全**
@@ -376,7 +381,7 @@
    「系统清理 2.4 GB」「应用卸载 46」在 04 稿无数据来源，应改成与实机一致的数值或留空，避免"稿子数字像实测"。
 7. **【低】S7 · 稿内三处滞后/自相矛盾，建议并成一次 `04-disk.html` 重绘**（P6.5b 复核新增）
    这三处都在 §2 复核时从"实现差异"改判为"稿差异"，且都在同一个文件里，分三次改只会互相顶：
-   - 详情头部图标 `#i-box`（`:154`）——实现按类型给形状、按风险给颜色（`MMDisk.swift:764`），信息量更大，改稿不改实现；
+   - 详情头部图标 `#i-box`（`:154`）——实现按类型给形状、按风险给颜色（`MMDisk.swift:780`），信息量更大，改稿不改实现；
    - 「修改」示例（`:164`）应换成相对时间（"3 天前"），与实现的 `MMFormat.relative` 一致（`:800`，理由在 `:798-799`）；
    - 「内部构成」三行的内联 `height:32px`（`:169`/`:172`/`:175`）顶掉了自家令牌
      `--row-h-compact: 28px`（`tokens.css:36`），删掉内联即可回到一致口径——这一处见 §2 I10。
@@ -461,7 +466,7 @@ kill "$APP_PID"   # 只 kill 自己记下的 pid
    本模块当时是唯一破了"扫描类钩子只认 /tmp"红线的地方（改前那两条锚点指到扫描入口与选中钩子，
    都没有前缀校验）。按硬约束 #4「优先提请协调者」，当时请协调者确认：是否在 `MMDisk/Sources` 内照
    `GuardianFixtureHooks.swift` 口径补 `/tmp` 守卫（越界写 stderr 并 `return`）。
-   **现在的实现正是这个口径**：`MMDisk.swift:170-175` 与 `MMDisk.swift:1070-1078`，
+   **现在的实现正是这个口径**：`MMDisk.swift:175-180` 与 `MMDisk.swift:1086-1094`，
    且两处的拒绝文案都被 `Scripts/p18-hook-typo-proof.sh` 的负向档实拍钉住（`hook-typo-audit.md` §5
    把 `MM_DISK_SCAN` 归在 A 类"改前就会说话"，说的就是这一条已经会自己开口）。
    **本审计当时未改此代码**，等协调者拍板——这一句保留原文，因为它是"提请协调者"这一类条目的样板：
@@ -632,9 +637,9 @@ if let fresh = find(path: path, in: items) { … } else { dropped.append(path) }
 ```
 
 `isUnder` 是**任意深度**的包含判断，而 `find` 递归找的是 `items` 那几棵子树——
-问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1387`，
+问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1403`，
 取孩子在 `:1401`，**只取一层**），拿到的孩子**不带孙子**。于是挂在 `scope` 下两层的标记既找不到也无处递归，
-被丢进 `dropped`，UI 上据此画出「重扫后 N 个标记已经不在了 · 已移除」（`MMDisk.swift:358`）。
+被丢进 `dropped`，UI 上据此画出「重扫后 N 个标记已经不在了 · 已移除」（`MMDisk.swift:374`）。
 
 **这不是取证缺陷，是用户可达的假话**，路径很日常：
 在 `Documents` 里标记一个文件 → 回到上一层 → 按「重新扫描」。
@@ -739,7 +744,7 @@ testRefreshKeepsMarksDeeperThanTheEnumeratedLevel
 
 - **「移入废纸篓」那条绿色撤回回执**（§8 表格末句"左条…真实那一拍没单独拍"）现在**仍然拍不到**，
   而且原因这轮才查清：画它的分支在 `applySelectionHook` 里排在
-  `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1117` → `:1152`），
+  `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1133` → `:1168`），
   也就是说要触发它就必须开确认面板，而面板是 `.sheet`（`:120`），会把吐司整个盖住。
   零点击到不了这一态，除非给它单开一条钩子——本轮不新增钩子，所以四档里没有它。
 - `.guarded` blocked 行、按下红色按钮之后的界面：与 §8 末尾所记相同，前者钩子进不去
@@ -758,8 +763,8 @@ I4 收口那一轮（§2 第 4 条 ✅）留下的不是一句"改回子项就�
 
 ### 12.1 为什么必须新造一棵树
 
-`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1890`）那一支写下，
-而 `maxDepth = 20`（`MMDisk.swift:1722`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
+`descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1947`）那一支写下，
+而 `maxDepth = 20`（`MMDisk.swift:1779`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
 所以这一档此前不是"没拍"，是**没有任何夹具能拍到**。新夹具
 `Scripts/disk-depth-fixture.sh` 造的是一棵 20 层窄树（每层一个 64k 实心文件 + 一个子目录），
 层数按扫描器口径推：`scanChildren(path: 根, depth: 0)` 枚举根的子女，扫 `根/L01…L0k` 时 depth = k，
@@ -927,7 +932,7 @@ P22 那一轮靠的是三条 `stat` 现读出来的 mtime 排序，而那个形�
 `77.8 MB · /tmp….1 s · 44 个文件`。单位活了，但"用时"被切成半句，真值 0.1 s 在画面上成了 1 s。
 教训写成一句话留在源码注释里：**牺牲者不能是个数字**——中间截断不会整段删掉谁，
 它只会把跨在边界上那一段切一半，而"切一半的数字"比"少一段"更糟。
-于是页头只剩三段：`占用 · 路径 · N 个文件`（`MMDisk.swift:230-236` 取数、`:1555-1561` 定序），
+于是页头只剩三段：`占用 · 路径 · N 个文件`（`MMDisk.swift:235-241` 取数、`:1585-1591` 定序；**P35b 现读重指**，§15 那一轮读的是 230-236 与 1555-1561），
 实拍 `77.8 MB · /tmp…ture · 44 个文件` / `33.6 MB · /tmp…code · 1 个文件`，两头都是完整的话。
 
 **③ 设计稿欠一次同步**：`docs/design-system/screens/mmdisk/04-disk.html:60` 与
@@ -942,7 +947,8 @@ P22 那一轮靠的是三条 `stat` 现读出来的 mtime 排序，而那个形�
 
 **④ 本轮顺手撞到的一类账：表格里裸写的 `:NNN` 锚不在机器判据里**。
 `Scripts/p16-citation-audit.sh:130` 那条正则要求**冒号前紧贴一个带扩展名的文件名**
-（`MMDisk.swift:203-205` 它吃，`:203-205` 它一个都不吃）。本表 §1.2 为了少占版面，
+（`MMDisk.swift:208-210` 它吃，`:208-210` 它一个都不吃）。**P35b 现读**：本轮重指时裸号那一半全被工具放过，
+只能人工逐条补（见 §1 那一格）——这一句从"举个形式差异"变成了当期欠着的账。本表 §1.2 为了少占版面，
 同一文件的后续行号全是裸写的——**于是这一类锚从头到尾没有被机器查过**。
 本轮实测它的体量（自包含一条命令，冒号前不是文件名字符、冒号后是数字即计一处；
 时间 `22:35`、比例 `1000:600`、URL 都不计）：
@@ -970,7 +976,7 @@ awk -f 同一份脚本 docs/analysis/*.md       # 现读 753（第二多的是 d
 
 **因此立一条规矩**：凡本轮改过某个源文件的行数，同一轮必须现读重查**指向该文件的裸锚**
 （`grep -nE '[^A-Za-z0-9_.\/+-]:[0-9]+' docs/analysis/*.md` 按文件名筛），改不完就写进残余；
-要么写全 `MMDisk.swift:203-205`，要么不写行号。**把裸锚收进机器判据**（核验表给"文件"列单独一格）
+要么写全 `MMDisk.swift:208-210`，要么不写行号。**把裸锚收进机器判据**（核验表给"文件"列单独一格）
 是共享层的事，本轮只立案不做。
 
 **规矩管的是"裸锚没人查"，那带文件名的就查得干净吗——本轮量了，也不干净**：
@@ -981,6 +987,75 @@ awk -f 同一份脚本 docs/analysis/*.md       # 现读 753（第二多的是 d
 所以改完报出来的两处再跑一遍仍是那两条、只是换了文件名——**要按锚点 `grep` 全仓，不能按明细那两行改**。
 这两条的完整记账在 `docs/analysis/header-truncation-audit.md` §9 与
 `docs/analysis/release-readiness.md` §1 那一格（含"总数不能当债的读数"那一句：88 条重指，唯一面只动 4）。
+
+## 16. P35b 追加（2026-10-12）：面包屑条上那个「还有 N 卷」，与它为什么不能只靠照片
+
+判据（三级枚举、容量配对去重、排序口径、字节对账）全在 `docs/analysis/disk-volume-enumeration.md`，
+本轮实现结果与五条偏离记在那份的 §14。这一节只记**这一屏的还原度账**：画面多了什么、稿没有它、
+以及"照片拍到"与"这台机器有"的差别怎么变成机械判据。
+
+**① 新增的是一个徽标，不是页头第四段**。磁盘页面包屑条右侧：
+`MMDisk.swift:367-371` 的 `MMBadge(DiskVolumeBadgeCopy.text(candidateCount: volumeRoots?.count))`，
+取数：定义在 `:1553-1558`、唯一调用点在 `:1517`（跟着"清单载入"这一件事刷新）；**这两处是收口时重跑对位才落准的**——
+本节初稿写的 1515-1524 其实是调用点附近那一屏，定义在它下面 36 行，两个数当时都没现读到底，声明在 `:85`
+（`@State private var volumeRoots: [VolumeRoot]?`——**nil 是"没读到"，不是"0 个"**）。
+为什么不写进页头副标题：`DiskHeaderContractTests` 把那句钉成**恰好三段、且不含秒数**
+（`:235-241` 取数、`:1585-1591` 定序，合同本身是 §15 ② 那一轮的；**这一对行号本节初稿照抄了 §15 那一份、没有现读，P35b 收口时逐条对位重指**——
+§15 那一轮读的是 230-236 与 1555-1561，本轮在它们之上分别加了 5 行与 30 行），加第四段就是违约。
+§15 ① 那条教训也在这里成立——这一屏的动作簇全站最宽，多出来的要紧话不能挂在会被中间截断吃掉的位置上。
+措辞四支与 caveat 集中在 `DiskVolumeBadgeCopy`（`:1603-1617`），caveat 走 `.help()`。
+
+**② 稿侧没有这一格**（`docs/design-system/screens/mmdisk/04-disk.html` 无对应元素）。
+归 **设计稿该改**：它不是还原度偏差，是实现比稿多做的一格可见状态，
+而 caveat 里那五句（口径 / 去重 / 尺子 / 换卷办法 / 网络卷边界）是稿该抄的内容。
+
+**③ 档位映射**（`MM_VOLUME_FIXTURE` 是本轮新增的合成档，读取点 `MMCore/VolumeRoots.swift` 的
+`VolumeRootProbe.snapshot(env:)`；不注这一支就是读这台机器的挂载表）：
+
+| 档 | 照片 | 画面上那句 | 这一格证明什么 |
+| --- | --- | --- | --- |
+| 不注（真机） | `p35b-volumes/01-disk-real-one-root.png` | **什么都不写**（候选根 1，`:1607` 那支返回 nil） | 本机今天只有一卷可分析，而"只有 1 卷"我们不写成自证 |
+| `two` | `02-disk-fixture-two.png` · 暗档 `p35b-volumes-dark/02-…` | 「这台机器还有 **1** 卷可以切换分析」 | 正分支的排版放得下；N 是 `count−1`（当下这卷已经在分析，不能再卖一次） |
+| `zero` | `03-disk-fixture-zero.png` | **仍然什么都不写** | 有挂载点、但没有一条能扫 —— 这一档证明它**没有**长成「还有 0 卷」，也**没有**冒充"读不到"（两个不同的事实，`DiskVolumeBadgeTests` ③ 钉的就是这条） |
+| `fail` | `04-disk-fixture-fail.png` | 「未能读取卷列表，这里不猜数字」（caution 色 + `questionmark.folder`） | 读数失败那一支有话说，且不编数 |
+| `two` + 窄窗 | `05-disk-fixture-two-narrow.png` | 「这台机器还有 1 卷可以切换分析」在 1000 pt 宽下 | §15 那一族的截断检查：徽标与「未纳入 N 个受保护目录」「卷可用 X」挤不挤 |
+| 非法值 | `06-disk-fixture-invalid-voided.png` | 回到真机那一态（什么都不写） | 写错值整支作废 + stderr 留一行，回落 `off` = 读这台机器 |
+
+四支措辞里**只有两支会画东西**（`two`/`fail`）；`zero` 与真机那两张画面同形是**设计如此**，
+所以这一族不能靠 md5 判夹具生效与否——判据换成 stderr 那行留痕 + 日志里的 `# 页：`/`# 夹具：` 两行。
+
+概览页那两张（`07-overview-real-count.png` / `08-overview-fixture-fail.png`）拍的不是这一屏，
+是页脚那句「N 个卷」（`MainWindow.swift:277-285`），列在这里只因为同一个判据层喂两边。
+
+**④ 01 与 07 这两张"画面上一句话都没有"的照片，单看是不可证的**。空徽标既可能是"候选根=1 所以不写"，
+也可能是"这段代码根本没跑"。本轮的交叉读数是把 P35a 那支探针**当天在同一棵树上重跑**、
+输出到独立目录 `docs/verification/p35b-volumes-probe/volumes.log`，它打印「候选根=1」，
+头部 `# digest: 27db42a+d01abc46` 与被测产物的 `MMSourceDigest` 逐字相同
+（同族多跑必须换目录，规矩出自 `f7bca94`）。**照片证明界面，探针证明数字。**
+
+**⑤ 本轮自己造出来的两处假绿，都是被脚本的门禁抓住的**（不是人眼看照片看出来的）：
+- `VolumeFixtureTier` 第一版把 `\(tier.rawValue)` 漏写成 `\tier.rawValue`：`\t` 被当制表符，
+  stderr 那行"留痕"打的是 `MM_VOLUME_FIXTURE=〈TAB〉ier.rawValue 已生效`——照片照常拍到徽标、
+  日志照常有一行"已生效"，**取证用的那行字没说出用的是哪一档**。现在那句是纯函数
+  `appliedNote`（`VolumeRoots.swift`），由 `testAppliedNoteNamesTheTier` 钉住"档位名必须在里面、
+  且不许出现未求值的插值"。
+- `shot 07`/`shot 08` 第一版漏传第四个参数，两档都落在磁盘页上：07 与 06 逐字节相同，
+  而概览页那两张从头到尾没拍到过概览页。修法是脚本自己断言每张的**页别**（日志里那行 `# 页：`），
+  外加 06↔07 md5 **必须不同**这条兜底。P6.6 那一族的判据（同钩子两档 md5 相同 = 夹具没生效）
+  在这里反过来救了一次。
+
+**⑥ 回归网**：`VolumeRootsTests` 19 条（纯函数：三级枚举/去重/排序/口径/四档夹具/appliedNote）
++ `DiskVolumeBadgeTests` 8 条（四支措辞 + caveat 五句 + nil≠0）。
+九包 `合计：764 个测试，0 个失败，1 个跳过`（`docs/verification/p35b-volumes/run-all-tests.log`，
+逐包 MMCore 96 · MMUI 17 · MMFileScanner 117 · MMCleaner 25 · MMUninstaller 200 · MMDisk 85 ·
+MMMonitor 57 · MMGuardian 96 · MMOptimizer 71；比 P34b 的 737 多 27 = 本轮那两个新文件）。
+它钉得住措辞与判据，钉不住"这台机器有几块盘"——**合成值只证明界面会写这句话，
+不证明这台机器有两块盘**，所以 caveat 与每一档日志里那行"这是合成快照"都不许删。
+
+**⑦ 仍未做的**（写清，不含"应该没问题"）：**C 档「一键换卷重扫」没实现**，
+所以徽标那句只报数、点了没反应，caveat 第一句就是"要分析别的卷，现在按「选择目录」走到那卷上的任意目录"。
+照片里 `two` 档那个"还有 2 卷"在真机上永远不出现（本机候选根恒为 1），
+它是**将来插第二块盘时才会活过来的那一格**——本轮只做到"它长什么样、放得下、口径说得清"。
 
 
 

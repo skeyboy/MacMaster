@@ -6,7 +6,7 @@ SwiftPM 多包结构，无第三方依赖，**无任何网络代码**。
 - 系统要求：**macOS 14.0+**（`Package.swift` 的 `.macOS(.v14)`，产物 `Info.plist` 的 `LSMinimumSystemVersion=14.0`）
 - 工具链：**构建实测下限是 Xcode 26 / Swift 6.3 这一档**，不是清单里那行版本号。`Package.swift` 第一行是
   swift-tools-version 5.9，但**5.9/5.10 那批工具链实测编不过**：CI 曾在 Xcode 15.4（Swift 5.10）镜像上跑，
-  磁盘页 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1416-1421` 的 `scanDirectory()` 报三处 `await`/MainActor 错误
+  磁盘页 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1432-1437` 的 `scanDirectory()` 报三处 `await`/MainActor 错误
   （三档读数都出自当场跑的构建日志，"为什么不改那三行"记在 `docs/analysis/release-readiness.md` §7.20 与 §8 的工具链那一档）。
   实测绿的两个档：Xcode 26.6 / Swift 6.3.3（CI 现用 `macos-latest`）与作者机 Xcode 27.0 / Swift 6.4（全部取证产物出自后一个）。
   **中间那些档（16.x–25.x）从没测过，别假设能编。** swift-tools-version 5.9 只是清单声明的下限，够不着这一条。
@@ -35,17 +35,24 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 `Info.plist`，而那份 plist 是 `make-app.sh` 写的——不要去脚本里改字面量。
 
 **产物自带出处**（P19 起）：`make-app.sh` 往同一份 plist 写 `MMGitCommit`（工作区不干净时后缀 `-dirty`）。
-**P23 起还写 `MMSourceDigest`**——那 **98** 个编译输入（P34b 现数：已跟踪 96 + 未跟踪 2；`Sources` / 九个包的 `Sources` 与 `Package.swift` /
+**P23 起还写 `MMSourceDigest`**——那 **99** 个编译输入（**P35b 现数：已跟踪 99 + 未跟踪 0**；
+P34b 那一读是 96 + 2，因为那两个新源文件当天还没 `git add`；P35b 又加了一个 `Packages/MMCore/Sources/MMCore/VolumeRoots.swift`，
+它当日就进了索引；`Sources` / 九个包的 `Sources` 与 `Package.swift` /
 根 `Package.swift` / `Resources/AppIcon.icns`，**不含测试源码**）的**内容**哈希，前缀拼 HEAD 短 sha。
 为什么要它：`-dirty` 只说"工作区有改动"，不说改了哪个文件哪一行，
 而 P22 撞的那一次（搬动一个私有辅助函数的位置）恰好是 commit、脏净态与画面**三条线都看不见**的改动。
 取证脚本起跑前先比这个指纹，**不同源就 exit 4、一张都不出**，
 配方一份在 `Scripts/mm-provenance.sh`，构建侧与取证侧共用（两边各算一遍等于没门禁）。
-**接了这道门禁的出片脚本现读 7 支**（`p7-release-check`、`p17-website-capture`、`p18-hook-typo-proof`、
-`p22-disk-skip-capture`、`p4-sweep`、`p68-dev-capture`、`p68-disk-capture`；
-判据是 `comm -12` 比"含 screencapture"与"含 mm_provenance_check"两份清单——**单独 `grep -l mm_provenance_check` 会多算两支**：
-`mm-provenance.sh` 自己是定义处、`p23-provenance-probe.sh` 是拿它做否证的，两支都不出片），
-分母是 27 支含 `screencapture` 的脚本，**其余 20 支是历史轮次的夹具，没接**（代价与理由见 §7.14 残余）。
+**接了这道门禁的出片脚本现读 14 支**（**P35b 现数**：`p7-release-check`、`p17-website-capture`、`p18-hook-typo-proof`、
+`p22-disk-skip-capture`、`p4-sweep`、`p68-dev-capture`、`p68-disk-capture`、`p29-settings-capture`、
+`p31-running-capture`、`p32-steam-capture`、`p32b-steam-launcher-capture`、`p33b-nesting-capture`、
+`p34b-prefs-capture`、`p35b-volumes-capture`；
+判据是 `comm -12` 比"含 screencapture"与"含 mm_provenance_check"两份清单——**单独 `grep -l mm_provenance_check` 会多算三支**：
+`mm-provenance.sh` 自己是定义处、`p23-provenance-probe.sh` 与 `p29-settings-pane-probe.sh` 是探针，都不出片），
+分母是 34 支含 `screencapture` 的脚本，**其余 20 支是历史轮次的夹具，没接**（代价与理由见 §7.14 残余。
+**这一格从前写的是 7 / 27 / 20**：那是 P23 那一读，P26 推到 7 / 20 之后每一轮的新出片脚本都接了门禁、
+却没有人回头改这一格——**它是 §0 那条"活数要挂轮次记账"规矩的第六个副本面，本轮现读才跟上**；
+分子从 7 涨到 14 而残格仍是 20，是因为涨的全是"新写的脚本自己就接了"，没有一支旧夹具被补上）。
 **顺序因此是钉死的：提交 → `make-app.sh` → 出片脚本**。指纹前缀是 HEAD 短 sha，
 所以一次提交本身就让提交前那份产物失配（内容没变也一样）——这不是麻烦，是它该管的那件事：
 照片出自哪一格树，日志里那一行 `tree=` 会写明。
@@ -98,8 +105,8 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh -o /tmp/mm-app-x -s /tmp/mm-scratch-
 ./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
-现测（**2026-10-12，P34b 在作者工作树上重跑；上一读是同日的 P33b，再上一读是 2026-10-10 的 P32b，再往前是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
-**737 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（**2026-10-12，P35b 在作者工作树上重跑（`27db42a-dirty`、指纹 `27db42a+d01abc46`）；上一读是同日的 P34b，再上一读是同日的 P33b，再往前是 2026-10-10 的 P32b，再往前是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
+**764 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
@@ -135,11 +142,17 @@ strict 档没有包含命中 ⇒ 复核一轮都不跑）→ **720**，还是全
 （`testBudgetTruncatesAndCountsTheRemaining` / `testGenerousBudgetScansEverything`）与一条文案不许过度声称
 （`testCopyNeverOverclaims`）；`OptimizerFixtureHookTests` 14 → 18 的 +4 条全钉新增的 `prefs:*` 那一族——
 档位名拼错要整支钩子作废、四档各有各的形状、夹具落地后真实扫描后到不许把它覆盖掉）→ **737**。
-**逐包求和 = 737**（**77** / 17 / 117 / 25 / **200** / 77 / **57** / 96 / **71**），这一条自 P11c 起每轮都当自证用。
+**P35b 加 27 条，两包各一笔**（`VolumeRootsTests` 全新 19 条在 MMCore：候选根那四条规则——可浏览、有总容量、
+按**容量对**去重、使用率降序且读不到可用的排最后——每一条都能在单测里喂合成快照跑完，外加一条钉住夹具留痕行
+必须**说出用的是哪一档**；`DiskVolumeBadgeCopy` 8 条在 MMDisk：「还有 N 卷」的 N 是**候选根数 − 1**、
+1 卷与 0 卷两档必须沉默、读不到才说"这里不猜数字"、禁语表把"块硬盘""没有其他卷""只有 1 卷""0 卷"钉死）
+→ **764**。
+**逐包求和 = 764**（**96** / 17 / 117 / 25 / **200** / **85**（含 1 跳过）/ 57 / 96 / 71），这一条自 P11c 起每轮都当自证用。
 **P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，P26 MMDisk 走到 77 之后撞车解开**——
 **而 P29 把它们撞回来了**：MMCore 也走到 77，于是这一跑里"77"同时是 MMCore 和 MMDisk。
-所以这条自证**要按包名读**这件事现在有了实指，不再只是一句提醒：117 与 77 里那个 `7` 是同一个字，
-而两个 77 更是同一个字，"某个数出现过没有"这种读法这一次会直接数错总数。
+**P35b 换了撞车的一对**：MMCore 96 与 **MMGuardian** 96，MMDisk 走到 85 之后反而和 MMCore 解开了——
+所以这条自证**要按包名读**这件事永远有效，不会哪一轮"解开"之后就再也不必念：96 出现两次，
+"某个数出现过没有"这种读法这一次照样会数错总数。
 **这一轮多出来的一条教训跟这 4 条判据有关**：第一档修复（只调段序）在这 4 条下是全绿的，
 实拍却把"扫描用时"切成一半——真值 0.1 s 在画面上成了 1 s。**单测钉得住段序，钉不住"这一句在 1000 pt 放不放得下"**，
 后者只有照片（§7.17）。
@@ -216,7 +229,11 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
 
 界面能不能信，靠照片而不是靠肉眼读代码。三种注入手法 + 一条硬红线：
 
-- **`MM_*` 环境变量钩子**（52 个名字，运行时 51 个）：把某一态的数据喂进页面。
+- **`MM_*` 环境变量钩子**（**55** 个名字，运行时 54 个；**P35b 现数**，逐名台账见 `docs/analysis/hook-ledger.md` §0——
+  多出来的那一个是 `MM_TRASH_FIXTURE_PROBE`，它只在测试里探 `/tmp` 守卫，不是运行时钩子。
+  从 52 走到 55 的三笔是 `MM_DUMP_MENUS`（P29）、`MM_UNINSTALL_SENSITIVITY`（P32b，当时漏登记、P35b 补）、
+  `MM_VOLUME_FIXTURE`（P35b）。
+  记账规矩：**这一格每加一个键都要回来改**，它是 §0 那条"活数"系列的又一个副本面）：把某一态的数据喂进页面。
   逐条只读性与是否可能触发破坏流程，记在 `docs/analysis/hook-ledger.md`。
 - **`/tmp` 夹具目录**：钩子只认 `/tmp` 之下的路径，越界直接忽略并写 stderr——
   所以夹具脚本（`Scripts/*-fixture.sh`）造的东西永远碰不到真实用户文件。

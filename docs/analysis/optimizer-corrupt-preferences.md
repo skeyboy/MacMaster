@@ -191,10 +191,10 @@ Mole 那一支的完整形状：`docs/github-references/Mole/lib/optimize/mainte
 
 ## 9. 呈现落点：三档建议
 
-`OptimizerTab` 在 P34a 那一跑是四个 case（`MMOptimizer.swift:264-265`，`id` 与 `hookKey` 都取 `rawValue`），
+`OptimizerTab` 在 P34a 那一跑是四个 case（`MMOptimizer.swift:265-266`，`id` 与 `hookKey` 都取 `rawValue`），
 `MM_OPEN_TAB` 逐 tab 触发截图（`:41`）。`v1.1` 那一格已经定了方向：**新 tab 复用开发工具页版式**。
 **→ P34b 已落地第五个 case**：现在是 `case duplicates, browser, status, devtools, preferences`
-（`MMOptimizer.swift:268-269`，行号本轮现读），`hookKey` 仍取 `rawValue`，所以钩子取值是 `preferences`。
+（`MMOptimizer.swift:269-270`，行号本轮现读），`hookKey` 仍取 `rawValue`，所以钩子取值是 `preferences`。
 
 - **A 档（推荐，判据 + 呈现的最小闭环）**
   第五个 tab `preferences`；纯判定层照 `DevToolCacheAuditor.entries(env:home:presenceProbe:sizeProbe:toolProbe:)`

@@ -16,7 +16,7 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 - 取消：`performScan` 一次性返回完整树，`DiskScanner` 侧无 `Task.isCancelled` 检查点（只有 `FileTreeWalker` 有）。
 - Treemap：`Packages/MMUI/Sources/MMUI/TreemapView.swift:132` `compute(items:in:)`。**"只排单层、children 声明了却不参与布局"是写作当时的状态**——P16 现读：`TreemapItem.children` 在 `:19`，递归布局在 `place(items:in:depth:options:into:)` `:140`，`header`/`depth`/`isOthers` 三个字段 `:45-48`，每层子块上限 `childCap(at:)` `:126-127`，小于 `options.minTile` 的块直接跳过 `:144`。本文 §"多层嵌套 + header band"那条采纳已经落地。
 - 配色：写作当时的 `colorForSize`（按 GB 分 red/orange/yellow/blue/gray）**已不存在**，全仓 `grep -rn colorForSize` 只命中构建中间产物。现在的两通道判定在 `DiskClassify.swift`：色相回答"这是什么"（`NodeCategory.color` `:28-38`，七档十六进制取自设计稿图例），斜纹回答"这份能不能清"（`reclaimReason(ofName:isDirectory:…)` `:120`），文件头 `:4-7` 就写着为什么要拆成两条链。
-- 导航：`MMDisk.swift:1387` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1396`）重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
+- 导航：`MMDisk.swift:1403` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1412`）重新遍历该目录求子项大小，而 `DiskScanStore` 已持有全量树。
 - 删除：MMDisk **无任何删除入口**。`MMFileScanner/SystemAnalyzer.swift` 的四级安全分级与 `MMCore/FileTrashService.swift` 的废纸篓+撤回机制已经存在，只是没接到磁盘树上。
 
 ## 逐维度分析
@@ -68,7 +68,7 @@ disktree 的核心价值不在 Rust/GPUI 管线，而在四套可直接移植的
 | disktree | marks 以**绝对路径**为键，重扫后凭路径重新挂回树、消失的 mark 归零重读（marks.rs:64-81）；标父吞子；四个屏幕 Explore/Review/Running/Done；commit 时 Trash 直接执行（可撤回），Permanent 必先弹确认并点名"什么会走、回来多少"；删除前 `plan()` 统一裁决：root 外路径 blocked、挂载点/家目录/系统树拒绝（removal.rs:97-191）；完成后以 statvfs 前后差报告**实际**回收 |
 | MacMaster | 磁盘模块 0 删除能力；`FileTrashService` 已是 disktree TrashBackend 的等价物，缺的是树上标记与安全裁决 |
 | 判定 | **ADAPT**——SwiftUI 里 selection-set + review sheet 完全可行，但要补三条纪律：按绝对路径存 marks、祖先吞并、永久删除单独确认 |
-| 落地 | `@State markedPaths: Set<String>`；`DiskScanStore.target(for:) -> MarkTarget?`；Tile 渲染加 danger 描边；新增 `RemovalReviewSheet`（列出 marks、合计字节、blocked 原因），Trash 走 `FileTrashService.shared`，永久删除加 `.confirmationDialog`；在现有 `protectedNames`（MMDisk.swift:545-554）之上加 root / 挂载盘 / `/System` 前缀拒绝 |
+| 落地 | `@State markedPaths: Set<String>`；`DiskScanStore.target(for:) -> MarkTarget?`；Tile 渲染加 danger 描边；新增 `RemovalReviewSheet`（列出 marks、合计字节、blocked 原因），Trash 走 `FileTrashService.shared`，永久删除加 `.confirmationDialog`；在现有 `protectedNames`（MMDisk.swift:561-570）之上加 root / 挂载盘 / `/System` 前缀拒绝 |
 | 代价 | M |
 
 ### 6. 空闲空间始终在视野

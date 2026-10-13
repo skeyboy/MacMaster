@@ -43,7 +43,7 @@ P25 修掉了清理页页头那一格，同时留了两笔账：一是**残余**
 | 概览 | `Sources/MacMaster/MainWindow.swift:268-272` | 「上次采样 刚刚 · CPU/内存/磁盘均为本机实时读数」 | ✅ 整句 |
 | 缓存清理 | `Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:881-891` | 「已扫描 16 类 · 10-07 21:58 ·…4.04 GB · 另有 139.9 MB 只读」 | ⚠️ P25 残余：被吃的是「可释放」标签，只读那一段活着 |
 | 应用卸载 | `Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:331-339` | 「41 个应用 · 已测 0 · 41 个测量中」 | ✅ 整句 |
-| 磁盘分析（浅） | `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:230-236`（文案在 `:1555-1561`） | 「77.8 MB · 44…aster-disk-fixture」 | ❌ 单位「个文件」+ 用时 + 路径前段被吃 |
+| 磁盘分析（浅） | `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:235-241`（文案在 `:1585-1591`；**P35b 现读重指**，本轮之前这一格读的是 230-236 / 1555-1561） | 「77.8 MB · 44…aster-disk-fixture」 | ❌ 单位「个文件」+ 用时 + 路径前段被吃 |
 | 磁盘分析（深） | 同上，扫 `/tmp/macmaster-disk-fixture/Library/Developer/Xcode` | 「33.6 MB · 1 个…eveloper/Xcode」 | ❌ 同上，且路径越长被吃得越多 |
 | 系统监控 | `Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:37-40` | 「上次采样 2026-10-07 21:58 · 实时更新」 | ✅ 整句 |
 | 隐私守护 | `Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:796-805` | 四段全在：「摄像头与麦克风的当前占用（手动测量，非实时监听） · TCC 授权只读视图 · 登录项管理 · 密钥与自启配置的改动时间（只读 mtime）」 | ✅ 整句（63 字符） |

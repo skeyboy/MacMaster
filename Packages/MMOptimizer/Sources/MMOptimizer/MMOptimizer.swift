@@ -75,7 +75,8 @@ public struct OptimizerView: View {
         .task { await applyFixtureIfNeeded() }
     }
 
-    /// MM_OPTIMIZER_FIXTURE：四 tab 空/失败/PROTECTED 态的纯展示注入（见 OptimizerFixtureHooks）。
+    /// MM_OPTIMIZER_FIXTURE：五个 tab 空/失败/PROTECTED 态的纯展示注入（见 OptimizerFixtureHooks）。
+    /// 「五个」是 P34b 起的实情（第五个是偏好文件页）；这一行在 P34b 里漏改，P35b 补上。
     /// 非法取值写 stderr 并整体忽略；未设置时此函数不改变任何模型状态。
     private func applyFixtureIfNeeded() async {
         let result = OptimizerFixture.parse(ProcessInfo.processInfo.environment["MM_OPTIMIZER_FIXTURE"])

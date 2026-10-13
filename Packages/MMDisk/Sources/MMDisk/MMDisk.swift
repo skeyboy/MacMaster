@@ -78,6 +78,11 @@ public struct DiskAnalyzerView: View {
     @State private var trashedSize: UInt64 = 0
     /// 当前层总大小：行内占比的分母，导航时算一次，不在 body 里重算。
     @State private var levelTotal: UInt64 = 0
+    /// 这台机器上"我们能扫的卷"（P35b A 档）。nil = 这一趟一行都没读到——
+    /// 界面据此说"读不到"，不说"0 卷"。
+    /// **刷新时点只有一处**：扫描结果载入的时候。没有定时器、不轮询、不跟随选中项——
+    /// P35a §8 量到一趟枚举 73 ms，那个数不构成"每次界面刷新都重读一次"的许可。
+    @State private var volumeRoots: [VolumeRoot]?
 
     public init() {}
 
@@ -353,6 +358,17 @@ public struct DiskAnalyzerView: View {
                           + "这些路径这次没扫到（多半是已经删了，或者换了扫描根），"
                           + "旧数字直接丢弃，不再算进上面的待删总量：\n"
                           + marksDroppedByRescan.joined(separator: "\n"))
+            }
+
+            // P35b A 档：候选根 > 1 才出现"这台机器还有 N 卷可以切换分析"，
+            // 本机恒为 1（一块内部盘），所以真机照片上这一格是**缺席**的——
+            // 正分支由 `MM_VOLUME_FIXTURE=two` 出照片（合成快照，每一档的 .log 里都有当场留痕）。
+            // 措辞的四个分支全在 `DiskVolumeBadgeCopy`，合同是 P35a §9 那张表。
+            if let text = DiskVolumeBadgeCopy.text(candidateCount: volumeRoots?.count) {
+                MMBadge(text,
+                        tint: volumeRoots == nil ? MMColor.caution : MMColor.secondaryLabel,
+                        systemImage: volumeRoots == nil ? "questionmark.folder" : "internaldrive")
+                    .help(DiskVolumeBadgeCopy.caveat)
             }
 
             // 以前这里在"有标记"时换成"卷可用 X → Y"。Y 是按标记体积直接加出来的，
@@ -1496,11 +1512,16 @@ public struct DiskAnalyzerView: View {
         }()
         let usedSize = totalSize > freeSize ? totalSize - freeSize : 0
 
+        // 卷名单跟着"清单载入"这一件事刷新：这是它**唯一的调用点**（见 `volumeRoots` 的声明注释）。
+        // 放在后台任务上：一趟枚举本机 73 ms，别压在扫描结束的落地帧里。
+        let volumeRoots = await Self.loadVolumeRoots()
+
         await MainActor.run {
             // 不用 withAnimation：整棵结果子树的换入会被纳入动画事务反复 diff/布局，
             // 大目录结果下会长时间占住主线程
             let store = DiskScanStore(rootItems: output.topItems)
             self.scanStore = store
+            self.volumeRoots = volumeRoots
             self.scanResult = DiskScanResult(
                 path: rootPath,
                 totalSize: totalSize,
@@ -1525,6 +1546,15 @@ public struct DiskAnalyzerView: View {
             self.applySelectionHook()
             self.isScanning = false
         }
+    }
+
+    /// 读一次"我们能扫的卷"。nil = Foundation 一条都没给（界面上说"读不到"，不说"0 卷"）。
+    /// 判定与筛选都在 `MMCore` 的纯函数里（`VolumeRoots`），这里只负责什么时候去读。
+    private static func loadVolumeRoots() async -> [VolumeRoot]? {
+        await Task.detached(priority: .utility) {
+            guard let rows = VolumeRootProbe.snapshot() else { return nil }
+            return VolumeRoots.candidates(from: rows)
+        }.value
     }
 
     /// 计数说的是整棵树里被跳过的目录，一条 help 浮层列不下几十条相对路径，
@@ -1558,6 +1588,33 @@ enum DiskHeaderCopy {
          path,
          "\(MMFormat.count(fileCount)) 个文件"].joined(separator: " · ")
     }
+}
+
+/// 面包屑条上那一枚"还有 N 卷可以切换分析"的措辞合同（P35b A 档）。
+///
+/// 四个分支逐条对着 P35a §9 那张表实现：候选根 > 1 才说那一句；= 1 时**这一格不出现**
+/// （缺席就是缺席，不写"只有 1 卷"这种自证）；一行都没读到说"这里不猜数字"；
+/// 读到了挂载点却一条都扫不了也**不写**——"没有其他卷"我们说不出，这一格只查了
+/// Foundation 的默认档，网络卷不在它的答复里。
+///
+/// 两句禁语钉在单测里：不许写"N 块硬盘"（卷 ≠ 物理盘，§4 量到同一个容器 6 个挂载点），
+/// 也不许把设备名、挂载点这类**证据**塞进徽标——证据走 `caveat` 那一格（help 浮层），
+/// 与 `DevToolCacheEntry` 的 reason/caveat 分工一致，两边不串门。
+enum DiskVolumeBadgeCopy {
+    /// nil = 这一格什么都不写。`candidateCount == nil` 是"没读到"，不是"读到 0 个"。
+    static func text(candidateCount: Int?) -> String? {
+        guard let candidateCount else { return "未能读取卷列表，这里不猜数字" }
+        guard candidateCount > 1 else { return nil }
+        return "这台机器还有 \(MMFormat.count(candidateCount - 1)) 卷可以切换分析"
+    }
+
+    /// `caveat` 那一格：口径、今天怎么换卷、以及这一格的边界。条件写在这里而不是徽标里，
+    /// 因为徽标位窄（P25/P26 那一族的教训：截断会把要紧的话藏起来）。
+    static let caveat = "「能扫的卷」= 可浏览、是目录、总容量读得到的挂载点；"
+        + "同一个 APFS 容器里报同一对容量数的几个挂载点算一条。"
+        + "可用容量按重要用途口径读，最满的那卷排在前面。"
+        + "一键换卷的重扫还没做：要分析别的卷，现在按「选择目录」走到那卷上的任意目录。"
+        + "这一格只查了 Foundation 的默认档，网络卷不在它的答复里。"
 }
 
 struct DiskTreeNode: Identifiable, Sendable {

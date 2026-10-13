@@ -1,0 +1,290 @@
+# p35a-volumes-probe.sh  2026-10-12 16:38:27 +0800
+# repo: 27db42a-dirty  branch=main
+# digest: 27db42a+d01abc46
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 探针源文件：501 行  Scripts/p35a-volumes-probe.swift（单文件编译，不链任何生产源文件）
+# 量的三件事：① 挂载表全量 vs Foundation 默认档 vs 传 .skipHiddenVolumes 档，条数差在谁身上；
+# ② 「最满优先」在 avail普通 / avail重要 / avail机会（以及 statvfs f_bavail 那一族）下是不是同一顺序；
+# ③ 枚举回来的一堆路径里哪些真能当扫描根（browsable / isDirectory / readOnly / removable，交叉挂载表标志位）。
+# 注意：这个 SDK 里没有 .includeHiddenVolumes 这个成员（现读编译核实），默认档已经含隐藏卷。
+# 对照的挂载表走进程内 getmntinfo + statvfs，不 spawn mount。
+
+两趟枚举耗时=193 ms（挂载表另算，见下）
+挂载表条数（getmntinfo，全部挂载点）=16  默认档（options=[]）=14  传 .skipHiddenVolumes 档=1
+说明：这个 SDK 里没有 `.includeHiddenVolumes` 这个成员，默认档就已经含隐藏卷；上面两档的差集是「被标记为隐藏、默认仍能枚举到」的那些。
+disktree 的 `f_frsize==0` 回落（`space.rs:61-67`）在本机挂载表里的触发条数=0 / 16（触发=0 说明这台机器上 statvfs 的 `f_frsize` 一直有数，回落那条支路量不到）
+
+---- 默认档比 .skipHiddenVolumes 档多出来的每一条（这些是界面上不该出现、但枚举会给的）----
+  /Library/Developer/CoreSimulator/Volumes/watchOS_23T570  browsable=否  local=是  total=8.5 GiB (9112125440 B)  device=/dev/disk9s1  flags=0x14909219 RDONLY|NOSUID|NODEV|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/Data/home  browsable=否  local=否  total=0.0 GiB (0 B)  device=map auto_home  flags=0x4500000 DONTBROWSE|MULTILABEL
+  /System/Volumes/Hardware  browsable=否  local=是  total=0.5 GiB (524288000 B)  device=/dev/disk1s3  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/Preboot  browsable=否  local=是  total=460.4 GiB (494384795648 B)  device=/dev/disk3s2  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/Update  browsable=否  local=是  total=460.4 GiB (494384795648 B)  device=/dev/disk3s4  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/VM  browsable=否  local=是  total=460.4 GiB (494384795648 B)  device=/dev/disk3s6  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/iSCPreboot  browsable=否  local=是  total=0.5 GiB (524288000 B)  device=/dev/disk1s1  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /System/Volumes/xarts  browsable=否  local=是  total=0.5 GiB (524288000 B)  device=/dev/disk1s2  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /Users/lee/Library/Developer/CoreDevice/DeviceFS  browsable=否  local=是  total=1024.0 GiB (1099511627776 B)  device=devices -- file:///Users/lee/Library/Containers/com.apple.CoreDevice.CoreDeviceService/Data/  flags=0x10301418 NOSUID|NODEV|DONTBROWSE|IGNORE_OWNERSHIP|LOCAL
+  /Volumes/Recovery  browsable=否  local=是  total=460.4 GiB (494384795648 B)  device=/dev/disk3s3  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe  browsable=否  local=是  total=3.1 GiB (3296722944 B)  device=/dev/disk11s1  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2  browsable=否  local=是  total=17.3 GiB (18559795200 B)  device=/dev/disk5s1  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9  browsable=否  local=是  total=17.0 GiB (18243125248 B)  device=/dev/disk7s1  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+
+---- 默认档每一条的完整读数（Foundation 一侧 + 挂载表一侧并排）----
+/
+    name=/  isDirectory=是  browsable=是  readOnly=否  local=是  removable=否  ejectable=否
+    total=460.4 GiB (494384795648 B)  avail普通=4.9 GiB (5250207744 B)  avail重要=4.9 GiB (5264818176 B)  avail机会=0.0 GiB (0 B)
+    used%普通=98.9%  used%重要=98.9%  used%机会=100.0%
+    挂载表：device=/dev/disk3s5s1  fsid=16777235/26  flags=0x4480d001 RDONLY|LOCAL|ROOTFS|JOURNALED|MULTILABEL|SNAPSHOT
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=460.4 GiB (494384795648 B)  statvfs blocks×frsize=460.4 GiB (494384795648 B)
+    可用对账：statvfs f_bavail（disktree 口径）=4.9 GiB (5250207744 B)  used%statvfs=98.9%
+/Library/Developer/CoreSimulator/Volumes/watchOS_23T570
+    name=watchOS_23T570  isDirectory=是  browsable=否  readOnly=是  local=是  removable=是  ejectable=是
+    total=8.5 GiB (9112125440 B)  avail普通=0.3 GiB (276758528 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=97.0%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk9s1  fsid=16777247/26  flags=0x14909219 RDONLY|NOSUID|NODEV|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=8.5 GiB (9112125440 B)  statvfs blocks×frsize=8.5 GiB (9112125440 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.3 GiB (276758528 B)  used%statvfs=97.0%
+/System/Volumes/Data/home
+    name=home  isDirectory=是  browsable=否  readOnly=否  local=否  removable=否  ejectable=否
+    total=0.0 GiB (0 B)  avail普通=0.0 GiB (0 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=—  used%重要=—  used%机会=—
+    挂载表：device=map auto_home  fsid=889192451/29  flags=0x4500000 DONTBROWSE|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=0.0 GiB (0 B)  statvfs blocks×frsize=0.0 GiB (0 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.0 GiB (0 B)  used%statvfs=—
+/System/Volumes/Hardware
+    name=Hardware  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=0.5 GiB (524288000 B)  avail普通=0.5 GiB (503054336 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=4.0%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk1s3  fsid=16777221/26  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=0.5 GiB (524288000 B)  statvfs blocks×frsize=0.5 GiB (524288000 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.5 GiB (503054336 B)  used%statvfs=4.0%
+/System/Volumes/Preboot
+    name=Preboot  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=460.4 GiB (494384795648 B)  avail普通=4.9 GiB (5250195456 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=98.9%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk3s2  fsid=16777233/26  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=460.4 GiB (494384795648 B)  statvfs blocks×frsize=460.4 GiB (494384795648 B)
+    可用对账：statvfs f_bavail（disktree 口径）=4.9 GiB (5250207744 B)  used%statvfs=98.9%
+/System/Volumes/Update
+    name=Update  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=460.4 GiB (494384795648 B)  avail普通=4.9 GiB (5250191360 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=98.9%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk3s4  fsid=16777230/26  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=460.4 GiB (494384795648 B)  statvfs blocks×frsize=460.4 GiB (494384795648 B)
+    可用对账：statvfs f_bavail（disktree 口径）=4.9 GiB (5250207744 B)  used%statvfs=98.9%
+/System/Volumes/VM
+    name=VM  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=460.4 GiB (494384795648 B)  avail普通=4.9 GiB (5250195456 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=98.9%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk3s6  fsid=16777229/26  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=460.4 GiB (494384795648 B)  statvfs blocks×frsize=460.4 GiB (494384795648 B)
+    可用对账：statvfs f_bavail（disktree 口径）=4.9 GiB (5250207744 B)  used%statvfs=98.9%
+/System/Volumes/iSCPreboot
+    name=iSCPreboot  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=0.5 GiB (524288000 B)  avail普通=0.5 GiB (503054336 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=4.0%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk1s1  fsid=16777224/26  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=0.5 GiB (524288000 B)  statvfs blocks×frsize=0.5 GiB (524288000 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.5 GiB (503054336 B)  used%statvfs=4.0%
+/System/Volumes/xarts
+    name=xarts  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=0.5 GiB (524288000 B)  avail普通=0.5 GiB (503054336 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=4.0%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk1s2  fsid=16777223/26  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=0.5 GiB (524288000 B)  statvfs blocks×frsize=0.5 GiB (524288000 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.5 GiB (503054336 B)  used%statvfs=4.0%
+/Users/lee/Library/Developer/CoreDevice/DeviceFS
+    name=DeviceFS  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=1024.0 GiB (1099511627776 B)  avail普通=1024.0 GiB (1099511627776 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=0.0%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=devices -- file:///Users/lee/Library/Containers/com.apple.CoreDevice.CoreDeviceService/Data/  fsid=805306372/24  flags=0x10301418 NOSUID|NODEV|DONTBROWSE|IGNORE_OWNERSHIP|LOCAL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=1024.0 GiB (1099511627776 B)  statvfs blocks×frsize=1024.0 GiB (1099511627776 B)
+    可用对账：statvfs f_bavail（disktree 口径）=1024.0 GiB (1099511627776 B)  used%statvfs=0.0%
+/Volumes/Recovery
+    name=Recovery  isDirectory=是  browsable=否  readOnly=否  local=是  removable=否  ejectable=否
+    total=460.4 GiB (494384795648 B)  avail普通=4.9 GiB (5250170880 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=98.9%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk3s3  fsid=16777228/26  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=460.4 GiB (494384795648 B)  statvfs blocks×frsize=460.4 GiB (494384795648 B)
+    可用对账：statvfs f_bavail（disktree 口径）=4.9 GiB (5250207744 B)  used%statvfs=98.9%
+/private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe
+    name=com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe  isDirectory=是  browsable=否  readOnly=是  local=是  removable=是  ejectable=是
+    total=3.1 GiB (3296722944 B)  avail普通=0.1 GiB (110370816 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=96.7%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk11s1  fsid=16777251/26  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=3.1 GiB (3296722944 B)  statvfs blocks×frsize=3.1 GiB (3296722944 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.1 GiB (110370816 B)  used%statvfs=96.7%
+/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2
+    name=com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2  isDirectory=是  browsable=否  readOnly=是  local=是  removable=是  ejectable=是
+    total=17.3 GiB (18559795200 B)  avail普通=0.5 GiB (503599104 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=97.3%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk5s1  fsid=16777239/26  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=17.3 GiB (18559795200 B)  statvfs blocks×frsize=17.3 GiB (18559795200 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.5 GiB (503599104 B)  used%statvfs=97.3%
+/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9
+    name=com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9  isDirectory=是  browsable=否  readOnly=是  local=是  removable=是  ejectable=是
+    total=17.0 GiB (18243125248 B)  avail普通=0.5 GiB (493625344 B)  avail重要=0.0 GiB (0 B)  avail机会=0.0 GiB (0 B)
+    used%普通=97.3%  used%重要=100.0%  used%机会=100.0%
+    挂载表：device=/dev/disk7s1  fsid=16777243/26  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+    容量对账：Foundation total 与 statfs 同数  statfs blocks×bsize=17.0 GiB (18243125248 B)  statvfs blocks×frsize=17.0 GiB (18243125248 B)
+    可用对账：statvfs f_bavail（disktree 口径）=0.5 GiB (493625344 B)  used%statvfs=97.3%
+
+---- 按 fsid 归组：挂载表全量（不看 Foundation，先看系统本来给了几条）----
+单条  -1645827600/19  路径数=1  容量集合数=1  可用集合数=1
+      devfs  total=0.0 GiB (222208 B)  avail=0.0 GiB (0 B)
+单条  16777221/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s3  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  16777223/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s2  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  16777224/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s1  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  16777228/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s3  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777229/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s6  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777230/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s4  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777232/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777233/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s2  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777235/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s5s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  16777239/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk5s1  total=17.3 GiB (18559795200 B)  avail=0.5 GiB (503599104 B)
+单条  16777243/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk7s1  total=17.0 GiB (18243125248 B)  avail=0.5 GiB (493625344 B)
+单条  16777247/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk9s1  total=8.5 GiB (9112125440 B)  avail=0.3 GiB (276758528 B)
+单条  16777251/26  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk11s1  total=3.1 GiB (3296722944 B)  avail=0.1 GiB (110370816 B)
+单条  805306372/24  路径数=1  容量集合数=1  可用集合数=1
+      devices -- file:///Users/lee/Library/Containers/com.apple.CoreDevice.CoreDeviceService/Data/  total=1024.0 GiB (1099511627776 B)  avail=1024.0 GiB (1099511627776 B)
+单条  889192451/29  路径数=1  容量集合数=1  可用集合数=1
+      map auto_home  total=0.0 GiB (0 B)  avail=0.0 GiB (0 B)
+
+---- 按设备名归组：挂载表全量 ----
+单条  /dev/disk11s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk11s1  total=3.1 GiB (3296722944 B)  avail=0.1 GiB (110370816 B)
+单条  /dev/disk1s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s1  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  /dev/disk1s2  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s2  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  /dev/disk1s3  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk1s3  total=0.5 GiB (524288000 B)  avail=0.5 GiB (503054336 B)
+单条  /dev/disk3s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk3s2  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s2  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk3s3  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s3  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk3s4  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s4  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk3s5s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s5s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk3s6  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk3s6  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+单条  /dev/disk5s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk5s1  total=17.3 GiB (18559795200 B)  avail=0.5 GiB (503599104 B)
+单条  /dev/disk7s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk7s1  total=17.0 GiB (18243125248 B)  avail=0.5 GiB (493625344 B)
+单条  /dev/disk9s1  路径数=1  容量集合数=1  可用集合数=1
+      /dev/disk9s1  total=8.5 GiB (9112125440 B)  avail=0.3 GiB (276758528 B)
+单条  devfs  路径数=1  容量集合数=1  可用集合数=1
+      devfs  total=0.0 GiB (222208 B)  avail=0.0 GiB (0 B)
+单条  devices -- file:///Users/lee/Library/Containers/com.apple.CoreDevice.CoreDeviceService/Data/  路径数=1  容量集合数=1  可用集合数=1
+      devices -- file:///Users/lee/Library/Containers/com.apple.CoreDevice.CoreDeviceService/Data/  total=1024.0 GiB (1099511627776 B)  avail=1024.0 GiB (1099511627776 B)
+单条  map auto_home  路径数=1  容量集合数=1  可用集合数=1
+      map auto_home  total=0.0 GiB (0 B)  avail=0.0 GiB (0 B)
+
+---- Foundation 默认档里被数了几次（这才是界面会拿到的条数）----
+/System/Volumes/Data 在挂载表=true  在 Foundation 默认档=false
+Foundation 默认档里没有一个 fsid 对应两条以上路径（同一块盘只被数一次）
+
+按（total, avail普通）这一对数归组，默认档里有几条共享同一对数：
+  · total=0.5 GiB (524288000 B) avail普通=0.5 GiB (503054336 B) 条数=3
+        /System/Volumes/Hardware
+        /System/Volumes/iSCPreboot
+        /System/Volumes/xarts
+  · total=460.4 GiB (494384795648 B) avail普通=4.9 GiB (5250195456 B) 条数=2
+        /System/Volumes/Preboot
+        /System/Volumes/VM
+默认档里有容量的条数=13，不同的容量对=10
+
+---- 「最满的那卷优先」：三种口径各排一次（只排 Foundation 默认档会给界面的那些）----
+按 used%普通 排：/Volumes/Recovery(98.9%) → /System/Volumes/Update(98.9%) → /System/Volumes/Preboot(98.9%) → /System/Volumes/VM(98.9%) → /(98.9%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9(97.3%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2(97.3%) → /Library/Developer/CoreSimulator/Volumes/watchOS_23T570(97.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe(96.7%) → /System/Volumes/Hardware(4.0%) → /System/Volumes/iSCPreboot(4.0%) → /System/Volumes/xarts(4.0%) → /Users/lee/Library/Developer/CoreDevice/DeviceFS(0.0%) → /System/Volumes/Data/home(—)
+按 used%重要 排：/Library/Developer/CoreSimulator/Volumes/watchOS_23T570(100.0%) → /System/Volumes/Hardware(100.0%) → /System/Volumes/Preboot(100.0%) → /System/Volumes/Update(100.0%) → /System/Volumes/VM(100.0%) → /System/Volumes/iSCPreboot(100.0%) → /System/Volumes/xarts(100.0%) → /Users/lee/Library/Developer/CoreDevice/DeviceFS(100.0%) → /Volumes/Recovery(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9(100.0%) → /(98.9%) → /System/Volumes/Data/home(—)
+按 used%机会 排：/(100.0%) → /Library/Developer/CoreSimulator/Volumes/watchOS_23T570(100.0%) → /System/Volumes/Hardware(100.0%) → /System/Volumes/Preboot(100.0%) → /System/Volumes/Update(100.0%) → /System/Volumes/VM(100.0%) → /System/Volumes/iSCPreboot(100.0%) → /System/Volumes/xarts(100.0%) → /Users/lee/Library/Developer/CoreDevice/DeviceFS(100.0%) → /Volumes/Recovery(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2(100.0%) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9(100.0%) → /System/Volumes/Data/home(—)
+普通 vs 重要 排序相同=false
+重要 vs 机会 排序相同=false
+第一条是否同一路径：普通=/Volumes/Recovery  重要=/Library/Developer/CoreSimulator/Volumes/watchOS_23T570  机会=/
+⚠ 排序不同——界面用哪一口径做「最满优先」必须显式选一个，另一个会在同一台机器上给出不同的第一条。
+avail普通 vs avail重要（默认档 14 条）：普通>重要=12  普通<重要=1  相等=1  avail重要读到 0 的条数=13
+
+---- 假如改成「挂载表全量」来排（disktree 的枚举面）：前六条 ----
+  used%=100.0%  devfs  total=0.0 GiB (222208 B)  avail=0.0 GiB (0 B)
+  used%=98.9%  /dev/disk3s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+  used%=98.9%  /dev/disk3s2  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+  used%=98.9%  /dev/disk3s3  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+  used%=98.9%  /dev/disk3s4  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+  used%=98.9%  /dev/disk3s5s1  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+total 读不到或为 0 的条数=1：/System/Volumes/Data/home
+
+---- 照抄 disktree 那一把排序键（可用字节**升序**，读不到排最后）在本机给什么 ----
+按 avail普通 升序（disktree 的键）：/System/Volumes/Data/home(0.0 GiB (0 B)) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe(0.1 GiB (110370816 B)) → /Library/Developer/CoreSimulator/Volumes/watchOS_23T570(0.3 GiB (276758528 B)) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9(0.5 GiB (493625344 B)) → /System/Volumes/Hardware(0.5 GiB (503054336 B)) → /System/Volumes/iSCPreboot(0.5 GiB (503054336 B)) → /System/Volumes/xarts(0.5 GiB (503054336 B)) → /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2(0.5 GiB (503599104 B)) ……共 14 条
+启动卷 / 在这一把尺子下排第 13（默认档共 14 条，前面 12 条的可用字节都比它小）
+解读：它把「可用字节少」当成「最满」。本机排在 / 之前的全是可用零点几 GiB 的系统卷，而 / 的可用有几十 GiB——照抄这一把键会把用户真正要清理的那块盘排到名单后头。排序键得按使用率，不能按绝对字节。
+
+---- 候选根（默认档里 browsable=true 且 isDirectory=true 的那些）----
+默认档条数=14  候选根=1  被 browsable/isDirectory 挡掉的=13
+  ✓ /  total=460.4 GiB (494384795648 B)  used%重要=98.9%  readOnly=否  local=是  removable=否  flags=0x4480d001 RDONLY|LOCAL|ROOTFS|JOURNALED|MULTILABEL|SNAPSHOT
+
+---- 被挡掉的每一条，以及是被哪把尺子挡掉的 ----
+  ✗ /Library/Developer/CoreSimulator/Volumes/watchOS_23T570  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x14909219 RDONLY|NOSUID|NODEV|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/Data/home  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4500000 DONTBROWSE|MULTILABEL
+  ✗ /System/Volumes/Hardware  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/Preboot  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/Update  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/VM  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/iSCPreboot  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /System/Volumes/xarts  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x14909004 NOEXEC|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /Users/lee/Library/Developer/CoreDevice/DeviceFS  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x10301418 NOSUID|NODEV|DONTBROWSE|IGNORE_OWNERSHIP|LOCAL
+  ✗ /Volumes/Recovery  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909000 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.yvfwoe  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.WytFC2  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+  ✗ /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.IuT6O9  Foundation browsable=否  挂载表 MNT_DONTBROWSE  flags=0x4909201 RDONLY|REMOVABLE|DONTBROWSE|LOCAL|JOURNALED|MULTILABEL
+
+---- 两把尺子有没有互相打脸：Foundation browsable vs 挂载表 MNT_DONTBROWSE ----
+默认档=14  两边都说可浏览=1  两边都说不可浏览=13  只有 Foundation 报不可浏览=0  只有挂载表报=0  挂载表无同路径条目=0
+
+---- disktree 会跳过的那几条在本机是什么样子（它的 never_scanned：Data 卷与 /Network 一族）----
+  /System/Volumes/Data：挂载表=有（device=/dev/disk3s1  flags=0x4909080 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL)  默认档里有这一条本身=false  有它下面的子挂载=1 条（/System/Volumes/Data/home）
+  /Network：挂载表=无  默认档里有这一条本身=false  有它下面的子挂载=0 条
+
+---- 挂载表里有、但 Foundation 默认档没给的那几条（枚举本身就把它们挡在外面）----
+挂载表=16  默认档=14  只在挂载表里的=2
+  /System/Volumes/Data  device=/dev/disk3s1  flags=0x4909080 DONTBROWSE|LOCAL|JOURNALED|MULTILABEL  total=460.4 GiB (494384795648 B)  avail=4.9 GiB (5250207744 B)
+  /dev  device=devfs  flags=0x4101000 DONTBROWSE|LOCAL|MULTILABEL  total=0.0 GiB (222208 B)  avail=0.0 GiB (0 B)
+
+---- 同一份空闲空间被几个挂载点共享（按设备名里的 diskN 段归组，APFS 容器口径）----
+⚠ 容器 disk1：挂载点数=3  容量集合数=1  可用集合数=1  总容量=0.5 GiB (524288000 B)  可用=0.5 GiB (503054336 B)
+      /System/Volumes/Hardware  device=/dev/disk1s3  在默认档枚举里=有这条
+      /System/Volumes/iSCPreboot  device=/dev/disk1s1  在默认档枚举里=有这条
+      /System/Volumes/xarts  device=/dev/disk1s2  在默认档枚举里=有这条
+⚠ 容器 disk3：挂载点数=6  容量集合数=1  可用集合数=1  总容量=460.4 GiB (494384795648 B)  可用=4.9 GiB (5250207744 B)
+      /  device=/dev/disk3s5s1  在默认档枚举里=有这条
+      /System/Volumes/Data  device=/dev/disk3s1  在默认档枚举里=没给这条
+      /System/Volumes/Preboot  device=/dev/disk3s2  在默认档枚举里=有这条
+      /System/Volumes/Update  device=/dev/disk3s4  在默认档枚举里=有这条
+      /System/Volumes/VM  device=/dev/disk3s6  在默认档枚举里=有这条
+      /Volumes/Recovery  device=/dev/disk3s3  在默认档枚举里=有这条
+解读：同一容器里那几个挂载点报的是同一份空闲空间。把它们各算一卷，就是把同一块盘的剩余量数了好几遍——「最满优先」的名单长度和「共 N 卷」都是假账。
+
+---- 「只读」这一格两把尺子打不打脸：Foundation volumeIsReadOnly vs 挂载表 MNT_RDONLY ----
+⚠ /：Foundation readOnly=否  挂载表 MNT_RDONLY=是  flags=0x4480d001 RDONLY|LOCAL|ROOTFS|JOURNALED|MULTILABEL|SNAPSHOT
+默认档=14  两把尺子说同一件事=13  打脸=1
+
+---- 启动卷 / 的单独读数（枚举给不给它、和直接对 / 取值是不是一回事）----
+/ ：browsable=是  isDirectory=是  total=460.4 GiB (494384795648 B)  used%普通=98.9%  used%重要=98.9%  device=/dev/disk3s5s1  flags=0x4480d001 RDONLY|LOCAL|ROOTFS|JOURNALED|MULTILABEL|SNAPSHOT
+枚举结果里有没有恰好等于「/」的那一条=true
+直接对 / 取值 vs 枚举那条：total 同数  avail重要 ⚠ 不同数（枚举=4.9 GiB (5264818176 B) 直接=4.9 GiB (5264629760 B)）  browsable 是 vs 是

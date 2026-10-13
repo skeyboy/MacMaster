@@ -272,10 +272,17 @@ struct DashboardView: View {
     }
 
     /// 底部状态条：设计稿放在内容区最下方。只报量得到的事实，
-    /// 卷数来自挂载表、文件系统名来自 statfs、上次清理来自废纸篓记录。
+    /// 卷数从 P35b 起是**候选根数**（"我们能扫的卷"，判据在 `MMCore` 的 `VolumeRoots`）、
+    /// 文件系统名来自 statfs、上次清理来自废纸篓记录。
     private var statusBar: some View {
         HStack(spacing: MMGap.sm) {
-            Text("\(model.volumeCount) 个卷")
+            if let volumeCount = model.volumeCount {
+                Text("\(volumeCount) 个卷")
+            } else {
+                // 读不到就报读不到：0 会被读成"这台机器没有卷"，而那句不是我们量出来的。
+                Text(DashboardText.placeholder + " 个卷")
+                    .help("未能读取卷列表，这里不猜数字")
+            }
             if let filesystem = model.filesystemName {
                 Text("·")
                 Text("文件系统 \(filesystem)")

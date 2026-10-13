@@ -127,7 +127,9 @@ Steam 启动器那一族之后现读到 **706 / 0 / 1**（MMUninstaller 148→**
 **720 / 0 / 1**（MMUninstaller 186→**200**，+14 全在那一包，其余八格的 XCTest 数一个没动；
 日志 `docs/verification/p33b-citations/run-all-tests.log`），偏好文件健康检查那一族之后走到
 **737 / 0 / 1**（MMOptimizer 54→**71**，+17 全在那一包，其余八格逐字相同；
-日志 `docs/verification/p34b-prefs/run-all-tests.log`）——
+日志 `docs/verification/p34b-prefs/run-all-tests.log`），磁盘卷枚举那一族之后走到
+**764 / 0 / 1**（MMCore 77→**96**、MMDisk 77→**85**，+19 与 +8，其余七格逐字相同；
+日志 `docs/verification/p35b-volumes/run-all-tests.log`）——
 **这一格往后每轮都会变，它只说明"默认分支现在多远"，不说明你手上这份产物里有什么**。
 
 ## 拿到源码的人怎么自证
@@ -142,11 +144,12 @@ VERSION=1.0.0 BUILD=1 ./Scripts/make-app.sh          # 产物 build/MacMaster.ap
 ```
 
 上面那行期望值只对 `v1.0.0` 那一棵树。默认分支已经带着设置页那九项修复、卸载页「正在运行」那一族、
-Steam 启动器识别那一族、残留归属复核那一族与偏好文件健康检查那一族，同一条脚本现读是 **737 个测试、0 失败、1 跳过**（MMCore 73→77、MMMonitor 53→57、
-MMUninstaller 121→148→186→**200**、MMOptimizer 54→**71**，其余五格逐字相同，结论行入库
+Steam 启动器识别那一族、残留归属复核那一族、偏好文件健康检查那一族与磁盘页跨卷枚举那一族，
+同一条脚本现读是 **764 个测试、0 失败、1 跳过**（MMCore 73→77→**96**、MMMonitor 53→57、
+MMUninstaller 121→148→186→**200**、MMOptimizer 54→**71**、MMDisk 77→**85**，其余四格逐字相同，结论行入库
 `docs/verification/p31-citations/run-all-tests.log`、`docs/verification/p32b-steam-citations/run-all-tests.log`、
-`docs/verification/p33b-citations/run-all-tests.log`
-与 `docs/verification/p34b-prefs/run-all-tests.log`）——
+`docs/verification/p33b-citations/run-all-tests.log`、`docs/verification/p34b-prefs/run-all-tests.log`
+与 `docs/verification/p35b-volumes/run-all-tests.log`）——
 **这两个数不是矛盾，是两棵树**。
 
 **构建机要 Xcode 26 / Swift 6.3 或更高**，这是实测下限而不是清单里那行版本号：`Package.swift` 声明

@@ -1,0 +1,9 @@
+# p35b-volumes-capture.sh 07-overview-real-count  2026-10-12 16:35:57 +0800  app=/tmp/mm-app-p35b/MacMaster.app
+# repo: 27db42a-dirty   # app-repo: 27db42a-dirty
+# digest: tree=27db42a+d01abc46 app=27db42a+d01abc46
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900（不带模块钩子：概览页是正常启动那一屏）
+# 页：overview   # 夹具：（未注入，读这台机器的挂载表）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p35b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=38207): windowid=7803 pid=38207 layer=0 title=MacMaster bounds=["X": 285, "Y": 68, "Width": 1400, "Height": 900]

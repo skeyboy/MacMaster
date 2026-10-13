@@ -11,7 +11,9 @@ import Foundation
 // - 内存占用 = active + wired + compressed，不含 inactive（inactive 可随时被回收，
 //   把它算成"占用"是这类工具最常见的虚报）；
 // - 磁盘可用用 volumeAvailableCapacityForImportantUsage，它含 purgeable 空间，
-//   和访达显示的一致；用 statvfs 的 f_bavail 会比访达少好几 GB。
+//   与"关于本机"同一把尺子（访达那一侧 P35a 没量，本轮不替它担保）；
+//   换成 statvfs 的 f_bavail 就换了一把尺子：本机启动卷上两者差 350,863,360 B（≈0.33 GiB），
+//   与它和普通口径的差（12,288 B）不是一个量级——数字对账必须到字节（P35a §7）。
 
 public enum SystemSampler {
 

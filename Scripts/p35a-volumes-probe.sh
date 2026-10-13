@@ -2,7 +2,10 @@
 # P35a 取证：本机现在挂着哪些卷、Foundation 的卷枚举（`mountedVolumeURLs`）会把它们说成
 # 什么，以及「最满的那卷优先」这句话在三种可用容量口径下是不是同一个排序。
 #
-# 这是一支**审计探针**，不是生产代码：判据将来落在 MMDisk 里，这里只把真机现状量出来。
+# 这是一支**审计探针**，不是生产代码：判据从 P35b 起落在 `MMCore/VolumeRoots.swift`
+# （不在 MMDisk——概览页页脚也要读同一份判定，而壳工程不 import MMDisk，理由记在
+# `docs/design-system/README.md` §2 与 `disk-volume-enumeration.md` §14），
+# 这里只把真机现状量出来，好让照片上"那一格为什么是空的"有一个独立读数可对。
 # 对照的那一把尺子是进程内 `getmntinfo`（挂载表）+ `statvfs`——disktree 拿 `mount` 的
 # **文本输出**做同一件事，v1.1 §2 第 4 条明确不学它，所以这里也只调系统调用，不 spawn 子进程。
 #

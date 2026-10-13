@@ -1,0 +1,11 @@
+# p35b-volumes-capture.sh 03-disk-fixture-zero  2026-10-12 16:35:23 +0800  app=/tmp/mm-app-p35b/MacMaster.app
+# repo: 27db42a-dirty   # app-repo: 27db42a-dirty
+# digest: tree=27db42a+d01abc46 app=27db42a+d01abc46
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=disk MM_OPEN_TAB=tree MM_DISK_SCAN=/tmp/macmaster-disk-fixture MM_VOLUME_FIXTURE=zero
+# 页：disk   # 夹具：zero
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p35b/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_VOLUME_FIXTURE=zero 已生效：这是合成快照，不是这台机器的读数
+MM_VOLUME_FIXTURE=zero 已生效：这是合成快照，不是这台机器的读数
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=37564): windowid=7790 pid=37564 layer=0 title=MacMaster bounds=["Y": 68, "Height": 900, "X": 285, "Width": 1400]

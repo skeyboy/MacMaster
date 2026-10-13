@@ -83,8 +83,8 @@
    不是随便起的名，是被钩子覆盖面决定的。
 2. **侧栏的卷信息条和磁盘页的"卷可用"没有钩子，画面上是真机状态**。
    `Sources/MacMaster/MainWindow.swift:144-169` 的 `volumeFooter`（卷名 + 剩余百分比 + 那条堆叠条）
-   数据来自 `Sources/MacMaster/DashboardModel.swift:71` 的 `SystemSampler.volume()`；
-   磁盘页右上角 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:363` 那个 `卷可用 …` badge 同理。
+   数据来自 `Sources/MacMaster/DashboardModel.swift:75` 的 `SystemSampler.volume()`；
+   磁盘页右上角 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:379` 那个 `卷可用 …` badge 同理。
    还有第三处：**侧栏"系统清理"后面那格体积**（`Sources/MacMaster/MainWindow.swift:108-111`）
    读的是概览页那次真实扫描的 `dashboard.reclaimState`，也不是钩子能顶替的东西——
    本轮是放大 01 那张照片时才看到它带着 `1.14 GB`，于是把页面上那句披露从两处改成三处。

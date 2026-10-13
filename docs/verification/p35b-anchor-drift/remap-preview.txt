@@ -1,0 +1,265 @@
+# p29 anchor remap
+# repo: 27db42a-dirty
+# 被改源文件 6 个
+# 扫到引用 token 142 处，唯一 (文件,行) 147 个（另有 35 处落在本轮新写的文档行上，锚点已经对着工作区，工具不动）
+# 可重指（行号变了）: 111  来源：位置平移 40 / 文本唯一 73
+# 需人工: 1
+  MAP  DashboardModel.swift:71 -> :75
+  MAP  DashboardModel.swift:75 -> :79
+  MAP  DashboardModel.swift:76 -> :80
+  MAP  DashboardModel.swift:92 -> :96
+  MAP  DashboardModel.swift:118 -> :122
+  MAP  MMDisk.swift:105 -> :110
+  MAP  MMDisk.swift:134 -> :139
+  MAP  MMDisk.swift:135 -> :140
+  MAP  MMDisk.swift:149 -> :154
+  MAP  MMDisk.swift:152 -> :157
+  MAP  MMDisk.swift:154 -> :159
+  MAP  MMDisk.swift:159 -> :164
+  MAP  MMDisk.swift:170 -> :175
+  MAP  MMDisk.swift:175 -> :180
+  MAP  MMDisk.swift:181 -> :186
+  MAP  MMDisk.swift:182 -> :187
+  MAP  MMDisk.swift:185 -> :190
+  MAP  MMDisk.swift:191 -> :196
+  MAP  MMDisk.swift:195 -> :200
+  MAP  MMDisk.swift:203 -> :208
+  MAP  MMDisk.swift:205 -> :210
+  MAP  MMDisk.swift:293 -> :298
+  MAP  MMDisk.swift:357 -> :362
+  MAP  MMDisk.swift:358 -> :374
+  MAP  MMDisk.swift:363 -> :379
+  MAP  MMDisk.swift:374 -> :390
+  MAP  MMDisk.swift:400 -> :416
+  MAP  MMDisk.swift:463 -> :479
+  MAP  MMDisk.swift:508 -> :524
+  MAP  MMDisk.swift:545 -> :561
+  MAP  MMDisk.swift:554 -> :570
+  MAP  MMDisk.swift:582 -> :598
+  MAP  MMDisk.swift:584 -> :600
+  MAP  MMDisk.swift:673 -> :689
+  MAP  MMDisk.swift:674 -> :690
+  MAP  MMDisk.swift:698 -> :714
+  MAP  MMDisk.swift:702 -> :718
+  MAP  MMDisk.swift:763 -> :779
+  MAP  MMDisk.swift:764 -> :780
+  MAP  MMDisk.swift:781 -> :797
+  MAP  MMDisk.swift:795 -> :811
+  MAP  MMDisk.swift:1047 -> :1063
+  MAP  MMDisk.swift:1067 -> :1083
+  MAP  MMDisk.swift:1070 -> :1086
+  MAP  MMDisk.swift:1078 -> :1094
+  MAP  MMDisk.swift:1105 -> :1121
+  MAP  MMDisk.swift:1117 -> :1133
+  MAP  MMDisk.swift:1141 -> :1157
+  MAP  MMDisk.swift:1152 -> :1168
+  MAP  MMDisk.swift:1323 -> :1339
+  MAP  MMDisk.swift:1331 -> :1347
+  MAP  MMDisk.swift:1387 -> :1403
+  MAP  MMDisk.swift:1416 -> :1432
+  MAP  MMDisk.swift:1417 -> :1433
+  MAP  MMDisk.swift:1421 -> :1437
+  MAP  MMDisk.swift:1484 -> :1500
+  MAP  MMDisk.swift:1496 -> :1512
+  MAP  MMDisk.swift:1722 -> :1779
+  MAP  MMDisk.swift:1890 -> :1947
+  MAP  MMDisk.swift:1926 -> :1983
+  MAP  MMDisk.swift:1932 -> :1989
+  MAP  MMDisk.swift:1963 -> :2020
+  MAP  MMOptimizer.swift:80 -> :81
+  MAP  MMOptimizer.swift:165 -> :166
+  MAP  MMOptimizer.swift:239 -> :240
+  MAP  MMOptimizer.swift:264 -> :265
+  MAP  MMOptimizer.swift:265 -> :266
+  MAP  MMOptimizer.swift:268 -> :269
+  MAP  MMOptimizer.swift:269 -> :270
+  MAP  MMOptimizer.swift:351 -> :352
+  MAP  MMOptimizer.swift:355 -> :356
+  MAP  MMOptimizer.swift:370 -> :371
+  MAP  MMOptimizer.swift:424 -> :425
+  MAP  MMOptimizer.swift:428 -> :429
+  MAP  MMOptimizer.swift:433 -> :434
+  MAP  MMOptimizer.swift:465 -> :466
+  MAP  MMOptimizer.swift:468 -> :469
+  MAP  MMOptimizer.swift:527 -> :528
+  MAP  MMOptimizer.swift:557 -> :558
+  MAP  MMOptimizer.swift:563 -> :564
+  MAP  MMOptimizer.swift:615 -> :616
+  MAP  MMOptimizer.swift:616 -> :617
+  MAP  MMOptimizer.swift:617 -> :618
+  MAP  MainWindow.swift:291 -> :298
+  MAP  MainWindow.swift:403 -> :410
+  MAP  MainWindow.swift:410 -> :417
+  MAP  MainWindow.swift:413 -> :420
+  MAP  MainWindow.swift:419 -> :426
+  MAP  MainWindow.swift:420 -> :427
+  MAP  MainWindow.swift:424 -> :431
+  MAP  MainWindow.swift:437 -> :444
+  MAP  MainWindow.swift:461 -> :468
+  MAP  MainWindow.swift:487 -> :494
+  MAP  MainWindow.swift:510 -> :517
+  MAP  MainWindow.swift:535 -> :542
+  MAP  MainWindow.swift:550 -> :557
+  MAP  MainWindow.swift:568 -> :575
+  MAP  MainWindow.swift:581 -> :588
+  MAP  MainWindow.swift:585 -> :592
+  MAP  MainWindow.swift:619 -> :626
+  MAP  MainWindow.swift:645 -> :652
+  MAP  MainWindow.swift:657 -> :664
+  MAP  MainWindow.swift:666 -> :673
+  MAP  MainWindow.swift:680 -> :687
+  MAP  SystemSampler.swift:69 -> :71
+  MAP  SystemSampler.swift:80 -> :82
+  MAP  SystemSampler.swift:83 -> :85
+  MAP  SystemSampler.swift:89 -> :91
+  MAP  SystemSampler.swift:141 -> :143
+  MAP  SystemSampler.swift:150 -> :152
+  MAP  SystemSampler.swift:164 -> :166
+  HAND MMDisk.swift:358  两套规则不一致（文本 374 / 位置 363）——采文本  | // 以前这里在"有标记"时换成"卷可用 X → Y"。Y 是按标记体积直接加出来的，
+  TOK  docs/analysis/deletion-guard.md:149  MMDisk.swift:170-175 -> MMDisk.swift:175-180  | （`MMDisk.swift:170-175`、`:1075-1080`），越界直接忽略钩子 —— 也就是说
+  TOK  docs/analysis/disk-double-gate-review.md:19  MMDisk.swift:1323 -> MMDisk.swift:1339  | 1. `trashMarked(plan:)` 只取 `plan.targets`（`MMDisk.swift:1323`），被 `DiskRemoval` 拦下的
+  TOK  docs/analysis/disk-double-gate-review.md:21  MMDisk.swift:1331 -> MMDisk.swift:1347  | 2. `targets` 仍会**再**走 `FileTrashService.shared.moveToTrash`（`MMDisk.swift:1331`），
+  TOK  docs/analysis/disk-volume-enumeration.md:61  MMDisk.swift:149-191 -> MMDisk.swift:154-196  | | `MMDisk.swift:149-191` | 截图钩子 `MM_DISK_HOLD` / `MM_DISK_SCAN` / `MM_DISK_RESCAN`，扫描类钩子只认 `/tmp` 之下
+  TOK  docs/analysis/disk-volume-enumeration.md:149  MMDisk.swift:1484-1496 -> MMDisk.swift:1500-1512  | 3. **口径要显式选一个并留在文案里**。磁盘页已经选了重要用途口径（`MMDisk.swift:1484-1496`），
+  TOK  docs/analysis/disk-volume-enumeration.md:150  SystemSampler.swift:141-150 -> SystemSampler.swift:143-152  | 概览页那一格（`SystemSampler.swift:141-150`）也是同一口径，所以新加的卷名单**沿用同一口径**，
+  TOK  docs/analysis/disk-volume-enumeration.md:275  DashboardModel.swift:75-76 -> DashboardModel.swift:79-80  | 3. 界面接入：A 档那一行只在候选根 > 1 时出现；B 档把 `DashboardModel.swift:75-76` 换成调纯函数。
+  TOK  docs/analysis/disktree-adoption.md:19  MMDisk.swift:1387 -> MMDisk.swift:1403  | - 导航：`MMDisk.swift:1387` `doNavigate` 每次回跳都调 `DiskScanner.childrenOfDirectory`（同函数内 `:1396`）重新遍历该目录求
+  TOK  docs/analysis/disktree-adoption.md:71  MMDisk.swift:545-554 -> MMDisk.swift:561-570  | | 落地 | `@State markedPaths: Set<String>`；`DiskScanStore.target(for:) -> MarkTarget?`；Tile 渲染加 danger
+  TOK  docs/analysis/feature-roadmap.md:17  MMOptimizer.swift:433 -> MMOptimizer.swift:434  | | `MMOptimizer.deleteSelected` | 用 `try? FileManager.default.trashItem`，**绕过 `FileTrashService`**（无撤
+  TOK  docs/analysis/feature-roadmap.md:407  SystemSampler.swift:164 -> SystemSampler.swift:166  | "可释放 X GB" 一直在低报。修法是把 `.skipsHiddenFiles` 去掉（`SystemSampler.swift:164`），
+  TOK  docs/analysis/feature-roadmap.md:955  MMDisk.swift:763 -> MMDisk.swift:779  | 传长标签 `risk.groupTitle`（`MMDisk.swift:763`）——正确读法是"行内短、页头长"的**约定**，
+  TOK  docs/analysis/feature-roadmap.md:1039  MMOptimizer.swift:269 -> MMOptimizer.swift:270  | | `~/Library/Preferences` 损坏 plist 检测（只报位置与建议，不代删） | Mole `lib/optimize/maintenance.sh:69` `if pluti
+  TOK  docs/analysis/fidelity-cleaner.md:253  MMDisk.swift:105 -> MMDisk.swift:110  | `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:165`、
+  TOK  docs/analysis/fidelity-cleaner.md:253  MMOptimizer.swift:165 -> MMOptimizer.swift:166  | `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:165`、
+  TOK  docs/analysis/fidelity-cleaner.md:254  MMOptimizer.swift:239 -> MMOptimizer.swift:240  | `MMOptimizer.swift:239`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
+  TOK  docs/analysis/fidelity-disk.md:20  MMDisk.swift:170-175 -> MMDisk.swift:175-180  | >    **现在两个钩子都有守卫**：`MMDisk.swift:170-175`（`MM_DISK_SCAN`，越界写 stderr「不在 /tmp 之下，
+  TOK  docs/analysis/fidelity-disk.md:21  MMDisk.swift:1070-1078 -> MMDisk.swift:1086-1094  | >    忽略该钩子」后 `return`）与 `MMDisk.swift:1070-1078`（`MM_DISK_SELECT`，含非 /tmp 路径则整钩子忽略）。
+  TOK  docs/analysis/fidelity-disk.md:70  MMDisk.swift:195 -> MMDisk.swift:200  | | 标题「磁盘分析」 | `MMDisk.swift:195` `MMPageHeader("磁盘分析", subtitle:)` | ✅ | 逐字一致 | — | — |
+  TOK  docs/analysis/fidelity-disk.md:91  MMDisk.swift:1926-1963 -> MMDisk.swift:1983-2020  | | 面积 = 实际占用（st_blocks×512） | `MMDisk.swift:1926-1963` `readEntries` 取 `st_blocks*512` | ✅（数据口径） | 实现
+  TOK  docs/analysis/fidelity-disk.md:105  MMDisk.swift:463-508 -> MMDisk.swift:479-524  | | 7 色块 + 「可清理（斜纹）」+ 说明 | `MMDisk.swift:463-508` `legend` | ✅（结构） | 色块顺序一致 | — | — |
+  TOK  docs/analysis/fidelity-disk.md:113  MMDisk.swift:673-674 -> MMDisk.swift:689-690  | | 头部图标 cube.box 紫（`i-box` + `--c-purple`） | `MMDisk.swift:673-674` `folder.fill/doc.fill` 按 `risk.co
+  TOK  docs/analysis/fidelity-disk.md:138  MMDisk.swift:293-357 -> MMDisk.swift:298-362  | | （稿中无此面板） | `MMDisk.swift:293-357` `findingsPanel` | ❌ | 实现在面包屑下插入整块「值得看一眼 · N 项 · 合计 X」面板（disktree
+  TOK  docs/analysis/fidelity-disk.md:177  MMDisk.swift:134-135 -> MMDisk.swift:139-140  | `MMDisk.swift:134-135` 直接 `guard ... let root = env["MM_DISK_SCAN"] ... await scan(rootPath: (root a
+  TOK  docs/analysis/fidelity-disk.md:185  MMDisk.swift:181-185 -> MMDisk.swift:186-190  | - `MM_DISK_SCAN`：`MMDisk.swift:181-185`，同时认 `/tmp/` 与 `/private/tmp/`（后者是 `/tmp` 的真实身份，只判前缀会漏），
+  TOK  docs/analysis/fidelity-disk.md:199  MMDisk.swift:763 -> MMDisk.swift:779  | （`MMDisk.swift:763`）。可共享的 `MMBadge.init(risk:)`（现 `MMDesign.swift:255-256`）**仍取 `risk.label`**，
+  TOK  docs/analysis/fidelity-disk.md:201  MMOptimizer.swift:527 -> MMOptimizer.swift:528  | `MMUninstaller.swift:1626`、`MMOptimizer.swift:527` 与 `:866`。
+  TOK  docs/analysis/fidelity-disk.md:206  MMDisk.swift:673 -> MMDisk.swift:689  | 稿用 `i-box`（cube.box）紫色；实现 `MMDisk.swift:673` 用 `folder.fill`/`doc.fill` 按 `risk.color`。形状与颜色都不同。
+  TOK  docs/analysis/fidelity-disk.md:243  MMDisk.swift:698 -> MMDisk.swift:714  | `MMDisk.swift:698` 分母 `levelTotal` 随导航层变化；稿「实际占比」暗示占总扫描量。措辞/口径不一致。
+  TOK  docs/analysis/fidelity-disk.md:247  MMDisk.swift:781 -> MMDisk.swift:797  | （`MMDisk.swift:781`），`totalScanned` 取 `scanResult?.scannedSize ?? 0`（`:752`）——分母不再随下钻漂移，
+  TOK  docs/analysis/fidelity-disk.md:251  MMDisk.swift:702 -> MMDisk.swift:718  | `MMDisk.swift:702` `MMFormat.relative`；稿绝对日期。实现注释已说明绝对时间戳在 268pt 内会被截。属有意取舍，两可。
+  TOK  docs/analysis/fidelity-disk.md:253  MMDisk.swift:795 -> MMDisk.swift:811  | **❌ 仍未做（复核 2026-10-04）**：`MMDisk.swift:795` 仍是 `MMFormat.relative(modDate(of: node.path))`，
+  TOK  docs/analysis/fidelity-disk.md:261  MMDisk.swift:582-584 -> MMDisk.swift:598-600  | **✅ 已落地（`5e1dfe3`）**：图例现为 `MMDisk.swift:582-584`，非过滤态
+  TOK  docs/analysis/fidelity-disk.md:270  MMDisk.swift:363 -> MMDisk.swift:379  | （`MMDisk.swift:363` `MMBadge("卷可用 …")`），理由与实测都在注释里（`:358-362`）：
+  TOK  docs/analysis/fidelity-disk.md:310  MMDisk.swift:374 -> MMDisk.swift:390  | `.frame(height: 34)`（写作当时引的 291 行现已漂成别的内容，P16 现读全文件**只有这一处** `.frame(height: 34)`，在 `MMDisk.swift:37
+  TOK  docs/analysis/fidelity-disk.md:311  MMDisk.swift:374 -> MMDisk.swift:390  | **❌ 仍未做**：锚点 `MMDisk.swift:374`，值没变；
+  TOK  docs/analysis/fidelity-disk.md:359  MMDisk.swift:293-357 -> MMDisk.swift:298-362  | 实现 `MMDisk.swift:293-357` 在面包屑下插入整块发现面板（disktree #4 已采纳），稿完全没画。该面板是模块核心信息区，
+  TOK  docs/analysis/fidelity-disk.md:381  MMDisk.swift:764 -> MMDisk.swift:780  | - 详情头部图标 `#i-box`（`:154`）——实现按类型给形状、按风险给颜色（`MMDisk.swift:764`），信息量更大，改稿不改实现；
+  TOK  docs/analysis/fidelity-disk.md:466  MMDisk.swift:170-175 -> MMDisk.swift:175-180  | **现在的实现正是这个口径**：`MMDisk.swift:170-175` 与 `MMDisk.swift:1070-1078`，
+  TOK  docs/analysis/fidelity-disk.md:466  MMDisk.swift:1070-1078 -> MMDisk.swift:1086-1094  | **现在的实现正是这个口径**：`MMDisk.swift:170-175` 与 `MMDisk.swift:1070-1078`，
+  TOK  docs/analysis/fidelity-disk.md:637  MMDisk.swift:1387 -> MMDisk.swift:1403  | 问题在于 `items` 来自 `DiskScanner.childrenOfDirectory`（`doNavigate` 在 `MMDisk.swift:1387`，
+  TOK  docs/analysis/fidelity-disk.md:639  MMDisk.swift:358 -> MMDisk.swift:374  | 被丢进 `dropped`，UI 上据此画出「重扫后 N 个标记已经不在了 · 已移除」（`MMDisk.swift:358`）。
+  TOK  docs/analysis/fidelity-disk.md:744  MMDisk.swift:1117 -> MMDisk.swift:1133  | `guard env["MM_SHOW_CONFIRM"] != nil else { return }` **之后**（`MMDisk.swift:1117` → `:1152`），
+  TOK  docs/analysis/fidelity-disk.md:763  MMDisk.swift:1890 -> MMDisk.swift:1947  | `descendantsMeasured: false` 只由 `if depth >= maxDepth`（`MMDisk.swift:1890`）那一支写下，
+  TOK  docs/analysis/fidelity-disk.md:764  MMDisk.swift:1722 -> MMDisk.swift:1779  | 而 `maxDepth = 20`（`MMDisk.swift:1722`）。既有夹具 `disk-fixture.sh` 最深两三层，**永远走不到那一步**——
+  TOK  docs/analysis/fidelity-disk.md:947  MMDisk.swift:203-205 -> MMDisk.swift:208-210  | （`MMDisk.swift:203-205` 它吃，`:203-205` 它一个都不吃）。本表 §1.2 为了少占版面，
+  TOK  docs/analysis/fidelity-disk.md:975  MMDisk.swift:203-205 -> MMDisk.swift:208-210  | 要么写全 `MMDisk.swift:203-205`，要么不写行号。**把裸锚收进机器判据**（核验表给"文件"列单独一格）
+  REVIEW docs/analysis/fidelity-guardian.md:74  这一行有历史叙述，改写后需人看一眼  | | 侧栏宽 220pt（`--sidebar-w`，`tokens.css:32`） | `MainWindow.swift:22` `navigationSplitViewCol
+  TOK  docs/analysis/fidelity-optimizer.md:16  MMOptimizer.swift:269 -> MMOptimizer.swift:270  | > 新增的是 `preferences`（偏好文件那一屏，`MMOptimizer.swift:269`）。本文件不重写历史结论，
+  TOK  docs/analysis/fidelity-optimizer.md:26  MMOptimizer.swift:355 -> MMOptimizer.swift:356  | > （`MMOptimizer.swift:355`、`:583`）+ 1 处 `undo`，无任何 `FileManager.removeItem` /
+  TOK  docs/analysis/fidelity-optimizer.md:38  MMOptimizer.swift:80 -> MMOptimizer.swift:81  | | 可用钩子 | 审计当时**只有 `MM_OPEN_TAB=duplicates\|browser\|status\|devtools`**（`MMOptimizer.swift:42`），故四 t
+  TOK  docs/analysis/fidelity-optimizer.md:150  MMOptimizer.swift:351-370 -> MMOptimizer.swift:352-371  | - **两条删除链全部经单一闸口**：重复文件 `moveToTrash`（`MMOptimizer.swift:351-370`，删除调用 `:355` `FileTrashService.shar
+  TOK  docs/analysis/fidelity-optimizer.md:172  MMOptimizer.swift:355 -> MMOptimizer.swift:356  | - 产品代码删除动作仅 **2 处** `moveToTrash`（`MMOptimizer.swift:355`、`:583`）+ **1 处** `undo`（`:373`），全部走 `FileT
+  TOK  docs/analysis/fidelity-optimizer.md:203  MMOptimizer.swift:617 -> MMOptimizer.swift:618  | 2. **【低】S2 · 浏览器"移到废纸篓"按钮图标**：08c 用 `#i-box`（box 占位），实现用 SF `trash`（`MMOptimizer.swift:617`）。稿图标为占位，
+  TOK  docs/analysis/fidelity-optimizer.md:309  MMOptimizer.swift:239 -> MMOptimizer.swift:240  | （`MMOptimizer.swift:239` 浏览器、`:261` 系统状态、`DevToolCacheView.swift:84` 开发工具，行号为 2026-10-04 现读）本来就在并行起真
+  TOK  docs/analysis/fidelity-optimizer.md:334  MMOptimizer.swift:269 -> MMOptimizer.swift:270  | | 第五个分段页签 `preferences` | `MMOptimizer.swift:269`（`case duplicates, browser, status, devtools, prefe
+  TOK  docs/analysis/fidelity-shell.md:66  MainWindow.swift:403-410 -> MainWindow.swift:410-417  | | 标题「系统负载」+ 平稳徽章 | `MainWindow.swift:403-410` `LoadVerdict.text` | ✅ | 口径一致 | — | — |
+  TOK  docs/analysis/fidelity-shell.md:67  MainWindow.swift:413-419 -> MainWindow.swift:420-426  | | CPU 仪表「23%」+「2.1/10 核」+「4 性能+6 能效」 | `MainWindow.swift:413-419` `gaugeRow` / `DashboardText.cpuCal
+  TOK  docs/analysis/fidelity-shell.md:68  MainWindow.swift:420-424 -> MainWindow.swift:427-431  | | 内存仪表「65%」+「15.6/24 GB」+「交换 0 MB」 | `MainWindow.swift:420-424` | ⚠️待核 | 稿子 65% 疑似 = used/total；实机仪表
+  TOK  docs/analysis/fidelity-shell.md:69  MainWindow.swift:487-510 -> MainWindow.swift:494-517  | | 内存构成堆叠条 | `MainWindow.swift:487-510` `memoryComposition` | ✅(语义) | 缺段不画绿条（诚实）⚠️待量 | 低 | 待真机测量 |
+  TOK  docs/analysis/fidelity-shell.md:70  MainWindow.swift:437-461 -> MainWindow.swift:444-468  | | 网络 / 磁盘 I/O 迷你图 + 注脚 | `MainWindow.swift:437-461` `metricMini` | ✅ | "等待差分"/"IOKit 未返回统计" 占位文案与降级口
+  TOK  docs/analysis/fidelity-shell.md:76  MainWindow.swift:550-568 -> MainWindow.swift:557-575  | | 可释放前三分类 + 废纸篓 + 锁定行（iOS 备份） | `MainWindow.swift:550-568` `reclaimRows` | ✅(语义) | 只读分类置灰加锁、前三+废纸篓；稿
+  TOK  docs/analysis/fidelity-shell.md:77  MainWindow.swift:619-680 -> MainWindow.swift:626-687  | | 最近操作：撤回/已撤回/废纸篓已清空 | `MainWindow.swift:619-680` | ✅ | 三种态都覆盖，文案一致 | — | — |
+  TOK  docs/analysis/fidelity-shell.md:78  MainWindow.swift:657-666 -> MainWindow.swift:664-673  | | 「撤回」按钮在废纸篓清空后消失 | `MainWindow.swift:657-666` | ✅ | 不靠用户点错才报错，一致 | — | — |
+  TOK  docs/analysis/fidelity-shell.md:87  MainWindow.swift:273-291 -> MainWindow.swift:273-298  | | 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:273-291` `statusBar` | ❌ | 稿子多画"索引正常""Spotli
+  REVIEW docs/analysis/fidelity-shell.md:88  这一行有历史叙述，改写后需人看一眼  | | 侧栏宽 220（`--sidebar-w`）/ 标题栏 38（`--titlebar-h`） | `MainWindow.swift:22`（`.navigationSplit
+  REVIEW docs/analysis/fidelity-shell.md:97  这一行有历史叙述，改写后需人看一眼  | | 设置页的**入口**（稿只画了侧栏底部那一枚按钮） | 应用菜单「设置…」+ ⌘, `MacMasterApp.swift:45-50`；侧栏按钮 `MainWindow.sw
+  TOK  docs/analysis/fidelity-shell.md:135  MainWindow.swift:581-585 -> MainWindow.swift:588-592  | > I11 = `MainWindow.swift:581-585`（`Text("全部")` + `Image(systemName:"chevron.right").font(.caption2)
+  TOK  docs/analysis/fidelity-shell.md:138  MainWindow.swift:535 -> MainWindow.swift:542  | > 撑位而不是画 2pt 矮柱，`:1064-1068`，判据"没轮到 ≠ 读不到"写在注释里），调用点 `MainWindow.swift:535`，
+  TOK  docs/analysis/fidelity-shell.md:139  DashboardModel.swift:92-118 -> DashboardModel.swift:96-122  | > 数据侧 `DashboardModel.swift:92-118` 把"读不到"压成 `nil` 槽、量不到时整列空出来（`:114-118`）。
+  REVIEW docs/analysis/hook-ledger.md:104  这一行有历史叙述，改写后需人看一眼  | | `MM_OPEN_MODULE` | 壳 `Sources/MacMaster` | `MainWindow.swift:52` | 启动后直接跳到指定模块页 | ✅ | 否 
+  REVIEW docs/analysis/hook-ledger.md:105  这一行有历史叙述，改写后需人看一眼  | | `MM_SHOW_SETTINGS` | 壳 | `MainWindow.swift:47` | 启动即打开设置 sheet | ✅ | 否 | C 类（非空即生效，`!= n
+  REVIEW docs/analysis/hook-ledger.md:138  这一行有历史叙述，改写后需人看一眼  | | `MM_OPEN_TAB` | `MMDisk` | `MMDisk.swift:38` | disk 页默认 tab（tree/list/large） | ✅ | 否 | 非
+  REVIEW docs/analysis/hook-ledger.md:139  这一行有历史叙述，改写后需人看一眼  | | `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:152` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略。**P18：改
+  TOK  docs/analysis/hook-ledger.md:139  MMDisk.swift:152 -> MMDisk.swift:157  | | `MM_DISK_DEPTH` | `MMDisk` | `MMDisk.swift:152` | 展开深度 1…4 | ✅ | 否 | 越界（非 1…4）忽略。**P18：改走 `MMHookV
+  TOK  docs/analysis/hook-ledger.md:140  MMDisk.swift:154 -> MMDisk.swift:159  | | `MM_DISK_FILTER` | `MMDisk` | `MMDisk.swift:154` | 过滤串 | ✅ | 否 | 任意串都合法（就是过滤词），没有"写错"这一态 |
+  TOK  docs/analysis/hook-ledger.md:141  MMDisk.swift:170 -> MMDisk.swift:175  | | `MM_DISK_SCAN` | `MMDisk` | `MMDisk.swift:170` | 对指定根路径触发扫描 | ✅ | 否（只读扫描） | 仅枚举，不写。**本轮补 /tmp 守卫**
+  TOK  docs/analysis/hook-ledger.md:142  MMDisk.swift:1067 -> MMDisk.swift:1083  | | `MM_DISK_SELECT` | `MMDisk` | `MMDisk.swift:1067`（重放闸门 `:1068`，置位 `:1083`） | 预选路径并展开 | ✅ | 否 | 仅展示
+  TOK  docs/analysis/hook-ledger.md:143  MMDisk.swift:182 -> MMDisk.swift:187  | | `MM_DISK_RESCAN` | `MMDisk` | `MMDisk.swift:182` | 首扫落地后**自动再扫一次**指定根（P6.2a 新增） | ✅ | 否（只读扫描） | 值同
+  TOK  docs/analysis/hook-ledger.md:144  MMDisk.swift:159 -> MMDisk.swift:164  | | `MM_DISK_HOLD` | `MMDisk` | `MMDisk.swift:159` | `=hold` 冻结在"正在分析磁盘结构"首帧，不触发扫描 | ✅ | 否 | 见 `fideli
+  REVIEW docs/analysis/hook-ledger.md:145  这一行有历史叙述，改写后需人看一眼  | | `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1117` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 
+  TOK  docs/analysis/hook-ledger.md:145  MMDisk.swift:1117 -> MMDisk.swift:1133  | | `MM_SHOW_CONFIRM` | `MMDisk` | `MMDisk.swift:1117` | 弹出删除确认面板（回收/进废纸篓） | ✅ | 否（删在按钮里） | 过 `Deletio
+  REVIEW docs/analysis/hook-ledger.md:146  这一行有历史叙述，改写后需人看一眼  | | `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1141` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `
+  TOK  docs/analysis/hook-ledger.md:146  MMDisk.swift:1141 -> MMDisk.swift:1157  | | `MM_SHOW_PERMANENT` | `MMDisk` | `MMDisk.swift:1141` | 把确认面板换成**永久删除**面板 | ✅ | 否（同一层交换 `showMarkCo
+  TOK  docs/analysis/hook-ledger.md:147  MMDisk.swift:1105,1152 -> MMDisk.swift:1121,1168  | | `MM_SHOW_TOAST` | `MMDisk` | `MMDisk.swift:1105,1152` | 弹出回执吐司 | ✅ | 否 | `=permanent` 走"已永久删除 · 无法
+  TOK  docs/analysis/hook-ledger.md:156  MMOptimizer.swift:269 -> MMOptimizer.swift:270  | | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:41` | optimizer 页默认 tab（duplicates/browser/stat
+  TOK  docs/analysis/hook-ledger.md:226  MMOptimizer.swift:239 -> MMOptimizer.swift:240  | 挡住了；而另三个 tab 的视图级 `.task`（`MMOptimizer.swift:239`/`:261`、`DevToolCacheView.swift:84`，2026-10-04 现读）
+  REVIEW docs/analysis/hook-ledger.md:240  这一行有历史叙述，改写后需人看一眼  | 3. **`MM_DISK_SCAN` 越界值处理**：~~当前未校验 /tmp~~ **已落地**：集成阶段对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补
+  TOK  docs/analysis/hook-ledger.md:240  MMDisk.swift:170-175 -> MMDisk.swift:175-180  | 3. **`MM_DISK_SCAN` 越界值处理**：~~当前未校验 /tmp~~ **已落地**：集成阶段对 `MM_DISK_SCAN`/`MM_DISK_SELECT` 补 `/tmp`/`/
+  TOK  docs/analysis/hook-ledger.md:317  DashboardModel.swift:71 -> DashboardModel.swift:75  | | `Scripts/p17-website-capture.sh` | 落地页 §界面预览 那四张图，四档夹具实拍：清理（**dev tab**）/ 磁盘 / 监控 / 守护，全部 1280×800
+  TOK  docs/analysis/hook-ledger.md:317  MMDisk.swift:363 -> MMDisk.swift:379  | | `Scripts/p17-website-capture.sh` | 落地页 §界面预览 那四张图，四档夹具实拍：清理（**dev tab**）/ 磁盘 / 监控 / 守护，全部 1280×800
+  TOK  docs/analysis/optimizer-corrupt-preferences.md:194  MMOptimizer.swift:264-265 -> MMOptimizer.swift:265-266  | `OptimizerTab` 在 P34a 那一跑是四个 case（`MMOptimizer.swift:264-265`，`id` 与 `hookKey` 都取 `rawValue`），
+  TOK  docs/analysis/optimizer-corrupt-preferences.md:197  MMOptimizer.swift:268-269 -> MMOptimizer.swift:269-270  | （`MMOptimizer.swift:268-269`，行号本轮现读），`hookKey` 仍取 `rawValue`，所以钩子取值是 `preferences`。
+  TOK  docs/analysis/release-readiness.md:942  MMOptimizer.swift:615-616 -> MMOptimizer.swift:616-617  | - 浏览器：优化页只列**缓存目录**（`MMOptimizer.swift:615-616` 的
+  TOK  docs/analysis/release-readiness.md:1022  MMDisk.swift:1047 -> MMDisk.swift:1063  | 在 P21 被提进 `DiskRisk.swift`，**P26 现读那里只剩 `MMDisk.swift:1047` 起的一个三行转发**，
+  TOK  docs/analysis/release-readiness.md:1044  MMOptimizer.swift:557-563 -> MMOptimizer.swift:558-564  | 优化页对每一行都给勾选框（`MMOptimizer.swift:557-563`），没有"某组不给入口"这回事；
+  TOK  docs/analysis/release-readiness.md:1482  MMDisk.swift:170-175 -> MMDisk.swift:175-180  | **没有** /tmp 越界拦截，而源码里守卫在 `MMDisk.swift:170-175`、`MM_DISK_SELECT` 在同文件 `:1081-1089`，
+  TOK  docs/analysis/release-readiness.md:1511  MMDisk.swift:1047 -> MMDisk.swift:1063  | 3. 磁盘页的 `risk(of:)` 从 `MMDisk.swift:1047` 提出到 `Packages/MMDisk/Sources/MMDisk/DiskRisk.swift`
+  TOK  docs/analysis/release-readiness.md:1969  MMOptimizer.swift:557-563 -> MMOptimizer.swift:558-564  | | §6 优化页「需标注」那一句 | 从前写"PROTECTED 组永远不给删除入口"，**比实现强**。真实合同是三条：默认一条都不勾、每组至少保留一份、服务层拒 PROTECTED | `MMOp
+  TOK  docs/analysis/release-readiness.md:1969  MMOptimizer.swift:465-468 -> MMOptimizer.swift:466-469  | | §6 优化页「需标注」那一句 | 从前写"PROTECTED 组永远不给删除入口"，**比实现强**。真实合同是三条：默认一条都不勾、每组至少保留一份、服务层拒 PROTECTED | `MMOp
+  TOK  docs/analysis/release-readiness.md:1969  MMOptimizer.swift:424-428 -> MMOptimizer.swift:425-429  | | §6 优化页「需标注」那一句 | 从前写"PROTECTED 组永远不给删除入口"，**比实现强**。真实合同是三条：默认一条都不勾、每组至少保留一份、服务层拒 PROTECTED | `MMOp
+  TOK  docs/analysis/release-readiness.md:2020  SystemSampler.swift:69-80 -> SystemSampler.swift:71-82  | `-probe.swift`（读 `SystemSampler.swift:69-80` 用的同一个 `host_statistics(HOST_CPU_LOAD_INFO)`）：
+  TOK  docs/analysis/release-readiness.md:2027  SystemSampler.swift:83-89 -> SystemSampler.swift:85-91  | （`SystemSampler.swift:83-89`）——**这一轮改的是判据的前提，不是产品的行为**。
+  TOK  docs/analysis/release-readiness.md:2093  MMDisk.swift:1417 -> MMDisk.swift:1433  | `MMDisk.swift:1417`、`:1421` 的 `await`/MainActor 三处（**这三处本轮没动**，见 §8 新增那一格），
+  TOK  docs/analysis/release-readiness.md:2290  MMDisk.swift:400 -> MMDisk.swift:416  | `MMDisk.swift:400` 一句无关注释」，本轮按"行号一律现读"重跑那条 grep，`Sources/` 与 `Packages/` 大小写不敏感
+  TOK  docs/analysis/release-readiness.md:2366  SystemSampler.swift:83-89 -> SystemSampler.swift:85-91  | `SystemSampler.load(from:to:)` 返回 nil 那条设计（`SystemSampler.swift:83-89`）在用户那边的表现是
+  TOK  docs/analysis/release-readiness.md:2384  MMDisk.swift:1416-1421 -> MMDisk.swift:1432-1437  | 同一段 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1416-1421`（`scanDirectory()` 那一段，
+  TOK  docs/analysis/release-readiness.md:2417  MMDisk.swift:1932 -> MMDisk.swift:1989  | 条目整条跳过了（`MMDisk.swift:1932`）。**可观察结果一样**（那些目录都不进统计），所以这不是 bug，
+  TOK  docs/analysis/release-readiness.md:2498  MainWindow.swift:645 -> MainWindow.swift:652  | **仍然成立的边界**：概览那张按钮只做跳转（`MainWindow.swift:645`），不在概览页删任何东西。
+  TOK  docs/analysis/website-audit.md:86  DashboardModel.swift:71 -> DashboardModel.swift:75  | 数据来自 `Sources/MacMaster/DashboardModel.swift:71` 的 `SystemSampler.volume()`；
+  TOK  docs/analysis/website-audit.md:87  MMDisk.swift:363 -> MMDisk.swift:379  | 磁盘页右上角 `Packages/MMDisk/Sources/MMDisk/MMDisk.swift:363` 那个 `卷可用 …` badge 同理。
+# 预览：会被改写的 token 共 101 处
+  FRESH docs/analysis/disk-volume-enumeration.md:52  MMDisk.swift:1432-1442 -> private func scanDirectory() async {
+  FRESH docs/analysis/disk-volume-enumeration.md:53  MMDisk.swift:1493-1499 -> let totalSize: UInt64 = {
+  FRESH docs/analysis/disk-volume-enumeration.md:54  MMDisk.swift:1502-1512 -> let freeSize: UInt64 = {
+  FRESH docs/analysis/disk-volume-enumeration.md:55  VolumeRoots.swift:226 -> /// 取**默认档**（`options: []`）再自己按 `browsable` 筛，而不是直接要 `.skipHiddenVolumes` 的条数：
+  FRESH docs/analysis/disk-volume-enumeration.md:55  DashboardModel.swift:75-76 -> let volume = SystemSampler.volume()
+  FRESH docs/analysis/disk-volume-enumeration.md:56  MainWindow.swift:280 -> Text("\(volumeCount) 个卷")
+  FRESH docs/analysis/disk-volume-enumeration.md:57  MainWindow.swift:330 -> Text("未能读取启动卷容量（volumeTotalCapacity / 重要用途可用容量均未返回），这里不猜数字。")
+  FRESH docs/analysis/disk-volume-enumeration.md:58  SystemSampler.swift:143-152 -> public static func volume(atPath path: String = "/") -> Volume? {
+  FRESH docs/analysis/disk-volume-enumeration.md:213  DashboardModel.swift:167 -> private func refreshVolumeRoots() async {
+  FRESH docs/analysis/disk-volume-enumeration.md:213  MainWindow.swift:279-285 -> if let volumeCount = model.volumeCount {
+  FRESH docs/analysis/disk-volume-enumeration.md:214  MMDisk.swift:1432-1442 -> private func scanDirectory() async {
+  FRESH docs/analysis/disk-volume-enumeration.md:220  MainWindow.swift:330 -> Text("未能读取启动卷容量（volumeTotalCapacity / 重要用途可用容量均未返回），这里不猜数字。")
+  FRESH docs/analysis/feature-roadmap.md:1040  DashboardModel.swift:75 -> let volume = SystemSampler.volume()
+  FRESH docs/analysis/feature-roadmap.md:1040  MMDisk.swift:1416-1426 -> )
+  FRESH docs/analysis/feature-roadmap.md:1040  SystemSampler.swift:14 -> //   与"关于本机"同一把尺子（访达那一侧 P35a 没量，本轮不替它担保）；
+  FRESH docs/analysis/feature-roadmap.md:1043  VolumeRoots.swift:226 -> /// 取**默认档**（`options: []`）再自己按 `browsable` 筛，而不是直接要 `.skipHiddenVolumes` 的条数：
+  FRESH docs/analysis/feature-roadmap.md:1043  VolumeRoots.swift:241 -> guard let urls = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, opti
+  FRESH docs/analysis/feature-roadmap.md:1044  MMDisk.swift:1603 -> enum DiskVolumeBadgeCopy {
+  FRESH docs/analysis/feature-roadmap.md:1045  DashboardModel.swift:35 -> @Published var volumeCount: Int?
+  FRESH docs/analysis/feature-roadmap.md:1046  MainWindow.swift:279-285 -> if let volumeCount = model.volumeCount {
+  FRESH docs/analysis/fidelity-disk.md:208  MMDisk.swift:772 -> Image(systemName: node.isDirectory ? "folder.fill" : "doc.fill")
+  FRESH docs/analysis/fidelity-disk.md:215  MMDisk.swift:800 -> MMStatItem("子项", DiskInspectorText.childCount(of: node, enumerated: children.count))
+  FRESH docs/analysis/fidelity-disk.md:228  MMDisk.swift:800 -> MMStatItem("子项", DiskInspectorText.childCount(of: node, enumerated: children.count))
+  FRESH docs/analysis/fidelity-disk.md:932  MMDisk.swift:235-241 -> private var headerSubtitle: String? {
+  FRESH docs/analysis/fidelity-disk.md:994  MMDisk.swift:367-371 -> if let text = DiskVolumeBadgeCopy.text(candidateCount: volumeRoots?.count) {
+  FRESH docs/analysis/fidelity-disk.md:1024  MainWindow.swift:277-285 -> private var statusBar: some View {
+  FRESH docs/analysis/fidelity-shell.md:50  MainWindow.swift:309,312 -> Text("存储").font(.headline)
+  FRESH docs/analysis/fidelity-shell.md:51  MainWindow.swift:316 -> Text("\(MMFormat.bytes(volume.available)) 可用 · 共 \(MMFormat.bytes(volume.total))")
+  FRESH docs/analysis/fidelity-shell.md:52  MainWindow.swift:325,326 -> MMStackedBar(segments: storageSegments, height: 8)
+  FRESH docs/analysis/fidelity-shell.md:53  MainWindow.swift:380-401 -> private var releaseText: some View {
+  FRESH docs/analysis/fidelity-shell.md:54  MainWindow.swift:339,341 -> Button("查看占用排行") { MMNavigation.go(.disk) }
+  FRESH docs/analysis/header-truncation-audit.md:46  MMDisk.swift:235-241 -> private var headerSubtitle: String? {
+  FRESH docs/analysis/release-readiness.md:984  MMDisk.swift:1362 -> private func deleteMarkedPermanently(plan: DiskRemoval.Plan) async {
+  FRESH docs/analysis/release-readiness.md:985  MMDisk.swift:1244 -> Toggle(isOn: $permanentAcknowledged) {
+  FRESH docs/analysis/release-readiness.md:1862  MMDisk.swift:1585-1591 -> enum DiskHeaderCopy {

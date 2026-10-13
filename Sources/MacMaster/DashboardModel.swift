@@ -28,7 +28,11 @@ final class DashboardModel: ObservableObject {
     @Published private(set) var netHistory: [Double?] = []
     @Published private(set) var diskHistory: [Double?] = []
 
-    @Published var volumeCount: Int = 0
+    /// 概览页页脚那句"N 个卷"。P35b 起口径换成**候选根数**（"我们能扫的卷"），
+    /// 不再是枚举回来的条数：本机默认档 14 条挂载点里 13 条是系统切片与只读快照卷，
+    /// 数条数会把"这台机器上有 14 个卷可看"说给一个只有一个能扫的用户（P35a §3）。
+    /// nil = 这一趟一行都没读到，页脚显示占位而不是"0 个卷"（`MainWindow.swift` 那一格）。
+    @Published var volumeCount: Int?
     @Published var filesystemName: String?
 
     let coreCount = ProcessInfo.processInfo.activeProcessorCount
@@ -72,8 +76,8 @@ final class DashboardModel: ObservableObject {
         self.volume = volume
         memory = DashboardMemory.sample()
         trashBytes = SystemSampler.directoryBytes(NSHomeDirectory() + "/.Trash")
-        volumeCount = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil,
-                                                            options: [.skipHiddenVolumes])?.count ?? 0
+        // 卷名单**不在**这条 2 秒一跳的循环里读：一趟枚举本机 73 ms（P35a §8），
+        // 而"插了块盘没重扫"这点新鲜度不值这些时间。它的两个刷新时点在 measureReclaimable 里。
         filesystemName = DashboardModel.filesystemName(ofPath: volume?.path ?? "/")
 
         if let ticks = SystemSampler.cpuTicks() {
@@ -135,6 +139,9 @@ final class DashboardModel: ObservableObject {
     func measureReclaimable() async {
         guard reclaimState != .measuring else { return }
         reclaimState = .measuring
+        // P35b B 档的刷新时点跟着这一件事走：载入时这里跑一次（`sampleOnce` 首帧起它），
+        // 用户主动点「重新测量」时再跑一次。定时轮询、跟随选中项都没有。
+        await refreshVolumeRoots()
         let settings = AppSettings.shared
         let scope = CacheScanScope.selected(systemCache: settings.scanSystemCache,
                                             appCache: settings.scanAppCache,
@@ -152,6 +159,17 @@ final class DashboardModel: ObservableObject {
         let scanned = await categoriesProvider(scope, Array(Set(exclusions)).sorted())
         categories = scanned ?? []
         reclaimState = DashboardReclaim.state(from: scanned)
+    }
+
+    /// 页脚那句"N 个卷"：读的是**候选根数**（可浏览、是目录、总容量读得到的挂载点，
+    /// 同一对容量数算一条），判据全在 `MMCore` 的纯函数里，这里只负责什么时候去读。
+    /// 放到后台任务上：一趟 Foundation 枚举 + 逐条 `resourceValues` 本机量到 73 ms。
+    private func refreshVolumeRoots() async {
+        let count: Int? = await Task.detached(priority: .utility) {
+            guard let rows = VolumeRootProbe.snapshot() else { return nil }
+            return VolumeRoots.candidates(from: rows).count
+        }.value
+        volumeCount = count
     }
 
     /// 概览页的存储堆叠条：只由量得到的部分组成，缺哪段就不画哪段。

@@ -47,29 +47,35 @@
 
 | 稿内条目 | 实现出处 | 一致? | 差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 卡标题「存储」+ 低空间徽章「可用空间偏低」 | `MainWindow.swift:299,302` `MMBadge(..., tint: destructive)` | ✅ | 仅低空间时出现，口径一致 | — | — |
-| 「28.1 GB 可用 · 共 494.4 GB」 | `MainWindow.swift:306` | ✅ | 动态值，文案格式一致 | — | — |
-| 堆叠条 9 段 + 图例 | `MainWindow.swift:318,319` `MMStackedBar`/`MMLegend` ← `StorageBreakdown.segments` | ⚠️待量 | 稿子画了 9 段固定占比（应用/开发者/系统/缓存/媒体/文档/可清理/废纸篓/可用）；实机段集与配色由 `StorageBreakdown.segments(total:available:reclaimable:trash:)` 决定，**段数/宽度/配色需逐段真机核对** | 中 | 待真机测量 |
-| 「可立即释放 3.5 GB（缓存 2.4 + 废纸篓 1.1）」 | `MainWindow.swift:370-391` `releaseText`/`releaseDetail` | ❌ | 稿子写死 3.5/2.4/1.1；实机 = `reclaimState` 实测 + 废纸篓实测，没扫到显示"尚未测量"占位（不编数字） | 低 | 设计稿该改 S2 |
-| 「查看占用排行」「清理 X GB」按钮 | `MainWindow.swift:329-332` | ✅ | 一致 | — | — |
+| 卡标题「存储」+ 低空间徽章「可用空间偏低」 | `MainWindow.swift:309,312` `MMBadge(..., tint: destructive)` | ✅ | 仅低空间时出现，口径一致 | — | — |
+| 「28.1 GB 可用 · 共 494.4 GB」 | `MainWindow.swift:316` | ✅ | 动态值，文案格式一致 | — | — |
+| 堆叠条 9 段 + 图例 | `MainWindow.swift:325,326` `MMStackedBar`/`MMLegend` ← `StorageBreakdown.segments` | ⚠️待量 | 稿子画了 9 段固定占比（应用/开发者/系统/缓存/媒体/文档/可清理/废纸篓/可用）；实机段集与配色由 `StorageBreakdown.segments(total:available:reclaimable:trash:)` 决定，**段数/宽度/配色需逐段真机核对** | 中 | 待真机测量 |
+| 「可立即释放 3.5 GB（缓存 2.4 + 废纸篓 1.1）」 | `MainWindow.swift:380-401` `releaseText`/`releaseDetail` | ❌ | 稿子写死 3.5/2.4/1.1；实机 = `reclaimState` 实测 + 废纸篓实测，没扫到显示"尚未测量"占位（不编数字） | 低 | 设计稿该改 S2 |
+| 「查看占用排行」「清理 X GB」按钮 | `MainWindow.swift:339,341` | ✅ | 一致 | — | — |
+
+> **P35b 行号重指**（2026-10-12 现跑 `p16-citation-audit.sh`，硬失败里 `MainWindow.swift` 第 302 行落在空白行上）：
+> 页脚 `statusBar` 从 `:277` 起，P35b 在「N 个卷」那一支加了读不到时的占位分支（`:280` 有数、`:283` 读数失败），
+> 存储卡整块因此比上一版往下漂。但**偏移量并不是一个常数**：卡标题 +10、堆叠条那两行只 +7。
+> 也就是说旧号里至少有一格在本轮之前就已经偏了（偏到别的内容上，而那一行不是空白，所以门禁一直放行）。
+> 这一族现在每一格都是逐条 grep 定位的，不是"整体 +N"推出来的。
 
 ### 1.3 系统负载卡
 
 | 稿内条目 | 实现出处 | 一致? | 差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「系统负载」+ 平稳徽章 | `MainWindow.swift:403-410` `LoadVerdict.text` | ✅ | 口径一致 | — | — |
-| CPU 仪表「23%」+「2.1/10 核」+「4 性能+6 能效」 | `MainWindow.swift:413-419` `gaugeRow` / `DashboardText.cpuCaliberNote` | ✅(语义) | 仪表填 `model.cpuLoad`（总占用），注脚是核数；与稿子层级一致 ⚠️待量（指针角度需真机） | 低 | 待真机测量 |
-| 内存仪表「65%」+「15.6/24 GB」+「交换 0 MB」 | `MainWindow.swift:420-424` | ⚠️待核 | 稿子 65% 疑似 = used/total；实机仪表填 `model.memory?.pressure`（内存压力），数值口径可能不同 → **需真机核对 pressure 与 used/total 是否同一档** | 中 | 待真机测量 |
-| 内存构成堆叠条 | `MainWindow.swift:487-510` `memoryComposition` | ✅(语义) | 缺段不画绿条（诚实）⚠️待量 | 低 | 待真机测量 |
-| 网络 / 磁盘 I/O 迷你图 + 注脚 | `MainWindow.swift:437-461` `metricMini` | ✅ | "等待差分"/"IOKit 未返回统计" 占位文案与降级口径一致 | — | — |
+| 标题「系统负载」+ 平稳徽章 | `MainWindow.swift:410-417` `LoadVerdict.text` | ✅ | 口径一致 | — | — |
+| CPU 仪表「23%」+「2.1/10 核」+「4 性能+6 能效」 | `MainWindow.swift:420-426` `gaugeRow` / `DashboardText.cpuCaliberNote` | ✅(语义) | 仪表填 `model.cpuLoad`（总占用），注脚是核数；与稿子层级一致 ⚠️待量（指针角度需真机） | 低 | 待真机测量 |
+| 内存仪表「65%」+「15.6/24 GB」+「交换 0 MB」 | `MainWindow.swift:427-431` | ⚠️待核 | 稿子 65% 疑似 = used/total；实机仪表填 `model.memory?.pressure`（内存压力），数值口径可能不同 → **需真机核对 pressure 与 used/total 是否同一档** | 中 | 待真机测量 |
+| 内存构成堆叠条 | `MainWindow.swift:494-517` `memoryComposition` | ✅(语义) | 缺段不画绿条（诚实）⚠️待量 | 低 | 待真机测量 |
+| 网络 / 磁盘 I/O 迷你图 + 注脚 | `MainWindow.swift:444-468` `metricMini` | ✅ | "等待差分"/"IOKit 未返回统计" 占位文案与降级口径一致 | — | — |
 
 ### 1.4 可释放空间卡 / 最近操作卡
 
 | 稿内条目 | 实现出处 | 一致? | 差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 可释放前三分类 + 废纸篓 + 锁定行（iOS 备份） | `MainWindow.swift:550-568` `reclaimRows` | ✅(语义) | 只读分类置灰加锁、前三+废纸篓；稿子数字为示例 ⚠️待量（行高/图标对齐） | 低 | 待真机测量 |
-| 最近操作：撤回/已撤回/废纸篓已清空 | `MainWindow.swift:619-680` | ✅ | 三种态都覆盖，文案一致 | — | — |
-| 「撤回」按钮在废纸篓清空后消失 | `MainWindow.swift:657-666` | ✅ | 不靠用户点错才报错，一致 | — | — |
+| 可释放前三分类 + 废纸篓 + 锁定行（iOS 备份） | `MainWindow.swift:557-575` `reclaimRows` | ✅(语义) | 只读分类置灰加锁、前三+废纸篓；稿子数字为示例 ⚠️待量（行高/图标对齐） | 低 | 待真机测量 |
+| 最近操作：撤回/已撤回/废纸篓已清空 | `MainWindow.swift:626-687` | ✅ | 三种态都覆盖，文案一致 | — | — |
+| 「撤回」按钮在废纸篓清空后消失 | `MainWindow.swift:664-673` | ✅ | 不靠用户点错才报错，一致 | — | — |
 
 ### 1.5 侧栏 + 状态栏
 
@@ -78,7 +84,7 @@
 | 模块列表「系统清理 2.4 GB」「应用卸载 46」 | `MainWindow.swift:102-107` | ❌ | 稿子写死占位；实机仅在 `dashboard.reclaimState == .measured` 时显示真实值，否则该格为空（不显示 "—"） | 低 | 设计稿该改 S2 |
 | **侧栏 footer（S1）** | `MainWindow.swift:138-162` `volumeFooter` | ❌ | 实机 = `Macintosh HD` + 百分比 + 红色容量条（低空间转红）+ 带边框「设置」按钮；**稿子画成"分隔线 + 设置 nav-item"**，沿用 01–06 错误画法 | 中 | 设计稿该改 S1（全站） |
 | 隐私守护红点 | `01-dashboard.html:40` | ❌ | 稿子给"隐私守护"画了红点；实机 `SidebarView` 无任何模块红点逻辑 → **稿子虚构**，应删 | 低 | 设计稿该改 S2 |
-| 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:273-291` `statusBar` | ❌ | 稿子多画"索引正常""Spotlight 已排除 2 个路径"——实机状态栏**无这两段**（代码未输出） | 低 | 设计稿该改 S2 |
+| 状态栏「4 个卷 · 文件系统 APFS · 上次清理 3 天前」 | `MainWindow.swift:273-298` `statusBar` | ❌ | 稿子多画"索引正常""Spotlight 已排除 2 个路径"——实机状态栏**无这两段**（代码未输出） | 低 | 设计稿该改 S2 |
 | 侧栏宽 220（`--sidebar-w`）/ 标题栏 38（`--titlebar-h`） | `MainWindow.swift:22`（`.navigationSplitViewColumnWidth`，P29 现读：此前引 `:18` 落在那段解释注释上） / 实机 52pt | ✅ / ❌ | **P6.2b**：侧栏改前实测量 **200pt**（不是这里原记的 220），现 `min:220` 后实测 220pt，本条关闭；标题栏 52 vs 令牌 38 仍开，归集成阶段 | 低 | I10a **已落地** / I10b 待落地 |
 | 「可释放空间」卡右上「全部」（稿 `01-dashboard.html` 画的是 `全部 + chevron-right`） | `MainWindow.swift` `cardHeader("可释放空间", trailing:)` | ✅（P6.2b 起） | 改前只有一个蓝色"全部"，读起来像筛选开关；稿里那半枚 `chevron.right` 才是"点了会离开这一页"的唯一提示。现已补 `全部 ›`（`p62b-fidelity/02-dashboard-history-full.png`） | 低 | 实现该改 I11 → **已落地** |
 | 网络 / 磁盘 I/O 迷你图 `.spark i{flex:1}`（12 等分槽） | `MMDesign.swift` `MMSparkline`（`slotCount` 固定、`maxWidth:.infinity` 等分） | ✅（P6.2b 起） | 改前每根钉死 10pt 靠左排：首帧只有一根细柱孤零零贴在左边，读起来像图坏了，且柱子随采样次数往右爬、同一张图前后宽度不一样。现横轴满宽、柱从右端往左长（`01` 首帧 vs `02` 满轴两张） | 中 | 实现该改 I12 → **已落地** |
@@ -126,11 +132,11 @@
 
 > **复核 2026-10-04（P6.5b）**：本轮把六份 fidelity 文档的"实现该改"逐条重对代码，**本页是唯一一条
 > "已落地"写上去、而对代码核得一字不差的**——I11/I12 两处的坐标、形态、判据全部仍在原位：
-> I11 = `MainWindow.swift:581-585`（`Text("全部")` + `Image(systemName:"chevron.right").font(.caption2)`，
+> I11 = `MainWindow.swift:588-592`（`Text("全部")` + `Image(systemName:"chevron.right").font(.caption2)`，
 > 注释 `:580-581` 还留着"那半枚箭头是'点了会离开这一页'"的原始理由）；
 > I12 = `MMSparkline`（`MMDesign.swift:1057-1095`，`slotCount` 默认 12、`:1059`；未满的槽用 `Color.clear`
-> 撑位而不是画 2pt 矮柱，`:1064-1068`，判据"没轮到 ≠ 读不到"写在注释里），调用点 `MainWindow.swift:535`，
-> 数据侧 `DashboardModel.swift:92-118` 把"读不到"压成 `nil` 槽、量不到时整列空出来（`:114-118`）。
+> 撑位而不是画 2pt 矮柱，`:1064-1068`，判据"没轮到 ≠ 读不到"写在注释里），调用点 `MainWindow.swift:542`，
+> 数据侧 `DashboardModel.swift:96-122` 把"读不到"压成 `nil` 槽、量不到时整列空出来（`:118-122`）。
 > **本页没有需要更正的落地记录。** 唯一要补的是下面第 5 行那句"待真机测量"里新添的一项边界（见 §5 第 2 条补记：
 > 侧栏 `max:280` 那端没有取证手段，与"没拍"不是一回事）。
 

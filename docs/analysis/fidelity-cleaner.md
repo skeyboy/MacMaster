@@ -250,8 +250,8 @@
    （**P20 现读重跑，判据换成能罩住壳层的那一条**：
    `grep -rn 'MMFailurePanel(' --include='*.swift' Packages Sources | grep -v 'struct MMFailurePanel' | wc -l` = 11，
    逐个位置是 `MMCleaner.swift:376`、`SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、
-   `DevArtifactView.swift:423`、`MMDisk.swift:105`、`MMGuardian.swift:45`、`MMOptimizer.swift:165`、
-   `MMOptimizer.swift:239`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
+   `DevArtifactView.swift:423`、`MMDisk.swift:110`、`MMGuardian.swift:45`、`MMOptimizer.swift:166`、
+   `MMOptimizer.swift:240`、`MMUninstaller.swift:202`、`MMUninstaller.swift:208`、
    `Sources/MacMaster/MainWindow.swift:242`。**这两处 `MMOptimizer.swift` 的锚点是 P34b 顶漂的**（那一轮在 161 这一行以上
    净插入 4 行——`@StateObject preferences`、`switch` 里那一条 `case .preferences`、夹具注入行与它的真实扫描 guard——
    整段往下推 4 行：161→165、235→239，本轮按 §0 那条"改过源码行数的那一轮自己现读重指"的规矩重指；
