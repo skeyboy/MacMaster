@@ -35,7 +35,7 @@
 | 实现 | `Packages/MMOptimizer/Sources/MMOptimizer/`：`MMOptimizer.swift`、`DevToolCacheView.swift`、`DashboardMetrics.swift`、`DevToolCacheAudit.swift`（审计当时四文件）+ **P34b 新增 `PreferencesAudit.swift`（纯判定层）与 `PreferencesView.swift`（呈现层）** |
 | 渲染 | 本环境**无头、未运行 App、未截图**，不编像素数字；几何/像素项一律标 `⚠️待真机测量`，只从代码＋HTML+tokens 推导 |
 | 复用基准 | 共享组件 `MMFailurePanel`/`MMBadge`/`MMFormat` 取自 `Packages/MMUI/Sources/MMUI/MMDesign.swift`；闸门取自 `Packages/MMCore/Sources/MMCore/DeletionGuard.swift`、`FileTrashService.swift` |
-| 可用钩子 | 审计当时**只有 `MM_OPEN_TAB=duplicates\|browser\|status\|devtools`**（`MMOptimizer.swift:42`），故四 tab 内的空/失败/超大列表态无注入路径（§5 全部由此而来）。**复核 2026-10-04：这句在本文件提交那天就已经过期了**——`MM_OPTIMIZER_FIXTURE` 由 `969e548`（2026-09-30）落地，而它正是本文件 §6 #1 建议的那件事；两份文件都提交在 2026-09-30，`969e548` 还是 `e96c95b`（本文件入库那一笔）的**祖先提交**。所以不是"别人后来改了代码"，是**自己建议改完没回写建议**（`OptimizerFixtureHooks.swift:4-5` 的表头甚至引用了"§5 #1–7"，说明写钩子时这份审计已经在了）。入口：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`，解析点 `MMOptimizer.swift:81`；档位 `duplicates:<N>`（N>0 组数）/`duplicates:empty`/`duplicates:scannedEmpty`/`browser:rows`/`browser:empty`/`status:allReadOnly`/`devtools:notInstalled`/`devtools:unreadable`/`protected`，逗号可叠加，铁律与 monitor/guardian 同口径（只顶替展示数据、不写盘不 spawn 不读 /tmp、含非法值整钩作废）。README §2 矩阵同步已到位（`docs/design-system/README.md:43`）。**但没有任何脚本用过它**（`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中），§5 的七档仍是"能力有、照片无" |
+| 可用钩子 | 审计当时**只有 `MM_OPEN_TAB=duplicates\|browser\|status\|devtools`**（`MMOptimizer.swift:41`），故四 tab 内的空/失败/超大列表态无注入路径（§5 全部由此而来）。**复核 2026-10-04：这句在本文件提交那天就已经过期了**——`MM_OPTIMIZER_FIXTURE` 由 `969e548`（2026-09-30）落地，而它正是本文件 §6 #1 建议的那件事；两份文件都提交在 2026-09-30，`969e548` 还是 `e96c95b`（本文件入库那一笔）的**祖先提交**。所以不是"别人后来改了代码"，是**自己建议改完没回写建议**（`OptimizerFixtureHooks.swift:4-5` 的表头甚至引用了"§5 #1–7"，说明写钩子时这份审计已经在了）。入口：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`，解析点 `MMOptimizer.swift:82`；档位 `duplicates:<N>`（N>0 组数）/`duplicates:empty`/`duplicates:scannedEmpty`/`browser:rows`/`browser:empty`/`status:allReadOnly`/`devtools:notInstalled`/`devtools:unreadable`/`protected`，逗号可叠加，铁律与 monitor/guardian 同口径（只顶替展示数据、不写盘不 spawn 不读 /tmp、含非法值整钩作废）。README §2 矩阵同步已到位（`docs/design-system/README.md:43`）。**但没有任何脚本用过它**（`grep -r MM_OPTIMIZER_FIXTURE Scripts/` → 0 命中），§5 的七档仍是"能力有、照片无" |
 | 硬约束 | 全程未发合成事件、未运行 App、未截图、未改 `Packages/`/`tokens.css`/`screen.css`/`icons.js`；未做任何 git 操作；未碰 `/tmp` 之外路径。本稿只新增本文件 |
 
 代码侧已实证的口径（来自共享文件，非本模块自造）：
@@ -48,7 +48,7 @@
   **方法教训（写进本节，供后续审计照办）：判"组件没有某个修饰符"必须读到 body 的收尾大括号，
   按估计范围截行会把"有"读成"无"。** 同一天里 `MMFormat.bytes` 那条是按整段读的，结论就站住了。
 - `FileTrashService.moveToTrash`（`FileTrashService.swift:35-69`）：循环开头即 `DeletionGuard.rejection(for:)`（:43），PROTECTED → `TrashFailure(code:"PROTECTED")`（:44），逐条上报、不静默跳过；执行用 `trashItem`（可撤回、入台账）。
-- `DeletionGuard`（`DeletionGuard.swift:25-57`）：系统域子树 / 凭证与活数据子树 / 六个用户目录"**目录本身挡、内容放**"。
+- `DeletionGuard`（`DeletionGuard.swift:25-62`）：系统域子树 / 凭证与活数据子树 / 六个用户目录"**目录本身挡、内容放**"。**P36 现读重指**：这一格此前收口在 `:57`，只圈到第三层的说明注释（54-59），没圈到那六个目录名的字面量（`protectedHomeDirectories` 在 `:60-62`）；本轮按"讲的是哪三层就收到哪一行"放宽。
 
 ---
 
@@ -56,74 +56,74 @@
 
 严重度定义：**高** = 用户会读到错误结论（把未知当已知 / 把失败当正常 / 绕过删除闸门）；
 **中** = 视觉或语义明显跑偏但不产生错误结论；**低** = 像素级偏差、占位数据、口径注脚。
-`⚠️` = 需真机截图才能判定，本环境未测。
+`⚠️` = 需真机截图才能判定，本环境未测。**P36 现读重指（2026-10-13）**：本节三张表的锚点此前整片停在 2026-10-04 那一读的坐标上，本轮对着当前树逐行重指了一遍——duplicates 视图一族 +52、browser/devtools 行 +89、status 行 +130，页头一行 +1。**为什么必须手工来一遍**：这一片的坐标绝大多数是裸写 `:NN`（上一格文件名的续写），引用门禁与漂移量尺的正则都要求冒号前紧跟文件名，所以它们对这部分**既看不见也报不出漂**；机械重指罩不住它，只能按稿内条目声称的那件事去 grep 源码、再回读目标行原文核对。
 
 ### 1.1 页头 / 页签 / 侧栏（四 tab 共用）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「系统优化」 | `MMOptimizer.swift:51` | ✅ | — | — | — |
-| 副标题绑定 `diagnostics.updatedAt`，默认首屏只有标题一行 | `:52` `SystemDiagnosticsModel.updatedAt` 初始 nil，仅 status `.task` 后赋值（`:218,:661`） | ✅ | 08 稿注"默认首屏无副标题，不是漏画"——代码逻辑一致；⚠️ 默认首屏是否真无副标题需真机 | 低 | ⚠️待真机测量 |
+| 标题「系统优化」 | `MMOptimizer.swift:52` | ✅ | — | — | — |
+| 副标题绑定 `diagnostics.updatedAt`，默认首屏只有标题一行 | `:52` `SystemDiagnosticsModel.updatedAt` 初始 nil，仅 status `.task` 后赋值（`:265`、`:772`） | ✅ | 08 稿注"默认首屏无副标题，不是漏画"——代码逻辑一致；⚠️ 默认首屏是否真无副标题需真机 | 低 | ⚠️待真机测量 |
 | 分段页签（重复文件/浏览器缓存/系统状态/开发工具），maxWidth 340 居中 | `:54-61` `.frame(maxWidth:340)` `.padding(.horizontal, .lg)` | ✅ | 居中几何 ⚠️ 像素级未测 | 低 | ⚠️待真机测量 |
 | 默认 tab=duplicates；`MM_OPEN_TAB` 可切 | `:41-42` | ✅ | — | — | — |
 | 侧栏 "系统优化" active + 其余模块项 | 壳 `MainWindow` 渲染（非本模块） | ⚠️ | 08 稿侧栏尾部写 "系统清理 2.4 GB / 应用卸载 46"，08e 已改 "1.27 GB"；占位数字全站问题 | 低 | 设计稿该改 S1 |
-| 顶部「查找重复文件」按钮（magnifyingglass，bordered） | `:90-96` | ✅ | 图标 SF `magnifyingglass` 与稿一致 | — | — |
+| 顶部「查找重复文件」按钮（magnifyingglass，bordered） | `:137-144` | ✅ | 图标 SF `magnifyingglass` 与稿一致 | — | — |
 
 ### 1.2 重复文件 tab（duplicates）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 顶行口径「按文件内容比对，不看文件名。」(未扫档) | `:275` headline `guard hasScanned else` 分支 | ✅ | — | — | — |
-| 范围行硬编码 Documents/Downloads/Desktop | `:256-259` `scopes`；`:281-286` `scannedScope` 拼名 | ✅ | 与稿"逐字照抄"一致 | — | — |
-| 空态两档：未扫="还未开始检测" / 扫过没找到="没有发现内容完全相同的文件" | `:137-141` `MMEmptyState` 标题条件 | ✅ | 绝不混用，与稿一致 | — | — |
-| 空态 detail=scannedScope（未扫不追加"本次比对 N 个候选"） | `:140` `detail: duplicates.scannedScope` | ✅ | 稿注"未扫时不追加"——代码 `scannedScope` 在 `lastReport==nil` 时只返回 base（`:284`） | — | — |
-| 扫描中 headline="正在按内容比对，未完成前不会给出结果。" | `:273` | ✅ | — | — | — |
-| 「停止」按钮 + 「重新扫描」置灰 | `:86-89` 停止；`:97` 重新扫描 disabled | ✅ | — | — | — |
-| 进度 `MMScanProgress`：action=阶段原文、estimatedRemaining 恒 nil、fraction | `:102-110` 传 `estimatedRemaining:nil`、`progress.fraction` | ✅（结构） | 阶段枚举 `progress.stage.rawValue` 的原文（归类候选/抽样比对/逐字节校验）来自 `DuplicateScanner`，**不在本模块文件内**；"已处理 N 项" 文案在 `MMScanProgress` 内——⚠️ 待真机核对逐字 | 低 | ⚠️待真机测量 |
-| 扫描中且未出分组 → 6 条骨架 | `:130-135` `ForEach(0..<6) MMSkeletonRow` | ✅ | 数量 6 与稿一致 | — | — |
-| caveat 横幅「部分文件没能参与判定」+ 读失败/云端占位两档用"；"连接 | `:112-114` `MMPermissionBanner`；`:288-293` `caveatText` | ✅ | 文案拼接与稿一致 | — | — |
-| 分组卡头：chevron + doc.on.doc(橙) + "N 个文件内容相同" + "size×n" + 徽章"谨慎"(caution) + 右端蓝"可释放 X" | `:431-449` `DuplicateGroupRow` | ✅ | `MMBadge(risk:.caution)`(:444)、`可释放`=`wastedSpace`(:445) | — | — |
-| "可释放 X"= size×(个数−1) | `DuplicateGroup.wastedSpace`（按 `:278` 口径 `totalWaste`）；08b 858=286×3 | ✅ | 数学一致 | — | — |
-| "需保留"徽章仅出现在组内唯一未勾且其余全勾项；其复选框禁用 | `:339-349` `isKeepRequired`；`:480` `.disabled(keepRequired)`；`:492` `MMBadge("需保留")` | ✅ | 硬约束与稿"一组必须留一份"一致 | — | — |
-| 修改时间 RelativeDateTimeFormatter 短格式 | `:493` `MMFormat.relative` | ✅（代码分支） | 实际格式 ⚠️ 待真机 | 低 | ⚠️待真机测量 |
-| 行尾 folder 图标="在访达中显示"(help) | `:500-506` `MMReveal.open`+`.help` | ✅ | — | — | — |
-| 操作栏随勾选：「已选 N 项 · X」+ 提示句 | `:380-398` `MMActionBar` | ✅ | 未勾="未勾选的文件不会被改动。"，已勾="被勾选的文件会先移入废纸篓，可撤回。"(:385) | — | — |
-| 「移到废纸篓」置灰(disabled) 当未勾选 | `:397` `.disabled(selection.isEmpty)` | ✅ | — | — | — |
-| 撤回 toast 8s 自动消失、不传 secondsRemaining（无倒计时数字） | `:399-414` `MMUndoToast` + `Task.sleep(8)` | ✅ | 与稿"没有倒计时数字"一致 | — | — |
+| 顶行口径「按文件内容比对，不看文件名。」(未扫档) | `:327` headline `guard hasScanned else` 分支 | ✅ | — | — | — |
+| 范围行硬编码 Documents/Downloads/Desktop | `:308-311` `scopes`；`:333-338` `scannedScope` 拼名 | ✅ | 与稿"逐字照抄"一致 | — | — |
+| 空态两档：未扫="还未开始检测" / 扫过没找到="没有发现内容完全相同的文件" | `:184-188` `MMEmptyState` 标题条件 | ✅ | 绝不混用，与稿一致 | — | — |
+| 空态 detail=scannedScope（未扫不追加"本次比对 N 个候选"） | `:187` `detail: duplicates.scannedScope` | ✅ | 稿注"未扫时不追加"——代码 `scannedScope` 在 `lastReport==nil` 时只返回 base（`:336`） | — | — |
+| 扫描中 headline="正在按内容比对，未完成前不会给出结果。" | `:325` | ✅ | — | — | — |
+| 「停止」按钮 + 「重新扫描」置灰 | `:133-136` 停止；`:144` 重新扫描 disabled | ✅ | — | — | — |
+| 进度 `MMScanProgress`：action=阶段原文、estimatedRemaining 恒 nil、fraction | `:149-157` 传 `estimatedRemaining:nil`、`progress.fraction` | ✅（结构） | 阶段枚举 `progress.stage.rawValue` 的原文（归类候选/抽样比对/逐字节校验）来自 `DuplicateScanner`，**不在本模块文件内**；"已处理 N 项" 文案在 `MMScanProgress` 内——⚠️ 待真机核对逐字 | 低 | ⚠️待真机测量 |
+| 扫描中且未出分组 → 6 条骨架 | `:177-182` `ForEach(0..<6) MMSkeletonRow` | ✅ | 数量 6 与稿一致 | — | — |
+| caveat 横幅「部分文件没能参与判定」+ 读失败/云端占位两档用"；"连接 | `:159-161` `MMPermissionBanner`；`:340-345` `caveatText` | ✅ | 文案拼接与稿一致 | — | — |
+| 分组卡头：chevron + doc.on.doc(橙) + "N 个文件内容相同" + "size×n" + 徽章"谨慎"(caution) + 右端蓝"可释放 X" | `:509-544` `DuplicateGroupRow` | ✅ | `MMBadge(risk:.caution)`(:533)、`可释放`=`wastedSpace`(:534) | — | — |
+| "可释放 X"= size×(个数−1) | `DuplicateGroup.wastedSpace`（按 `:330` 口径 `totalWaste`）；08b 858=286×3 | ✅ | 数学一致 | — | — |
+| "需保留"徽章仅出现在组内唯一未勾且其余全勾项；其复选框禁用 | `:429-434` `isKeepRequired`；`:569` `.disabled(keepRequired)`；`:581` `MMBadge("需保留")` | ✅ | 硬约束与稿"一组必须留一份"一致 | — | — |
+| 修改时间 RelativeDateTimeFormatter 短格式 | `:582` `MMFormat.relative` | ✅（代码分支） | 实际格式 ⚠️ 待真机 | 低 | ⚠️待真机测量 |
+| 行尾 folder 图标="在访达中显示"(help) | `:589-595` `MMReveal.open`+`.help` | ✅ | — | — | — |
+| 操作栏随勾选：「已选 N 项 · X」+ 提示句 | `:468-487` `MMActionBar` | ✅ | 未勾="未勾选的文件不会被改动。"，已勾="被勾选的文件会先移入废纸篓，可撤回。"(:474) | — | — |
+| 「移到废纸篓」置灰(disabled) 当未勾选 | `:486` `.disabled(selection.isEmpty)` | ✅ | — | — | — |
+| 撤回 toast 8s 自动消失、不传 secondsRemaining（无倒计时数字） | `:488-503` `MMUndoToast` + `Task.sleep(8)` | ✅ | 与稿"没有倒计时数字"一致 | — | — |
 | 失败回执 `MMFailurePanel`（PROTECTED 分档） | `MMOptimizer.swift:166-168` `MMFailurePanel(summary:nil, trashFailures)`（P35b 现读重指，此前写 `:118-122`） | ✅（结构） | 见 §2②；容器橙底 **✅已核：组件自带**（`MMDesign.swift:783`） | ~~中(待核)~~ 无 | §3 I1 已关闭 |
 
 ### 1.3 浏览器缓存 tab（browser）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 进页签即 `scanIfNeeded`（无"请先点扫描"空态） | `:196` `.task { await browser.scanIfNeeded() }` | ✅ | 稿"量一次不到一秒，比摆空态有用" | — | — |
-| 只探测 ~/Library/Caches 下 Safari/Chrome/Firefox/Edge 四目录，存在且非空才列 | `:531-536` candidates；`:539` `fileExists`；`:544` `filter { size==nil \|\| size>0 }` | ✅ | "非空"判定=`size==nil||size>0`，排除 0 字节 | — | — |
-| 顶行仅"重新扫描"（扫描中置灰），**无停止按钮** | `:162-168` 无停止；`:168` disabled | ✅ | 与稿"与重复文件页签不同，没有停止按钮"一致 | — | — |
-| headline "N 个缓存目录 · 合计 X（M 个目录没读到，未计入）" | `:556-565` | ✅ | 合计只加 `measured`（`:559-560`），未量到的追"未计入" | — | — |
-| 每行动作仅"位置"(访达显示)+"移到废纸篓"(小按钮红字) | `:606` `MMRevealButton`；`:614-621` 删除按钮 tint red | ✅ | 图标：稿用 `#i-box`，实现用 SF `trash`（见 S2） | 低 | 设计稿该改 S2 |
-| size=nil → "测量中"，help="目录存在，但体积没能读出来；不是 0 字节。" | `:609` `MMFormat.bytes(item.size)`（nil→"测量中"，已核）；`:613` `.help(...)` | ✅ | 文案与稿逐字一致 | — | — |
-| "测量中"行排末位（nil 按 0 参与排序），绝不显 0 | `:544-545` `sorted { ($0.size ?? 0) > ($1.size ?? 0) }` | ✅ | 与稿"排末位但绝不混同 0 字节"一致 | — | — |
-| 不碰历史记录/密码/Cookie（空态 detail 原文） | `:178` detail 文案 | ✅ | — | — | — |
-| 空列表两档："正在统计缓存体积…"(未扫) / "没有发现可清理的浏览器缓存"(扫过空) | `:174-179` 条件 | ✅ | — | — | — |
-| 删除走 `FileTrashService.moveToTrash`（可撤回/入台账） | `:582-586` `clean` → `moveToTrash` | ✅ | 经闸门，见 §2③ | — | — |
+| 进页签即 `scanIfNeeded`（无"请先点扫描"空态） | `:243` `.task { await browser.scanIfNeeded() }` | ✅ | 稿"量一次不到一秒，比摆空态有用" | — | — |
+| 只探测 ~/Library/Caches 下 Safari/Chrome/Firefox/Edge 四目录，存在且非空才列 | `:620-625` candidates；`:628` `fileExists`；`:633` `filter { size==nil \|\| size>0 }` | ✅ | "非空"判定=`size==nil||size>0`，排除 0 字节 | — | — |
+| 顶行仅"重新扫描"（扫描中置灰），**无停止按钮** | `:205-216` 无停止；`:215` disabled | ✅ | 与稿"与重复文件页签不同，没有停止按钮"一致 | — | — |
+| headline "N 个缓存目录 · 合计 X（M 个目录没读到，未计入）" | `:647-656` | ✅ | 合计只加 `measured`（`:650-651`），未量到的追"未计入" | — | — |
+| 每行动作仅"位置"(访达显示)+"移到废纸篓"(小按钮红字) | `:713` `MMRevealButton`；`:721-728` 删除按钮 tint red | ✅ | 图标：稿用 `#i-box`，实现用 SF `trash`（见 S2） | 低 | 设计稿该改 S2 |
+| size=nil → "测量中"，help="目录存在，但体积没能读出来；不是 0 字节。" | `:716` `MMFormat.bytes(item.size)`（nil→"测量中"，已核）；`:720` `.help(...)` | ✅ | 文案与稿逐字一致 | — | — |
+| "测量中"行排末位（nil 按 0 参与排序），绝不显 0 | `:633-634` `sorted { ($0.size ?? 0) > ($1.size ?? 0) }` | ✅ | 与稿"排末位但绝不混同 0 字节"一致 | — | — |
+| 不碰历史记录/密码/Cookie（空态 detail 原文） | `:225` detail 文案 | ✅ | — | — | — |
+| 空列表两档："正在统计缓存体积…"(未扫) / "没有发现可清理的浏览器缓存"(扫过空) | `:221-226` 条件 | ✅ | — | — | — |
+| 删除走 `FileTrashService.moveToTrash`（可撤回/入台账） | `:689-693` `clean` → `moveToTrash` | ✅ | 经闸门，见 §2③ | — | — |
 | 失败回执 `MMFailurePanel(browser.failures)` | `MMOptimizer.swift:240`（P35b 现读重指，此前写 `:192-194`） | ✅ | 同 §2②；橙底同上一条，组件自带 | ~~中(待核)~~ 无 | §3 I1 已关闭 |
 
 ### 1.4 系统状态 tab（status）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 进页签即 `.task refresh()`（自带检测） | `:218` `.task { await diagnostics.refresh() }` | ✅ | — | — | — |
-| 检测中 checks 空 → 整页仅居中 ProgressView，无假数据 | `:213-217` `overlay` ProgressView | ✅ | — | — | — |
-| 三行：内存/磁盘/废纸篓 | `:666-720` `SystemDiagnostics.measure` | ✅ | — | — | — |
-| 内存 value="已用/总量"，压力>85% 转"谨慎"，否则"安全" | `:680-688`；`:685` risk | ✅ | — | — | — |
-| 内存 `used==nil` → "—" + note"vm_statistics64 没读数…显示 —。" | `:671-672`；`:683` DashboardText | ✅ | 读不到≠0，与稿一致 | — | — |
-| 内存 swap 失败 → note"交换空间读数不可用（sysctl vm.swapusage 失败），显示 —。" | `:677-679` | ✅ | 稿注"本稿未画第三档"——代码有第三档 | — | — |
-| 磁盘读不到卷 → "—" + note"未能读取卷信息（容量键未返回），不显示 0。" | `:700-704` else 分支 | ✅ | — | — | — |
-| 废纸篓用 `directoryBytes` 而非 `trashBytes`（后者把没量到折 0） | `:706-717` 注释 + `directoryBytes` | ✅ | 稿注"nil→值'—'"——代码 `map(MMFormat.bytes) ?? placeholder` | — | — |
-| 废纸篓 >5GB 转"谨慎"，否则"只读"；**永无清空按钮** | `:714` risk；`:713` note"只带你过去，不代你清空" | ✅ | 与稿一致 | — | — |
-| 没量到行徽章一律"只读"(灰+锁)，不给绿"安全" | `:685/:702/:714` 各 nil 分支 `risk:.readOnly`；`SystemCheckRow` `MMBadge(risk:)` | ✅ | — | — | — |
-| 行动作："查看"跳 monitor/disk、"打开"访达 ~/.Trash、行尾圆形刷新 | `:742-752` destination/ revealPath/ onRefresh | ✅ | — | — | — |
-| 副标题"上次检测 yyyy-MM-dd HH:mm"是唯一来源 | `:661` `updatedAt`；`:52` 绑定页头 | ✅ | — | — | — |
+| 进页签即 `.task refresh()`（自带检测） | `:265` `.task { await diagnostics.refresh() }` | ✅ | — | — | — |
+| 检测中 checks 空 → 整页仅居中 ProgressView，无假数据 | `:260-264` `overlay` ProgressView | ✅ | — | — | — |
+| 三行：内存/磁盘/废纸篓 | `:797-851` `SystemDiagnostics.measure` | ✅ | — | — | — |
+| 内存 value="已用/总量"，压力>85% 转"谨慎"，否则"安全" | `:811-819`；`:816` risk | ✅ | — | — | — |
+| 内存 `used==nil` → "—" + note"vm_statistics64 没读数…显示 —。" | `:802-803`；`:814` DashboardText | ✅ | 读不到≠0，与稿一致 | — | — |
+| 内存 swap 失败 → note"交换空间读数不可用（sysctl vm.swapusage 失败），显示 —。" | `:808-809` | ✅ | 稿注"本稿未画第三档"——代码有第三档 | — | — |
+| 磁盘读不到卷 → "—" + note"未能读取卷信息（容量键未返回），不显示 0。" | `:831-835` else 分支 | ✅ | — | — | — |
+| 废纸篓用 `directoryBytes` 而非 `trashBytes`（后者把没量到折 0） | `:837-848` 注释 + `directoryBytes` | ✅ | 稿注"nil→值'—'"——代码 `map(MMFormat.bytes) ?? placeholder` | — | — |
+| 废纸篓 >5GB 转"谨慎"，否则"只读"；**永无清空按钮** | `:845` risk；`:844` note"只带你过去，不代你清空" | ✅ | 与稿一致 | — | — |
+| 没量到行徽章一律"只读"(灰+锁)，不给绿"安全" | `:816/:833/:845` 各 nil 分支 `risk:.readOnly`；`SystemCheckRow` `MMBadge(risk:)` | ✅ | — | — | — |
+| 行动作："查看"跳 monitor/disk、"打开"访达 ~/.Trash、行尾圆形刷新 | `:873-881` destination/ revealPath/ onRefresh | ✅ | — | — | — |
+| 副标题"上次检测 yyyy-MM-dd HH:mm"是唯一来源 | `:772` `updatedAt`；`:52` 绑定页头 | ✅ | — | — | — |
 
 ### 1.5 开发工具 tab（devtools，P4.3）
 
@@ -131,15 +131,15 @@
 | --- | --- | --- | --- | --- | --- |
 | 六行：Go模块/Go构建/Cargo/Homebrew/npm/pip | `DevToolCacheAudit.swift:116-130` specs | ✅ | — | — | — |
 | 存在且非空才列、装没装在不在多大三档独立 | `:135-141` presence/size；`liveEntries` `:171-184` 仅 stat | ✅ | 三档绝不合并（见 devtool-owner-commands.md 测量诚实档） | — | — |
-| 大小 nil → "—"（非 0 B） | `DevToolCacheView.swift:109` `entry.bytes.map(MMFormat.bytes) ?? "—"` | ✅ | 与稿一致 | — | — |
-| 定位来源徽章两档："按 X 定位" / "按默认位置 · 未向工具求证"+问号 | `DevToolCacheView.swift:112-113` `MMBadge(rootSource.badgeText, systemImage: defaultPath?"questionmark.circle":nil)`；`Audit:21-26` badgeText | ✅ | 环境变量校验（绝对路径/不含../不含换行）`Audit:78-85` | — | — |
-| 动作仅"拷贝 owner 命令"+"显示"；**pip 无拷贝按钮**(ownerCommand=nil) | `DevToolCacheView.swift:115-122` `if let command`；`Audit:128` pip command=nil | ✅ | 与稿"pip 只剩显示"一致 | — | — |
+| 大小 nil → "—"（非 0 B） | `DevToolCacheView.swift:126` `entry.bytes.map(MMFormat.bytes) ?? "—"` | ✅ | 与稿一致 | — | — |
+| 定位来源徽章两档："按 X 定位" / "按默认位置 · 未向工具求证"+问号 | `DevToolCacheView.swift:129-130` `MMBadge(rootSource.badgeText, systemImage: defaultPath?"questionmark.circle":nil)`；`Audit:21-26` badgeText | ✅ | 环境变量校验（绝对路径/不含../不含换行）`Audit:78-85` | — | — |
+| 动作仅"拷贝 owner 命令"+"显示"；**pip 无拷贝按钮**(ownerCommand=nil) | `DevToolCacheView.swift:132-136` `if let command`；`Audit:128` pip command=nil | ✅ | 与稿"pip 只剩显示"一致 | — | — |
 | 徽章优先级：没装 > 目录状态（"未安装"盖"位置不存在"） | `Audit:200-207` `presenceBadge` 先 `!toolInstalled` | ✅ | — | — | — |
-| caveat 橙(caution) 只给"没装"与"读不动"；"目录不存在"保持灰 | `DevToolCacheView.swift:135-139` `caveatTint` | ✅ | 与稿"全橙会把六行都染成告警"一致 | — | — |
-| 本屏无 MMActionBar，页脚一句 info.circle 说明 | `DevToolCacheView.swift:48-58` footnote | ✅ | — | — | — |
-| **零删除入口、零 spawn**：copy 仅 `NSPasteboard`，refresh 仅 stat 探测 | `DevToolCacheView.swift:27-33` copy；`Audit:88-96` `toolPath` 仅 `isExecutableFile`；`:171-184` presence 仅 `fileExists/isReadableFile` | ✅ | 不执行第三方二进制，满足 P4.3"只报不执行" | — | — |
-| "上次盘点"(DevToolCacheModel.updatedAt) 当前 UI 未展示 | `DevToolCacheView.swift:24` 赋值但 `DevToolCacheView` 不显示 | ⚠️ | 稿自注"已知未接上，不是稿子漏画"——非差异，记录 | 低 | 记录 |
-| 08e 推演档（未安装/读不到两行）为代码推演非实机 | `08-optimizer.html:633` 自注 | ⚠️ | 需 owner 命令失败态 fixture 才能真机核对，见 §5/§6 | 低 | 见 §6 |
+| caveat 橙(caution) 只给"没装"与"读不动"；"目录不存在"保持灰 | `DevToolCacheView.swift:152-156` `caveatTint` | ✅ | 与稿"全橙会把六行都染成告警"一致 | — | — |
+| 本屏无 MMActionBar，页脚一句 info.circle 说明 | `DevToolCacheView.swift:65-75` footnote | ✅ | — | — | — |
+| **零删除入口、零 spawn**：copy 仅 `NSPasteboard`，refresh 仅 stat 探测 | `DevToolCacheView.swift:44-50` copy；`Audit:88-96` `toolPath` 仅 `isExecutableFile`；`:171-184` presence 仅 `fileExists/isReadableFile` | ✅ | 不执行第三方二进制，满足 P4.3"只报不执行" | — | — |
+| "上次盘点"(DevToolCacheModel.updatedAt) 当前 UI 未展示 | `DevToolCacheView.swift:28` 赋值但 `DevToolCacheView` 不显示 | ⚠️ | 稿自注"已知未接上，不是稿子漏画"——非差异，记录 | 低 | 记录 |
+| 08e 推演档（未安装/读不到两行）为代码推演非实机 | `08-optimizer.html:673` 自注 | ⚠️ | 需 owner 命令失败态 fixture 才能真机核对，见 §5/§6 | 低 | 见 §6 |
 
 ---
 
@@ -169,7 +169,7 @@
 ### ②-③ 有无绕过 FileTrashService 的直接删除路径
 
 - 全模块检索（`grep removeItem|trashItem|\brm\b|moveToTrash|FileTrashService` 于 `Packages/MMOptimizer`）：
-  - 产品代码删除动作仅 **2 处** `moveToTrash`（`MMOptimizer.swift:356`、`:584`）+ **1 处** `undo`（`:374`），全部走 `FileTrashService`（可撤回、入台账）。
+  - 产品代码删除动作仅 **2 处** `moveToTrash`（`MMOptimizer.swift:439`、`:690`）+ **1 处** `undo`（`:462`），全部走 `FileTrashService`（可撤回、入台账）。**P36 现读重指**：本行此前写 `:356`/`:584`/`:374`，那是 2026-10-04 那一读的坐标；今天这三行分别落在 `isScanning = false`、行视图的 `.foregroundStyle` 和 `func scan()` 上——**与删除无关**。本文件开头 ③ 那条（`:439`/`:690`/`:462`）与 §2 ②-① 那一行早就是对的，**这一格是同一件事在同一份文档里的两处读数不一致**，两处现在对齐。
   - **无任何** `FileManager.default.removeItem` / `trashItem` / shell `rm` 直接删除调用。
   - 唯一命中的 `removeItem` 在 `MMOptimizer/Tests/MMOptimizerTests/DashboardMetricsTests.swift:178`，仅清理该测试自己的 `/tmp` 夹具（符合 `README §4`「钩子只认 /tmp 之下」），**不是产品路径**。
 - devtools tab **零删除入口**（`DevToolCacheView` 仅有"拷贝命令"= `NSPasteboard.general` 写 `MMOptimizer` 之外无第二处，`DevToolCacheView.swift:46`，按钮在 `:133`；与"显示"= 访达揭示。本行此前写 `:27-33`，那段是模型侧的 `refresh`/`refreshIfNeeded`，不含写盘也不含粘贴板）；`refresh` 经 `Task.detached` 调 `DevToolCacheAuditor.liveEntries`，其 `toolProbe` 仅 `isExecutableFile`（stat，不执行）、`presenceProbe` 仅 `fileExists`/`isReadableFile`（`DevToolCacheAudit.swift:171-184`）——**全链路零 spawn、零写盘**，满足 `docs/analysis/devtool-owner-commands.md`「只报位置和 owner 命令，不执行任何第三方二进制」。
@@ -200,7 +200,7 @@
 ## 4. 设计稿该改（3 低）
 
 1. **【低】S1 · 侧栏占位数字不一致**：08 稿侧栏尾部写"系统清理 2.4 GB / 应用卸载 46"，而同模块 08e 已改成"1.27 GB"，且与全站实际值不符。属 `README §2` S2 已归的全站占位问题，optimizer 稿沿用旧值，应随全站侧栏 footer 组件重画一并修正。
-2. **【低】S2 · 浏览器"移到废纸篓"按钮图标**：08c 用 `#i-box`（box 占位），实现用 SF `trash`（`MMOptimizer.swift:618`）。稿图标为占位，应改为 `trash` 或注明以实现的 SF 符号为准。
+2. **【低】S2 · 浏览器"移到废纸篓"按钮图标**：08c 用 `#i-box`（box 占位），实现用 SF `trash`（`MMOptimizer.swift:724`）。稿图标为占位，应改为 `trash` 或注明以实现的 SF 符号为准。
 3. **【低】S3 · 08e 推演档标注**：08e 下半"未安装/读不到"两行稿子自注"按代码推演，非实机照片"——这是诚实标注不是 diff；但其文案（"读不动这个位置…""PATH 里没找到 npm…"）需在真机补充 owner 命令失败态 fixture 后核对（见 §6）。
 
 ## 5. 没能验证到的部分（逐条写明缺什么，不写"应该没问题"）
@@ -269,9 +269,9 @@
    **本审计不擅自加钩子**（红线 3：共享层/钩子改动归协调者）。
    **✅ 已落地（`969e548`，2026-09-30）**：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`
    就是这个建议的成品，档位与建议**逐条对得上**（`browser:` 落成 `rows`/`empty` 两档；建议里的"超大列表"由
-   `duplicates:<N>` 的 N 承担）。合成组走真实 `DuplicateGroup` 构造器、路径是 `/tmp` 下 `com.example` 命名，
-   一眼可辨是夹具（`:106-110`）。**§5 #2 是唯一没被它覆盖的**，代码注释里自己也留了话
-   （`:20`「扫描中态 #2 需要 HOLD 语义，另行处理」）。
+   `duplicates:<N>` 的 N 承担）。合成组走真实 `DuplicateGroup` 构造器、路径是 `/tmp/mm-optimizer-fixture/dup-i/copy-j.bin`，
+   一眼可辨是夹具（`:166-176`）。**P36 现读重指**：这一格此前写"是 `/tmp` 下 `com.example` 命名"并钉 `:106-110`——**措辞与坐标一起错**：`com.example.*` 是**别的模块**夹具的命名规矩（`MonitorFixtureHooks.swift:216`、`TCCAuthorization.swift:251` 都用它），优化器这一族用的是 `/tmp/mm-optimizer-fixture/…`（`:172` 那一行），照别的模块的规矩写这一页就写成了假话。**§5 #2 是唯一没被它覆盖的**，代码注释里也留了话
+   （`:21-23`：「#2（扫描中态）**不需要钩子**：真实 SHA-256 比对本来就慢……所以这里没有 HOLD 档位——别照着旧注释再补一个」）。
    **P6.6 追加（2026-10-04）**：档位又多了一组 `caveat:unreadable:N` / `caveat:dataless:N`（§5 表下第 03 档照片要的就是它），
    并加了一条不变量——**`caveat` 必须与 `duplicates:<N>` 同给**，否则整个钩子作废：
    给一张"没有结果"的列表配一句"有些文件没参与判定"，照片本身自相矛盾。
@@ -332,7 +332,7 @@
 | 稿内条目 | 实现出处 | 一致? | 备注 |
 | --- | --- | --- | --- |
 | 第五个分段页签 `preferences` | `MMOptimizer.swift:270`（`case duplicates, browser, status, devtools, preferences`）、`:41`（`MM_OPEN_TAB`） | ✅ | 稿侧页签条改了一处 CSS：`.seg` 的 340 px 是 SwiftUI `.frame(maxWidth:340)` 的**上限**而非定宽，五 tab 时按内容收缩（实测 334 pt），原先写死 `width:100%` 会让每个标签折成两行 |
-| 页头一句「检查过 N 个偏好文件…」 | `PreferencesAudit.swift:355-364`（`headline`），视图 `PreferencesView.swift:53`/`:85-87` | ✅ | **N 的口径是"检查过"不是"找到了"**：`inspectedCount = rows.count`（`:125`）。截断态那句接「就到了时间预算，剩下的 K 个没看」，K 由 `notInspectedCount = max(0, foundFiles - rows.count)`（`:135`）给，而 `:258` 的预算检查在**每个文件之前**，所以 K 里不含读到一半的那个 |
+| 页头一句「检查过 N 个偏好文件…」 | `PreferencesAudit.swift:355-364`（`headline`），视图 `PreferencesView.swift:53`/`:85-87` | ✅ | **N 的口径是"检查过"不是"找到了"**：`inspectedCount = rows.count`（`PreferencesAudit.swift:125`）。截断态那句接「就到了时间预算，剩下的 K 个没看」，K 由 `notInspectedCount = max(0, foundFiles - rows.count)`（`PreferencesAudit.swift:135`）给，而 `PreferencesAudit.swift:258` 的预算检查在**每个文件之前**，所以 K 里不含读到一半的那个。**P36 现读复核对齐**：这三处原先是裸写 `:125`/`:135`/`:258`，按本表"裸写续写上一格文件名"的规矩会读成 `PreferencesView.swift`——**内容在 Audit 不在 View**（View 的那三行是 `}`、`ForEach`、空位），坐标数字恰好撞对了，指的文件是错的，所以这里把文件名写全。 |
 | 栏一「读不出来或空的那些」+ `exclamationmark.triangle` + caution | `PreferencesCopy.badSection`（`PreferencesAudit.swift:330`）、`PreferencesView.swift:120-121` | ✅ | |
 | 栏二「这一族我们没看到」+ `eye.slash` + 中性色，**独立成栏** | `PreferencesAudit.swift:331`、`PreferencesView.swift:129-130`、行图标 `:228` | ✅ | 这条是 P34a §9 A 档写死的判据（"读不到"不许与"损坏"共用图标），实拍与稿都分开 |
 | 栏二那句说明 | `unreadableNote(n)`（`PreferencesAudit.swift:335-337`）「系统对 n 个文件拒绝读取。这不代表它们坏了，也不代表它们没坏。」 | ✅ | **没把权限位写进文案**：P34a 在本机量到"属主是你、mode 0600 却仍被拒"，把它写成每台都成立的断言就是假话 |
