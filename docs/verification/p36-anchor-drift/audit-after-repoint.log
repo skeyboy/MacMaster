@@ -1,0 +1,20 @@
+# p29 anchor drift audit
+# date: 2026-10-13 14:58:37
+# repo: c0c53c1-dirty
+# base: HEAD
+# 被改源码文件（非测试）: 0 个；测试文件 0 个（文档极少引测试行号，不扫）
+# 扫到的引用条次（唯一「文档+文档行+源文件+源行号」）: 0
+# .swift 目标漂移（base 行 ≠ 工作区行）: 0
+# 其中不可自动重锚: 0
+# 按文档计数:
+# ---- 明细：可照抄的重锚（new 取自 base 行原文在工作区的唯一命中）----
+# ---- 明细：需人工 ----
+# 本轮被改的非 .swift 入库文件: 7 个
+# ---- 非 .swift 目标这一族 ----
+# 扫到的引用条次（唯一「候选路径+文档+文档行+行号」，含未命中被改文件的）: 109
+# 漂移（base 行 ≠ 工作区行）: 1
+# 其中不可自动重锚: 2
+#   doc=docs/analysis/feature-roadmap.md:1371  move=Scripts/p29-anchor-drift-audit.sh:44 -> Scripts/p29-anchor-drift-audit.sh:58  reason=唯一命中原文| # ---- 2. 入库 .md 里指向这些文件的引用 ----
+#   doc=docs/analysis/uninstaller-deep-residual-scope.md:224  src=Scripts/p29-anchor-drift-audit.sh:43  reason=base 那行是空行  wt=# `|| true` 不是装饰：本轮只改测试文件时，上面那条 `grep -v` 会一行都不吐并以 1 退出，
+#   doc=docs/analysis/fidelity-uninstaller.md:750  src=Scripts/p29-anchor-drift-audit.sh:43  reason=base 那行是空行  wt=# `|| true` 不是装饰：本轮只改测试文件时，上面那条 `grep -v` 会一行都不吐并以 1 退出，
+# 明细已写入 docs/verification/p36-anchor-drift/drift.tsv 与 docs/verification/p36-anchor-drift/drift-nonswift.tsv

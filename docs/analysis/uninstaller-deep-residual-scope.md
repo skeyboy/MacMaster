@@ -221,7 +221,7 @@ enhanced 档 0 条被降级只说明这台机上那些弱证据行两条线索�
 - **照片的期望值必须机器生成**：本轮唯一一次"我以为画面上有四句提醒"被照片自己驳回去。
   从此 `p33b-nesting-capture.sh` 的应然行来自 `fixture-rows.log`（真扫描），
   并且复用前先验一句 `# 夹具模式：home=$FIX`，防止拿上一棵树的读数当这一棵的期望。
-- **`Scripts/p29-anchor-drift-audit.sh:30` 补了 `|| true`**：那一行在"本轮只改测试文件"时
+- **`Scripts/p29-anchor-drift-audit.sh:43` 补了 `|| true`**：那一行在"本轮只改测试文件"时
   `grep -v` 不吐行并以 1 退出，`set -e` 让量尺在打印任何一行之前死掉。顺手跑了它，
   量出本轮把 **13 条**入库锚点顶漂了（`ResidualCollector` +102、`ResidualScanner` +34、
   `UninstallerModel` +12/+13/+14 三档），已在 `fidelity-uninstaller.md`、
