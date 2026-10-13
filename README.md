@@ -453,6 +453,11 @@ P20 那一遍归档规矩还没立起来，P27 是第一份）。过程在 §7.2
 字节比对因为在 `--check` 分支里拿不到只有生成才会创建的中间目录而被整条跳过——**作者树与克隆树都一样**；
 本轮没动它（它管的 `Resources/AppIcon.icns` 是编译输入，而核验途中不改量尺），改法与三条理由记在
 `docs/analysis/release-readiness.md` §7.23 与 §10 第 2 步那一格，账登记给下一轮。
+**这一笔已在 P36 收口**：`--check` 现在自己现生成一份源图（不重写 icns），两头各撞过一遍——
+正向 `1024 档 270169 字节` 放行，把 `make-icon.swift` 里一个颜色常数改一位就报
+`✗ 1024 档字节数不一致：源 270169 / 解出 277310` 并退非零； icns 跑前跑后 sha256 相同、
+编译输入指纹段仍是 `e3b0c442`，所以 v1.0.1 那个产物与这条改动无关。量尺 `Scripts/p36-icon-byte-audit.sh`，
+读数 `docs/verification/p36-icon-byte/audit.log`，过程 `docs/analysis/release-readiness.md` §7.25。
 证据 `docs/verification/p35b-clone/`（三张照片 + 三份日志 + 一份测试结论行）与
 `docs/verification/p35b-clone-citations/audit.log`，过程在 §7.23。
 **v1.0.1 的发版决定这一问本轮由用户答了**（"按最优解处理完即可发布"），**同日已发**：

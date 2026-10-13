@@ -1,0 +1,12 @@
+# p36-icon-byte-audit.sh  2026-10-13 14:24:42 +0800
+# repo: 96a16ca-dirty branch=main
+# digest: 96a16ca+e3b0c442
+# [1] --check 正向
+✓ 反向解出 10 档；1024 档 270169 字节
+档位：icon_128x128.png icon_128x128@2x.png icon_16x16.png icon_16x16@2x.png icon_256x256.png icon_256x256@2x.png icon_32x32.png icon_32x32@2x.png icon_512x512.png icon_512x512@2x.png 
+# [1] 现生成的源图：270169 字节（build/AppIcon.check.iconset/icon_512x512@2x.png）
+# [2] --check 负向（应当拒）
+✗ 1024 档字节数不一致：源 270169 / 解出 277310
+# [3] 纯重编码：源 PNG 270169 → 270689 字节，重打出的 icns 与仓库那份逐字相同；--check 在这一头放行
+# [4] Resources/AppIcon.icns 全程未变：519e8248ab5ffdafda987576879e399fb121a2002ce29391594193e093b955f7
+# verdict: --check 的字节判据正向放行、像素漂移时拒绝；纯重编码会被 iconutil 归一——这一判管像素内容，不管容器里那几个字节是谁编的
