@@ -1,0 +1,7 @@
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:125	src=docs/design-system/screens/shell/09-settings.html:189	reason=工作区里 0 处命中（0 处以上需人工认）	| <div class="ftitle">废纸篓</div>
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:96	src=docs/design-system/screens/shell/09-settings.html:12	reason=工作区里 0 处命中（0 处以上需人工认）	| .sheet{width:500px;height:auto;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3372	src=docs/design-system/screens/shell/09-settings.html:178	reason=工作区里 0 处命中（0 处以上需人工认）	| <div class="fcap">设置已持久化；清理模块接入这些开关后生效</div>
+DRIFT	doc=docs/analysis/feature-roadmap.md:1371	move=Scripts/p29-anchor-drift-audit.sh:45 -> Scripts/p29-anchor-drift-audit.sh:46	reason=唯一命中原文	| git diff --name-only "$BASE" -- '*.swift' | grep -v '^Packages/.*/Tests/' > "$TMP/files" || true
+DRIFT	doc=docs/analysis/uninstaller-deep-residual-scope.md:224	move=Scripts/p29-anchor-drift-audit.sh:43 -> Scripts/p29-anchor-drift-audit.sh:44	reason=唯一命中原文	| # `|| true` 不是装饰：本轮只改测试文件时，上面那条 `grep -v` 会一行都不吐并以 1 退出，
+UNRESOLVED	doc=docs/analysis/release-readiness.md:2381	src=docs/design-system/screens/shell/09-settings.html:12	reason=工作区里 0 处命中（0 处以上需人工认）	| .sheet{width:500px;height:auto;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
+DRIFT	doc=docs/analysis/fidelity-uninstaller.md:750	move=Scripts/p29-anchor-drift-audit.sh:43 -> Scripts/p29-anchor-drift-audit.sh:44	reason=唯一命中原文	| # `|| true` 不是装饰：本轮只改测试文件时，上面那条 `grep -v` 会一行都不吐并以 1 退出，

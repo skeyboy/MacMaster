@@ -8,8 +8,8 @@
 .artboard{display:flex;flex-direction:column;gap:6px}
 .cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:500px}
 .cap b{color:var(--c-label-secondary);font-weight:600}
-/* ---------- 设置 sheet（500pt 宽，实机为主窗口 .sheet，高固定 400pt、Form 内滚动；稿按内容展开） ---------- */
-.sheet{width:500px;height:auto;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
+/* ---------- 设置 sheet（宽 500pt 由实现钉死，实机高 560pt、Form 内滚动；稿按内容展开，另把 560 那条下沿画在 09c 上） ---------- */
+.sheet{position:relative;width:500px;height:auto;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
        border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden;display:flex;flex-direction:column}
 .sheet-head{height:46px;flex:0 0 46px;display:flex;align-items:center;gap:var(--sp-3);
             padding:0 var(--sp-4);background:var(--c-content-bg);border-bottom:1px solid var(--c-separator)}
@@ -57,19 +57,45 @@
 .sheet-wrap{position:relative;display:flex}
 .sheet-wrap .scrim{border-radius:11px}
 .dialog{width:400px}
-.dialog .acts{justify-content:flex-end}</style></head>
+.dialog .acts{justify-content:flex-end}
+/* ---------- 09f–09i：只画涉事那一组的局部板 ---------- */
+.frag{width:500px;background:var(--c-window-bg);border:1px solid rgba(0,0,0,.18);
+      border-radius:11px;box-shadow:var(--shadow-pop);overflow:hidden;padding:var(--sp-4);
+      display:flex;flex-direction:column;gap:6px}
+/* 实机 sheet 的下沿（实现的 .frame 高度），稿按内容展开，这条只标"以下要滚动才看得到" */
+.fold{position:absolute;left:0;right:0;top:560px;border-top:1px dashed var(--c-danger);z-index:2}
+.fold i{position:absolute;right:8px;top:-9px;padding:0 6px;border-radius:8px;font-style:normal;
+        background:var(--c-danger);color:var(--c-on-accent);font-size:10px;line-height:16px;white-space:nowrap}
+/* 禁用态的分段控件（对应实机 Picker 上的 .disabled(true)） */
+.seg.off{opacity:.45}
+/* ---------- 菜单（09f）：NSMenu 的条目行；灰行 = isEnabled=false 的信息行 ---------- */
+.menu{width:288px;background:var(--c-content-bg);border:1px solid rgba(0,0,0,.22);
+      border-radius:7px;box-shadow:var(--shadow-pop);padding:5px;font-size:var(--fs-body)}
+.menu .mi{display:flex;align-items:center;gap:8px;min-height:22px;padding:0 8px;border-radius:4px}
+.menu .mi .k{margin-left:auto;font-family:var(--font-mono);font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+.menu .mi.dis{color:var(--c-label-tertiary)}
+.menu .mi.mark{background:var(--c-fill-active)}
+.menu .ms{height:1px;margin:5px 6px;background:var(--c-separator)}
+.menu .mh{padding:2px 8px;font-size:var(--fs-caption);color:var(--c-label-tertiary)}</style></head>
 <body>
 
 <!-- ================================================================ -->
 <div class="artboard">
 <div class="cap"><b>09a · 设置 —— 通用 tab（SettingsView.generalSettings）。</b>
-对应实机：主窗口侧边栏「设置」或 ⌘, 弹出的 <b>500×400 sheet</b>（MainWindow 的 .sheet），顶部是
-MMPageHeader「设置」+ 右上关闭钮（xmark.circle.fill），下面 Picker(.segmented) 四 tab，再往下
-Form(.grouped)。稿子把 sheet 单独浮出画、高度按内容展开；<b>实机高度固定 400pt，装不下的部分在
-Form 内滚动</b>。「开机自动启动」读的是 <b>SMAppService 的真实 status</b>（syncFromSystem 后回写
-AppSettings，不由存储单方面宣称），默认关。没画的态：注册失败时整条灰色脚注会换成<b>橙色错误原文</b>
-（"登录项操作失败：&lt;error&gt;。当前为 ad-hoc 签名的手工打包构建…正式签名打包后此功能方可稳定生效"）。
-界面语言由 Localization 自己的 @AppStorage 持久化（默认简体中文），与 AppSettings 无关。</div>
+对应实机：主窗口侧栏「设置」／应用菜单「设置…」+ ⌘,／菜单栏下拉「设置...」这<b>三个入口</b>弹出的 sheet
+（入口本身画在 09f，不在这一板上）。sheet 顶部是 MMPageHeader「设置」+ 右上关闭钮（xmark.circle.fill），
+下面 Picker(.segmented) 四 tab，再往下 Form(.grouped)。<b>宽 500pt、高 560pt 都由实现钉死</b>
+（<code>SettingsView.swift:59</code> 的 <code>.frame(width: 500, height: 560)</code>），装不下的部分在
+Form 内滚动；<b>稿子把 sheet 按内容展开画</b>，560 那条下沿只在最长的那一板（09c）上标出来。
+<b>实现以前把高度钉在 400</b>——通用栏那时连「启动时最小化到菜单栏」那句说明都在画面外，400 这一格
+是壳工程自己加的、稿子里从来没有，现已提到 560。<br>
+「开机自动启动」读的是 <b>SMAppService 的真实 status</b>（syncFromSystem 后回写 AppSettings，不由存储
+单方面宣称），默认关。本板画的是 <code>.enabled</code>／未注册那一句；这一行下面<b>按真实状态有四种说法</b>
+（含"等系统批准"、"当前构建没被认成 App bundle"、注册失败的<b>橙色错误原文</b>），逐档见 09g。
+<b>「界面语言」是 disabled 的</b>：全站文案是一套写死的中文，<code>Localization.localized(_:)</code> 与
+便捷函数 <code>L(_:)</code> 在界面代码里<b>零调用点</b>，拨动只改 UserDefaults、画面一个字都不变，
+所以实现把选择器禁用并配了下面那句实话（本板「语言」组第二行）。它由 Localization 自己的
+@AppStorage 持久化（默认简体中文），与 AppSettings 无关。</div>
 <div class="sheet mm-screen">
   <div class="sheet-head"><h1>设置</h1>
     <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
@@ -81,7 +107,8 @@ AppSettings，不由存储单方面宣称），默认关。没画的态：注册
       <div class="ftitle">语言</div>
       <div class="fgroup">
         <div class="frow"><span>界面语言</span><span class="sp"></span>
-          <span class="seg"><span class="on">简体中文</span><span>English</span></span></div>
+          <span class="seg off"><span class="on">简体中文</span><span>English</span></span></div>
+        <div class="fcap">界面文案尚未接入多语言，切换不会改变界面</div>
       </div>
     </section>
     <section class="fsec">
@@ -107,7 +134,13 @@ AppSettings，不由存储单方面宣称），默认关。没画的态：注册
 的错。脚注里的阈值文案（CPU ≥ 85% / 内存 ≥ 90%、5 分钟冷却）是静态说明文字，改动需与实现同步核对。
 <b>行首不加图标：</b>实机这三行是裸 <code>Toggle("显示 CPU 使用率", …)</code>，SwiftUI 在
 <code>.grouped</code> Form 里不会给标题前插符号；本稿早期版本给它们配了 cpu/mem/net 图标，那是稿子
-自己加的，已按实机去掉——<b>本页所有开关行都没有行首图标</b>（09a/09c 同样如此）。</div>
+自己加的，已按实机去掉——<b>本页所有开关行都没有行首图标</b>（09a/09c 同样如此）。<br>
+<b>「通知」这一组上面还有系统授权状态那一层</b>：实机先读 <code>notificationSettings()</code>，
+把状态那句话（要的话再加一枚「打开系统设置 · 通知」）排在<b>两个开关的上方</b>——摆在下方就要滚动才看得到。
+只有<b>已授权</b>时那句返回 nil、这一组就是本板画的两行开关 + 一句阈值脚注；<b>未决定 / 已拒绝 / 静默投递 /
+拿不到状态</b>这四档各有原文，逐档画在 09h。<b>本板不是本机现状</b>：这台机器 P29 实拍时系统是"已拒绝"，
+画面上第一行就是那句橙色脚注加跳转按钮（<code>docs/verification/p29-after/monitor.png</code>）。
+每次进这一栏都重读一次授权状态（用户很可能就是看了这句话以后去系统设置里改）。</div>
 <div class="sheet mm-screen">
   <div class="sheet-head"><h1>设置</h1>
     <span class="x" title="关闭设置"><svg class="i i-18"><use href="#i-no-c"></use></svg></span></div>
@@ -145,20 +178,27 @@ AppSettings，不由存储单方面宣称），默认关。没画的态：注册
 
 <!-- ================================================================ -->
 <div class="artboard">
-<div class="cap"><b>09c · 设置 —— 清理 tab（cleanerSettings），含「废纸篓」「删除历史」区块。</b>
-扫描范围四开关与安全两开关全按出厂默认（builtinDefaults 全 true）。「废纸篓」开关同样是出厂默认
-true，但它管的不是后台常驻：<b>只有停在「应用卸载」这一页时 <code>TrashWatcher</code> 才 arm，
-离开页面即 <code>stop()</code></b>；没有完全磁盘访问时这一页顶部会退化成"读不到废纸篓"横幅
-（画在 03c-3，不在本板）。<b>这一行落在 400pt 折线以下，实机图没截到</b>（截它要滚动，
-滚动是合成输入，本项目禁用）；数据层由 <code>AppSettingsPersistenceTests</code> 锁住
+<div class="cap"><b>09c · 设置 —— 清理 tab（cleanerSettings），五个分组：扫描范围 / 安全 / 监听 / 删除历史 / 排除项。</b>
+扫描范围四开关与安全两开关全按出厂默认（builtinDefaults 全 true）。<b>「监听」分组有两个开关</b>，
+第二个（「提示应用目录里的装卸变化」）是 P5.3c 加的，本板以前标题还叫「废纸篓」、只画了一个——
+现在按实机改名补齐。<b>两个都不是后台常驻</b>：只有停在「应用卸载」这一页时 <code>TrashWatcher</code>／
+<code>AppFolderWatcher</code> 才 arm，离开页面即 <code>stop()</code>；没有完全磁盘访问时「应用卸载」页顶部
+会退化成"读不到废纸篓"横幅（画在 03c-3，不在本板）。
+<b>实现以前把这一栏截在 400pt 折线以下</b>——那时有记录的那几行实机从来没截到（截它要滚动，
+滚动是合成输入，本项目禁用）；现在高度 560，数据层由 <code>AppSettingsPersistenceTests</code> 锁住
 "默认开 + 关掉后跨实例保持"，详见 <code>docs/analysis/trash-watch-fda.md</code> §3.1。
+<b>板底那条红虚线就是实机 sheet 的下沿</b>：它按实现的 <code>.frame(height: 560)</code> 画在 560 CSS px 处，
+稿面各层高度是按元素各自画的、不是由 560 反推，<b>所以这条线只用来标"线以下的行要滚动才看得到"，
+不当像素基线</b>。P29 实拍同一栏<b>默认露到「监听」第一行，「删除历史」「排除项」仍要滚</b>
+（<code>docs/verification/p29-after/cleaner.png</code>）。<br>
 <b>「台账条目 3 / 20」里的 3
 是示例数</b>：实机 N = TrashHistoryStore 成功 load 出来的条数，上限 20 由
 FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"查过、确实没有"，属正常档</b>，
 但此时「清空删除历史」置灰（disabled，本板画的是有记录的启用态）；historyFileURL 为 nil 时
 （拿不到 Application Support）「在访达中显示台账文件」整行不出现，脚注降级为橙色
 "未能定位台账文件：这台机器拿不到 Application Support，记录只在内存里，退出即消失。"——
-<b>只读降级态本稿没画</b>，但档位必须照代码存在。排除项两条路径是示例：实机默认为空列表，
+<b>这两档只照代码分支画在 09i，没有实机照片</b>（要拍出 nil 那一档得让这台机器真的拿不到 Application Support）。
+排除项两条路径是示例：实机默认为空列表，
 只剩「添加排除文件夹...」按钮加脚注；NSOpenPanel（prompt「添加」、message
 "选择要排除、不被清理扫描的文件夹"）是系统面板，不入稿。</div>
 <div class="sheet mm-screen">
@@ -175,7 +215,7 @@ FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"
         <div class="frow"><span>应用缓存</span><span class="sp"></span><span class="sw on"></span></div>
         <div class="frow"><span>日志文件</span><span class="sp"></span><span class="sw on"></span></div>
         <div class="frow"><span>临时文件</span><span class="sp"></span><span class="sw on"></span></div>
-        <div class="fcap">设置已持久化；清理模块接入这些开关后生效</div>
+        <div class="fcap">决定扫描范围：关掉的那一类不会出现在清理页结果里，也不计入概览的可释放体积</div>
       </div>
     </section>
     <section class="fsec">
@@ -186,10 +226,12 @@ FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"
       </div>
     </section>
     <section class="fsec">
-      <div class="ftitle">废纸篓</div>
+      <div class="ftitle">监听</div>
       <div class="fgroup">
         <div class="frow"><span>在应用卸载页提示清理刚拖入应用的残留</span><span class="sp"></span><span class="sw on"></span></div>
         <div class="fcap">只在停在「应用卸载」这一页时监听，离开就停，不是后台常驻。监听只列目录里的条目名，并读新进入的 .app 的 Info.plist 取包标识。</div>
+        <div class="frow"><span>提示应用目录里的装卸变化</span><span class="sp"></span><span class="sw on"></span></div>
+        <div class="fcap">应用被废纸篓以外的方式删走（「立即删除」、清空废纸篓、自带卸载器、终端里的 rm）时，这里不会静默：清单已经不反映磁盘了，会提示去扫卸载后遗症。同样只在停在这一页时监听，只读目录，不写任何东西。</div>
       </div>
     </section>
     <section class="fsec">
@@ -212,10 +254,11 @@ FileTrashService.historyLimit 单点提供（界面不抄数字）。<b>N=0 是"
         <div class="frow exrow"><svg class="i" style="color:var(--c-label-secondary)"><use href="#i-folder"></use></svg>
           <span class="path">/Volumes/ExampleSSD/DesignSource</span>
           <span class="rm"><svg class="i"><use href="#i-no-c"></use></svg></span></div>
-        <div class="fcap">排除的文件夹将不会被扫描（清理模块消费该列表后生效）</div>
+        <div class="fcap">排除的文件夹不会被扫描，也不计入可释放体积；清理页的「已排除」面板看到的是同一份列表</div>
       </div>
     </section>
   </div>
+  <div class="fold"><i>实机 sheet 下沿 560pt · 以下要滚动</i></div>
 </div>
 </div>
 
@@ -313,6 +356,196 @@ confirmationDialog（自窗口底部滑入的卡片），稿子按居中浮层�
     </div>
   </div>
 </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09f · 进入设置的三个入口（补这一板是因为稿子以前只提了侧栏那一枚）。</b>
+三处都收在同一个 <code>AppState.requestSettings()</code>（<code>MacMasterApp.swift:93-95</code>），不各写各的状态：
+<b>①应用菜单「设置…」+ ⌘,</b>——<code>CommandGroup(replacing: .appSettings)</code>（<code>MacMasterApp.swift:46-49</code>）；
+<b>②主窗口侧栏底部「设置」</b>——<code>MainWindow.swift:128-135</code> 的 <code>Label("设置", systemImage:"gear")</code>，
+坐在 <code>volumeFooter</code> 下面（footer 那一层组件归 S1，画在 <code>01-dashboard.html</code>，本板只取这一枚按钮）；
+<b>③菜单栏下拉「设置...」</b>——<code>MenuBarManager.swift:354-356</code>，它先 <code>openApp()</code> 把窗口要回来、
+再发 <code>.mmOpenSettings</code>，所以主窗口收进菜单栏以后照样进得去（<code>:386-391</code>）。
+改前只有②：窗口一收进菜单栏，全 app 就没有任何地方能进设置，而 ⌘, 与应用菜单那一格是空的。<br>
+<b>这一板的凭据不是照片，是菜单文字转储</b>：本项目不用合成点击取证（点击会逃逸到用户当时的前台应用），
+而菜单栏那支 NSMenu 平时只有真点开才被构造出来，所以 <code>MM_DUMP_MENUS=1</code> 把两支菜单的条目逐行打进
+stderr（<code>LaunchBehavior.swift:178-194</code>）；下面两张菜单的文字就是
+<code>docs/verification/p29-after/00-monitor.log</code> 里的原文。<b>两处 dump 的口径不一样，别当成一份</b>：
+应用菜单那一支会把快捷键拼成 <code>[⌘,]</code>（"⌘, 有没有绑上"正是要问的那件事），
+菜单栏那一支只拼标题和子菜单的 <b>▸</b>、<b>不拼快捷键</b>（<code>MenuBarManager.swift:59-64</code>），
+所以右边那张里 <code>⌘,</code>／<code>⌘o</code>／<code>⌘q</code> 三格是照构造代码（<code>:349-361</code>）补的，
+日志只证到"这些条目在"。<b>灰字行不是禁用的按钮</b>：它们是 <code>isEnabled = false</code> 的信息行
+（读数、"尚未完成首次采样"），实机就是灰的。<b>条目上那层底色只是稿面标记，实机没有悬停态</b>。
+另外，dump 里的快捷键是 <code>NSMenuItem.keyEquivalent</code> 的原文（<code>⌘h</code>／<code>⌘q</code> 小写），
+本板照原文写、没改成菜单上惯常显示的大写。</div>
+<div class="row-h" style="align-items:flex-start;gap:26px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="cap"><b>① 应用菜单「MacMaster」</b></div>
+    <div class="menu">
+      <div class="mi">关于MacMaster</div>
+      <div class="ms"></div>
+      <div class="mi mark">设置…<span class="k">⌘,</span></div>
+      <div class="ms"></div>
+      <div class="mi">服务<span class="k">▸</span></div>
+      <div class="ms"></div>
+      <div class="mi">隐藏MacMaster<span class="k">⌘h</span></div>
+      <div class="mi">隐藏其他<span class="k">⌥⌘h</span></div>
+      <div class="mi">全部显示</div>
+      <div class="ms"></div>
+      <div class="mi">退出MacMaster<span class="k">⌘q</span></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="cap"><b>② 主窗口侧栏底部</b></div>
+    <div class="frag" style="width:220px;padding:0;gap:0">
+      <div class="sidebar-footer"><button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div class="cap"><b>③ 菜单栏下拉</b>（读数行照 dump 那份"还没采到"画）</div>
+    <div class="menu">
+      <div class="mi dis">MacMaster 系统监控</div>
+      <div class="ms"></div>
+      <div class="mi dis">CPU: —</div>
+      <div class="mi dis">内存: —</div>
+      <div class="mi dis">磁盘 IO: —</div>
+      <div class="mi dis">尚未完成首次采样</div>
+      <div class="mi dis">网络: ↑ —  ↓ —</div>
+      <div class="ms"></div>
+      <div class="mi">打开 MacMaster...<span class="k">⌘o</span></div>
+      <div class="mi mark">设置...<span class="k">⌘,</span></div>
+      <div class="ms"></div>
+      <div class="mi">退出<span class="k">⌘q</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09g · 通用 tab ——「开机自动启动」的四种真实状态（09a 画的是最后那一种）。</b>
+这一行的开关和脚注<b>都以 <code>SMAppService.mainApp.status</code> 为准</b>（<code>LaunchBehavior.swift:18</code> 存真实状态、
+<code>:31</code> 决定开关画成什么、<code>:37-49</code> 决定这一行说什么），
+不由 AppSettings 单方面宣称；<code>syncFromSystem()</code> 是在 sheet <code>onAppear</code> 时调的
+（<code>SettingsView.swift:60-62</code>）。四种说法由 <code>SettingsView.swift:90-110</code> 那三段
+<code>if / else if / else</code> 决定，<b>优先级是 lastError &gt; statusCaption &gt; 默认句</b>。
+<b>①<code>.requiresApproval</code>（本轮补的重点）</b>：注册成功，但 macOS 要用户在「登录项与扩展」里再点一次允许。
+以前 <code>isOn</code> 只认 <code>.enabled</code>，于是开关拨上去自己弹回"关"、一句解释都没有——
+用户只会认为它坏了。现在 <b>开关按"开"画</b>（<code>LaunchBehavior.swift:31</code>：
+<code>.enabled</code> 与 <code>.requiresApproval</code> 都算开），脚注说清"还差一次允许"，
+并配一枚「打开系统设置 · 登录项」。<b>只有这一档配那枚按钮</b>（<code>needsSystemSettings</code> 单点判据，
+<code>LaunchBehavior.swift:49</code>）。<br>
+<b>照片凭据的边界</b>：这台机器实测 <code>.enabled</code>（<code>docs/verification/p29-after/general.png</code>），
+所以<b>②③④三档只有代码与单测凭据、没有照片</b>——换一档系统状态要换一台机器或改系统的登录项设置，
+那不是本项目允许的合成输入。②③④的文字是 <code>:40</code>／<code>:42</code>／<code>:66</code> 的原文逐字照抄。</div>
+<div class="frag">
+  <div class="ftitle">① .requiresApproval —— 已注册，等用户批准（开关是<b>开</b>）</div>
+  <div class="fgroup">
+    <div class="frow"><span>开机自动启动</span><span class="sp"></span><span class="sw on"></span></div>
+    <div class="fcap caution">已注册，但 macOS 要你在「系统设置 → 登录项与扩展」里再允许一次；在那之前开机不会自动启动。</div>
+    <div class="frow" style="min-height:32px"><span class="btn sm">打开系统设置 · 登录项</span></div>
+  </div>
+  <div class="ftitle">② .notFound —— 当前构建没被系统认成 App bundle</div>
+  <div class="fgroup">
+    <div class="frow"><span>开机自动启动</span><span class="sp"></span><span class="sw"></span></div>
+    <div class="fcap caution">macOS 没把当前构建认成可注册的 App bundle（从 .build 目录直接跑就是这样）。用 Scripts/make-app.sh 产出的 .app 启动时这一项才有意义。</div>
+  </div>
+  <div class="ftitle">③ 注册/注销抛错 —— lastError 顶掉上面两句（&lt;error&gt; 是系统原文）</div>
+  <div class="fgroup">
+    <div class="frow"><span>开机自动启动</span><span class="sp"></span><span class="sw"></span></div>
+    <div class="fcap caution">登录项操作失败：&lt;error&gt;。当前为 ad-hoc 签名的手工打包构建（无 Developer ID / 未公证），macOS 可能拒绝注册登录项；正式签名打包后此功能方可稳定生效。</div>
+  </div>
+  <div class="ftitle">④ .enabled / 未注册 —— statusCaption 返回 nil，用默认那一句（09a 画的就是这一档）</div>
+  <div class="fgroup">
+    <div class="frow"><span>开机自动启动</span><span class="sp"></span><span class="sw on"></span></div>
+    <div class="fcap">通过 macOS 登录项（SMAppService）注册，状态以系统真实记录为准</div>
+  </div>
+</div>
+<div class="cap"><b>这一档要连着看的一句：默认那句在"已经会自启"和"根本没注册"两种状态下逐字相同</b>，
+画面上区分它们只有开关本身（<code>isOn</code> 认 <code>.enabled</code>）。"这句要不要也分档"是实现侧的可选项，
+<b>稿子不替它改</b>——本板只是照 <code>SettingsView.swift:90-110</code> 那三个分支把四档摊开。</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09h · 监控 tab ——「通知」分组上面那层系统授权状态的四档（09b 画的是"已授权"）。</b>
+实机在<b>两个开关的上方</b>插一句状态脚注，并在这句话值得点的时候配一枚「打开系统设置 · 通知」
+（<code>SettingsView.swift:142-163</code>；判据单点在
+<code>Packages/MMMonitor/Sources/MMMonitor/NotificationStatus.swift:27-42</code> 的 <code>caption(for:)</code>
+与 <code>:46-51</code> 的 <code>needsSystemSettings(for:)</code>，每次进这一栏由 <code>.task</code> 重读一次）。
+<b>为什么开关不够</b>：开关说的是"用户希望通知"，系统记的是"这个 app 有没有被允许发通知"，
+用户在系统设置里拒过一次以后开关照样拨得动、<code>requestAuthorization</code> 也不会再弹（它只在"未决定"时有效），
+于是这一栏看着一切正常、实际一条都发不出去。<b>本板第一档就是这台机器的现状</b>：
+P29 实拍 <code>docs/verification/p29-after/monitor.png</code> 里画面上第一行就是那句橙色的"系统里已拒绝…"
+加跳转按钮，改前那一栏在 400 高下连「通知」的标题都在折线以下
+（<code>docs/verification/p29-before/monitor.png</code>）——<b>这一条是改前照片里就直接看得见的假话之一</b>。
+下面四档的文字一律逐字照 <code>NotificationStatus.swift:29-41</code>；
+第五种情况是 <code>.authorized</code>：<code>caption(for:)</code> 返回 nil，这一组就退成 09b 画的样子（没有这一行）。</div>
+<div class="frag">
+  <div class="ftitle">① .denied —— 系统里已拒绝（配跳转按钮）</div>
+  <div class="fgroup">
+    <div class="fcap caution">系统里已拒绝 MacMaster 发送通知：这两个开关拨成开也不会有任何通知，要去系统设置里允许。</div>
+    <div class="frow" style="min-height:32px"><span class="btn sm">打开系统设置 · 通知</span></div>
+  </div>
+  <div class="ftitle">② .notDetermined —— 系统还没被问过（配跳转按钮）</div>
+  <div class="fgroup">
+    <div class="fcap caution">系统还没被问过：把上面任一开关打开时才会弹授权询问，在那之前通知一条也不会发。</div>
+    <div class="frow" style="min-height:32px"><span class="btn sm">打开系统设置 · 通知</span></div>
+  </div>
+  <div class="ftitle">③ .provisional —— 静默投递（配跳转按钮）</div>
+  <div class="fgroup">
+    <div class="fcap caution">通知是「静默投递」状态：会进通知中心，但不会弹横幅、也不会响。</div>
+    <div class="frow" style="min-height:32px"><span class="btn sm">打开系统设置 · 通知</span></div>
+  </div>
+  <div class="ftitle">④ nil —— 拿不到状态（脱离 .app bundle 直接跑；<b>不配</b>跳转按钮）</div>
+  <div class="fgroup">
+    <div class="fcap caution">当前跑法拿不到系统的通知授权状态（脱离 .app bundle 直接跑就是这样），这里只按开关本身判断。</div>
+  </div>
+  <div class="cap" style="max-width:500px">这四档下面都跟着 09b 那两行开关与阈值脚注，文字在各档之间逐字相同，
+  本板不重复画。<b>④ 没有跳转按钮是有理由的</b>：那种跑法下系统设置里根本没有 MacMaster 这一项，跳过去只会让人更困惑
+  （<code>NotificationStatus.swift:44-51</code>）。</div>
+</div>
+<div class="cap"><b>本板捞到实现侧两句要改的话（稿不代改，只登记）：</b>
+②那句写的是"把<b>上面</b>任一开关打开时才会弹授权询问"，可这句话在实机排在两个开关<b>上方</b>
+（位置是 <code>SettingsView.swift:144-146</code> 那条注释刻意定的），<b>指代方向和画面相反</b>；
+而且"什么时候弹询问"也不在开关上——真正的调用点是 <code>MenuBarManager.swift:219-228</code>，
+它<b>在采样循环里</b>检查「两个开关任一为开」，而 <code>notifyHighCPU</code>／<code>notifyLowMemory</code>
+的出厂默认就是开（<code>AppSettings.swift:156-157</code>），所以全新系统上<b>应用一起来就已经弹过了</b>，
+不是等用户去拨。③④两档的句子没有这个问题。<b>这一句怎么改是实现侧的决定（改源码要单独授权），
+稿子照现状画、把账记在 <code>docs/analysis/fidelity-shell.md</code> §2。</b></div>
+</div>
+
+<!-- ================================================================ -->
+<div class="artboard">
+<div class="cap"><b>09i · 清理 tab ——「删除历史」的两档降级（09c 画的是有记录、拿得到文件的启用态）。</b>
+两档都由代码分支直接决定，<b>没有实机照片</b>：①N=0 要真把台账清空过一次；②要这台机器真的拿不到
+Application Support——两者都不是能靠合成输入造出来的态。文字逐字照 <code>SettingsView.swift:206-228</code>。
+<b>「记的是…不上传。」那句在两档里都在</b>（它跟的是"有 URL"那支）。</div>
+<div class="frag">
+  <div class="ftitle">① N = 0 —— "查过、确实没有"，属正常档；只有清空那一条置灰</div>
+  <div class="fgroup">
+    <div class="frow"><span>台账条目</span><span class="sp"></span>
+      <span class="t-num" style="color:var(--c-label-secondary)">0 / 20</span></div>
+    <div class="fbtn"><svg class="i"><use href="#i-folder"></use></svg>在访达中显示台账文件</div>
+    <div class="fcap">记的是被移入废纸篓的绝对路径与大小，只写在本机这个文件里，不上传。</div>
+    <div class="fbtn destr disabled"><svg class="i"><use href="#i-warn"></use></svg>清空删除历史</div>
+  </div>
+  <div class="cap" style="max-width:500px">置灰的条件是 <code>trash.trashHistory.isEmpty</code>
+  （<code>SettingsView.swift:226-227</code>）。<b>09e 那个确认弹窗到不了 N=0 这一档</b>——按钮已经点不动了，
+  所以弹窗里不存在"清空 0 条记录"的形状。</div>
+  <div class="ftitle">② historyFileURL = nil —— 整行「在访达中显示」不出现，脚注换成橙色那一句</div>
+  <div class="fgroup">
+    <div class="frow"><span>台账条目</span><span class="sp"></span>
+      <span class="t-num" style="color:var(--c-label-secondary)">3 / 20</span></div>
+    <div class="fcap caution">未能定位台账文件：这台机器拿不到 Application Support，记录只在内存里，退出即消失。</div>
+    <div class="fbtn destr"><svg class="i"><use href="#i-warn"></use></svg>清空删除历史</div>
+  </div>
+  <div class="cap" style="max-width:500px">这一档<b>只画了"有记录"那一半</b>（3 / 20 是示例数）：
+  它和 N=0 是两条独立的轴，凑齐就是"没有文件、也还没有记录"——那时清空同样置灰、橙色那句照样在。
+  <b>「在访达中显示台账文件」整行不是禁用、是不存在</b>（<code>if let url</code> 那一支外面，
+  <code>SettingsView.swift:215-224</code>）。</div>
 </div>
 </div>
 

@@ -11,7 +11,8 @@
 # **P36 补的第二族目标：`.md`**。同一个失效形状在文档之间也会发生，而且更常见——
 # 第十五遍那一遍就是**文档回写自己把 11 条指向 `feature-roadmap.md` 行号的引用顶漂了 6 行**
 # （`release-readiness.md` §7.23 倒数第二段），而这一支从前只把 `.swift` 当目标，那一轮看不见。
-# 现在两族一起扫：目标面除了被改的 `.swift`，还加上被改的入库 `.md` 与 `.sh`；
+# 现在两族一起扫：目标面除了被改的 `.swift`，还加上被改的入库 `.md`、`.sh`、`.html`、`.css`
+# （后两个是 P38e 补的，理由见下面第 4 段那段）；
 # 写作侧的引用按后缀在被改文件里定位（`foo.sh:12` 认到 `Scripts/foo.sh`），
 # 本轮被改的同名文件撞出多个就报歧义、不猜——没改过的文件行号不会动，故候选只有这一批。
 #
@@ -128,6 +129,12 @@ done || true
 # 定位口径刻意收窄：只把「本轮被改过的非 .swift 入库文件」当候选，按后缀认。
 # 拿全仓库当候选会让 `README.md` 这种同名文件一撞十几个，噪声盖过读数；
 # 而漂移只可能发生在改动过的目标上，没改的文件行号不会动。
+#
+# **P38e 把目标族从 `(md|sh)` 扩到 `(md|sh|html|css)`**：改设计稿的那一轮（v1.4 第一刀，
+# `09-settings.html` 从 319 行涨到 552 行）亲手撞上了这一族的另一半——文档里指向稿件的
+# `09-settings.html:12` 一类锚点当时**一条都不报**，因为抽取正则不认 `.html`。
+# 同一形状还漏着 `.css`（`tokens.css:286-303` 这类引用在册）。判据没变，只是把覆盖面
+# 补到"稿与样式也是会被改的目标"；`.png`/`.icns` 这类没有行号语义的后缀继续不进候选。
 : > "$TMP/otherfiles"
 while IFS= read -r f; do
   if [[ -n $f && $f != *.swift && -f $f ]]; then
@@ -144,7 +151,7 @@ if [[ -s $TMP/otherfiles ]]; then
     [[ -f $md ]] || continue
     /usr/bin/awk -v doc="$md" '{
         line = $0
-        while (match(line, /[A-Za-z0-9_+\/.-]+\.(md|sh)\:[0-9]+/)) {
+        while (match(line, /[A-Za-z0-9_+\/.-]+\.(md|sh|html|css)\:[0-9]+/)) {
           tok = substr(line, RSTART, RLENGTH)
           line = substr(line, RSTART + RLENGTH)
           n = tok; sub(/^.*\:/, "", n)
