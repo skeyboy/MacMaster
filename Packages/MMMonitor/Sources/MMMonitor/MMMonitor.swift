@@ -56,6 +56,7 @@ public struct MonitorView: View {
                     if shows(.memory) { memoryCard }
                     if shows(.process) { processCard }
                     if shows(.sensors) { sensorsCard }
+                    if shows(.battery) { batteryCard }
                 }
                 .padding(MMGap.lg)
             }
@@ -291,6 +292,85 @@ public struct MonitorView: View {
 
     private static func rpmText(_ rpm: Double) -> String {
         String(format: "%.0f", rpm)
+    }
+
+    // MARK: - 电池
+
+    /// 卡片图标是卡片的标签，不是读数：电量那行的数字才是。
+    /// 所以不跟档位换 `battery.75`/`battery.25` 那一族（图标会随采样抖动，
+    /// 而截图比对要求同一档每次一模一样）；只有"这台机器没有电池"换 powerplug——
+    /// 那一档挂一个满格电池图标是一句假话。
+    private var batteryCard: some View {
+        card(title: "电池", systemImage: menuBar.snapshot.battery.status == .noBattery ? "powerplug" : "battery.100") {
+            batteryContent(menuBar.snapshot.battery)
+        }
+    }
+
+    @ViewBuilder
+    private func batteryContent(_ battery: BatterySnapshot) -> some View {
+        switch battery.status {
+        case .unavailable(let reason):
+            // 与磁盘 IO / 温度卡同一套降级话术：整卡 "—" + 一句为什么。
+            Text("—")
+                .font(.callout)
+                .foregroundStyle(MMColor.secondaryLabel)
+            Text(reason)
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .noBattery:
+            MMKeyRow("电量", "—")
+            Text("本机没有内置电池（AppleSmartBattery 报告 BatteryInstalled=No）。台式机就是这样，不是读取故障。")
+                .font(.caption)
+                .foregroundStyle(MMColor.secondaryLabel)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        case .loaded:
+            MMKeyRow("电量", Self.batteryPercentText(battery.level), monospaced: true)
+            MMKeyRow("健康度", Self.batteryPercentText(battery.health), monospaced: true)
+            MMKeyRow("循环次数", battery.cycleCount.map(String.init) ?? "—", monospaced: true)
+            MMKeyRow("电源", Self.batteryStateText(battery))
+            if let minutes = battery.timeRemainingMinutes {
+                MMKeyRow("预计剩余", Self.batteryTimeText(minutes), monospaced: true)
+            }
+            if battery.health == nil {
+                Text("健康度要满充容量与设计容量两个键都读到才算得出来；缺任一个是 —，未知不等于 100%。")
+                    .font(.caption)
+                    .foregroundStyle(MMColor.secondaryLabel)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    /// 电池百分比取整（63%，不是 63.0%）；nil 仍是 "—"，与 `percentText` 同一条约定。
+    static func batteryPercentText(_ ratio: Double?) -> String {
+        guard let ratio else { return "—" }
+        return "\(Int((ratio * 100).rounded()))%"
+    }
+
+    /// "预计剩余"是系统给的估计，不是我们的推算；拿不到估计就不摆这一行。
+    static func batteryTimeText(_ minutes: Int) -> String {
+        let hours = minutes / 60
+        let rest = minutes % 60
+        if hours == 0 { return "\(rest) 分钟" }
+        return rest == 0 ? "\(hours) 小时" : "\(hours) 小时 \(rest) 分"
+    }
+
+    /// 电源来源与充电状态是两个键，任一个读不出都要在话里说明，
+    /// 合成的那个组合（没接外接电源却在充电）不编话——报 "—"。
+    static func batteryStateText(_ battery: BatterySnapshot) -> String {
+        switch (battery.isExternalConnected, battery.isCharging) {
+        case (.some(false), .some(true)):
+            return "—"
+        case (.some(let external), .some(let charging)):
+            if charging { return "充电中" }
+            return external ? "已接通电源，未充电" : "电池供电"
+        case (.some(let external), .none):
+            return external ? "外接电源已接通（充电状态读不出）" : "电池供电（充电状态读不出）"
+        case (.none, .some(let charging)):
+            return charging ? "充电中（电源来源读不出）" : "未在充电（电源来源读不出）"
+        case (.none, .none):
+            return "—"
+        }
     }
 
     // MARK: - 进程

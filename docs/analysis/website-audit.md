@@ -19,7 +19,7 @@
 | 2 | 「支持一键清理和安全撤回。」 | 界面上那个按钮写的是「清理已选 N 类」（`MMCleaner.swift:688`），点下去先弹确认、默认按钮是「移到废纸篓」（`MMCleaner.swift:753`）；撤回是开关 + 15 秒窗口（`MMCleaner.swift:746`）与删除历史里的「恢复」（`MMCleaner.swift:798`） | **说不到**（"一键清理"恰恰是产品内注释里那句要避免的语义） |
 | 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1349` 的判定依据说明） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
 | 4 | 「可视化磁盘空间使用情况，快速定位大文件和占用目录。Treemap 直观展示。」 | `Packages/MMUI/Sources/MMUI/TreemapView.swift:132` 起算、`:140` 放置；分类与可清理是两条独立判定链（`DiskClassify.swift:4-7`） | **真** |
-| 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:161`） | **真** |
+| 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:162`） | **真** |
 | 6 | 「检测摄像头与麦克风的当前占用（手动测量，非实时监听），查看 TCC 授权与密钥目录的改动时间，管理登录项启停。」 | 这一句就是产品内页头清单的改写：`Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:797-802` 四段（占用 / TCC 只读视图 / 登录项 / mtime 卡）；TCC 有独立探针文件 `TCCProbe.swift` | **真**（P14 已把这格对齐到实现） |
 | 7 | 「重复文件检测、浏览器清理、系统优化建议。」 | 重复文件 `Packages/MMFileScanner/Sources/MMFileScanner/DuplicateScanner.swift:244`（SHA256，读取失败进 `unreadablePaths` 而不是当成一组）；优化器四 tab 见 `docs/analysis/fidelity-optimizer.md` | **真** |
 | 8 | 「让 Mac 运行更快更流畅。」 | 没有任何一处代码或取证测过"清理前 vs 清理后"的性能差 | **说不到**（这是效果承诺，不是功能描述；我们连"回收了多少"都要分成功/失败两栏报） |

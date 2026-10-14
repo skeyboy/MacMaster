@@ -179,6 +179,208 @@ public struct MemoryMetrics: Equatable, Sendable {
     }
 }
 
+// MARK: - 电池
+
+/// AppleSmartBattery 属性字典里电池那一族的原始值（未换算、未判状态）。
+///
+/// 每一项都是 Optional，而且**"键缺席"与"读到 0"是两回事**：本机（Mac mini M4，
+/// 2026-10-13 实跑 `swift Scripts/p37-battery-probe.swift`）这些键**都在**、值全是 0，
+/// 同时 `BatteryInstalled=No`。所以"这台机器有没有电池"只能认 `installed`——
+/// 拿容量去判会把一台台式机报成"电量 0%"。
+public struct BatteryRawValues: Equatable, Sendable {
+    /// `BatteryInstalled`。nil = 连"有没有电池"都问不出来。
+    public var installed: Bool?
+    /// `CurrentCapacity`：Apple Silicon 上是百分数，分母 `MaxCapacity` 恒为 100。
+    public var currentCapacity: Int?
+    public var maxCapacity: Int?
+    /// `AppleRawCurrentCapacity`：真实剩余容量（mAh）。本机没这个键。
+    public var appleRawCurrentCapacity: Int?
+    /// `AppleRawMaxCapacity`：当前满充容量（mAh），健康度的分子。本机没这个键。
+    public var appleRawMaxCapacity: Int?
+    /// `DesignCapacity`：设计容量（mAh），健康度的分母。本机没这个键。
+    public var designCapacity: Int?
+    public var cycleCount: Int?
+    /// `TimeRemaining`（分钟）。系统不给估计时是 0 或 -1，换算层一律当"没有估计"。
+    public var timeRemainingMinutes: Int?
+    /// `ExternalConnected`：是否接了外接电源。
+    public var externalConnected: Bool?
+    public var isCharging: Bool?
+
+    /// 单测/夹具用的显式构造：缺省一律 nil（"没读到"），不写 0。
+    public init(
+        installed: Bool? = nil,
+        currentCapacity: Int? = nil,
+        maxCapacity: Int? = nil,
+        appleRawCurrentCapacity: Int? = nil,
+        appleRawMaxCapacity: Int? = nil,
+        designCapacity: Int? = nil,
+        cycleCount: Int? = nil,
+        timeRemainingMinutes: Int? = nil,
+        externalConnected: Bool? = nil,
+        isCharging: Bool? = nil
+    ) {
+        self.installed = installed
+        self.currentCapacity = currentCapacity
+        self.maxCapacity = maxCapacity
+        self.appleRawCurrentCapacity = appleRawCurrentCapacity
+        self.appleRawMaxCapacity = appleRawMaxCapacity
+        self.designCapacity = designCapacity
+        self.cycleCount = cycleCount
+        self.timeRemainingMinutes = timeRemainingMinutes
+        self.externalConnected = externalConnected
+        self.isCharging = isCharging
+    }
+
+    /// 从 IORegistry 属性字典解码。键缺席、类型不是数字/布尔 → 留 nil，
+    /// 这一层不补默认值，也不在这里判状态。
+    public init(from properties: [String: Any]) {
+        func boolean(_ key: String) -> Bool? { properties[key] as? Bool }
+        func integer(_ key: String) -> Int? { properties[key] as? Int }
+        self.init(
+            installed: boolean("BatteryInstalled"),
+            currentCapacity: integer("CurrentCapacity"),
+            maxCapacity: integer("MaxCapacity"),
+            appleRawCurrentCapacity: integer("AppleRawCurrentCapacity"),
+            appleRawMaxCapacity: integer("AppleRawMaxCapacity"),
+            designCapacity: integer("DesignCapacity"),
+            cycleCount: integer("CycleCount"),
+            timeRemainingMinutes: integer("TimeRemaining"),
+            externalConnected: boolean("ExternalConnected"),
+            isCharging: boolean("IsCharging")
+        )
+    }
+}
+
+public enum BatteryStatus: Equatable, Sendable {
+    case loaded
+    /// 这台机器没有电池（`BatteryInstalled=No`；本机实测就是这一档）。
+    /// 这不是故障：UI 说"本机没有电池"，不说"读不到"。
+    case noBattery
+    /// 问不出答案（IOKit 调用失败、属性字典拿不到、`BatteryInstalled` 键缺席）。
+    /// reason 是原文，和磁盘 IO / SMC 同一套话术。
+    case unavailable(reason: String)
+}
+
+/// 电池卡的一帧（只读：这里没有任何"能不能唤醒休眠""估算还剩几小时"的承诺）。
+public struct BatterySnapshot: Equatable, Sendable {
+    public var status: BatteryStatus
+    /// 电量 0...1。nil = "—"，不是 0%。
+    public var level: Double?
+    /// 健康度 0...1 = 满充容量 ÷ 设计容量。nil = 没有可比的设计容量（本机实测就没有）。
+    public var health: Double?
+    /// 循环次数。0 = 读到 0 次（新电池），nil = 没读到。
+    public var cycleCount: Int?
+    public var isCharging: Bool?
+    public var isExternalConnected: Bool?
+    /// 系统给出的剩余时间估计（分钟），nil = 没给。
+    public var timeRemainingMinutes: Int?
+
+    /// 剩余时间可信区间（分钟）。0 与 -1 是"没有估计"，一天以上是这个键在胡说。
+    public static let plausibleTimeRemainingRange: ClosedRange<Int> = 1...1_440
+    /// 循环次数可信上限。真实锂电记录在数千量级，读到几万是键在胡说（同风扇 RPM 上限的道理）。
+    public static let plausibleCycleRange: ClosedRange<Int> = 0...9_999
+    /// 健康度可信下限。低于它不是"电池快不行了"，是分子分母单位对不上。
+    public static let plausibleHealthFloor = 0.3
+
+    public init(
+        status: BatteryStatus,
+        level: Double?,
+        health: Double?,
+        cycleCount: Int?,
+        isCharging: Bool?,
+        isExternalConnected: Bool?,
+        timeRemainingMinutes: Int?
+    ) {
+        self.status = status
+        self.level = level
+        self.health = health
+        self.cycleCount = cycleCount
+        self.isCharging = isCharging
+        self.isExternalConnected = isExternalConnected
+        self.timeRemainingMinutes = timeRemainingMinutes
+    }
+
+    /// 与 `MetricSnapshot.empty`、`SensorsSnapshot.notSampled` 同一条约定：
+    /// "还没采过"不能被说成"这台机器读不到电池"。
+    public static let notSampled = BatterySnapshot(
+        status: .unavailable(reason: "尚未完成首次采样"),
+        level: nil, health: nil, cycleCount: nil,
+        isCharging: nil, isExternalConnected: nil, timeRemainingMinutes: nil
+    )
+
+    public static func unavailable(reason: String) -> BatterySnapshot {
+        BatterySnapshot(
+            status: .unavailable(reason: reason),
+            level: nil, health: nil, cycleCount: nil,
+            isCharging: nil, isExternalConnected: nil, timeRemainingMinutes: nil
+        )
+    }
+
+    /// "这台机器没有电池"是一个可以正面成立的结论，所以它有自己的构造，
+    /// 不借用 unavailable 那一族（那需要一句故障原因）。
+    /// 整卡一句话、字段全 nil，连外接电源那一行也留空——
+    /// 免得"没有电池"旁边挂个"已接通电源"，看着像在说电池。
+    public static let noBattery = BatterySnapshot(
+        status: .noBattery,
+        level: nil, health: nil, cycleCount: nil,
+        isCharging: nil, isExternalConnected: nil, timeRemainingMinutes: nil
+    )
+
+    /// 纯装配：原始属性 → 卡片状态与换算值。UI 不参与判断。
+    public static func assemble(from raw: BatteryRawValues) -> BatterySnapshot {
+        switch raw.installed {
+        case .some(false):
+            return .noBattery
+        case .none:
+            return .unavailable(reason: "AppleSmartBattery 没有暴露 BatteryInstalled 键，问不出这台机器有没有电池")
+        case .some(true):
+            let level = level(of: raw)
+            let health = health(of: raw)
+            let cycles = raw.cycleCount.flatMap { plausibleCycleRange.contains($0) ? $0 : nil }
+            let minutes = raw.timeRemainingMinutes.flatMap { plausibleTimeRemainingRange.contains($0) ? $0 : nil }
+            if level == nil, health == nil, cycles == nil {
+                return .unavailable(reason: "BatteryInstalled=Yes，但电量、健康度、循环次数一个都没有可信读数")
+            }
+            return BatterySnapshot(
+                status: .loaded,
+                level: level, health: health, cycleCount: cycles,
+                isCharging: raw.isCharging, isExternalConnected: raw.externalConnected,
+                timeRemainingMinutes: minutes
+            )
+        }
+    }
+
+    /// 电量：先按 mAh 一对（`AppleRawCurrentCapacity ÷ AppleRawMaxCapacity`，
+    /// Apple Silicon 上的真剩余），这对缺任一再退到百分数一对（`CurrentCapacity ÷ MaxCapacity`，
+    /// 后者在 ARM 上恒为 100，除完还是同一个数）。
+    /// 分子 > 分母 → nil 而不是钳到 100%：那说明两对口径被混着用了，钳过去是把错数报成满电。
+    /// 分母 ≤ 0 → nil（本机 Mac mini 的 `MaxCapacity` 就是 0，除它是除零）。
+    private static func level(of raw: BatteryRawValues) -> Double? {
+        ratio(current: raw.appleRawCurrentCapacity, full: raw.appleRawMaxCapacity)
+            ?? ratio(current: raw.currentCapacity, full: raw.maxCapacity)
+    }
+
+    private static func ratio(current: Int?, full: Int?) -> Double? {
+        guard let current, let full, current >= 0, full > 0, current <= full else { return nil }
+        return Double(current) / Double(full)
+    }
+
+    /// 健康度 = `AppleRawMaxCapacity ÷ DesignCapacity`（mAh 除 mAh）。
+    /// 只认这一对：`MaxCapacity` 在 Apple Silicon 上是百分数（恒 100），拿它除设计容量会算出
+    /// 2% 这种"看着在说话"的假健康度，所以宁可 nil。
+    /// 上限钳到 100%——新电池满充容量略高于设计值是真事；低于 `plausibleHealthFloor` 一律 nil。
+    /// 对照 stats：它把读不到的分母强成 1（`docs/github-references/stats/Modules/Battery/readers.swift:106-116`），
+    /// 于是没电池的机器也能显示"健康度 100%"，本仓库的 nil-not-zero 规矩不收这种写法。
+    private static func health(of raw: BatteryRawValues) -> Double? {
+        guard let design = raw.designCapacity, design > 0,
+              let full = raw.appleRawMaxCapacity, full > 0
+        else { return nil }
+        let value = Double(full) / Double(design)
+        guard value >= plausibleHealthFloor else { return nil }
+        return min(1.0, value)
+    }
+}
+
 // MARK: - 网络（沿用原有 AF_LINK 累计字节，差分口径与磁盘一致）
 
 public struct NetworkBytes: Equatable, Sendable {
@@ -222,6 +424,8 @@ public struct MetricSnapshot: Equatable, Sendable {
     public var networkUpBytesPerSecond: Double?
     /// 温度/风扇（SMC 瞬时量，和 memory 一样首帧就有，不做差分）。
     public var sensors: SensorsSnapshot
+    /// 电池（IOKit AppleSmartBattery 瞬时量，同样首帧就有、不做差分）。
+    public var battery: BatterySnapshot
     public var sampledAt: Date
 
     /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
@@ -238,6 +442,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         networkDownBytesPerSecond: nil,
         networkUpBytesPerSecond: nil,
         sensors: .notSampled,
+        battery: .notSampled,
         sampledAt: .distantPast
     )
 
@@ -251,6 +456,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         networkDownBytesPerSecond: Double?,
         networkUpBytesPerSecond: Double?,
         sensors: SensorsSnapshot,
+        battery: BatterySnapshot,
         sampledAt: Date
     ) {
         self.totalCPU = totalCPU
@@ -262,6 +468,7 @@ public struct MetricSnapshot: Equatable, Sendable {
         self.networkDownBytesPerSecond = networkDownBytesPerSecond
         self.networkUpBytesPerSecond = networkUpBytesPerSecond
         self.sensors = sensors
+        self.battery = battery
         self.sampledAt = sampledAt
     }
 }

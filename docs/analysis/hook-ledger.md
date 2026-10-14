@@ -18,6 +18,10 @@
   （`MM_TRASH_FIXTURE_PROBE` 仍只是测试里的临时 key）。**这一条计数从 2026-10-04 的 52 走到 53，
   涨的那一个是 P29 的 `MM_DUMP_MENUS`**（见下表壳层那一行）——P21 到 P28 那八轮一个都没加，
   它是 §7.19/§7.20 两轮全在 CI 与测试门禁链上、P29 第一次回到界面本身的结果。
+  **P37 现跑同一条命令仍是 55，一个名字都没差**：电池卡没有新增键——四档挂在既有的 `MM_MONITOR_FIXTURE` 上、
+  卡名挂在 `MM_MONITOR_CARDS` 上、窄窗与换屏挂在 `MM_WINDOW_SIZE`/`MM_OPEN_MODULE` 上。
+  这一轮的证法换了形状：不只比总数，而是把 HEAD 那一读与工作树这一读各自 `sort -u` 成 55 行再 `comm -3`，
+  **两个方向都空**才叫"没加键"——总数相等只证明没有净增，集合相等才证明没有偷偷换过一个。
   上一版记的"49 个（grep 得 50）"是 2026-09-30 的数，**P6.2d 的 `MM_GUARDIAN_CARDS` 与本轮的
   `MM_MONITOR_CARDS` 都没回填过这条计数**——台账自己就是那条老教训（"旧文档里的数字是线索不是依据"）的对象，
   所以这里给的是重跑结果，不是 49+2。
@@ -156,8 +160,8 @@
 | `MM_OPEN_TAB` | `MMOptimizer` | `MMOptimizer.swift:41` | optimizer 页默认 tab（duplicates/browser/status/devtools/**preferences**） | ✅ | 否 | 非法值回落 `.duplicates`。**P18：改走 `MMHookValue.selected`**——`duplicate`（少一个 s）此前静默停在重复文件 tab，与"生效"同一张图。**P34b 加第五档 `preferences`**（偏好文件健康检查那一屏），`accepts` 由 `OptimizerTab.allCases` 现算（`MMOptimizer.swift:270`），所以台账这一格与代码那句 tab 清单是同一支出 |
 | `MM_OPTIMIZER_FIXTURE` | `MMOptimizer` | `MMOptimizer.swift` | 五 tab 空/失败/PROTECTED 态统一夹具（duplicates:N/empty/scannedEmpty、**caveat:unreadable:N / caveat:dataless:N（P6.6 新增，必须与 `duplicates:N` 同给，单独给则整条作废）**、browser:rows/empty、status:allReadOnly、devtools:notInstalled/unreadable、**prefs:broken/unreadable/empty/partial（P34b 新增四档，形状见 `OptimizerFixtureHooks.swift:226` 那个 `prefsScan(tier:)`）**、protected） | ✅ | 否 | 见 `fidelity-optimizer.md` §6；纯数值/状态注入，不读 /tmp、不写盘、不 spawn。**P6.6 起有 `fixturePinned`**：给了夹具的 tab 会被钉住，随后落地的真实扫描结果整批丢弃。在此之前钩子是**半生效**的——三个 tab 的夹具被并发真实扫描覆盖，拍出来的照片挂着夹具文件名却是真实数据（见 §4 #2）。**P34b 那四档走的是同一条 `fixturePinned`**，为它新写了 2 条判据（`testPreferencesFixtureSurvivesALaterRealScan` / `testUnpinnedPreferencesModelScansNormally`），不是只加了形状 |
 | `MM_MONITOR_HOLD` | `MMMonitor` | `MMMonitor.swift`（#50 新增） | `=hold` 时冻结在 `.empty` 首帧 | ✅ | 否 | 见 `docs/analysis/fidelity-monitor.md` §4 |
-| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档，P6.5 加 `swapZero`） | 注入确定快照（populated/memoryNil/swapOff/**swapZero**/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡）；**`menubarOff` 自 P6.7 起才真的被消费**（`menuBar.disable()`，此前只解析不用）。**`swapZero` 与 `swapOff` 只差 `swapAvailable` 一位**（前者"读到 0"、后者"读不到"），这一位就是 I9 那两句话的分界；`populated` 底座的 swap 从 0/0 改成真实的 800 MiB / 2 GiB，否则这两档拍出来是同一张 |
-| `MM_MONITOR_CARDS` | `MMMonitor` | `MMMonitor.swift` `MonitorCardFilter`（`MonitorFixtureHooks.swift`） | 卡显示过滤，逗号子集 `stats\|perCore\|disk\|memory\|process\|sensors` | ✅ | 否 | **P6.4 新增**。手法照 `MM_GUARDIAN_CARDS`：「温度与风扇」排在整页最后，760pt 窗口里永远在折叠线以下，靠钩子钉死位置而不是拉高窗口碰运气。非法值整批拒绝并写 stderr（半生效夹具 = 假通过）；纯显示层过滤，不改变数据流 |
+| `MM_MONITOR_FIXTURE` | `MMMonitor` | `MMMonitor.swift`（#50 新增，P6.4 扩档，P6.5 加 `swapZero`） | 注入确定快照（populated/memoryNil/swapOff/**swapZero**/perCoreRed/perCoreEmpty/disk-unavailable:reason/processes/menubarOff + **P6.4 五档：sensors/sensorsUnavailable/sensorsNoFan/sensorsFanUnknown/sensorsHot，以及带自定义原因的 `sensors-unavailable:reason`** + **P37 电池四档：battery/batteryNoHealth/batteryCharging/batteryUnavailable，以及带自定义原因的 `battery-unavailable:reason`**） | ✅ | 否 | 纯数值注入，不读 `/tmp`、不采样；**传感器五档连 `SMCClient` 都不碰**（整块顶替 `SensorsSnapshot`），所以"钩子会不会写 SMC"这个问题在这条上答案是结构性的不会。逗号可叠加（如 `processes,sensors` 拍相邻两卡）；**`menubarOff` 自 P6.7 起才真的被消费**（`menuBar.disable()`，此前只解析不用）。**`swapZero` 与 `swapOff` 只差 `swapAvailable` 一位**（前者"读到 0"、后者"读不到"），这一位就是 I9 那两句话的分界；`populated` 底座的 swap 从 0/0 改成真实的 800 MiB / 2 GiB，否则这两档拍出来是同一张。**P37 电池四档同一形状**：`battery` 与 `batteryNoHealth` 只差 `DesignCapacity` 一位（有健康度 / 健康度「—」），`batteryCharging` 一次拍出状态行与预计剩余两行，`batteryUnavailable` 是整卡读不出；这台开发机是 Mac mini、`BatteryInstalled=No`，所以"有电池"的四个正分支在真机上不存在，只能由这几档出片（照片 01 拍的恰是 `noBattery` 那一档） |
+| `MM_MONITOR_CARDS` | `MMMonitor` | `MMMonitor.swift` `MonitorCardFilter`（`MonitorFixtureHooks.swift`） | 卡显示过滤，逗号子集 `stats\|perCore\|disk\|memory\|process\|sensors\|battery` | ✅ | 否 | **P6.4 新增**。手法照 `MM_GUARDIAN_CARDS`：「温度与风扇」排在整页最后，760pt 窗口里永远在折叠线以下，靠钩子钉死位置而不是拉高窗口碰运气。非法值整批拒绝并写 stderr（半生效夹具 = 假通过）；纯显示层过滤，不改变数据流。**P37 子集多一个 `battery`**（枚举 `Card` 跟着新卡名一起长，键名没变） |
 
 ## 2. 各模块钩子小结
 
@@ -245,7 +249,7 @@
    「上次采样 2023-11-15 06:13」与温度键名 `TZZa…TZZh`（真机是 2026-10-04 与 `TCMz/Tp0c/…` 174 个点）
    都出现在画面上；守护页夹具的 `com.example.*` 与「（夹具值）」同理。**这两个钩子是真生效的**，
    `fixturePinned` 那类竞态在 monitor/guardian 上没有可复现的证据，性质与 §4 #2 猜测的不同：
-   monitor 的夹具分支**刻意不调 `menuBar.enable()`**（`MMMonitor.swift:89` 那行注释就是理由——
+   monitor 的夹具分支**刻意不调 `menuBar.enable()`**（`MMMonitor.swift:90` 那行注释就是理由——
    别让后台采样循环把夹具快照覆盖掉），所以"夹具与真实采样共用同一个赋值口"这件事根本不成立：
    注了夹具就没有采样循环。守护页的几张卡由 `MM_GUARDIAN_CARDS` 只渲染目标卡，
    喂数据的 `.task` 与夹具赋值之间没有观察到互相覆盖（`p62b` 那十档逐档不同即是证据）。

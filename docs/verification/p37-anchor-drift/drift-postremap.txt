@@ -1,0 +1,65 @@
+# p29 anchor drift audit
+# date: 2026-10-14 11:55:47
+# repo: 60f4711-dirty
+# base: HEAD
+# 被改源码文件（非测试）: 6 个；测试文件 3 个（文档极少引测试行号，不扫）
+# 扫到的引用条次（唯一「文档+文档行+源文件+源行号」）: 50
+# .swift 目标漂移（base 行 ≠ 工作区行）: 24
+# 其中不可自动重锚: 16
+# 按文档计数:
+  20 DRIFT	docs/analysis/fidelity-monitor.md
+  12 UNRESOLVED	docs/analysis/fidelity-monitor.md
+   2 UNRESOLVED	docs/analysis/release-readiness.md
+   1 UNRESOLVED	docs/analysis/hook-ledger.md
+   1 UNRESOLVED	docs/analysis/feature-roadmap.md
+   1 DRIFT	docs/analysis/website-audit.md
+   1 DRIFT	docs/analysis/release-readiness.md
+   1 DRIFT	docs/analysis/fidelity-optimizer.md
+   1 DRIFT	docs/analysis/feature-roadmap.md
+# ---- 明细：可照抄的重锚（new 取自 base 行原文在工作区的唯一命中）----
+#   doc=docs/analysis/feature-roadmap.md:81  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:134 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:135  reason=唯一命中原文| card(title: "每核 CPU", systemImage: "cpu") {
+#   doc=docs/analysis/fidelity-monitor.md:102  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:164 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:165  reason=唯一命中原文| MMKeyRow("读取", rateText(menuBar.snapshot.diskReadBytesPerSecond), monospaced: true)
+#   doc=docs/analysis/fidelity-monitor.md:112  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:190 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:191  reason=唯一命中原文| // 口径：compressor_page_count × 页大小 = 压缩器池的物理占用（与"已用"同口径）。
+#   doc=docs/analysis/fidelity-monitor.md:133  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:198 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:199  reason=唯一命中原文| Text("尚未完成首次采样，这里还没有内存读数。")
+#   doc=docs/analysis/fidelity-monitor.md:177  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:303 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:383  reason=唯一命中原文| } label: {
+#   doc=docs/analysis/fidelity-monitor.md:201  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:194 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:195  reason=唯一命中原文| Text("内存读数不可用（host_statistics64 失败），显示 —。")
+#   doc=docs/analysis/fidelity-monitor.md:212  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:102 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:103  reason=唯一命中原文| syncHotSensors(menuBar.snapshot.sensors.temperatures)
+#   doc=docs/analysis/fidelity-monitor.md:216  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:161 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:162  reason=唯一命中原文| card(title: "磁盘 IO", systemImage: "internaldrive") {
+#   doc=docs/analysis/fidelity-monitor.md:219  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:192 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:193  reason=唯一命中原文| MMKeyRow("Swap", MenuBarManager.swapText(memory))
+#   doc=docs/analysis/fidelity-monitor.md:224  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:435 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:515  reason=唯一命中原文| pid: pid,
+#   doc=docs/analysis/fidelity-monitor.md:227  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:190 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:191  reason=唯一命中原文| // 口径：compressor_page_count × 页大小 = 压缩器池的物理占用（与"已用"同口径）。
+#   doc=docs/analysis/fidelity-monitor.md:231  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:188 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:189  reason=唯一命中原文| MMKeyRow("活动", MMFormat.bytes(memory.activeBytes))
+#   doc=docs/analysis/fidelity-monitor.md:257  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:187 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:188  reason=唯一命中原文| MMKeyRow("已用", "\(MMFormat.bytes(memory.usedBytes)) / \(MMFormat.bytes(memory.totalBytes))")
+#   doc=docs/analysis/fidelity-monitor.md:54  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:84 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:85  reason=唯一命中原文| menuBar.applyFixture(snapshot)
+#   doc=docs/analysis/fidelity-monitor.md:78  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:65 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:66  reason=唯一命中原文| let hold = MonitorLoadHook.parse(env["MM_MONITOR_HOLD"]).holdInitialFrame
+#   doc=docs/analysis/fidelity-monitor.md:87  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:73 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:74  reason=唯一命中原文| if !cards.rejected.isEmpty {
+#   doc=docs/analysis/fidelity-monitor.md:99  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:100 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:101  reason=唯一命中原文| // 夹具与冻结首帧都是在 onAppear 里同步落到 snapshot 上的，
+#   doc=docs/analysis/website-audit.md:22  move=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:162 -> Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:163  reason=唯一命中原文| switch menuBar.snapshot.diskIOStatus {
+#   doc=docs/analysis/fidelity-monitor.md:264  move=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:204 -> Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:240  reason=唯一命中原文| let fans: [SensorFan]
+#   doc=docs/analysis/fidelity-monitor.md:494  move=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:66 -> Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:80  reason=唯一命中原文| /// 非法取值进 rejected，调用方写 stderr 并忽略整个钩子。
+#   doc=docs/analysis/fidelity-optimizer.md:273  move=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:271 -> Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:326  reason=唯一命中原文| return Result(visible: nil, rejected: rejected)
+#   doc=docs/analysis/release-readiness.md:447  move=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:217 -> Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:272  reason=唯一命中原文| static func syntheticProcesses(count: Int = 10) -> [MonitorProcess] {
+#   doc=docs/analysis/fidelity-monitor.md:102  move=Packages/MMMonitor/Sources/MMMonitor/SystemMetricSampler.swift:101 -> Packages/MMMonitor/Sources/MMMonitor/SystemMetricSampler.swift:106  reason=唯一命中原文| diskRate = DiskIODiff.rate(previous: previous.disk, current: counters, interval: interval)
+#   doc=docs/analysis/fidelity-monitor.md:212  move=Packages/MMMonitor/Sources/MMMonitor/SystemMetricSampler.swift:99 -> Packages/MMMonitor/Sources/MMMonitor/SystemMetricSampler.swift:104  reason=唯一命中原文| case .success(let counters):
+# ---- 明细：需人工 ----
+#   doc=docs/analysis/fidelity-monitor.md:108  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:179  reason=工作区里 127 处命中（127 处以上需人工认）  | }
+#   doc=docs/analysis/fidelity-monitor.md:120  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:294  reason=工作区里 127 处命中（127 处以上需人工认）  | }
+#   doc=docs/analysis/fidelity-monitor.md:151  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:429  reason=base 那行是空行  wt=            }
+#   doc=docs/analysis/fidelity-monitor.md:156  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:429  reason=base 那行是空行  wt=            }
+#   doc=docs/analysis/fidelity-monitor.md:210  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:195  reason=工作区里 10 处命中（10 处以上需人工认）  | .font(.caption)
+#   doc=docs/analysis/fidelity-monitor.md:243  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:199  reason=工作区里 10 处命中（10 处以上需人工认）  | .font(.caption)
+#   doc=docs/analysis/fidelity-monitor.md:283  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:130  reason=base 那行是空行  wt=    }
+#   doc=docs/analysis/fidelity-monitor.md:387  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:90  reason=工作区里 6 处命中（6 处以上需人工认）  | } else {
+#   doc=docs/analysis/hook-ledger.md:252  src=Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:90  reason=工作区里 6 处命中（6 处以上需人工认）  | } else {
+#   doc=docs/analysis/fidelity-monitor.md:184  src=Packages/MMMonitor/Sources/MMMonitor/MetricReaders.swift:183  reason=base 那行是空行  wt=    public static func read() -> BatterySnapshot {
+#   doc=docs/analysis/fidelity-monitor.md:509  src=Packages/MMMonitor/Sources/MMMonitor/MetricReaders.swift:183  reason=base 那行是空行  wt=    public static func read() -> BatterySnapshot {
+#   doc=docs/analysis/feature-roadmap.md:432  src=Packages/MMMonitor/Sources/MMMonitor/MetricTypes.swift:431  reason=base 那行是空行  wt=    /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
+#   doc=docs/analysis/fidelity-monitor.md:186  src=Packages/MMMonitor/Sources/MMMonitor/MetricTypes.swift:305  reason=base 那行是空行  wt=    public static let notSampled = BatterySnapshot(
+#   doc=docs/analysis/fidelity-monitor.md:193  src=Packages/MMMonitor/Sources/MMMonitor/MetricTypes.swift:431  reason=base 那行是空行  wt=    /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
+#   doc=docs/analysis/release-readiness.md:2242  src=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:272  reason=工作区里 47 处命中（47 处以上需人工认）  | }
+#   doc=docs/analysis/release-readiness.md:3030  src=Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:272  reason=工作区里 47 处命中（47 处以上需人工认）  | }
+# 本轮被改的非 .swift 入库文件: 29 个
+# ---- 非 .swift 目标这一族 ----
+# 扫到的引用条次（唯一「候选路径+文档+文档行+行号」，含未命中被改文件的）: 113
+# 漂移（base 行 ≠ 工作区行）: 0
+# 其中不可自动重锚: 0

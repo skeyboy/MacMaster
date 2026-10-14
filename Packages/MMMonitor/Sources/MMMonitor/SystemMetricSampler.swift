@@ -34,6 +34,8 @@ public struct SystemMetricSampler {
         /// 温度/风扇：SMC 的瞬时量，不做差分，所以签名直接给整卡状态
         /// （读不到时 reason 已经在里面，tick 不参与）。
         public var sensors: @Sendable () -> SensorsSnapshot
+        /// 电池：AppleSmartBattery 的瞬时量，同样不做差分。
+        public var battery: @Sendable () -> BatterySnapshot
 
         public init(
             perCoreCPU: @escaping @Sendable () -> [CoreTicks]?,
@@ -41,7 +43,8 @@ public struct SystemMetricSampler {
             diskIO: @escaping @Sendable () -> Result<DiskIOCounters, DiskIOFailure>,
             memory: @escaping @Sendable () -> MemoryMetrics?,
             network: @escaping @Sendable () -> NetworkBytes?,
-            sensors: @escaping @Sendable () -> SensorsSnapshot
+            sensors: @escaping @Sendable () -> SensorsSnapshot,
+            battery: @escaping @Sendable () -> BatterySnapshot
         ) {
             self.perCoreCPU = perCoreCPU
             self.totalCPU = totalCPU
@@ -49,6 +52,7 @@ public struct SystemMetricSampler {
             self.memory = memory
             self.network = network
             self.sensors = sensors
+            self.battery = battery
         }
 
         public static let live = Readers(
@@ -57,7 +61,8 @@ public struct SystemMetricSampler {
             diskIO: { DiskIOReader.read() },
             memory: { MemoryReader.read() },
             network: { NetworkReader.read() },
-            sensors: { SMCSensorReader.shared.read() }
+            sensors: { SMCSensorReader.shared.read() },
+            battery: { BatteryReader.read() }
         )
     }
 
@@ -128,6 +133,7 @@ public struct SystemMetricSampler {
             networkDownBytesPerSecond: netRate?.downBytesPerSecond,
             networkUpBytesPerSecond: netRate?.upBytesPerSecond,
             sensors: readers.sensors(),
+            battery: readers.battery(),
             sampledAt: sampledAt
         )
     }

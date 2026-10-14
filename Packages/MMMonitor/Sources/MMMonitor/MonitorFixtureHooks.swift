@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import MMCore
 
 // MARK: - 首帧定格（MM_MONITOR_HOLD）
 
@@ -52,6 +53,19 @@ enum MonitorFixtureTier: String, Sendable {
     case sensorsNoFan       // E3：读到风扇数为 0（无风扇机型那一档）
     case sensorsFanUnknown  // E4：FNum 读不出（fanCount=nil，"不知道" ≠ "0 个"）
     case sensorsHot         // E5：最高键 ≥90 °C 转红（实机空闲量不到这一档）
+    case battery            // 电池 loaded 底座（这台开发机没有电池，正分支只能由夹具出片）
+    case batteryNoHealth    // 有电池但没有可比的设计容量 → 健康度 "—"（不是 100%）
+    case batteryCharging    // 充电中 + 系统给了剩余时间估计（状态行与预计剩余行一次拍全）
+    case batteryUnavailable // 整卡 unavailable(reason:)，含自定义 reason 后缀
+
+    /// 生效时写给 stderr 的那一行，取证脚本用它把"这一档真走到了"与
+    /// "钩子被忽略、画面恰好同形"分开（配方同 `VolumeFixtureTier.appliedNote`：
+    /// 做成纯函数是为了让插值能被单测钉住——那一族第一版漏写插值，留痕行报的是字面量，
+    /// 判据当场变成假绿）。
+    /// 监控页此前只有「含非法取值」那一行拒值留痕，生效留痕是从这一档才有的。
+    var appliedNote: String {
+        "MM_MONITOR_FIXTURE=\(rawValue) 已生效：这是合成快照，不是这台机器的读数"
+    }
 }
 
 struct MonitorSnapshotFixture {
@@ -73,6 +87,7 @@ struct MonitorSnapshotFixture {
         var rejected: [String] = []
         var diskReason: String?
         var sensorReason: String?
+        var batteryReason: String?
 
         for token in tokens {
             if token.hasPrefix("disk-unavailable:") {
@@ -85,6 +100,11 @@ struct MonitorSnapshotFixture {
                 guard parts.count == 2, !parts[1].isEmpty else { rejected.append(token); continue }
                 sensorReason = parts[1]
                 accepted.append(.sensorsUnavailable)
+            } else if token.hasPrefix("battery-unavailable:") {
+                let parts = token.split(separator: ":", maxSplits: 1).map(String.init)
+                guard parts.count == 2, !parts[1].isEmpty else { rejected.append(token); continue }
+                batteryReason = parts[1]
+                accepted.append(.batteryUnavailable)
             } else if token == "diskUnavailable" {
                 accepted.append(.diskUnavailable)
             } else if token.hasPrefix("processes") {
@@ -147,8 +167,21 @@ struct MonitorSnapshotFixture {
                 snapshot.sensors = Self.baseSensors(fanCount: nil)
             case .sensorsHot:
                 snapshot.sensors = Self.baseSensors(hottest: 94.0)
+            case .battery:
+                snapshot.battery = Self.loadedBattery()
+            case .batteryNoHealth:
+                snapshot.battery = Self.loadedBattery(health: nil)
+            case .batteryCharging:
+                snapshot.battery = Self.loadedBattery(charging: true, minutes: 96)
+            case .batteryUnavailable:
+                snapshot.battery = .unavailable(
+                    reason: batteryReason ?? "IOKit 读不到 AppleSmartBattery 属性（夹具档）")
             }
         }
+
+        // 生效留痕：每个被接受的档位一行。取证脚本判"这一档真走到了"只看这一行，不看照片——
+        // "画面恰好同形"是构造不出来的分支最常见的假通过形态。
+        for tier in accepted { MMHookValue.emit(tier.appliedNote) }
 
         let processes = accepted.contains(.processes) ? Self.syntheticProcesses() : nil
         return Result(snapshot: snapshot, processes: processes, menubarOff: menubarOff, rejected: rejected)
@@ -180,6 +213,9 @@ struct MonitorSnapshotFixture {
             networkDownBytesPerSecond: 1.42e6,
             networkUpBytesPerSecond: 0.31e6,
             sensors: baseSensors(),
+            // 底座保持"本机真话"：这台开发机（Mac mini M4）实测 BatteryInstalled=No，
+            // 所以底座就是 noBattery；有电池的那些档留给 MM_MONITOR_FIXTURE 的 battery* 档。
+            battery: .noBattery,
             sampledAt: Date(timeIntervalSince1970: 1_700_000_000) // 固定时刻，hasSampled=true
         )
     }
@@ -213,6 +249,25 @@ struct MonitorSnapshotFixture {
         return .loaded(temperatures: temps, fanCount: fanCount, fans: fans)
     }
 
+    /// 电池卡的 loaded 档。这台开发机（Mac mini M4）实测 `BatteryInstalled=No`，
+    /// 所以"有电池"的每一档在真机上不可达、只能由夹具出片；同一批判据的另一种证法是
+    /// `BatteryTests` 喂字典进 `BatterySnapshot.assemble(from:)`——两边的数同源
+    /// （4100/5000 = 82% 就是那边那组），出片里的数字与单测里的判据不是两套话。
+    /// 底座档（`populated`）不注电池：本机真是 noBattery，底座就说真话。
+    static func loadedBattery(
+        level: Double = 0.63,
+        health: Double? = 0.82,
+        cycles: Int = 214,
+        charging: Bool = false,
+        external: Bool = true,
+        minutes: Int? = nil
+    ) -> BatterySnapshot {
+        BatterySnapshot(
+            status: .loaded, level: level, health: health, cycleCount: cycles,
+            isCharging: charging, isExternalConnected: external, timeRemainingMinutes: minutes
+        )
+    }
+
     /// 合成进程：com.example.* 命名一眼可与真实数据区分；pid 用小整数占位。
     static func syntheticProcesses(count: Int = 10) -> [MonitorProcess] {
         let names = [
@@ -239,9 +294,9 @@ struct MonitorSnapshotFixture {
 
 // MARK: - 卡片过滤（MM_MONITOR_CARDS）
 
-/// 监控页的六块卡，顺序即代码里的堆叠顺序。
+/// 监控页的七块卡，顺序即代码里的堆叠顺序。
 enum MonitorCard: String, Sendable {
-    case stats, perCore, disk, memory, process, sensors
+    case stats, perCore, disk, memory, process, sensors, battery
 }
 
 /// 只保留列出的卡——把折叠线以下的卡顶到首屏来拍，而不是把窗口画高

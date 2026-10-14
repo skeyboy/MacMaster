@@ -1,0 +1,52 @@
+# p29 anchor remap
+# repo: 60f4711-dirty
+# 被改源文件 6 个
+# 扫到引用 token 42 处，唯一 (文件,行) 53 个（另有 8 处落在本轮新写的文档行上，锚点已经对着工作区，工具不动）
+# 可重指（行号变了）: 40  来源：位置平移 7 / 文本唯一 33
+# 需人工: 6
+  MAP  MMMonitor.swift:60 -> :61
+  MAP  MMMonitor.swift:64 -> :65
+  MAP  MMMonitor.swift:67 -> :68
+  MAP  MMMonitor.swift:72 -> :73
+  MAP  MMMonitor.swift:83 -> :84
+  MAP  MMMonitor.swift:88 -> :89
+  MAP  MMMonitor.swift:89 -> :90
+  MAP  MMMonitor.swift:99 -> :100
+  MAP  MMMonitor.swift:101 -> :102
+  MAP  MMMonitor.swift:106 -> :107
+  MAP  MMMonitor.swift:129 -> :130
+  MAP  MMMonitor.swift:160 -> :161
+  MAP  MMMonitor.swift:161 -> :162
+  MAP  MMMonitor.swift:163 -> :164
+  MAP  MMMonitor.swift:164 -> :165
+  MAP  MMMonitor.swift:169 -> :170
+  MAP  MMMonitor.swift:186 -> :187
+  MAP  MMMonitor.swift:187 -> :188
+  MAP  MMMonitor.swift:189 -> :190
+  MAP  MMMonitor.swift:191 -> :192
+  MAP  MMMonitor.swift:192 -> :193
+  MAP  MMMonitor.swift:193 -> :194
+  MAP  MMMonitor.swift:194 -> :195
+  MAP  MMMonitor.swift:197 -> :198
+  MAP  MMMonitor.swift:198 -> :199
+  MAP  MMMonitor.swift:213 -> :214
+  MAP  MMMonitor.swift:293 -> :294
+  MAP  MMMonitor.swift:349 -> :429
+  MAP  MMMonitor.swift:355 -> :435
+  MAP  MMMonitor.swift:366 -> :446
+  MAP  MMMonitor.swift:372 -> :452
+  MAP  MetricTypes.swift:227 -> :431
+  MAP  MonitorFixtureHooks.swift:171 -> :204
+  MAP  MonitorFixtureHooks.swift:179 -> :212
+  MAP  MonitorFixtureHooks.swift:216 -> :271
+  MAP  MonitorFixtureHooks.swift:217 -> :272
+  MAP  MonitorFixtureHooks.swift:231 -> :286
+  MAP  SystemMetricSampler.swift:94 -> :99
+  MAP  SystemMetricSampler.swift:96 -> :101
+  MAP  SystemMetricSampler.swift:101 -> :106
+  HAND MetricTypes.swift:227  两套规则不一致（文本 431 / 位置 429）——采文本  | /// `.distantPast` 是 `empty` 用的哨兵，不是一个真实时刻。凡是准备把"没有值"
+  HAND MonitorFixtureHooks.swift:171  两套规则不一致（文本 204 / 位置 200）——采文本  | // 形状取自实机：`sysctl vm.swapusage` 2026-10-04 量到 total=2048M、used≈800M，
+  HAND MonitorFixtureHooks.swift:179  两套规则不一致（文本 212 / 位置 208）——采文本  | ),
+  HAND MonitorFixtureHooks.swift:216  两套规则不一致（文本 271 / 位置 252）——采文本  | /// 合成进程：com.example.* 命名一眼可与真实数据区分；pid 用小整数占位。
+  HAND MonitorFixtureHooks.swift:217  两套规则不一致（文本 272 / 位置 253）——采文本  | static func syntheticProcesses(count: Int = 10) -> [MonitorProcess] {
+  HAND MonitorFixtureHooks.swift:231  两套规则不一致（文本 286 / 位置 267）——采文本  | let cpuSeconds: Double = 120 - Double(i) * 10

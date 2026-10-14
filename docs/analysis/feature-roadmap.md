@@ -78,7 +78,7 @@
 | 3.1 设备占用指示 | ✅ 已落地 | `MMGuardian/DeviceUsage.swift` + `DeviceUsageProbe.swift`，见「P3.1 落地」节 |
 | 3.2 TCC 授权只读视图 | ✅ 已落地 | `MMGuardian/TCCAuthorization.swift` + `TCCProbe.swift`（只读 `SQLITE_OPEN_READONLY`，半读即整库判不可读），见「P3.2 落地」节 |
 | 3.3 登录项异常标注 | ✅ 已落地 | `MMGuardian/LoginItemAudit.swift`：磁盘 plist × `launchctl list` 快照交叉，三类异常徽章 + 孤儿标签脚注，见「P3.3 落地」节 |
-| 3.4 菜单栏指标 | 🟡 **四项里两项从未落地，这一行的依据此前说满了** | `MMMonitor.swift:133` `perCoreCard` 每核 CPU（**P29b 重锚**：这一行从前引 `:71`，而门禁的符号面从它建立的第一跑起、26 份 `audit.log` 每一份都点名这一行——"那一行里没有 `IOBlockStorageDriver`/`AppleSmartBattery`"——提示档不进退出码，所以它喊了十几轮没人当账还，本轮换成真锚并同时改掉那两个假符号）、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分（六处命中）与 compressed 口径（`MetricTypes.swift:138-140`）。**但同一行从前还写着 `AppleSmartBattery` 与 IOReport——P29b 现读全仓 0 命中**（`battery`/`电池`/`AppleSmartBattery`/`IOReport` 四查皆空，命中的只有 `Sensors.swift:80` 一句"不做 GPU 归属推测"的注释），电池与 GPU 两张卡在 P6.4 那一节已自纠为"不存在"。**这一行现在才是它的真实状态**，缺的两项排到 v1.2（见本节末） |
+| 3.4 菜单栏指标 | 🟡 **四项里两项从未落地，这一行的依据此前说满了** | `MMMonitor.swift:134` `perCoreCard` 每核 CPU（**P37 又顶漂一行**：电池卡那段代码插在它上面，133 成了空行——引用门禁这一跑唯一的硬失败就是它，所以这一格按"同行改写、不加行"重指。上一笔是 **P29b 重锚**：这一行从前引 `:71`，而门禁的符号面从它建立的第一跑起、26 份 `audit.log` 每一份都点名这一行——"那一行里没有 `IOBlockStorageDriver`/`AppleSmartBattery`"——提示档不进退出码，所以它喊了十几轮没人当账还，本轮换成真锚并同时改掉那两个假符号）、`MetricReaders.swift` 有 `IOBlockStorageDriver` 差分（六处命中）与 compressed 口径（`MetricTypes.swift:138-140`）。**但同一行从前还写着 `AppleSmartBattery` 与 IOReport——P29b 现读全仓 0 命中**（`battery`/`电池`/`AppleSmartBattery`/`IOReport` 四查皆空，命中的只有 `Sensors.swift:80` 一句"不做 GPU 归属推测"的注释），电池与 GPU 两张卡在 P6.4 那一节已自纠为"不存在"。**P29b 那一读这一行才是它的真实状态**；缺的两项排到 v1.2（见本节末）——**P37 兑现了其中一项**：`MMMonitor.swift` 现在有 `batteryCard`，判定层 `BatterySnapshot`、读取层 `BatteryReader` 都在，`AppleSmartBattery` 全仓现读 **11 处命中**（不再是 0），所以这一行剩下的"未落地"只有 GPU 那一项，账见本文 §13 |
 | 3.5 不再写系统域 `Disabled` | ✅ 已落地 | `LaunchItemPolicy.swift:5` 明确"永远不尝试写 Disabled 键"，用户域改写走 throwing API（`LoginItemStore.swift:158-188`） |
 | 4.1 非显性系统缓存 | ✅ 已落地 | `CacheScanner.swift:475-485`（metalfe / gpuarchiver），QuickLook、iconservices、GeoServices、photoanalysisd 同文件内共 13 处 |
 | 4.2 沙盒容器内缓存 | ✅ 已落地 | `CacheScanner.swift:564-569` 走 `~/Library/Containers/*/Data/Library/Caches` 通配 |
@@ -429,7 +429,7 @@ D 降级态合集，含新增 D3a）、`08-optimizer.html`（08 首屏 / 08b 结
 ① 页头在未采样时渲染成「上次采样 **0001-01-01 08:05**」（`.distantPast` 哨兵被当成真实时刻）；
 ② 内存卡在"压根没采过"时也说成「host_statistics64 失败」（给出错误的因果）；
 ③ 进程卡失败态 `detail: nil`，既没说原因也没说下一步。
-修法：`MetricTypes.swift:227` 新增 `MetricSnapshot.hasSampled`，页头与内存卡共用这一个判据
+修法：`MetricTypes.swift:431-433` 新增 `MetricSnapshot.hasSampled`，页头与内存卡共用这一个判据
 （没改成 `Date?`：`sampledAt` 有 6 个调用点，把哨兵集中成具名字段波及面小得多，且②需要的正是同一个判据）；
 进程卡补一句不带猜测的文案——失败点可能是 `proc_listallpids` 也可能是逐个 `proc_pidinfo`，
 代码没区分，所以文案只说"没拿到任何结果"，指错原因比不说更糟。
@@ -1066,7 +1066,7 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
 
 | 能力 | 卡在哪 | 处置 |
 |---|---|---|
-| 电池电量 / 健康度卡 | 读法零权限（stats `Modules/Battery/readers.swift:16` 走 `IOServiceMatching("AppleSmartBattery")`，进程内 IOKit），**但开发机是 Mac mini，没有电池**——正分支拍不出照片 | 代码可以先写；取证排在有笔记本的那一轮，**文档里明写"这一条只有单测"**（与 P3.1 摄像头同一处理，别再写"已验证"） |
+| 电池电量 / 健康度卡 | 读法零权限（stats `Modules/Battery/readers.swift:16` 走 `IOServiceMatching("AppleSmartBattery")`，进程内 IOKit），**但开发机是 Mac mini，没有电池**——正分支在真机上不存在 | **P37 已落地（2026-10-14）**：判定层 + 采样 + 监控页那张卡 + 28 条单测（MMMonitor 57 → **85**，九包 792/0/1）。取证没排在"有笔记本的那一轮"——夹具四档把"有电池"的四个正分支各拍一张，另有一张实机画的正是「本机没有内置电池」，八档判据与 md5 交叉核对见 `docs/analysis/fidelity-monitor.md` §4.4，落地账见本文 §13。**那一格"这一条只有单测"从此作废**：是有照片的，只是照片出自夹具 |
 | GPU 利用率 | 需要 IOReport 订阅，是一条全新子系统，与 SMC 不同路径；性价比低于上面全部 | **默认不做**，等人点头才排（roadmap 3.4 那一行历史上还替它背过"已落地"的假账，本轮已改口） |
 | 微信聊天媒体分类（头像/图片/文件/视频四桶） | 用户价值最高的一条，但属**个人数据**（Lemon `QMWechatScan.m:14-22` 那四条路径常量）。它和被"明确不采纳"的浏览器记录级删除不同族：那条拒的是 SQLite 锁与记录级语义，这条可以按文件级"只报 + 默认不勾"规避 | **先要产品决定**"只报不删"还是"默认不勾、勾选才删"；后者必须走 `DeletionGuard` + 确认勾选那套现有闸门，行文案要点名"删了聊天里的图就没了" |
 
@@ -1425,4 +1425,60 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
    它的文件索引来自 `git ls-files`，**所以引用本轮还没 `git add` 的脚本，提交前那一跑会判成「两头都不到」、硬失败 1**——
    红的是状态不是错，照着它改文档就把对的引用改错了；另一条是唯一面**按写下来的那串字符去重**，
    同一条文件同一行带目录写与不带目录写算两条，所以那层的"唯一 N"比的是写法数，不是位置数。
+
+### 13. P37 落地记录（v1.2 第 1 条：电池电量 / 健康度只读卡，2026-10-14）
+
+**为什么现在做这一条**：§2 那四个 v1.1 项已随 **v1.0.1** 发出（tag `v1.0.1` → `41631c6`，CI 绿），
+"按 roadmap 起下一版"因此落在 §3 的第一行。那一行原本写着"取证排在有笔记本的那一轮"——
+**这一轮把它改了**，理由在下面第三条：夹具拍得到的东西不该等硬件。
+
+**1. 三层各在哪**：判定层是 `BatterySnapshot`（`MetricTypes.swift`，`assemble(from:)` 是唯一入口，
+raw 对（mAh）优先于 percent 对，分母为 0 或分子大于分母一律 nil）；读取层是 `BatteryReader`
+（`MetricReaders.swift`，进程内 IOKit `IOServiceMatching("AppleSmartBattery")`，零权限、零写盘）；
+呈现层是监控页那张「电池」卡（`MMMonitor.swift`，三句文案抽成 `MonitorView` 上的静态函数，
+**抽出来就是为了能被单测钉住**，同 §11 那个手法）。采样挂在 `SystemMetricSampler` 的既有那一趟里，
+没有新起定时器。
+
+**2. nil-not-zero 在这张卡上落成五档可数的形状**：
+「不知道」与「没有」是两句话——`noBattery`（本机没电池）≠ `unavailable(reason)`（读不出来）≠
+字段级 nil（整卡可读但这一格读不出，画「—」）。**三处不许塌**：越界比例不 clamp 到 100%
+（钳过去就是把"口径错了"报成"电满了"）、缺 `DesignCapacity` 不出健康度、
+两个电源键互相矛盾（没接外接却在充电）时状态行报「—」而不编一句话。
+`cycleCount == 0` 是**真 0**，不是缺值——这一条和 I9 的 `swapZero`/`swapOff` 是同一个规矩。
+
+**3. 取证：这一族为什么不等笔记本**：本机是 Mac mini，`BatteryInstalled=No`（探针
+`Scripts/p37-battery-probe.swift`，2026-10-13 实跑），"有电池"的四个正分支**在这台机器上不存在**，
+不是"再等等就能拍到"。但这些形态是**结构**而不是数值，夹具能精确构造——
+`MonitorFixtureHooks.loadedBattery` 喂进去的是同一份字典、走的是同一条 `assemble(from:)`，
+所以照片画的换算路径与真机同一条。八档判据与四条 md5 交叉核对写在 `docs/analysis/fidelity-monitor.md` §4.4，
+照片与日志在 `docs/verification/p37-battery/`；01 那张实机画的正是「本机没有内置电池」，
+它是这一族里唯一的真读数，也是"夹具没有悄悄落回真值"的反向核对之一。
+**三档明确没拍**（缺什么逐条写在那份文档末尾，不写"应该没问题"）：`cycleCount == 0`、
+电源行余下三档话术（`loadedBattery` 两头都给确定值，构造不出半读数）、`BatteryReader` 的三条 IOKit 失败路径。
+
+**4. 判据 +28**：`BatteryTests.swift` 全新 28 条（键的读法 7 / 纯函数与可信范围 12 / 文案 3 / 夹具档位 6），
+MMMonitor 57 → **85**，九包 **792 / 0 / 1**，结论行入库 `docs/verification/p37-battery/run-all-tests.log`。
+另两支测试文件只给既有夹具补 battery 入参、两条断言从旧方法搬家，**方法数没动**。
+本轮只跑 §10 第 1 步，**不是发版核验的一遍**，遍数不加。
+
+**5. 钩子：一个新键都没加**，`MM_*` 名字总数仍是 **55**（运行时 54），证法从"数总数"换成"比集合"
+（HEAD 与工作树两份 55 行 `comm -3` 两个方向都空）。出片脚本接门禁的读到 **15 / 35 / 残 20**：
+分子分母各 +1，残格不动。产物指纹 `tree=60f4711+74012c66 app=60f4711+74012c66`，
+后半截不是空流前缀，因为编译输入里有 5 个未提交的 `Packages/MMMonitor/Sources/**`。
+
+**6. 默认分支与已发版本从这一轮起分家**：`RELEASE-NOTES.md` 里那两处 764 属于 `v1.0.1` 的范围、
+**不是漏改**；文档里的"当前值"从此是 792，两个口径都要写（判据与理由在 `release-readiness.md` §7.29）。
+**下一轮看到 792 与 764 并存时先按这一条判它是分家还是漏改，别直接改数字。**
+
+**7. 本轮踩到的两条口径坑**（都改回来了，形状记在这里）：
+① `git diff --stat` 中间那列是**增删之和**，`--numstat` 才是 +a/−b——拿 11 和 2 当净增会把 +304 算成 +312。
+② **归档的说明行不能含取数行用的键**：比对段里照抄了一遍取数字面串，下一轮同一条命令抽出 11 行而不是 9 行——
+文档把网撒进了自己的分母，与"取数值的命令要单独调用"是相邻的第二种坑。
+
+**8. 这一版余下的两条仍在等人**：GPU 利用率（§3 那格写的是**默认不做**，且历史上 roadmap 替它背过
+"已落地"的假账）与微信聊天媒体分类（要产品先定"只报不删"还是"默认不勾、勾选才删"）。
+本文 §3 那三行现在是一行已落地、两行等人——**§3 的标题"三条要等新条件的"因此对第一行不再成立**，
+它的"新条件"由夹具顶掉了；改标题会动 §3 那一带的行号，而**本文是被别处按行号引用的**
+（上一次引用门禁的归档 `docs/verification/p36-debt5-citations-v2/audit.log` 里就列了 10 条指向本文的活锚），
+所以只在这里说明，不动标题。本轮 §13 是**在文件末尾追加**，同样为了不移动任何既有行。
 

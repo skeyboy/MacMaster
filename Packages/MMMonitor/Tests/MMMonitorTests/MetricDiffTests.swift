@@ -106,7 +106,8 @@ final class MetricDiffTests: XCTestCase {
                 diskIO: { diskTicks },
                 memory: { mem },
                 network: { NetworkBytes(received: 0, sent: 0) },
-                sensors: { .loaded(temperatures: [SensorTemperature(key: "TZZa", celsius: 50)], fanCount: 0, fans: []) }
+                sensors: { .loaded(temperatures: [SensorTemperature(key: "TZZa", celsius: 50)], fanCount: 0, fans: []) },
+                battery: { .assemble(from: BatteryRawValues(installed: true, currentCapacity: 62, maxCapacity: 100)) }
             ),
             clock: MetricClock { fakeTime }
         )
@@ -117,6 +118,8 @@ final class MetricDiffTests: XCTestCase {
         XCTAssertNil(first.diskReadBytesPerSecond)
         XCTAssertEqual(first.memory?.compressedBytes, 250, "内存是瞬时值，首帧就有")
         XCTAssertEqual(first.sensors.status, .loaded, "温度/风扇也是瞬时值，首帧就有")
+        XCTAssertEqual(first.battery.status, .loaded, "电池也是瞬时值，首帧就有")
+        XCTAssertEqual(first.battery.level!, 0.62, accuracy: 0.0001)
     }
 
     func testSamplerComputesRatesOnSecondTick() {
@@ -132,7 +135,8 @@ final class MetricDiffTests: XCTestCase {
                 diskIO: { .success(disk) },
                 memory: { nil },
                 network: { net },
-                sensors: { .notSampled }
+                sensors: { .notSampled },
+                battery: { .noBattery }
             ),
             clock: MetricClock { fakeTime }
         )
@@ -161,7 +165,8 @@ final class MetricDiffTests: XCTestCase {
                 diskIO: { .failure(DiskIOFailure("未发现任何 IOBlockStorageDriver 设备")) },
                 memory: { nil },
                 network: { nil },
-                sensors: { .notSampled }
+                sensors: { .notSampled },
+                battery: { .unavailable(reason: "夹具：这台机器问不出电池") }
             ),
             clock: MetricClock { fakeTime }
         )

@@ -270,7 +270,7 @@
    **✅ 已落地（`969e548`，2026-09-30）**：`Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift`
    就是这个建议的成品，档位与建议**逐条对得上**（`browser:` 落成 `rows`/`empty` 两档；建议里的"超大列表"由
    `duplicates:<N>` 的 N 承担）。合成组走真实 `DuplicateGroup` 构造器、路径是 `/tmp/mm-optimizer-fixture/dup-i/copy-j.bin`，
-   一眼可辨是夹具（`:166-176`）。**P36 现读重指**：这一格此前写"是 `/tmp` 下 `com.example` 命名"并钉 `:106-110`——**措辞与坐标一起错**：`com.example.*` 是**别的模块**夹具的命名规矩（`MonitorFixtureHooks.swift:216`、`TCCAuthorization.swift:251` 都用它），优化器这一族用的是 `/tmp/mm-optimizer-fixture/…`（`:172` 那一行），照别的模块的规矩写这一页就写成了假话。**§5 #2 是唯一没被它覆盖的**，代码注释里也留了话
+   一眼可辨是夹具（`:166-176`）。**P36 现读重指**：这一格此前写"是 `/tmp` 下 `com.example` 命名"并钉 `:106-110`——**措辞与坐标一起错**：`com.example.*` 是**别的模块**夹具的命名规矩（`MonitorFixtureHooks.swift:271`、`TCCAuthorization.swift:251` 都用它），优化器这一族用的是 `/tmp/mm-optimizer-fixture/…`（`:172` 那一行），照别的模块的规矩写这一页就写成了假话。**§5 #2 是唯一没被它覆盖的**，代码注释里也留了话
    （`:21-23`：「#2（扫描中态）**不需要钩子**：真实 SHA-256 比对本来就慢……所以这里没有 HOLD 档位——别照着旧注释再补一个」）。
    **P6.6 追加（2026-10-04）**：档位又多了一组 `caveat:unreadable:N` / `caveat:dataless:N`（§5 表下第 03 档照片要的就是它），
    并加了一条不变量——**`caveat` 必须与 `duplicates:<N>` 同给**，否则整个钩子作废：

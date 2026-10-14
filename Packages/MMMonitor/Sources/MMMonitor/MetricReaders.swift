@@ -166,6 +166,40 @@ public enum MemoryReader {
     }
 }
 
+// MARK: - 电池（IOKit AppleSmartBattery，只读）
+
+public enum BatteryReader {
+
+    /// 一次 `IORegistryEntryCreateCFProperties` 拿整张属性字典，换算与判状态全在
+    /// `BatterySnapshot.assemble(from:)`（纯函数，单测喂字典即可覆盖正分支）。
+    ///
+    /// 三条失败路径各有各的话，不塌成一句"读不到"：那会把"这台机器没有电池"
+    /// 说成一次故障，而它是个事实（本机 Mac mini 实测：节点在、`BatteryInstalled=No`）。
+    ///
+    /// 刻意不枚举多个匹配服务、也不用 `IOPSCopyPowerSourcesInfo`：stats 两条路都走
+    /// （`docs/github-references/stats/Modules/Battery/readers.swift:16` 与 :61-71），
+    /// 但那个 API 会把"没有电池"报成一张空的电源列表，读不出来的东西在我们这儿必须是 nil。
+    /// 单来源的代价是健康度只认 mAh 那一对，Intel 机型走不到——这条写在 roadmap 的 P37a 一节里。
+    public static func read() -> BatterySnapshot {
+        guard let matching = IOServiceMatching("AppleSmartBattery") else {
+            return .unavailable(reason: "IOServiceMatching(\"AppleSmartBattery\") 返回空，无法枚举电池节点")
+        }
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, matching)
+        guard service != 0 else {
+            return .unavailable(reason: "IORegistry 里没有 AppleSmartBattery 节点，问不出这台机器有没有电池")
+        }
+        defer { IOObjectRelease(service) }
+
+        var propsPointer: Unmanaged<CFMutableDictionary>?
+        let kr = IORegistryEntryCreateCFProperties(service, &propsPointer, kCFAllocatorDefault, 0)
+        guard kr == KERN_SUCCESS, let props = propsPointer?.takeRetainedValue() as? [String: Any] else {
+            let detail = machErrorString(kr) ?? "kern_return_t \(kr)"
+            return .unavailable(reason: "读取 AppleSmartBattery 属性失败：\(detail)")
+        }
+        return BatterySnapshot.assemble(from: BatteryRawValues(from: props))
+    }
+}
+
 // MARK: - 网络
 
 public enum NetworkReader {

@@ -1,0 +1,10 @@
+# p37-battery-capture.sh 05-monitor-battery-unavailable  2026-10-14 10:39:08 +0800  app=/tmp/mm-app-p37/MacMaster.app
+# repo: 60f4711-dirty   # app-repo: 60f4711-dirty
+# digest: tree=60f4711+74012c66 app=60f4711+74012c66
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=battery MM_MONITOR_FIXTURE=battery-unavailable:IOServiceGetMatchingService 找不到 AppleSmartBattery 节点
+# 卡：battery   # 夹具：battery-unavailable:IOServiceGetMatchingService 找不到 AppleSmartBattery 节点
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p37/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_MONITOR_FIXTURE=batteryUnavailable 已生效：这是合成快照，不是这台机器的读数
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=15787): windowid=1520 pid=15787 layer=0 title=MacMaster bounds=["X": 285, "Height": 900, "Y": 68, "Width": 1400]

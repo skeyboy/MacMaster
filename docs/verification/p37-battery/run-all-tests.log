@@ -1,0 +1,33 @@
+# run-all-tests.sh  2026-10-14 10:42:18 +0800（stdout 落盘时刻；最后一包 MMMonitor 的原始日志 10:42:11）
+# repo: 60f4711-dirty
+# digest: tree=60f4711+74012c66 app=60f4711+74012c66
+# ↑ 这一串是归档时现算的，但顺序对：先 mm_provenance_check（返回 0），再 mm_provenance_line。
+#   跑测之后只动过 docs/，编译输入一字未改，所以重算仍等于本族八张照片日志里那行 digest。
+MMCore         XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=200  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=85   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=85   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no 
+
+合计：792 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log（按 §1 那格从 P21 起的规矩：结论行入库，原始输出留 /tmp）
+
+# 与上一份归档（docs/verification/p35b-volumes/run-all-tests.log）的比对：
+#   按 §1 那一格的取数命令各抽那九行、两侧都先剥行尾空格再 diff —— 只有第 7 行不同（MMMonitor 57 → 85）。
+#   这一句是 diff 出来的，不是推出来的。两份的行尾空格本轮现读都是 9 行（`grep -c ' $'`），
+#   所以这一对不需要剥也能比，剥是照着上一轮立的写法走的。
+#   **写这段注释的时候撞见一种新污染**：注释里只要照抄那条取数命令的字面串，下一轮拿同一条命令读这份文件
+#   就会多抽出两行（九格变十一格，第 10、11 行正是这两句说明）。所以这里故意不复述那个字面串——
+#   **归档里的说明行不能含取数行的键**；这不是"命令跑错"，是文档把网撒进了自己的分母，
+#   与 §11 那条"取数值的命令要单独调用"是相邻的第二种坑。
+# 分解（现读，按文件逐个 grep -c "func test"）：
+#   BatteryTests.swift 全新 28 条；MMMonitor 七份测试文件之和 28+11+8+12+4+3+19 = 85，与那一格逐位相等。
+#   另两支被改过的测试文件按 `git diff --numstat` 现读是 MetricDiffTests +8/−3、SampledAtSentinelTests +1/−1
+#   （**口径警告**：`git diff --stat` 中间那一列的 11 与 2 是"增删之和"，不是加号数——这一句归档时先抄成了
+#    "+11/−3、+2/−2"，本轮 `--numstat` 重读发现并改回；净增 8−3=+5、1−1=0，与下面的 304 对得上。）
+#   动的是"给既有夹具补一个 battery 入参"和两条写在旧方法里的断言，**方法数没动**——
+#   所以 +28 全部来自一个新文件，与 P25/P26/P29/P31/P32b/P33b/P34b 同形：改了哪一屏，判据只加在哪一包。
