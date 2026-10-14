@@ -301,7 +301,7 @@ MMUninstaller **186 → 200**，逐包求和 = 720 与合计那一格一致；
   **改数字不会动这些数**——最后一跑就是照着这份定稿文本跑的，两者同源。
   索引与词汇表两行从第二跑起一位没动（1119 / 8232），**因为这些记账不是源码**。
   **软层从 P32b 的 124 走到 126，而本轮指认不出是哪两条**：那一跑脚本按设计只印前 40 条
-  （`Scripts/p16-citation-audit.sh:292` 那句写死的 `head -40`——**P36 第五笔债把这个 40 换成了可调上限、默认仍是 40**，见 `release-readiness.md` §7.28），两份归档的可见段里 MMUninstaller 那三条逐字相同，
+  （`Scripts/p16-citation-audit.sh:301` 那句写死的 `head -40`——**P36 第五笔债把这个 40 换成了可调上限、默认仍是 40**，见 `release-readiness.md` §7.28），两份归档的可见段里 MMUninstaller 那三条逐字相同，
   所以增量落在打印范围之外。本轮做的是**逐条现读自己这一轮改过与新增的全部锚点**
   （`ResidualCollector` 28/37/49/121/168/222、`ResidualScanner` 300/413/503/576-577、
   `UninstallerModel` 227-229、`ResidualNameMatcher` 90——每条都读过落点那一行的原文，全部对得上），

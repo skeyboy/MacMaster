@@ -1,5 +1,9 @@
 #!/bin/zsh
 # P38c：量"把 css/log 补进 p16 的抽取白名单，门禁会报出什么"——只量，不改那把尺子。
+#   **这一问已经答完、答案已经落进尺子（P38d 补了白名单），本脚本因此是用尽的一支**：
+#   它给副本打的补丁锚点是 `+\.(swift|go|rs|`，白名单里有 css/log 之后那个锚命中 0 次，
+#   重跑会在断言上拒绝继续（不是坏了，是前提没了）。它量出的读数存在
+#   docs/verification/p38c-shadow-whitelist/shadow.log，那两份审计原文是这一改的依据。
 #   ./Scripts/p38c-citation-whitelist-shadow.sh [归档目录]
 #   归档默认 docs/verification/p38c-shadow-whitelist，产出一份 shadow.log（覆盖写，台账只涨一件——
 #   与 p16 那份 audit.log 同一口径；换目录不会让总数跳，写两遍只会多一件永远对不上的副本）。

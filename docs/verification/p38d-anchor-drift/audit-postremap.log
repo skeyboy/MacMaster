@@ -1,0 +1,19 @@
+# p29 anchor drift audit
+# date: 2026-10-14 14:30:24
+# repo: b86c517-dirty
+# base: HEAD
+# 被改源码文件（非测试）: 0 个；测试文件 0 个（文档极少引测试行号，不扫）
+# 扫到的引用条次（唯一「文档+文档行+源文件+源行号」）: 0
+# .swift 目标漂移（base 行 ≠ 工作区行）: 0
+# 其中不可自动重锚: 0
+# 按文档计数:
+# ---- 明细：可照抄的重锚（new 取自 base 行原文在工作区的唯一命中）----
+# ---- 明细：需人工 ----
+# 本轮被改的非 .swift 入库文件: 12 个
+# ---- 非 .swift 目标这一族 ----
+# 扫到的引用条次（唯一「候选路径+文档+文档行+行号」，含未命中被改文件的）: 113
+# 漂移（base 行 ≠ 工作区行）: 2
+# 其中不可自动重锚: 1
+#   doc=docs/analysis/fidelity-disk.md:949  move=Scripts/p16-citation-audit.sh:134 -> Scripts/p16-citation-audit.sh:138  reason=唯一命中原文| rest = substr(tok, length(p) + 2)
+#   doc=docs/analysis/uninstaller-deep-residual-scope.md:304  move=Scripts/p16-citation-audit.sh:301 -> Scripts/p16-citation-audit.sh:310  reason=唯一命中原文| # 结论行写在 report() 里，不写在调用它之后：入库那份 audit.log 就是 report 的产物，
+#   doc=docs/verification/p31-citations/audit-ledger.md:24  src=Scripts/p16-citation-audit.sh:329  reason=base 那行是空行  wt=  cat "$TMP/report.txt" > "$OUT/audit.log"

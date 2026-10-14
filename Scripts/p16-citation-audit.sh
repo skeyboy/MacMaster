@@ -127,7 +127,11 @@ while IFS= read -r md; do
       # 斜杠要写成 \/：正则字面量里的 / 会被当成结束符（/usr/bin/awk 直接报 nonterminated character class）。
       # 逗号续列也要吃掉：`FileWatcher.swift:2,84-94` 是两处判据，只匹配头一段等于放过 `,84-94`
       # ——文档里这种写法有六处，全是"同一句话的第二条证据"，最容易漂却没人查。
-      while (match(line, /[A-Za-z0-9_.\/+-]+\.(swift|go|rs|m|mm|h|hpp|c|cpp|ts|tsx|js|jsx|py|rb|sh|plist|entitlements|strings|xcconfig|pbxproj|toml|yaml|yml|md|txt|html|json):[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*/)) {
+      # css 与 log 是 P38d 补进来的（债 6）。这一改动动了"三个总数"的口径，所以动手前先由
+      # Scripts/p38c-citation-whitelist-shadow.sh 在同一棵树上成对量过：门外那 33 行坐标进门后
+      # 不可达 0、越界 0、整段空白 0，唯一变红的一条裸写日志坐标已在当轮补成全路径——
+      # 补之前这一改会让门当场 exit 1，而那不是有人写错了坐标，是尺子换了。
+      while (match(line, /[A-Za-z0-9_.\/+-]+\.(css|log|swift|go|rs|m|mm|h|hpp|c|cpp|ts|tsx|js|jsx|py|rb|sh|plist|entitlements|strings|xcconfig|pbxproj|toml|yaml|yml|md|txt|html|json):[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*/)) {
         tok = substr(line, RSTART, RLENGTH)
         line = substr(line, RSTART + RLENGTH)
         p = tok; sub(/:.*/, "", p)
@@ -208,7 +212,12 @@ while IFS=$'\t' read -r cls hit hs2 cs cr doc dline p rng n; do
   # 又把 `blank`/`scope` 这类普通词挡在外面——这一条是符号面能成立的前提。
   # 不当门的另一条：`onDisappear`、`IOBlockStorageDriver` 这类**苹果 API 与内核驱动名**天然不在
   # 我们的词汇表里，会落进"死符号"那一层，所以那一层的正确用法是"逐条看一眼"，不是"照单改"。
-  if [[ $cls == self ]]; then
+  # css / log 这两族不进符号面（P38d，与上面白名单同批）：这一层问的是"点名的成员在不在那几行上"，
+  # 而一行 CSS 声明与一行测试日志按构造永远不会带着 Swift 标识符，所以它对非源码文件是系统性假阳性。
+  # 影子跑实测：白名单一补，位置存疑 88 → 91，那 3 条全是"文档在符号名旁边引了一行 css 或一行日志"
+  # （`tokens.css:66-67`、`tokens.css:32`、`run-all-tests.log:11` 三条，逐条打开都是这种形状）。
+  # 命中面/行号面/空白面照旧跑——那三关 css/log 全过（不可达 0、越界 0、空白 0），该管的还是管。
+  if [[ $cls == self && $hit != *.css && $hit != *.log ]]; then
     symtext=$(sed -n "${dline}p" "$doc" | /usr/bin/awk '{
         while (match($0, /`[^`]+`/)) {
           t = substr($0, RSTART + 1, RLENGTH - 2); $0 = substr($0, RSTART + RLENGTH)
