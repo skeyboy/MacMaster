@@ -357,7 +357,7 @@
 同源核对：7 份日志的 `# digest:` 都是 `tree=69eddb6+8ba05eda app=69eddb6+8ba05eda`（照片与工作树、与产物 plist 三者当场同源）；
 两份形状量尺（`scan-shape.log`、`scale-shape.log`）同一把哈希。
 `md5 -q *.png | sort | uniq -c` → **只有一对重复**（01↔07，判据如上），其余五张两两不同。
-九包：`run-all-tests.log:11`「合计：737 个测试，0 个失败，1 个跳过」。
+九包：`docs/verification/p34b-prefs/run-all-tests.log:11`「合计：737 个测试，0 个失败，1 个跳过」（P38c 前此处只写了文件名、没带目录，而门禁口径下这一族有 16 份同后缀日志，裸写不自证是哪一篇）。
 
 ### 7.3 实拍抓出来的一个缺陷（只有真机截图能抓到）
 

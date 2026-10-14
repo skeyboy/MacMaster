@@ -1,0 +1,60 @@
+
+# ==== 同树成对影子跑：白名单加 css/log 前后的门禁读数 ====
+# date: 2026-10-14 14:08:06
+# repo: a6dbb1b-dirty branch=main
+# gate: Scripts/p16-citation-audit.sh（原样副本 + 只补 css/log 的副本，同一棵树各跑一遍）
+# ---- base（跟踪脚本原样副本）build/p38c-shadow/base.rc=0 ----
+# docs scanned: 45 个真抽了 / 45 个入库 .md（两个数不等就是有文件没被读到）
+# index: 本仓库 1279 个跟踪文件 / 参考仓库 5471 个 / SDK 头文件 6274 个
+# vocab: 本仓库源码 token 8965 个（已排除本脚本自身，见第 1 步②）
+# 引用条次（同一处再引一次也计）: 1109
+# 唯一「路径+行段」: 894
+#   命本仓库: 787
+#   命参考仓库: 106
+#   命苹果 SDK 头文件: 1
+#   两头都不到: 0
+#   定位不到文件因而没试行号判据的（参考仓库没克隆时走这一支）: 0
+# 本仓库里同一条路径命中两个文件（引用不自证是哪一篇）: 0
+# 行号越界: 0
+# 整段空白的引用: 0
+# 符号面·死符号（点名的成员名在本仓库源码词汇表里根本找不到；**只提示，不当门**——苹果 API 会混在这一层）: 0
+# 符号面·位置存疑（成员名还在，只是不在引用那几行上；噪声大，**只提示**）: 88
+# 行号判据实际跑过: 894 条（另 0 条定位不到文件，没跑）
+# 硬失败（本仓库引用漂了 + 都不到）: 0
+# ---- ext（白名单 +css,+log）build/p38c-shadow/ext.rc=0 ----
+# docs scanned: 45 个真抽了 / 45 个入库 .md（两个数不等就是有文件没被读到）
+# index: 本仓库 1279 个跟踪文件 / 参考仓库 5471 个 / SDK 头文件 6274 个
+# vocab: 本仓库源码 token 8965 个（已排除本脚本自身，见第 1 步②）
+# 引用条次（同一处再引一次也计）: 1142
+# 唯一「路径+行段」: 912
+#   命本仓库: 805
+#   命参考仓库: 106
+#   命苹果 SDK 头文件: 1
+#   两头都不到: 0
+#   定位不到文件因而没试行号判据的（参考仓库没克隆时走这一支）: 0
+# 本仓库里同一条路径命中两个文件（引用不自证是哪一篇）: 0
+# 行号越界: 0
+# 整段空白的引用: 0
+# 符号面·死符号（点名的成员名在本仓库源码词汇表里根本找不到；**只提示，不当门**——苹果 API 会混在这一层）: 0
+# 符号面·位置存疑（成员名还在，只是不在引用那几行上；噪声大，**只提示**）: 91
+# 行号判据实际跑过: 912 条（另 0 条定位不到文件，没跑）
+# 硬失败（本仓库引用漂了 + 都不到）: 0
+# ---- 差值（ext − base）----
+#   引用条次（同一处再引一次也计）: 1109 -> 1142  (Δ +33)
+#   唯一「路径+行段」: 894 -> 912  (Δ +18)
+#   命本仓库: 787 -> 805  (Δ +18)
+#   符号面·位置存疑（成员名还在，只是不在引用那几行上；噪声大，**只提示**）: 88 -> 91  (Δ +3)
+# ---- ext 里那些门外的坐标，逐条落到哪一档（只有失败/提示条目才出现在明细里）----
+#   位置 docs/design-system/tokens.css:66-67 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 docs/verification/p34b-prefs/run-all-tests.log:11 ← 引于 docs/analysis/feature-roadmap.md:1045；点名：OptimizerTab /PropertyListSerialization
+#   位置 docs/design-system/tokens.css:32 ← 引于 docs/analysis/fidelity-guardian.md:74；点名：navigationSplitViewColumnWidth
+# 结论：ext 硬失败 0——这批门外坐标进门不会让门变红
+# ---- 门外这批坐标各自的落点（命中面清点，不是判据）----
+#   tokens.css  ← 引 19 次｜落点 docs/design-system/tokens.css（共 337 行，唯一）
+#   docs/verification/p34b-prefs/run-all-tests.log  ← 引 5 次｜落点 docs/verification/p34b-prefs/run-all-tests.log（共 12 行，唯一）
+#   scan-shape.log  ← 引 3 次｜落点 docs/verification/p34b-prefs/scan-shape.log（共 72 行，唯一）
+#   screen.css  ← 引 3 次｜落点 docs/design-system/screen.css（共 199 行，唯一）
+#   docs/design-system/tokens.css  ← 引 1 次｜落点 docs/design-system/tokens.css（共 337 行，唯一）
+#   docs/verification/p33a-contains-scope/contains-scope.log  ← 引 1 次｜落点 docs/verification/p33a-contains-scope/contains-scope.log（共 139 行，唯一）
+#   docs/verification/p33b-citations/run-all-tests.log  ← 引 1 次｜落点 docs/verification/p33b-citations/run-all-tests.log（共 39 行，唯一）
+# 两份完整报告与全部逐条明细留在 build/p38c-shadow/{base,ext}.stdout（gitignore 目录，重跑必得）
