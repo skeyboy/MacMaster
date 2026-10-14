@@ -170,7 +170,7 @@
 | 侧栏尾数「系统清理 2.4 GB」「应用卸载 46」 | 无来源；实机 系统清理尾数随扫描变化（图上为 653.6 MB） | ❌ | 纯占位，见 monitor S2 | 低 | 设计稿该改 S8 |
 | 页面底 / 卡片底色 | `tokens.css` 用 `--c-content-bg`（白）；实机页底 = `windowBackgroundColor`、卡 = `textBackgroundColor` | ❌ | 全站性 token 差，见 monitor S3/S4 | 低 | 设计稿该改 S9 |
 | 页内卡未复用 `MMCard` | `MMCleaner.swift:503-506` 内联 `contentBackground`+8pt+描边，**不调用 `MMCard`**（后者是 `cardSurface`） | ❌ | 与 monitor I4 同类：同一 App 出现第三种"卡底 token" | **中** | 实现该改 I4（→ 协调者） |
-| 侧栏宽 216 / 标题栏 38 | `MMMetric.sidebar` 216、`tokens --titlebar-h` 38 | ⚠️ | 实机 monitor 实测 220 / 52（monitor I10a/I10b），cleaner 继承同一骨架 | 低 | 记录（见 monitor） |
+| 侧栏宽 216 / 标题栏 52（**P38a 现读：令牌已从 38 改为 52**） | `MMMetric.sidebar` 216、`tokens --titlebar-h` 52 | ⚠️ / ✅ | 实机 monitor 实测 220 / 52（monitor I10a/I10b），cleaner 继承同一骨架；**标题栏那一半本轮关闭**（令牌与实机同源，实现侧无此常量），侧栏那一半仍是一条 `MMMetric.sidebar` 与稿面 220 的数差，没动 | 低 | 记录（见 monitor） |
 
 ## 2. 实现该改（10 条，按严重度排序）
 
