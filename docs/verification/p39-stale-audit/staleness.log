@@ -1,0 +1,33 @@
+# p39 mockup staleness audit (pixel baseline vs its own .html)
+# date: 2026-10-14 17:31:13
+# repo: fd20da5-dirty branch=main
+# render: docs/design-system/render.sh（headless Chrome，force-device-scale-factor=2）
+# canvas: 由入库 png 的像素尺寸 /2 反推；渲染在副本 build/p39-stale/ds 里跑，工作树不动
+# IN-SYNC	screens/mmcleaner/02-cleaner.html	canvas=1160x780	digest_old/new=6b0127b5/6b0127b5	bbox=-
+# STALE	screens/mmcleaner/02b-cleaner-installers.html	canvas=1160x1104	digest_old/new=f4f873b3/d7f9b669	bbox=(60, 58, 2260, 1458)
+# IN-SYNC	screens/mmcleaner/02c-cleaner-dev.html	canvas=1160x2960	digest_old/new=cb56fb02/cb56fb02	bbox=-
+# IN-SYNC	screens/mmdisk/04-disk.html	canvas=1160x780	digest_old/new=5308245c/5308245c	bbox=-
+# IN-SYNC	screens/mmdisk/04b-disk-confirm.html	canvas=1200x2130	digest_old/new=0385976c/0385976c	bbox=-
+# IN-SYNC	screens/mmdisk/04e-disk-rescan.html	canvas=1200x1640	digest_old/new=171d80c4/171d80c4	bbox=-
+# IN-SYNC	screens/mmguardian/06-guardian.html	canvas=1100x2688	digest_old/new=306479c2/306479c2	bbox=-
+# IN-SYNC	screens/mmmonitor/07-monitor.html	canvas=1160x6518	digest_old/new=83e62302/83e62302	bbox=-
+# IN-SYNC	screens/mmoptimizer/08-optimizer.html	canvas=1160x5701	digest_old/new=dce99734/dce99734	bbox=-
+# IN-SYNC	screens/mmui/05-states.html	canvas=1120x980	digest_old/new=a183bd30/a183bd30	bbox=-
+# IN-SYNC	screens/mmui/components.html	canvas=1240x2100	digest_old/new=324d2e57/324d2e57	bbox=-
+# STALE	screens/mmuninstaller/03-uninstaller.html	canvas=1160x780	digest_old/new=bb444e87/1efe164c	bbox=(60, 80, 2260, 1480)
+# STALE	screens/mmuninstaller/03b-uninstaller-orphans.html	canvas=1160x1320	digest_old/new=2397e6b3/c86e59b2	bbox=(60, 58, 2260, 1458)
+# STALE	screens/mmuninstaller/03c-uninstaller-trash.html	canvas=1160x1900	digest_old/new=6d7a60d1/7ebacb69	bbox=(60, 230, 2260, 1630)
+# IN-SYNC	screens/mmuninstaller/03d-uninstaller-provenance.html	canvas=1480x1900	digest_old/new=c2b19793/c2b19793	bbox=-
+# IN-SYNC	screens/mmuninstaller/03e-uninstaller-watch.html	canvas=1160x1900	digest_old/new=c5eb1e14/c5eb1e14	bbox=-
+# IN-SYNC	screens/mmuninstaller/03f-uninstaller-running.html	canvas=1160x2069	digest_old/new=d406696d/d406696d	bbox=-
+# IN-SYNC	screens/mmuninstaller/03g-uninstaller-steam-launcher.html	canvas=1160x2300	digest_old/new=ee482277/ee482277	bbox=-
+# IN-SYNC	screens/shell/01-dashboard.html	canvas=1160x780	digest_old/new=efb7efd1/efb7efd1	bbox=-
+# IN-SYNC	screens/shell/09-settings.html	canvas=1100x6800	digest_old/new=e8e9e608/e8e9e608	bbox=-
+# ---- 汇总 ----
+# 可比对的稿图对（.html 有同名 .png，且 HEAD 里有那一份 png）: 20
+# 其中 IN-SYNC（重渲染后与入库那份逐字节相同）: 16
+# 其中 STALE（像素出自旧稿，本轮或下一轮必须重渲染）: 4
+#   STALE: screens/mmcleaner/02b-cleaner-installers.html
+#   STALE: screens/mmuninstaller/03-uninstaller.html
+#   STALE: screens/mmuninstaller/03b-uninstaller-orphans.html
+#   STALE: screens/mmuninstaller/03c-uninstaller-trash.html

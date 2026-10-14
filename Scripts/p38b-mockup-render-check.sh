@@ -25,8 +25,9 @@ D=$(python3 -c "import re;print(re.search(r'--titlebar-h:\s*(\d+)px', open('$TOK
   print -r -- "# tokens.css --titlebar-h: ${D}px"
 } > "$LOG"
 for f in screens/shell/01-dashboard screens/mmcleaner/02-cleaner screens/mmdisk/04-disk screens/mmui/components; do
+  # components 的画布是 2240 不是 2100：2100 那一档会把白卡底边切掉（P39 实测），这里写死小一点就会每跑一次毁一次基线。
   case "$f" in
-    screens/mmui/components) zsh docs/design-system/render.sh "$f.html" 1240 2100 >/dev/null ;;
+    screens/mmui/components) zsh docs/design-system/render.sh "$f.html" 1240 2240 >/dev/null ;;
     *) zsh docs/design-system/render.sh "$f.html" >/dev/null ;;
   esac
   png="docs/design-system/$f.png"

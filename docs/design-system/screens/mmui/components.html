@@ -16,7 +16,7 @@
   .type-line { display: flex; align-items: baseline; gap: 14px; }
   .type-line .meta { font-family: var(--font-mono); font-size: 10px; color: var(--c-label-tertiary); width: 96px; flex: 0 0 96px; }
   .panel { border: 1px solid var(--c-separator); border-radius: 8px; padding: 14px; background: var(--c-card-bg-alt); }
-  .mini-sidebar { width: 216px; border: 1px solid var(--c-separator); border-radius: 8px; overflow: hidden; background: var(--c-sidebar-bg); padding: 6px 0; }
+  .mini-sidebar { width: var(--sidebar-w); border: 1px solid var(--c-separator); border-radius: 8px; overflow: hidden; background: var(--c-sidebar-bg); padding: 6px 0; }
   table.tbl { background: var(--c-content-bg); border: 1px solid var(--c-separator); border-radius: 8px; overflow: hidden; }
   .cap { font-size: 10px; color: var(--c-label-tertiary); margin-top: 6px; }
   .tnote { font-size: 11px; color: var(--c-label-secondary); }
@@ -128,7 +128,7 @@
   </table>
   <div class="cap">行高 44（双行）/ 28（单行密集）；数值列右对齐 + 等宽；hover 4% 叠色；选中行用 accent-soft 而不是整行反白。</div>
 
-  <h2>侧边栏（216pt）</h2>
+  <h2>侧边栏（宽度取令牌 --sidebar-w，现 220pt）</h2>
   <div class="row" style="align-items:flex-start">
     <div class="mini-sidebar">
       <div class="nav-item"><span class="ic">◎</span>概览</div>
@@ -138,8 +138,11 @@
       <div class="nav-item"><span class="ic">◫</span>系统监控</div>
       <div class="nav-item"><span class="ic">◍</span>隐私守护<span class="tail">●</span></div>
       <div class="nav-item"><span class="ic">◈</span>系统优化</div>
-      <div style="height:1px;background:var(--c-separator);margin:8px 12px"></div>
-      <div class="nav-item"><span class="ic">⚙</span>设置</div>
+      <div class="sidebar-footer">
+        <div class="vol-line"><span style="color:var(--c-label-tertiary)">▣</span><span class="nm t-cap">Macintosh HD</span><span class="pct">6% 可用</span></div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><span style="color:var(--c-label-secondary)">⚙</span>设置</button>
+      </div>
     </div>
     <div class="col" style="flex:1">
       <div class="cap">行高 28、圆角 6、图标 18pt 槽宽；右侧 tail 只放"该模块能立刻行动的数字"（可释放空间 / 应用数 / 正在录音指示），不放装饰。</div>

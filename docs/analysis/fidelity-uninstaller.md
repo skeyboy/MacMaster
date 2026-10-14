@@ -44,7 +44,7 @@
 | 分段控件初始档由 `MM_UNINSTALL_PANE` 决定 | `:62` `Pane(hookValue:)` | ✅ | 钩子缺省回落 `.apps`，符合稿面默认 | — | — |
 | 「重新载入」按钮 | `:97-102` | ✅ | 实现在 `isScanningApps` 时禁用；稿面未画禁用态 | 低 | 记录 |
 | 工具栏高度 46pt | `MMMetric.toolbar = 46` | ✅ | 与稿/screen.css `.toolbar` 一致 | — | — |
-| 侧栏 active = 应用卸载、尾部计数「46」 | 壳工程导航（`MMDestination`），本模块无侧栏绘制权 | ✅（壳渲染） | 侧栏由 `Sources/MacMaster` 渲染，不属本模块交付 | — | — |
+| 侧栏 active = 应用卸载、尾部计数「46」 | 壳工程导航（`MMDestination`），本模块无侧栏绘制权 | ✅（壳渲染） | 侧栏由 `Sources/MacMaster` 渲染，不属本模块交付〔**P39 现读把这一格的两处不实改判**：① 本模块四份稿（03/03b/03c/03e）里**从来没有 "46" 这个尾部计数**，"46" 只出现在元素清单 `components.html:136` 的组件示例上；② 03c/03e 那两格确实画了「应用卸载」尾数，但值是 `45`，而**实机永远不给非清理行挂尾数**（`MainWindow.swift:103-110` 只对 `module.id == cleaner` 且 `.measured` 才画），所以这一格原判 ✅ 是假的——它是 P38f 翻出来的一条新账（`release-readiness.md` §7.35 第 3 项），**P39 已把那两个 `45` 删掉并重渲染两页**，「系统清理 1.3 GB」按合同留着，判据在 §7.36〕 | — | — |
 
 ### 1.2 应用列表（03 · apps 档）
 

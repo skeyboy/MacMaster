@@ -2,7 +2,7 @@
 # 渲染设计稿 HTML → PNG（2x）。
 #   ./render.sh screens/shell/01-dashboard.html            # 1160x780 单窗口屏
 #   ./render.sh screens/mmui/05-states.html 1120 900      # 组件态合集
-#   ./render.sh components.html 1240 2100            # 设计系统基线
+#   ./render.sh components.html 1240 2240            # 设计系统基线（2100 会切掉白卡底边）
 set -e
 cd "$(dirname "$0")"
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

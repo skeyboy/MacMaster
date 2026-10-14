@@ -199,7 +199,7 @@ KEEP_FIXTURE=1 ONLY=08 ./Scripts/p68-dev-capture.sh /tmp/mm-app-p26/MacMaster.ap
 ### 与设计稿的新差异（回写 `fidelity-disk.md`）
 
 `docs/design-system/screens/mmdisk/04-disk.html:60` 与
-`docs/design-system/screens/mmdisk/04b-disk-confirm.html:87` 的副标题样例都含"扫描用时"。
+`docs/design-system/screens/mmdisk/04b-disk-confirm.html:96` 的副标题样例都含"扫描用时"。
 本轮实现把它移出页头，这两处样例与画面不再一致——按"记录"级差异入账，
 理由就是本节第一档那两张照片，不是"设计稿没抄"。
 

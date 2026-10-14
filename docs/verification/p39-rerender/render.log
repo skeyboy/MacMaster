@@ -1,0 +1,13 @@
+# p39 sidebar-footer render + pixel checks
+# date: 2026-10-14 17:44:15
+# repo: fd20da5-dirty branch=main
+# pages: 9（6 张本轮改稿 + 3 张纯补渲染，见 p39-mockup-staleness-audit.sh 那四条 STALE）
+# screens/mmui/components.html	canvas=2480x4480	digest_old/new=324d2e57/17c37a48	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(2968, 2975)]	sheet_clipped=False
+# screens/mmdisk/04b-disk-confirm.html	canvas=2400x4260	digest_old/new=0385976c/c0c06c2b	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1547, 1554)]	sheet_clipped=False
+# screens/mmdisk/04e-disk-rescan.html	canvas=2400x3280	digest_old/new=171d80c4/b06c9361	red_bar_clusters=2 vol-bar_in_html=2 MATCH	cluster_rows=[(1596, 1603), (3082, 3089)]	sheet_clipped=False
+# screens/mmuninstaller/03c-uninstaller-trash.html	canvas=2320x3800	digest_old/new=6d7a60d1/81cca18f	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1538, 1545)]	sheet_clipped=False
+# screens/mmuninstaller/03e-uninstaller-watch.html	canvas=2320x3800	digest_old/new=c5eb1e14/3e80db7b	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1570, 1577)]	sheet_clipped=False
+# screens/mmmonitor/07-monitor.html	canvas=2320x13036	digest_old/new=83e62302/8d496f20	red_bar_clusters=3 vol-bar_in_html=3 MATCH	cluster_rows=[(1794, 1801), (3551, 3558), (5267, 5274)]	sheet_clipped=False
+# screens/mmcleaner/02b-cleaner-installers.html	canvas=2320x2208	digest_old/new=f4f873b3/d7f9b669	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1366, 1373)]	sheet_clipped=False
+# screens/mmuninstaller/03-uninstaller.html	canvas=2320x1560	digest_old/new=bb444e87/1efe164c	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1388, 1395)]	sheet_clipped=False
+# screens/mmuninstaller/03b-uninstaller-orphans.html	canvas=2320x2640	digest_old/new=2397e6b3/c86e59b2	red_bar_clusters=1 vol-bar_in_html=1 MATCH	cluster_rows=[(1366, 1373)]	sheet_clipped=False
