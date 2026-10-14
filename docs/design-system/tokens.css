@@ -282,7 +282,7 @@
 .nav-item .tail { margin-left: auto; font-size: var(--fs-caption); color: var(--c-label-tertiary); }
 
 /* 侧栏 footer（S1）：容量行 + 容量条（低空间转红）+ 带边框设置按钮。
-   实机 = MainWindow.volumeFooter；旧稿画成"分隔线 + 设置 nav-item"是错的，八张稿一起换。 */
+   实机 = MainWindow.volumeFooter；旧稿画成"分隔线 + 设置 nav-item"是错的——换稿已完成（`0c61fbf`，现读 20 份稿里 16 份在用），唯一还留那格旧画法的是 screens/mmui/components.html。**这句不是待办**，别拿它当"八张稿待换"的规格。 */
 .sidebar-footer {
     display: flex; flex-direction: column; gap: 6px;
     padding: var(--sp-3) var(--sp-4);

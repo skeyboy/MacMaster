@@ -1083,7 +1083,7 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
 九份 fidelity 的 S 系列（全站 footer、稿内占位数字、content 底色、under-page 变体）
 + ~~`09-settings.html` 落后实现的那六条（含两句实现已经改掉的假脚注——§8 记过它的风险不是"稿不好看"，
 而是**下一轮还会拿旧稿当规格**，照稿施工会把假话改回代码里）。**09 那六条 P38e 已改完（2026-10-14，
-见 `release-readiness.md` §7.34）：五块 artboard 变九块、PNG 按全高重渲染，09 那一批像素基线已作废。~~ **这一格现在只剩 S 系列**，按 #53 的约定排到集成阶段。**它不与 v1.3 合并**：一次作废两批基线，出差异时分不清是谁改的。
+见 `release-readiness.md` §7.34）：五块 artboard 变九块、PNG 按全高重渲染，09 那一批像素基线已作废。~~ **这一格现在只剩 S 系列**，按 #53 的约定排到集成阶段。**它不与 v1.3 合并**：一次作废两批基线，出差异时分不清是谁改的。〔**P38f 现读：这一格里前两项已经落地，S 系列因此缩成四条侧栏面 + 两项令牌决定**——footer 组件在 `docs/design-system/tokens.css:286`（`.sidebar-footer` + `.vol-line`/`.pct`/`.vol-bar.low`/`.foot-btn`），现读 20 份稿里 16 份在用、21 处实例，动作是 `0c61fbf`（2026-09-30「十张稿统一侧栏footer组件+清洗占位数字」），稿内占位尾数是同一笔删的；今天还开的是 `components.html:141-142` 那格旧画法、磁盘 `04b`/`04e` 三块整段没画 footer、卸载 `03c`/`03e` 两格给"应用卸载"挂了实机永远不画的尾数、`07-monitor.html` 那段自己已过期的 cap，加上 content 底色缺 `.content--window` 变体与 under-page 接线两项待裁定；判据、代价与重渲染排口见 `release-readiness.md` §7.35（本轮那 43 行判定与副本面清单在 `coordination-audit.md` §3 末段）。〕
 
 ### 6. 不排期（写在这里是为了下一轮别把它当新候选再提一次）
 
