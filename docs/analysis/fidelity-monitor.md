@@ -291,7 +291,7 @@
    **不改是为了不制造第七种侧栏**；正确做法是在 tokens/screen 层补一个侧栏 footer 组件，七张稿一起换。
 2. **【低】S2 · 侧栏尾数占位**：「系统清理 2.4 GB」「应用卸载 46」在本页无数据来源，
    应改成与实机一致的 `1.26 GB` 或留空，避免"稿子里的数字看起来像实测"。
-3. **【低】S3 · `.content` 底色与实机不符**：`tokens.css:297` 用 `--c-content-bg`（白），
+3. **【低】S3 · `.content` 底色与实机不符**：`tokens.css:326` 用 `--c-content-bg`（白；〔**P38b 后半现读更正**：这一处原本写的是 `tokens.css:297`，那一行是 `.sidebar-footer .vol-bar > i` 的进度条填充、用的 `--c-accent`，与 `.content` 无关——**改坐标不改判定**，判据本身等 §5 第 2 条那条没动。这一族错位的成因见 `release-readiness.md` §7.32 末段：`p16-citation-audit.sh` 第 130 行那个扩展名白名单里**没有 `css`、也没有 `log`**，现读全仓这类坐标 **32 处在门外**（`tokens.css` 19 + `screen.css` 3 + 各类 `.log` 10），本轮逐条核过 css 那 12 个目标：无一越界、只此一条指错〕），
    实机页面底是 `windowBackgroundColor`（暗档 43,43,44），卡才是 underPage(40,40,40)。
    → 需要 `.content--window` 变体；否则所有"卡浮在页面上"的页面对比度都被画重了。
 4. **【低】S4 · 缺 under-page 卡片 token**：`tokens.css` `.card` = `--c-card-bg`，本页（含 `MMStatItem`）
@@ -301,7 +301,7 @@
    **S5b**：另缺「菜单栏监控 = 关」这一档（关后页面冻在最后一帧，switch 变灰），本稿未画。
 6. **【低】S6 · 稿内 A 稿折叠线比实机晚 14pt**：那批稿图是 09-29 渲染的，画时令牌还是 38pt、实机 52pt，
    所以稿内"磁盘 IO 卡完整 + 内存卡露头一行"在实机上会少露约 14pt。稿注已写明，
-   ~~修 I10b 后自动对齐~~——**P38a 现读：I10b 已由 c74f045 落（令牌现为 52px），这一条现在只差重渲染**（同一份 html、不改稿面）。
+   ~~修 I10b 后自动对齐~~——**P38a 现读：I10b 已由 c74f045 落（令牌现为 52px），这一条现在只差重渲染**（同一份 html、不改稿面）。〔**P38b 后半现读：它不是"只差重渲染"，是早就算过 4 天——这条从来不在那 4 张清单里**：`07-monitor.png` mtime 现读 **2026-10-04**，晚于 c74f045（现读提交日期 **2026-09-30**）4 天；那张稿的三处窗口框都写的是共享 `.titlebar`（`07-monitor.html` 里三处 `<div class="titlebar">` → `tokens.css` 的 `height: var(--titlebar-h)`），所以 10-04 那一跑画的已经是 52pt；`feature-roadmap.md` 里那条"E 段补了迟滞那条并重渲染（2320×13036）"的登记与现读尺寸逐字相符。**S6 就此结掉，结掉的方式是"在清单外"，不是"本轮做了"**——本轮真正做的是 `shell/01-dashboard`、`mmcleaner/02-cleaner`、`mmdisk/04-disk` 三张（实测内容白区起点 OLD y=158 → NEW y=186 = 28 设备像素 = 38→52 之差），量法与两条坑见 `coordination-audit.md` §4③。〕
 7. **【低】S7 · `thermometer.medium` 的精灵形状与 SF Symbol 有出入（P6.4 新卡带来）**：E 稿用
    `icons.js` 里既有的 `#i-temp`（注释就标着对应 `thermometer.medium`），16×16 自绘的球泡比系统符号粗。
    这是**全站图标精灵层的共性**（01–09 每张稿都有几条这种出入），不在本页单修，归协调层。

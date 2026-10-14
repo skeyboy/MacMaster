@@ -1,0 +1,8 @@
+# p38b mockup render check
+# date: 2026-10-14 13:23:36
+# repo: 2e1aa43-dirty branch=main
+# tokens.css --titlebar-h: 52px
+# 01-dashboard.png: 2x=2320x1560 sheet_top=78 content_top=186 titlebar_px_at_2x=108 expect=104 digest=efb7efd1
+# 02-cleaner.png: 2x=2320x1560 sheet_top=78 content_top=186 titlebar_px_at_2x=108 expect=104 digest=6b0127b5
+# 04-disk.png: 2x=2320x1560 sheet_top=78 content_top=186 titlebar_px_at_2x=108 expect=104 digest=5308245c
+# components.png: 2x=2480x4200 sheet_top=None content_top=58 titlebar_px_at_2x=None expect=104 NOTE=no-titlebar-layer-page digest=324d2e57
