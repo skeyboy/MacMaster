@@ -1,0 +1,5 @@
+# p64-capture.sh 01-monitor-sensors-real  2026-10-15 22:59:01 +0800  app=build/MacMaster.app
+# repo: 8b47b58-dirty   # app-repo: 8b47b58-dirty
+# digest: tree=8b47b58+e3b0c442 app=8b47b58+e3b0c442
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=stats,sensors
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）

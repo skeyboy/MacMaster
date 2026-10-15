@@ -1,0 +1,6 @@
+# p64-capture.sh 03-monitor-sensors-unavailable  2026-10-15 22:59:20 +0800  app=build/MacMaster.app
+# repo: 8b47b58-dirty   # app-repo: 8b47b58-dirty
+# digest: tree=8b47b58+e3b0c442 app=8b47b58+e3b0c442
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=sensors MM_MONITOR_FIXTURE=sensors-unavailable:IOServiceOpen(AppleSMC) 失败：kIOReturnDenied
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_MONITOR_FIXTURE=sensorsUnavailable 已生效：这是合成快照，不是这台机器的读数

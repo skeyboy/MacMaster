@@ -1,0 +1,6 @@
+# p64-capture.sh 06-monitor-sensors-hot  2026-10-15 23:01:09 +0800  app=build/MacMaster.app
+# repo: 8b47b58-dirty   # app-repo: 8b47b58-dirty
+# digest: tree=8b47b58+e3b0c442 app=8b47b58+e3b0c442
+# env: MM_APPEARANCE=dark MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=sensors MM_MONITOR_FIXTURE=sensorsHot
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_MONITOR_FIXTURE=sensorsHot 已生效：这是合成快照，不是这台机器的读数

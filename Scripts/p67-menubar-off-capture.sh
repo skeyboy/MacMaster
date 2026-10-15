@@ -23,6 +23,18 @@ APP=${1:?需要 .app 路径}
 OUT=${2:?需要输出目录}
 APPEARANCE=${3:-light}
 
+# P45 补的归因头＋内容指纹门禁（配方同 p69），理由见 p64-capture.sh 同段注释。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
+appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先 ./Scripts/make-app.sh -o /tmp/mm-app-p45 -s /tmp/mm-scratch-p45 重新构建再取证。"
+  exit 4
+fi
+
 mkdir -p "$OUT"
 
 # shot <文件名> <等待秒> <环境变量...>
@@ -30,8 +42,13 @@ shot() {
   local name=$1 settle=$2; shift 2
   [[ -z ${ONLY:-} || $name == ${ONLY}* ]] || return 0
   local log="$OUT/$name.log"
+  rm -f "$OUT/$name.png"
+  print -r -- "# p67-menubar-off-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP" >"$log"
+  print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
+  print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=monitor $*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE=monitor "$@" \
-      "$APP/Contents/MacOS/MacMaster" >"$log" 2>&1 &
+      "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
   local pid=$!
   sleep "$settle"
   local wid

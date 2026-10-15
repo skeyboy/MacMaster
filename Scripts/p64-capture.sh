@@ -19,6 +19,20 @@ OUT=${2:?需要输出目录}
 APPEARANCE=${3:-light}
 SIZE=${4:-}
 
+# P45 补的归因头＋内容指纹门禁（配方同 p69）：这一族出片早于 P23b，
+# 旧那 26 张（`p64`／`p64-dark`／`p65`／`p65-dark`／`p67-menubar-off`）的 `.log` 里没有
+# `# digest:`，"照片与二进制同源"对它们说不成立。产物与当前树不等就一张都不出。
+repoTag=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
+if [[ -n $(git status --porcelain -uno 2>/dev/null) ]]; then repoTag="$repoTag-dirty"; fi
+appRepoTag=$(plutil -extract MMGitCommit raw "$APP/Contents/Info.plist" 2>/dev/null || echo 无)
+source "$(dirname "$0")/mm-provenance.sh"
+if ! mm_provenance_check "$PWD" "$APP"; then
+  print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
+  mm_provenance_line >&2
+  print -u2 -- "  先 ./Scripts/make-app.sh -o /tmp/mm-app-p45 -s /tmp/mm-scratch-p45 重新构建再取证。"
+  exit 4
+fi
+
 mkdir -p "$OUT"
 
 # shot <文件名> <等待秒> <模块> <环境变量...>
@@ -26,8 +40,13 @@ shot() {
   local name=$1 settle=$2 module=$3; shift 3
   [[ -z ${ONLY:-} || $name == ${ONLY}* ]] || return 0
   local log="$OUT/$name.log"
+  rm -f "$OUT/$name.png"
+  print -r -- "# p64-capture.sh $name  $(date '+%Y-%m-%d %H:%M:%S %z')  app=$APP" >"$log"
+  print -r -- "# repo: $repoTag   # app-repo: $appRepoTag" >>"$log"
+  mm_provenance_line >>"$log"
+  print -r -- "# env: MM_APPEARANCE=$APPEARANCE MM_OPEN_MODULE=$module${SIZE:+ MM_WINDOW_SIZE=$SIZE} $*" >>"$log"
   env MM_APPEARANCE="$APPEARANCE" MM_OPEN_MODULE="$module" \
-      ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >"$log" 2>&1 &
+      ${SIZE:+MM_WINDOW_SIZE="$SIZE"} "$@" "$APP/Contents/MacOS/MacMaster" >>"$log" 2>&1 &
   local pid=$!
   sleep "$settle"
   local wid

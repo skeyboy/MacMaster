@@ -192,7 +192,7 @@
   但那条路径与截图无关、且只发三条读命令——钩子层没有任何一条能写 SMC。
   **P6.7 补上 `menubarOff` 的消费端**：这个档位自 #50 起一直被解析却没人读，
   所以它现在真的调 `menuBar.disable()`（`MacMasterApp` 启动即 `enable()`，"不 enable"这条路走不通），
-  由 `docs/verification/p67-menubar-off/01↔02` 两张只差开关的照片证明生效。见 §4 #4。
+  由 `docs/verification/p67-menubar-off/01↔02` 两张只差开关的照片证明生效（**P45 起同判据还有一套带 `# digest:` 的重拍族 `p67-menubar-off-b/01↔02`**；旧那两张出自 2026-10-04 的树，日志里一行归因都没有，所以引用时要连目录名一起引）。见 §4 #4。
 
 ## 3. 破坏性流程边界（重要）
 
@@ -256,7 +256,7 @@
    **扩散的是另外三件事，都已修**：
    - **解析了却没人消费**（`MM_MONITOR_FIXTURE=menubarOff`）：#50 起这个 case 一直在解析，
      没有一处读 `fixture.menubarOff`，于是 `fidelity-monitor.md` §5 那行"关闭态已覆盖"是空的。
-     现在它真把状态项摘掉，两档对照见 `docs/verification/p67-menubar-off/01↔02`
+     现在它真把状态项摘掉，两档对照见 `docs/verification/p67-menubar-off/01↔02`（P45 的带归因头重拍在同名档 `p67-menubar-off-b/01↔02`）
      （md5 `89d0fec5…` vs `2c125c01…`，除开关外全部数字逐位相同）。
    - **自报成功却不判前置条件**（卸载页孤儿夹具）：旧写法在 `scanOrphans` **静默 return**
      （`UninstallerModel.swift:574`）之后照样打一行"已自动勾选并打开确认面板"，取证脚本自己造了一条假凭据。
@@ -289,13 +289,13 @@
 | `Scripts/p62-capture.sh` | 磁盘标记跨重扫三档：① 打上标记 ② 同根重扫（标记还在）③ 换根重扫（挂不回去的丢弃并点名），一次跑完 | **P6.2a 新增**。三档共用同一份夹具与同一串标记钩子，差别只在 `MM_DISK_RESCAN` 给不给、给哪个根；写成脚本是因为 ② 与 ③ 的差别完全取决于第二次扫描的根，手工跑很容易把两档跑成同一档 |
 | `Scripts/p62b-capture.sh` | 还原度收口**十档 × 明暗两套**：概览首帧/满轴（等真实采样 5s、30s）+ 守护页真机态/夹具态（`MM_TCC_FIXTURE=partial MM_GUARDIAN_LOGIN_FIXTURE=rows`）/首帧（`MM_GUARDIAN_LOAD=hold`）/**图标环 `MM_GUARDIAN_FIXTURE=camera=inuse,mic=idle`**/系统活动卡 `rows`+`empty`/登录项"未对表"档/登录项读取失败档。**07–10 用 `MM_GUARDIAN_CARDS` 只渲染目标卡**（P6.2d），不再需要拉高窗口+压矮上方三卡 | **P6.2b 新增、P6.2c 扩到八档、P6.2d 扩到十档**。sparkline 那两张**没有**加历史注入钩子：12 格横轴只能等真实采样长满（每 2 秒一格），给截图编一段假历史是最容易的做法也是最坏的做法——照片上那些柱子必须每一根都能回到内核计数器。**07 的 `scanUnifiedLog` 超时教训**记在 `fidelity-guardian.md` §6.6.3：`/usr/bin/log show` 在沙盒环境下会挂起，`DispatchSemaphore` 8 秒超时保护不能省 |
 | `Scripts/smc-probe.swift` | 只读探一次本机 AppleSMC：键表规模、`T*` 类型分布、风扇四键实测值、稳态扫描耗时 | **P6.4 新增**。立项前把"本机有没有风扇"这种凭机型猜的判据换成量出来的数；它同时是 `SMCParamBlock` 结构体布局的回归工具（布局漂了，`IOConnectCallStructMethod` 只会回 `kIOReturnBadArgument`，没有这个脚本就得重新猜）。**只读**：不碰 `F{id}Md`、不发 `Ftst` |
-| `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid |
-| `Scripts/p65-swap-capture.sh` | 内存卡 Swap 一行四档 × 明暗两套：①实机非零对仗（不注夹具）②`swapZero`「0 字节（未使用）」③`swapOff`「—」④`populated` 底座 | **P6.5 新增**。渲染范围钉成 `MM_MONITOR_CARDS=memory`（单卡）。01 那张是"改文案没把非零路径改坏"的回归证据；02/03 证明"读到 0"和"读不到"仍是两句话（I9 的改动边界就在这位上）。**菜单栏里那句 `Swap: …` 没有照片**：它要点开 NSMenu，而合成点击是硬禁止项、`screencapture -l<windowid>` 又抓不到菜单窗口，所以那一档只有单测 |
+| `Scripts/p64-capture.sh` | 「温度与风扇」八档 × 明暗两套：①实机真读数（不注夹具）②loaded ③unavailable ④0 台风扇 ⑤风扇数未知 ⑥≥90 °C 红档 ⑦与进程卡相邻 ⑧非法值整批拒绝 | **P6.4 新增**。01 那张是"进程内也能读 SMC"的唯一证据；08 的判据在 stderr（`grep 含非法取值`），照片只是佐证。全部零合成点击，只 kill 自己起的 pid。**P45 接上 P23b 那道同源门**：起跑前 `mm_provenance_check`，产物与当前树不等就 exit 4、一张不出；每份 `.log` 头四行 `# <脚本> <档> <时间> app=` / `# repo:` / `# digest:` / `# env:`。重拍族 = `docs/verification/p64b/`＋`p64b-dark/`（旧 `p64`/`p64-dark` 那 16 张一行归因都没有，原样留着） |
+| `Scripts/p65-swap-capture.sh` | 内存卡 Swap 一行四档 × 明暗两套：①实机非零对仗（不注夹具）②`swapZero`「0 字节（未使用）」③`swapOff`「—」④`populated` 底座 | **P6.5 新增**。渲染范围钉成 `MM_MONITOR_CARDS=memory`（单卡）。01 那张是"改文案没把非零路径改坏"的回归证据；02/03 证明"读到 0"和"读不到"仍是两句话（I9 的改动边界就在这位上）。**菜单栏里那句 `Swap: …` 没有照片**：它要点开 NSMenu，而合成点击是硬禁止项、`screencapture -l<windowid>` 又抓不到菜单窗口，所以那一档只有单测。**P45 同样接上同源门＋四行归因头**（配方与上一行那支逐字相同），重拍族 = `docs/verification/p65b/`＋`p65b-dark/`（旧 `p65`/`p65-dark` 那 8 张原样留着） |
 | `Scripts/i11-hysteresis-capture.sh` | 真实负载下逐帧抓监控页温度卡：起 8 个 `yes` 循环压 ~40 秒再撤掉，每 3 秒按 pid 抓一帧 | **I11 新增**。迟滞（进 90 / 出 85）是**随时间**的行为，而 `MM_MONITOR_FIXTURE` 每个进程只给一个定格快照——拍不到"红过之后落回 87 °C 还红着"。这台机器跨不过 90（26 帧最高 **89.0 °C**、零红），所以过渡态最终只有单测；脚本与负载段那一帧留在 `docs/verification/i11-hysteresis/`，免得下轮又去试一遍。**跑这类热实验时别同时干别的重活**：本轮同时在渲染设计稿，冷却曲线被画成 66→81.5→86.2，撤负载之后的帧全部作废 |
 | `Scripts/p66-optimizer-capture.sh` | `MM_OPTIMIZER_FIXTURE` 十二档 × 明暗两套：重复文件（扫描中/有组/带告警/PROTECTED/从未扫描/扫完为空）+ 浏览器（rows/empty）+ 系统状态（allReadOnly）+ 开发工具（未装/读不进）+ 非法值整批拒绝 | **P6.6 新增**。它是"钩子写了不等于钩子生效"的唯一反证工具：第一次跑出来 `browser:rows` 与 `browser:empty` **逐字节相同**，据此查出一个从未生效的夹具（见 §4 #2）。所以脚本末尾**必须**跑 `md5 -q *.png \| sort \| uniq -d`，重复就是夹具没生效，不是"这两档长得一样"。第 01 档（扫描中）**没有 HOLD 钩子**：真实 SHA-256 本来就慢，起进程 3 秒后截图就停在骨架 |
 | `Scripts/p66-layout-measure.sh` | 四档定态截图，专供量磁盘页面包屑条高 / treemap header 高 / cleaner 分组右注长度 | **P6.6 新增**。它拍的是**待测量的载体**而不是结论，所以每档都自带 `MM_DISK_SCAN`/`MM_DISK_SELECT`/`MM_CLEANER_FILTER` 的取值说明。两个坑记在脚本头里：① `MM_DISK_SELECT` 只认绝对 /tmp 路径，写相对段名会被越界 guard 整条忽略（拍出一张根图却以为是下钻图）；② 04 档用 `MM_CLEANER_FILTER=浏览器` 把表**收短**，让最长的分组右注自己升进首屏——禁合成点击，也禁滚动 |
 | `Scripts/p34b-prefs-capture.sh` | `MM_OPTIMIZER_FIXTURE` 的 `prefs:*` 四档 × 明暗两套 + **真机档**（不注夹具，读本机 `~/Library/Preferences`）+ 窄窗档 + 非法值守卫档，共 7 张 | **P34b 新增**。这一族的界面句子全是**计数拼出来的**（"检查过 N 个"、"其中 M 个我们没能读"、"剩下的 K 个没看"），计数错在画面上看不出来，只会长成一句假话，所以脚本末尾同样自带 `md5 -q *.png \| sort \| uniq -d`。本轮量到**一对重复是设计如此**：`01-prefs-real-gui.png` ↔ `07-prefs-fixture-invalid-voided.png`（非法值让整支钩子作废，画面就回到真机那一态），这一对记在 `fidelity-optimizer.md` §7.2，别当夹具没生效。**07 那一档的判据在 stderr 不在照片**。真机档是 P34a §11.1 那句的答案：探针（裸二进制）与界面（.app 进程）给的"M 个读不到"必须是同一个数 |
-| `Scripts/p67-menubar-off-capture.sh` | 监控页「菜单栏监控」开关两档：`populated` 与 `populated,menubarOff`，其余环境变量逐字相同 | **P6.7 新增**。它存在的唯一理由是**把"开关"做成画面里唯一的变量**：底座同为 `populated`，两张照片除那枚 switch 外每一个数字都该逐位相同；一旦两张一模一样，`menubarOff` 就又变回"解析了没人消费"，一旦数字也漂了，说明夹具没钉住。零合成点击（点击会逃逸到用户其它应用），只 kill 自己起的 pid |
+| `Scripts/p67-menubar-off-capture.sh` | 监控页「菜单栏监控」开关两档：`populated` 与 `populated,menubarOff`，其余环境变量逐字相同 | **P6.7 新增**。它存在的唯一理由是**把"开关"做成画面里唯一的变量**：底座同为 `populated`，两张照片除那枚 switch 外每一个数字都该逐位相同；一旦两张一模一样，`menubarOff` 就又变回"解析了没人消费"，一旦数字也漂了，说明夹具没钉住。零合成点击（点击会逃逸到用户其它应用），只 kill 自己起的 pid。**P45 同样接上同源门＋四行归因头**，重拍族 = `docs/verification/p67-menubar-off-b/`（旧那 2 张原样留着）；本轮复读了同一判据：两张卡内数字逐字相同、只差右上角开关，且 02 的 `.log` 比 01 多一行 `MM_MONITOR_FIXTURE=menubarOff 已生效`——**这一行是"钩子真的消费了"的日志侧证据，与照片侧"只差开关"互为两条独立判据** |
 | `Scripts/p68-dev-capture.sh` | 「开发产物」七档：默认态 / 展开+批量勾选 / 滚到底四态徽标 / 确认面板 / 深色 / **真机** / 最小窗口 | **P6.8 新增**。把 `docs/verification/p7-dev/` 那批手工照片变成可重跑（旧目录一字未动，新照片写 `p68-dev/`）。判据是**画面上必须有真实机器生产不出的值**（`~/Documents/bulk-1…bulk-12`、「夹具值」），不是 md5 互不相同。06 是真机档：不带 `MM_PURGE_FIXTURE_HOME`、等 30 秒真实扫描 |
 | `Scripts/p68-brew-capture.sh` | 「安装来源」九档：五档来源各一张 + 确认面板 + 深色 + 最小窗口 + 真机 | **P6.8 新增**。同上，旧目录 `p7-brew/` 未动。默认每次现造一棵 `provenance-fixture.sh`（`FIX=` 可复用）：staged 链接的设备号判据依赖"链接指向的就是这棵树里的这份 bundle"，拿旧目录重跑没坏，但照片里的路径会指着一次没发生过的运行。09 真机档可 `REAL_SELECT=` 点名（本机已无 Highball，本轮用的是 `WailBrew`，见 `fidelity-uninstaller.md` §12.3） |
 | `Scripts/p68-trash-capture.sh` | 废纸篓监听两档：提示卡（夹具 + 脚本自己 `mv`）/ 无权限横幅（真机、无钩子） | **P6.8 新增**。01 的时序是全部取证脚本里最脆的一档：**基线必须晚于 `mv`**，否则拖进去的应用被当成"启动前就在"的历史条目、卡片根本不出现——所以脚本先轮询到窗口 id、再留 2 秒给 `startTrashWatching`，才动手 `mv`；`AFTER_MOVE` 默认 60 秒，因为残留扫描的合并计时器排在 MainActor 上、要等 41 个应用测完。跑前会验 `/tmp/mmstage/Foo.app` 还在，不满足就点名让人重跑夹具而不是拍出一张假态 |
