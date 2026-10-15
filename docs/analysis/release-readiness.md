@@ -1308,7 +1308,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 它全部住在 `Packages/MMMonitor`，28 条判据与 8 张照片也都在那一包那一族里——
 **如果以后要把电量做进菜单栏，这一格就会第二次断**，到时要按 P35b 的写法明说"壳层有改动、覆盖没跟上" |
 
-| MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉〔**P38b 现读收窄**：I10b 已落地——令牌现为 52px 且实现侧没有标题栏高度这个常量；S3 也已落地（3 处 `var()` 引用 + 实现侧 23 处命中）。仍开的是 S1 侧栏 footer 与 **S4 那两个声明了但零消费者的卡底令牌**，判据在 `coordination-audit.md` §1–§2〕〔**P38f 再收窄，并更正 P38b 那半句**：S1 侧栏 footer **也已落地**（组件 `docs/design-system/tokens.css:287`、稿侧 20 张里 16 张在用、动作是 `0c61fbf`，判据与残留三处见本文 §7.35），所以这一格今天真正还开的是 **S4（两个零消费者的卡底令牌，等逐屏决定）** 加 **S3 的一半**——P38b 那句"S3 也已落地（3 处 `var()` 引用）"核的是 `--c-content-bg` **有消费者**这一层（现读 3 处无误），而 monitor/shell 两条 S3 原文要的是"页面底该走 windowBackground、需要一个 `.content--window` 变体"，现读 `tokens.css` 里**没有这一档**（只有 `.content` 用 `--c-content-bg`），因此 S3 应记"令牌有主、变体仍未定"，两侧说法不一也一并登记在 §7.35 等协调层裁定〕〔**P39 再收窄**：S1 那一面今天**清零**——§7.35 那四处侧栏面全部改稿并重渲染九张 png（`components.html:141` 现读就是 `<div class="sidebar-footer">`、同页两处写死的 216 走令牌、04b/04e 三块补画、03c/03e 非法尾数删掉、07 稿 cap 重写），全文在 §7.36；这一格还开的只剩 **S4 那两个零消费者的卡底令牌** 与上面那句 S3 变体待裁定〕 |
+| MMUI / 设计系统 | **可发布** | 17 测试。全站骨架 token 漂移（侧栏 footer S1、标题栏 52 vs 38 I10b、底色 S3/S4）仍在，归协调层，纯视觉〔**P38b 现读收窄**：I10b 已落地——令牌现为 52px 且实现侧没有标题栏高度这个常量；S3 也已落地（3 处 `var()` 引用 + 实现侧 23 处命中）。仍开的是 S1 侧栏 footer 与 **S4 那两个声明了但零消费者的卡底令牌**，判据在 `coordination-audit.md` §1–§2〕〔**P38f 再收窄，并更正 P38b 那半句**：S1 侧栏 footer **也已落地**（组件 `docs/design-system/tokens.css:287`、稿侧 20 张里 19 张在用、实例 25 处（**P41f 现读**，旧记 16 张 / 21 处）、动作是 `0c61fbf`，判据与残留三处见本文 §7.35），所以这一格今天真正还开的是 **S4（两个零消费者的卡底令牌，等逐屏决定）** 加 **S3 的一半**——P38b 那句"S3 也已落地（3 处 `var()` 引用）"核的是 `--c-content-bg` **有消费者**这一层（现读 3 处无误），而 monitor/shell 两条 S3 原文要的是"页面底该走 windowBackground、需要一个 `.content--window` 变体"，现读 `tokens.css` 里**没有这一档**（只有 `.content` 用 `--c-content-bg`），因此 S3 应记"令牌有主、变体仍未定"，两侧说法不一也一并登记在 §7.35 等协调层裁定〕〔**P39 再收窄**：S1 那一面今天**清零**——§7.35 那四处侧栏面全部改稿并重渲染九张 png（`components.html:141` 现读就是 `<div class="sidebar-footer">`、同页两处写死的 216 走令牌、04b/04e 三块补画、03c/03e 非法尾数删掉、07 稿 cap 重写），全文在 §7.36；这一格还开的只剩 **S4 那两个零消费者的卡底令牌** 与上面那句 S3 变体待裁定〕 |
 | 对外文案 `docs/website/index.html` | **不在产物里·P17 已过完一轮** | 这一页从前**从来没有跟实现对照过**：改动前 `grep -rn website docs/analysis/` 是 **0 命中**，九张 fidelity 对照表里也没有它的位置。P11c 撤下统一日志之后，页里那句"管理登录项，**监控系统活动**"当场变成假话，P14 那轮只改了被证伪的这两句、其余记成待办。**P17 把待办清完了**：逐句判定表 16 行在 `docs/analysis/website-audit.md`，三处"说不到"（一键清理、更快更流畅、两个下载死链）已换成界面上真实存在的动作与「现在还没有能下载的安装包」，四个占位框已换成四档夹具实拍（`Scripts/p17-website-capture.sh`，`docs/website/assets/`）。**发版说明仍要标注的两条**：①画面上侧栏那条卷名与占用百分比、磁盘页「卷可用」**没有夹具钩子**，是拍摄那台机器的真实状态——页面上已经明说这一点（§7.8 第 2 条）；②清理那张图是「开发产物」tab，不是缓存清单（同条第 1 条）。**待人的只剩页脚 `© 2026` 那一行**，它和 §2.3 的许可是同一批决定 |
 
 ## 7. 逐轮收口与发版核验（都是"用户可达"的那一类）
@@ -3224,8 +3224,8 @@ under-page 那 21 处必须等审计文档 §5 第 2 条，先翻会造出第二
 ——少的正是"只数了裸写文件名那 19 处、漏了一条带目录的同名坐标"，
 按上一轮那句"逗号续列最容易漂却没人查"的同一族毛病，本轮改用门禁自己的抽取口径重数：css **23**（裸写 19 + 全路径 1 + 那份样式表 3）、log **10**。〕
 css 那 12 个不同目标本轮逐条现读对过 `docs/design-system/` 里的两份文件（现读 `tokens.css` 337 行、`screen.css` 199 行）：
-**没有一个越界，11 处指对、1 处指错**——`fidelity-monitor.md` S3 那条写的是 `tokens.css:298`
-（`.sidebar-footer .vol-bar > i` 的进度条填充，用 `--c-accent`），它要指的其实是第 326 行
+**没有一个越界，11 处指对、1 处指错**——`fidelity-monitor.md` S3 那条写的是 `tokens.css` 第 297 行
+（`.sidebar-footer .vol-bar > i` 的进度条填充，用 `--c-accent`），它要指的其实是第 326 行〔**P41f 两笔记账**：上面那个"第 297 行"在 P41 的机械重指里被当成活坐标顶成了冒号形式的 `:298`，本轮按 `git show a6dbb1b^` 收回并改回散文写法（同批另两处副本面：`coordination-audit.md` §3 债 6 那格、`fidelity-monitor.md` §5 第 3 条）；"第 326 行"今天也随 `tokens.css` +1 过期，`.content` 现读在 `tokens.css:327`——那才是活坐标，冒号形式留着〕
 `.content { … background: var(--c-content-bg) … }`；本轮**只改坐标、不改判定**（那一条的判定仍等审计文档 §5 第 2 条）。
 `.log` 那 10 处本轮**没有逐条打开核对**（它们是"结论行在第几行"这一族，与本轮那件稿图无关），一并挂进债 6。
 **这一条本轮没有靠加扩展名来"修好"**：把 `css`、`log` 塞进白名单会让这 32 条一次性涌进三个总数（条次/唯一/命中全要跳），
@@ -3425,13 +3425,13 @@ css 那 12 个不同目标本轮逐条现读对过 `docs/design-system/` 里的�
 
 ```
 ls -1 docs/design-system/screens/*/*.html | wc -l                        # 20
-grep -rl 'class="sidebar-footer"' docs/design-system/screens | wc -l     # 16（实例 21 处）
+grep -rl 'class="sidebar-footer"' docs/design-system/screens | wc -l     # 19（实例 25 处；P41f 现读，旧记 16 / 21）
 ```
 
 副本面清单按 `coordination-audit.md` §3 那条规矩由**一条写在一起的命令**产生：
 
 ```
-grep -rn --include='*.md' -E "侧栏 footer|侧栏footer|sidebar-footer|侧栏尾数|占位数字" docs/analysis   # 54 行 / 8 份文件
+grep -rn --include='*.md' -E "侧栏 footer|侧栏footer|sidebar-footer|侧栏尾数|占位数字" docs/analysis   # 77 行 / 9 份文件（P41f 现读，旧记 54 行 / 8 份）
 ```
 
 命中数不是清单数——"占位数字"这四个字也出现在与侧栏无关的句子里。按逐条读过的结果，**本轮翻了 43 行判定**
@@ -3465,7 +3465,7 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
 代价与排口：四处里有三处是稿侧，且这三页都有同名 png，改完必须重渲染；按 #53 的约定"一次只作废一批基线"，
 这一刀**不与 under-page（S4）那一批合并**，单独登记成新任务（三处侧栏面补画 + 重渲染，另加 07 稿那句 cap）。
 〔**P39 落地：任务 #185 做完，四处全清**——六份 `.html` 改稿、九张 png 重渲染（含那三张只是欠像素、稿没动的），两支新脚本 `Scripts/p39-mockup-staleness-audit.sh` 与 `Scripts/p39-sidebar-footer-render.sh`，`Scripts/p38b-mockup-render-check.sh` 那行写死的 components 画布跟着抬到 2240；**#53 那条约定守住了，S4 一批一张都没动**。全文在 §7.36。〕
-还有一处纯注释的账本轮已销：`tokens.css` 第 285 行那句"八张稿一起换"是**已完成却没销的指令**，本轮改成实话，样式表其余任何一行没动。
+还有一处纯注释的账本轮已销：`tokens.css` 第 285 行那句"八张稿一起换"是**已完成却没销的指令**，本轮改成实话，样式表其余任何一行没动〔**P41f 现读**：那句今天在第 286 行，`--sidebar-w-min` 那一笔 +1；散文式坐标不会被量尺报出来，也不会被 `p41-tokens-remap.py` 改到，只有人工这一遍能追上〕。
 **这一句本身就是量尺本轮报出的那个"不可自动重锚 1"，写法因此也跟着改了一次**：它原来写作冒号形式（`tokens.css` 那个"文件名冒号行号"的旧写法，指向第 285 行），
 而漂移量尺的非 `.swift` 那一族报的正是"base 那一行的原文在工作区 0 处命中"——**这一次不同是我有意改的，不是漂**，
 但那条引用改完之后就在说一句假话（第 285 行已经不含那句指令了），所以按 §7.7 换成"第 285 行"的叙述形式：
@@ -3495,7 +3495,7 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
 与第 21 行 P13 那句"17 项（中 3 / 低 14）"，加上 `fidelity-disk.md` 第 30 行的"设计稿该改 6 条"、`fidelity-monitor.md` §0 的条数，都还把 footer 与尾数算在待改里；
 重数会顶漂别处引它们的"约 X 条"叙述，留到下一次动这几份文档时一并重算。
 ②**S3（页面底对比度）两侧说法不一**：本文 §6 那一格在 P38b 记成"S3 也已落地（3 处 `var()` 引用）"，
-现读这 3 处无误（`tokens.css` 第 208、246、326 行用 `--c-content-bg`），但那两条 S3 原文要的是"页面底走 windowBackground、需要一个 `.content--window` 变体"，
+现读这 3 处无误（`tokens.css` 第 209、247、327 行用 `--c-content-bg`；**P41f 现读**：原文写 208、246、326，全部随 `--sidebar-w-min` 那一笔 +1，处数没变），但那两条 S3 原文要的是"页面底走 windowBackground、需要一个 `.content--window` 变体"，
 而现读 `tokens.css` **没有这一档**（`.win` 用 `--c-window-bg`、`.content` 用 `--c-content-bg`）。
 判定该是"令牌有主、变体仍未定"，已在 §6 那一格就地写成这个说法，**归协调层、与 under-page 那个决定同批裁定**（`coordination-audit.md` §5 第 2 条）。
 
@@ -3583,8 +3583,8 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
 **副本面（按"更正一条要扫全部副本面"逐条走完）**：§4.2(b) 八个面（`dev-artifact-walk-merge.md` 三处、`coordination-audit.md` 三处、`feature-roadmap.md` 三处、本文 §6 与 §7.30 那两格、`fidelity-cleaner.md` §8.6）；I7 四个面（`fidelity-cleaner.md` §1 表行、§2 前言那组"只剩几条"、§2 第 7 条、本文 §6 那一格）；`--sidebar-w-min` 四个面（`coordination-audit.md` 两处、`fidelity-guardian.md`、`fidelity-shell.md`）；S4 稿侧"0 消费者"两个面（`coordination-audit.md` §1、`feature-roadmap.md` §11 那一串）——**这两个面只是把计数改对，稿本身随后也真接了线，归属文档 `fidelity-monitor.md` 的三个面本轮补上**（§0 那句"还开 6 条"后面那括注、§1.8 表行 `:165` 的归属格、§5 第 4 条那句"补 `.card--under-page` 后删掉本地样式"），本文 §7.33 末段那句"`var()` 消费者 0 处"也补了当世读法。
 
 - 九包全测 `LOG=docs/verification/p41-tests ./Scripts/run-all-tests.sh` → **792 个测试 / 0 失败 / 1 跳过**（跳过那条在 MMDisk，与本轮无关），逐包 96 / 17 / 117 / 25 / 200 / 85 / 85 / 96 / 71。这一族九份 `.log` **有意不入库**（与 P40 那轮没有 `p40-tests/` 同一口径），所以下面台账那格的"磁盘有、索引没有"那一项第一次由 2 个空目录变成 3 个。
-- 量尺 `./Scripts/p29-anchor-drift-audit.sh docs/verification/p41-anchor-drift-post`（base 仍是改稿前那一版 `HEAD`）：`.swift` 族 **10 条全是 `UNRESOLVED·工作区 0 处命中`、零 `move=NN -> MM`**——逐条现读就是"文档引用的那一行本轮被真改了"（`MMCleaner.swift:578` 的 chevron 条件、`ProjectArtifactScanner.swift:680` 的 guard），行号一格没动，这一族不需要重指；非 `.swift` 族 **51 条 = 41 DRIFT + 10 UNRESOLVED**，**这一族本轮一条都不照抄**：39 条 DRIFT 的落点是 `tokens.css` 的 +1，而 docs 侧这一轮已经用 `Scripts/p41-tokens-remap.py` 重指过一次，**再抄一遍就是把已经改对的坐标改成改错**（P39 那一课的第二次实物，这次连"照抄"的冲动都是脚本自己给的）；剩下 **2 条 DRIFT 的建议落点与引用行号相同**（`fidelity-guardian.md:284 → :284`、`fidelity-shell.md:160 → :160`），那是"本轮在那一行行内追加了括注"的形状，不是漂移；10 条 UNRESOLVED 里 5 条 `tokens.css:33` 与 3 条 `tokens.css:298` 都是**当历史坐标写在散文里的旧值**（"从前写的是 200px"、"原本写的是 `:298`"），2 条 `07-monitor.html:14` 是本轮真改了那一行。**替代照抄的做法是逐条按内容现读**：`tokens.css:287` 现读 `.sidebar-footer {`、`:298` 现读 `background: var(--c-accent); }`、`:327` 现读 `.content {`、`:328` 现读 `.statusbar {`，四行与文档写的用途逐一对上。
-- 门禁 `./Scripts/p16-citation-audit.sh docs/verification/p41-citations` 这一轮跑了三遍：**1288 / 966 / 859 → 1303 / 967 / 860 → 1304 / 968 / 861**（`# index:` 1308 → 1310、`# vocab:` 9050、位置存疑 97、越界/整段空白/同后缀歧义/死符号/两头都不到全 0、**硬失败 0、exit 0**），入库的是第三跑那一份；三遍的差账与那枚"指向尺子自己"的新落点在 §1 那一格。
+- 量尺 `./Scripts/p29-anchor-drift-audit.sh docs/verification/p41-anchor-drift-post`（base 仍是改稿前那一版 `HEAD`）：`.swift` 族 **10 条全是 `UNRESOLVED·工作区 0 处命中`、零 `move=NN -> MM`**——逐条现读就是"文档引用的那一行本轮被真改了"（`MMCleaner.swift:578` 的 chevron 条件、`ProjectArtifactScanner.swift:680` 的 guard），行号一格没动，这一族不需要重指；非 `.swift` 族 **51 条 = 41 DRIFT + 10 UNRESOLVED**，**这一族本轮一条都不照抄**：39 条 DRIFT 的落点是 `tokens.css` 的 +1，而 docs 侧这一轮已经用 `Scripts/p41-tokens-remap.py` 重指过一次，**再抄一遍就是把已经改对的坐标改成改错**（P39 那一课的第二次实物，这次连"照抄"的冲动都是脚本自己给的）；剩下 **2 条 DRIFT 的建议落点与引用行号相同**（`fidelity-guardian.md:284 → :284`、`fidelity-shell.md:160 → :160`），那是"本轮在那一行行内追加了括注"的形状，不是漂移；10 条 UNRESOLVED 里 5 条 `tokens.css:33` 与 3 条 `tokens.css:298` 都是**当历史坐标写在散文里的旧值**（"从前写的是 200px"、"原本写的是 `:298`"），2 条 `07-monitor.html:14` 是本轮真改了那一行。**替代照抄的做法是逐条按内容现读**：`tokens.css:287` 现读 `.sidebar-footer {`、`:298` 现读 `background: var(--c-accent); }`、`:327` 现读 `.content {`、`:328` 现读 `.statusbar {`，四行与文档写的用途逐一对上。〔**P41f 提交后复看**（base=`HEAD~1`、尺子一字没改）：`.swift` 族 **12 条**、非 `.swift` 族 **64 条**，比归档那一读 10 / 51 多 **+2 / +13**。**"复看应与归档逐字相同"这个预期本身是错的**：归档那一跑跑在轮中、稿与资产落地在它之后，所以提交后复看必然大于归档——只有归档跑在全部落地之后才可能逐字相同（P40 那轮"两跑之间有 add"那条预测第一次被读成数）。64 条里 **47 条 DRIFT，其中 39 条又是 `tokens.css` 那一笔 +1 的伪影**（base 取的是改稿前那一版），照抄即把已改对的坐标改成改错，P39 那一课第三次生效。**参数位那一坑记在这一格**：脚本里 `BASE=${2:-HEAD}`，所以把 `""` 放到第二参数位那种写法会被折回 `HEAD`、工作区==HEAD、两族恒为 0——`""` 只能占第一参数位，`HEAD~1` 要放第二参数位；两支输出 0 字节本身就是该触发怀疑的读数。**本轮真账全在量尺看不见的那一族**：散文式「第 N 行」与裸写 `:NN` 都不在它的抽取面，`tokens.css` 那一笔 +1 之后共 **7 个落点 / 5 份文档**靠人工重读追上（`coordination-audit.md` 四处、`fidelity-shell.md`、`fidelity-monitor.md`、`release-readiness.md` 三处）。**还捞出一条工具缺陷**：`p41-tokens-remap.py` 分不清活坐标与引文，把三处记账句里"原本写的是…"那句历史引文当成活坐标顶了一次，本轮收回原值并改成散文写法，三个副本面（本文 §7.33、`coordination-audit.md` §3 债 6、`fidelity-monitor.md` §5 第 3 条）同轮同步——**重指工具不得改记账句里的引文，记账句一律散文形式**，这条从"写法约束"升成"工具约束"。**复看那两张 `.tsv` 有意不归档**：它们记的是"工作区 vs 当时的 `HEAD~1`"这一枚不可重跑的组合（下一笔提交一落地，`HEAD~1` 就换人，那 64 行再也对不上任何一次调用），能留下的只有两个总数与 DRIFT/UNRES 分解，而那些已经写进本格；跟着归档反而多一份"看起来可复现、其实基线已失效"的影子。〕
+- 门禁 `./Scripts/p16-citation-audit.sh docs/verification/p41-citations` 这一轮跑了三遍：**1288 / 966 / 859 → 1303 / 967 / 860 → 1304 / 968 / 861**（`# index:` 1308 → 1310、`# vocab:` 9050、位置存疑 97、越界/整段空白/同后缀歧义/死符号/两头都不到全 0、**硬失败 0、exit 0**），入库的是第三跑那一份；三遍的差账与那枚"指向尺子自己"的新落点在 §1 那一格。〔**P41f 现读三组计数刷新**：① 上面"机械重指那一笔"那格写的 56 处 / 49 行今天读 **63 处 / 54 行**，其中指向第 34 行及以上、会被那一笔 +1 波及的那一族 **51 处 / 45 行**——两处数字都只在本格记账，别处引用它们的人要按这两个现值读；② **口径教训**：台账那条原命令少带 `-n`，照抄重跑只得 11（那 11 是文件数不是行数），"处／行"两口径必须把命令各自写全；③ 侧栏 footer 覆盖面由 16 份 / 实例 21 处涨到 **19 份 / 25 处**（20 份稿里唯一不含侧栏的是 `mmui/05-states.html`，整页没有 `class="sidebar"`，是组件状态页、不算缺口），这一族散在 **19 个落点**（18 处带"旧记 16"标记 + `coordination-audit.md` §3 那一格），本轮逐面刷完；连带那条产生副本面清单的命令由 54 行 / 8 份文件涨到 **77 行 / 9 份文件**，第 9 份是 `fidelity-optimizer.md`、它走的是"侧栏尾数/占位数字"那一格，两个面（本文与 `coordination-audit.md`）同轮改掉。**这一轮刷完门禁重跑一遍**：**1304 / 968 / 861、位置存疑 97、硬失败 0、exit 0**，`# index:` 1310、`# vocab:` 9050、`docs scanned: 45 / 45` ——**与上面入库那一读逐字相同**，这是这一族第一次"改 19 个面而三个总数一格不动"，原因写在①里：全是行内换数、零新坐标。〕
 - **本轮没做的**：监控页「网络」卡（C1）、偏好文件 owner 名反查（C2）、`MMFailurePanel` 那个零调用新 init 删还是接（等人，v1.3 第 1 条）、guardian／monitor 两页根层不画内容底色这一族（现读 `MMColor.contentBackground` 只在壳层 `MainWindow.swift` 与 `MMOptimizer.swift` 有落点，是 **S3 的真命题**，等协调层裁定）。
 
 ## 8. 已知不一致（不阻塞发版，但要有账）
