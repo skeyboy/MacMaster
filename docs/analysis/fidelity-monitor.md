@@ -16,7 +16,7 @@
 >
 > 逐元素对照 **47 项**，其中 **16 项存在需归属的差异**（**高 2 / 中 6 / 低 8**，另有 1 项仅记录不判改）：〔**P40 现读重算这一组数**。量法：`awk 'NR>=62 && NR<=187 && /^\| / && $0 !~ /^\| 稿内条目/ && $0 !~ /^\| 画面条目/ && $0 !~ /^\| ---/'`——**这一条必须同时排两种表头**，因为 §1.9 电池卡那张表的表头是「画面条目 / 实现出处 / 出片形态 / 量到的差异 / 严重度 / 归属」（`:175`），只排「稿内条目」会把它当成一行数据、得到 70。今天实测 **69 行 / 9 张子表**（§1.1–§1.9，表头行 9 处：`:64 :74 :85 :97 :106 :118 :131 :154 :175`，全部行都恰好 8 段）；严重度 **高 2（`:68` I1、`:112` I2——两行都已是「已改」）/ 中 1（`:163` S1——稿侧已落地）/ 低 14 / 标「—」52**；挂归属的行 **28 行**＝实现该改 12（I1、I2、I3、I4、I5、I6、I7、I8、I9、I10a、I10b、I11）＋设计稿该改 6（`:70` S5b、`:109` S8、`:162` S3、`:163` S1、`:164` S2、`:165` S4）＋记录 4（`:67 :142 :180 :181`）＋「见 §4」6（`:92 :93 :113 :125 :144 :186`）。**开头这一句是 2026-09-30 那一读**（下面 P6.4 那段自己就这么声明），今天对不上有三处形状：**47→69** 是 P6.4 的 §1.7 与 P37 的 §1.9 两张子表整批进来；**高 2 还在但两条都已改完**，所以"高"这一档今天挂着的是历史而非欠账；**中 6→表内只剩 1 行**，因为 §1 表里那六条中项如今五条落地、判据从 ❌ 收回成「—」或降到「低」。〔**本轮边界**：只重数了 §1 这张表与 §2/§3 两份清单的条数，**没有逐条重验 69 行里其余的坐标**；实物 spot 过的只有 `07-monitor.html`（`电池` 0 次、`wired` 0 次、`未使用` 0 次、`菜单栏监控` 5 处全是 `class="sw on"`、`class="win mm-screen"` 5 处＝§0 那句"5 个 artboard"仍成立）。〕
 > **实现该改 11 条**（I1–I10b）、**设计稿该改 5 条**（S2–S6）、**两边都改 1 条**（S1 侧栏 footer，全站）。〔**P38a 现读**：那 11 条里 I10a 已由 P6.2b 落地、I10b 已由 c74f045 落地而且**它从来不是"实现该改"**——实现侧没有标题栏高度这个常量，52pt 由 AppKit 出，所以这一族按今天读是 **9 条**。〕〔**P38f 现读**：那句"两边都改 1 条（S1 侧栏 footer，全站）"两侧都已改完——实现侧的容量行一直都在，稿侧由 `0c61fbf` 换成组件、现读 19 张在用（实例 25 处；**P41f 现读**，旧记 16 张），所以这一族按今天读**待改为 0 条**，只剩 `components.html` 那一格与磁盘的 04b/04e 没跟上（三处侧栏面，判据见本文开头）。〕〔**P40 现读这一组编号的今日状态**：本行那句「实现该改 11 条（I1–I10b）＋设计稿该改 5 条（S2–S6）＋两边都改 1 条」相加是 17，而同一句开头写「16 项」——**行 ≠ 编号**，这是 §1 表与 §2/§3 清单两套口径，文档从前没写明用哪个。今天按清单数：**§2 是 13 个条目**（实现该改 12 条：I1–I9、I10a、I10b、I11——**I11 是 P6.4 带进来的，而 §2 的标题至今还写「11 条 + 1 条两边都改」**，那一格本轮已就地补；加第 8 条那条「S1 关联 · 侧栏 footer」＝13 条），**§3 是 9 条**（S1–S9，S5b 挂在第 5 条里不占号）。今天**真开着的实现项只有 I8 一条**（低，卡画稿决定，§2.9）加 **I2 的半条**（②③仍同句，§2.2）；**设计稿侧今天还开 6 条**：S3（要 `.content--window`，与 guardian 那份的 S3 是同一项，等协调层裁定）、S4（under-page 卡片 token，等 `coordination-audit.md` §5 第 2 条）、S5＋S5b（B/D 稿换钩子实机截图重出；S5b 那一档 07 稿**现读 5 处 `class="sw on"`、0 处 off**，确实没画）、S7（图标精灵共性，归协调层）、**S8 只剩半条**（见 §3 第 8 条本轮那处更正）、S9（电池卡整卡未进稿，`07-monitor.html` 现读 `电池` 0 次）；已结 3 条：S1（`0c61fbf`＋P39 把那段过期 cap 也重写了）、S2（同笔清掉尾数，07 稿 cap 现读明写"侧栏行上不再有 2.4 GB / 46"）、S6（P38b 后半以"在清单外"的方式结掉）。〕〔**P41 现读**：那"还开 6 条"里的 S4 今天前进半步——`07-monitor.html:14` 的 `.mcard`、`:21` 的 `.stat` 由自写 `var(--c-under-page)` 改成消费 `var(--c-card-under-page)`，但两块本地样式仍在、`--c-card-content` 仍 0 处接线，**S4 还开，这一组 6 条不动**；接线那一笔重渲染过，`07-monitor.png` 与提交前逐字相同（令牌定义就是 `var(--c-under-page)`，接的是名字不是颜色）。〕
-> **另有 13 项状态因为缺钩子而完全没能真机验证**（见 §4，逐条写明缺什么）。〔**P40 现读**：这一句是 §4 那张表本身的形状，今天仍在，但它下面已经接了 §4.1 那 14 行（原 13 行＋`10b` 那档 Swap 零值）——13 项里 **#1–#11 都有可注入档位并已出片**（`MM_MONITOR_HOLD`／`MM_MONITOR_FIXTURE`，`#11` 那一档还是 P6.7 重做的，因为自 #50 起它"只被解析、从未被消费"），只剩 **#12 浅色配色、#13 各 locale 的 `MMFormat.bytes`** 两行不是钩子能覆盖的，一个走外观档重跑（P4 全站浅色核对那一轮已做过一次）、一个归单测矩阵。〕
+> **另有 13 项状态因为缺钩子而完全没能真机验证**（见 §4，逐条写明缺什么）。〔**P40 现读**：这一句是 §4 那张表本身的形状，今天仍在，但它下面已经接了 §4.1 那 14 行（原 13 行＋`10b` 那档 Swap 零值）——13 项里 **#1–#11 都有可注入档位并已出片**（`MM_MONITOR_HOLD`／`MM_MONITOR_FIXTURE`，`#11` 那一档还是 P6.7 重做的，因为自 #50 起它"只被解析、从未被消费"），只剩 **#12 浅色配色、#13 各 locale 的 `MMFormat.bytes`** 两行不是钩子能覆盖的，一个走外观档重跑（P4 全站浅色核对那一轮已做过一次）、一个归单测矩阵。〕〔**P43a 现读把这一句里"都已出片"那半句改判**（2026-10-15，逐张对 `git ls-files docs/verification`）：13 项里今天**按到照片的是 #1、#2、#10、#10b、#11、#12 六行**（内存卡 `docs/verification/p65/`＋`p65-dark/` 各 4 张、进程卡之后那张 `p64/07`＋`p64-dark/07`、菜单栏开关 `p67-menubar-off/01↔02`、浅色档 `p4-light-dark/light-monitor.jpg`↔`dark-monitor.jpg`）；**#3/#4/#5 三行还是 0 张**（它们唯一依赖的 `MM_MONITOR_HOLD` 现读在 `Scripts/` 0 命中——钩子在代码里、没有一支脚本用过它）；**#6/#7/#8/#9 四行也是 0 张**（`disk-unavailable`／`memoryNil`／`perCoreEmpty`／`perCoreRed` 四档在 `Scripts/` 与 `docs/verification/` 两处 `grep -rln` 都 0 命中，档位只在枚举里存在）。所以"有可注入档位"和"已出片"从今天起要分开写，这一句原先把两者混成了一件。〕
 >
 > **P6.4 追加（2026-10-04，「温度与风扇」新卡）**：上面这些计数是 **2026-09-30 那轮审计的快照**，
 > 不随新卡重算；新卡带来 **1 条实现该改（I11 · 红档无迟滞，低，**同日已改**）** 与 **1 条归协调层（S7 · 图标精灵形状，低，
@@ -42,7 +42,7 @@
 | 渲染 | `cd docs/design-system && ./render.sh screens/mmmonitor/07-monitor.html 1160 6515` → `screens/mmmonitor/07-monitor.png`（2320×13030，2x）。**高度是量出来的不是猜的**：先按 7000 渲染，再用 PIL 逐行找最后一条非背景行（y=12974），加 28px 页底留白得 6515——上一版按 4600（D 稿加 D3a 时同理），E 稿加了 ≈1890px。**猜高度的代价是稿尾挂一段纯灰底**，看起来像"内容就这么长" |
 | 实机 | 首轮：`build/MacMaster.app`（**未重新构建**），`MM_OPEN_MODULE=monitor` 启动，按 **pid** 匹配 windowid，`screencapture -o -x -l<id>` → `/tmp/mmshot/70-monitor-real.png`（1100×700 @1x，深色模式，Mac mini M4 / 10 核 / 24 GB，2026-09-30 03:16）。**P6.4 轮**：`Scripts/p64-capture.sh` → `docs/verification/p64/`（浅色 8 张）与 `docs/verification/p64-dark/`（暗色 8 张），窗口 1100pt 宽 @2x，含**不注任何夹具的实机真读数**那张 |
 | 像素取证 | CoreGraphics 逐行/逐列取色（`/tmp/vscan.swift`、`/tmp/hscan.swift`、`/tmp/cropimg2.swift`），所有"实机"数字都来自这条路径。**P6.4 轮改用 PIL 直接扫 `docs/verification/p64/01-monitor-sensors-real.png`**（脚本已入库的那张，不是 /tmp 里的临时件）：温度行 8 个行中心 y=469/540/613/685/757/829/901/973 → **行距 71.5px@2x ≈ 35.75pt = 36pt**，与稿内 `.trow`（28 行高 + 8 卡内间距）对上了 |
-| 可用钩子 | **`MM_OPEN_MODULE=monitor` + `MM_MONITOR_HOLD` + `MM_MONITOR_FIXTURE` + `MM_MONITOR_CARDS`**（后两个见 §4.1；`MM_MONITOR_CARDS` 是 P6.4 为「温度与风扇」补的卡过滤）。审计首轮那句"本模块没有任何内容钩子（grep 0 命中）"已过期，保留在原文里不删 |
+| 可用钩子 | **`MM_OPEN_MODULE=monitor` + `MM_MONITOR_HOLD` + `MM_MONITOR_FIXTURE` + `MM_MONITOR_CARDS`**（后两个见 §4.1；`MM_MONITOR_CARDS` 是 P6.4 为「温度与风扇」补的卡过滤）。审计首轮那句"本模块没有任何内容钩子（grep 0 命中）"已过期，保留在原文里不删。**P43a 现读（2026-10-15）**：消费点在 `MMMonitor.swift:65-73`（第 65 行一处读 `processInfo.environment`，第 66/67/73 行分别是 HOLD／FIXTURE／CARDS），档位枚举 18 档在 `MonitorFixtureHooks.swift:41-59`。**可"有钩子"和"拍过"是两件事**：`grep -rn MM_MONITOR_HOLD Scripts | wc -l` → **0**（定格钩子从 #50 落地那天起没有一支取证脚本调用过；全仓 `docs/verification/` 里唯一出现 `MM_MONITOR_HOLD` 字样的文件是 P37 那轮锚点漂移报告里的一句转述，不是一张照片的日志），`memoryNil`／`perCoreEmpty`／`perCoreRed`／`disk-unavailable` 四档 `grep -rln` 在 `Scripts/` 与 `docs/verification/` **两处同样 0 命中**——枚举里有、画面里没有 |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘事件；未改 `Sources/`、`Packages/`；未跑 `swift build` / `make-app.sh`；未 `pkill`，只 `kill` 自己启用的实例 |
 
 实机测得的锚点（本表所有"一致"判定的基准）：
@@ -139,7 +139,7 @@
 | `.unavailable` → 值位「—」+ reason 原文 caption | `:205-212` | ✅（夹具） | 照片 03：「IOServiceOpen(AppleSMC) 失败：kIOReturnDenied」整行照排。**这句 reason 是夹具给的**，本机 SMC 打得开，真失败态无法自然构造；七句 reason 逐句有出处（连接层 4 + 装配层 3 + 首帧 1），全列在 E 稿卡外标注 | — | — |
 | `fanCount == 0` → 「无（SMC 报告本机 0 台风扇）」 | `:241-242` | ✅（夹具） | 照片 04；本机 `FNum`=1，这一档只能注入 | — | — |
 | `fanCount == nil` → 「风扇 —」+「FNum 键没读到，风扇数量未知（未知不等于 0 台）。」 | `:248-255` | ✅（夹具） | 照片 05。与上一档**是两句不同的话**，这条正是本项目"测量诚实"红线在新卡上的落点 | — | — |
-| 风扇行 `MMKeyRow(…, monospaced: true)`，值「1000 RPM（区间 1000–4900）」 | `:245`、`fanText:258-264` | ✅ | 实机照片 01 逐字一致，含全角括号与 en-dash；`Mn/Mx` 缺任一时代码只写「2100 RPM」（不给假区间），这一支**没有照片**——本机四键齐全，夹具也没做这一档，只由单测钉住（`SensorTests` 的风扇取值用例） | 低 | 记录 |
+| 风扇行 `MMKeyRow(…, monospaced: true)`，值「1000 RPM（区间 1000–4900）」 | `:245`、`fanText:258-264` | ✅ | 实机照片 01 逐字一致，含全角括号与 en-dash；`Mn/Mx` 缺任一时代码只写「2100 RPM」（不给假区间），这一支**没有照片**——本机四键齐全，夹具也没做这一档，只由单测钉住（`SensorTests` 的风扇取值用例）。〔**P43a 现读收窄这一句**：`testFanRowsReadCurrentMinMax` 钉的是**装配层**（`fans[1].currentRPM == nil`，超出量程落 nil 而不是 0），而"缺 `Mn`/`Mx` 就只写「2100 RPM」不给假区间"这句**话术**在 `fanText`（`MMMonitor.swift:281`，`private`）里，**测试碰不到它**——`grep -rn "区间" Packages/MMMonitor/Tests` → 0 命中，夹具也没有这一档。所以这一格从今天起写成"**两层都没有证据**：文案层无照片也无单测，只有取值层的 nil 有单测"，别再当作"单测已钉住"〕 | 低 | 记录 |
 | 卡片排在整页最后（进程卡之后） | `:56` | ✅ | 760pt 窗口里永远在折叠线以下，取证靠 `MM_MONITOR_CARDS=sensors`；相邻与卡间距另拍一张 `=process,sensors`（照片 07） | — | — |
 | 首帧前（`MetricSnapshot.empty`）→「尚未完成首次采样」 | `Sensors.swift:150` `notSampled` | ✅（代码分支） | 与 `.unavailable` 同形、不同文案；**抢拍不到**（`.onAppear` 立刻 `enable()`），与 D3a 同一处置 | — | 见 §4 #4 |
 
@@ -147,7 +147,7 @@
 
 > **本表的实现行号是 2026-09-30 那轮审计的坐标**，P6.4 在文件里插入了「温度与风扇」一整段（≈90 行）后
 > 已整体下移（例如私有 `card()` 从 `:191-213` 移到 `:333` 起）。**照抄会点到别处**，
-> 用前先按符号名重找（`grep -n "private func card" MMMonitor.swift`）。§1.7 那张表的行号是 2026-10-04 现读的。
+> 用前先按符号名重找（`grep -n "private func card" MMMonitor.swift`）。§1.7 那张表的行号是 2026-10-04 现读的。**P43a 现读：§1.7 那一列也漂了 ≈+23 行**（P37 电池卡那一段插在下面），当场对上的四个点是 `fanCount == 0` 在 `MMMonitor.swift:264`、`MMKeyRow("风扇"…, monospaced: true)` 在 `:268`、`fanCount == nil` 那句「风扇 —」在 `:273`、`fanText` 在 `:281-287`——**这张表今天不动它**（改判只针对 §1.7 风扇行那句"只由单测钉住"，见上面那一格），但下轮照 §1.7 找代码时必须按符号名重找，别按那一列的旧数。
 > **P6.5 复核（2026-10-04）已把本表与 §1.5/§1.6 的行号换成现读值**：`card()` 现在在 `MMMonitor.swift:435-452`（P37 把电池卡插在它上面，整段又往下走 80 行）。
 
 
@@ -181,7 +181,7 @@
 | 电源行（来源 × 充电态，五档话术） | `batteryStateText:360-374` | 夹具 02「已接通电源，未充电」、04「充电中」 | 其余三档（电池供电 / 两个"某一键读不出" / 矛盾组合报「—」）**只有单测没有照片**——夹具的 `loadedBattery` 两头都给确定值，构造不出"半读数" | 低 | 记录 |
 | 预计剩余行**只在系统给了估计才出现** | `:332-334`、`batteryTimeText:351-356` | 夹具 04「1 小时 36 分」（96 分钟） | 02/03 没有这一行——**没有估计就不摆这一行**，不写「剩余 —」（那一格会被读成"剩余为零"）。`1 小时 36 分` / `2 小时` / `45 分钟` 三种形态由单测钉 | — | — |
 | `noBattery` → 「电量 —」+「本机没有内置电池（AppleSmartBattery 报告 BatteryInstalled=No）。台式机就是这样，不是读取故障。」 | `:321-326` | **实机 01** | 这一档是本机真读数，不是降级：Mac mini M4 实测 `BatteryInstalled=No`（探针 `Scripts/p37-battery-probe.swift`，2026-10-13；同一趟还量到 `CurrentCapacity/MaxCapacity/CycleCount` 全在而全 0、`DesignCapacity` 等 mAh 键**根本不存在**）。**这张卡上唯一一张真读数照片就是这一张** | — | — |
-| `.unavailable(reason:)` → 值位「—」+ reason 原文 caption | `:312-320` | 夹具 05 | 照片上那句 reason 由钩子给；生产侧三条失败路径各有自己的话（`IOServiceMatching` 返回空 / Registry 里没有节点 / 属性读取失败带 mach 错误码），在 `MetricReaders.swift:183-199`，**三条都构造不出来**，只有单测 | — | — |
+| `.unavailable(reason:)` → 值位「—」+ reason 原文 caption | `:312-320` | 夹具 05 | 照片上那句 reason 由钩子给；生产侧三条失败路径各有自己的话（`IOServiceMatching` 返回空 / Registry 里没有节点 / 属性读取失败带 mach 错误码），在 `MetricReaders.swift:183-199`，**三条都构造不出来**，只有单测。〔**P43a 现读改判这一格的最后一句**：三条失败路径在 `MetricReaders.swift:184-197`（旧写的 `:183-199` 漂了 1 行），而**它们没有单测**——`grep -rn AppleSmartBattery` 在 `Packages/MMMonitor/Tests/` 与全仓测试里 0 命中，`machErrorString` 也 0 命中；`BatteryTests` 那三条 `unavailable` 用例（`testMissingInstalledKeyIsUnavailableWithReason`、`testInstalledWithNothingReadableIsUnavailable`、`testNotSampledWording`）钉的是**装配层**（`BatterySnapshot.assemble`：没有 `BatteryInstalled` 键、有键但全读不出、`notSampled`），不是 `read()` 里那三句 IORegistry 失败话术。所以这一档今天既没有照片**也没有**单测，是"生产侧文案无人验证"的敞口，记在这里；补法只有一条：把那三条 reason 抽成可注入的纯函数再钉单测，**不要**为了拍照片去 IOKit 上做手脚〕 | — | — |
 | 卡片排在整页最后（温度卡之后） | `:59` | 夹具 07 | 两卡同屏才看得出 16pt 卡间距与页底留白；`=battery` 单卡那六张**不证明顺序** | — | — |
 | 首帧前 `.notSampled`「尚未完成首次采样」 | `MetricTypes.swift:305` | 代码分支 | 与温度卡 D3a、磁盘 IO 同一处置：`onAppear` 立刻 `enable()`，抢拍不到，只有单测 | 低 | 见 §4 #4 |
 
@@ -329,23 +329,23 @@
 
 以下状态**只在代码里读到分支**，实机一张都没截到。原因统一是：本模块只有 `MM_OPEN_MODULE` 一个入口钩子，
 **没有任何内容/状态钩子**（`grep -r "ProcessInfo.processInfo.environment" Packages/MMMonitor/` → 0 命中），
-而合成点击/滚轮事件属于硬禁止项。
+而合成点击/滚轮事件属于硬禁止项。〔**P43a（2026-10-15）按这一张表逐行对了一遍照片目录，两句话要改判**。① 上面这两行"原因统一是：本模块只有 `MM_OPEN_MODULE` 一个入口钩子、没有任何内容/状态钩子"是**审计首轮（2026-09-30）的原文**，那条 grep 现在跑是**源码 1 命中**（`MMMonitor.swift` 第 65 行；同一命令还会匹配到 `Packages/MMMonitor/.build/` 里两个 `.swiftmodule` 二进制，**别把 3 当成 1**），钩子三枚、档位 18 档都在（见 §0 与本节 §4.1），所以这张表的成因要从"没有钩子"改成**"有钩子、但只有一批脚本用了其中一部分"**；② 按照片目录现读，本表 **13 行里 6 行已有照片**（#1 #2 #10 #10b #11 #12），**#3–#9 共 7 行仍是 0 张**——#3/#4/#5 那一档只能靠 `MM_MONITOR_HOLD`，而 `grep -rn MM_MONITOR_HOLD Scripts | wc -l` → **0**；#6–#9 那四档 `grep -rln` 在 `Scripts/` 与 `docs/verification/` 两处也 **0 命中**。这批照片的下一轮取证脚本已排进任务（覆盖 HOLD 首帧/骨架/empty 四态与那四档未拍的夹具），拍之前这张表**不许**再被读成"13 项全部已闭环"。〕
 
 | # | 未验证项 | 为什么验不了 | 需要什么才能验 |
 | --- | --- | --- | --- |
-| 1 | 内存卡真实渲染（B 稿上半） | 在 1100×700 视口的折叠线以下；不能滚 | 内容钩子（如 `MM_MONITOR_SCROLL=bottom`）或临时把窗口调高（禁止） |
-| 2 | 进程 TOP 10 真实列表（B 稿下半） | 同上，且 `loadProcesses()` 结果不可控 | 同上 + 一个能注入固定进程列表的 fixture 钩子 |
-| 3 | `MMSkeletonRow` × 4（D5） | `onAppear` 后 `Task.detached` 通常在同一次绘制前就返回，实机几乎抓不到骨架帧 | 钩子延迟 `ProcessReader` 返回，或单测/预览快照 |
-| 4 | `MetricSnapshot.empty` 帧（C 稿注脚 + D1/D2/D3） | `enable()` 在 `onAppear` 里立刻调用，`.empty` 只活不到一帧 | 一个"禁止自动 enable"的钩子 |
-| 5 | 采样首帧（C 稿本体：CPU「—」+ 10 空槽 + 磁盘「—/—」无原因行） | 首帧后立刻被第二帧覆盖，无暂停钩子 | 采样节流/暂停钩子 |
-| 6 | 磁盘 IO 四种 `.unavailable` reason 的实机排版（D2） | 本机 IOKit 正常返回，无法构造；沙盒限制分支需要换宿主 | 注入 `DiskIOStatus` 的钩子，或在单测里渲染 |
-| 7 | 内存 `nil` 分支那句（D3） | `host_statistics64` 本机不会失败 | 注入 `memory = nil` 的钩子 |
-| 8 | `perCoreCPU.isEmpty` → 单个「—」（D1） | `host_processor_info` 本机恒返回 10 核 | 同上 |
-| 9 | 每核 ≥85% 红档（D 稿第一格） | 本机采样峰值 78.0%，未越线；不能人为压 CPU 制造（会影响其他并发代理） | 注入 `perCoreCPU` 的钩子 |
-| 10 | `swapAvailable == false` 的 Swap 行（D 稿） | 本机 `sysctl VM_SWAPUSAGE` 正常 | 同上 |
-| 11 | 「菜单栏监控」关闭态 | 关掉即停止采样，页面会冻帧，且需要点击开关（禁止） | 键盘/点击事件之外的开关钩子 |
-| 12 | 浅色模式下的实机配色 | 实机截图取自**深色模式**；稿按设计系统浅色档重绘，浅色档只做了一次交叉核对 | 在浅色模式外观下重跑一次截图流程 |
-| 13 | `MMFormat.bytes` 在各 locale 的确切输出（「1.42 GB」vs「1,42 GB」等） | 只在本机默认 locale 下量过 | 用 `MMFormat` 单测矩阵覆盖，不属于设计稿能验证的范围 |
+| 1 | 内存卡真实渲染（B 稿上半） | 在 1100×700 视口的折叠线以下；不能滚 | 内容钩子（如 `MM_MONITOR_SCROLL=bottom`）或临时把窗口调高（禁止）。〔P43a：**已由照片收口**——`docs/verification/p65/01-monitor-memory-real` ↔ `p65-dark/01`（实机）与 `04-monitor-memory-populated` ↔ `p65-dark/04`（夹具）〕 |
+| 2 | 进程 TOP 10 真实列表（B 稿下半） | 同上，且 `loadProcesses()` 结果不可控 | 同上 + 一个能注入固定进程列表的 fixture 钩子。〔P43a：**已由照片收口**——`p64/07-monitor-sensors-after-process` ↔ `p64-dark/07`，`MM_MONITOR_CARDS=process,sensors` + `MM_MONITOR_FIXTURE=processes,sensors`〕 |
+| 3 | `MMSkeletonRow` × 4（D5） | `onAppear` 后 `Task.detached` 通常在同一次绘制前就返回，实机几乎抓不到骨架帧 | 钩子延迟 `ProcessReader` 返回，或单测/预览快照。〔P43a：**仍 0 张**。要用的 `MM_MONITOR_HOLD` 已在代码里（`MMMonitor.swift:66`），但 `grep -rn MM_MONITOR_HOLD Scripts` → 0 命中：落地至今没有一支取证脚本调用过它。排进 P44〕 |
+| 4 | `MetricSnapshot.empty` 帧（C 稿注脚 + D1/D2/D3） | `enable()` 在 `onAppear` 里立刻调用，`.empty` 只活不到一帧 | 一个"禁止自动 enable"的钩子。〔P43a：**仍 0 张**，同 #3——那一档钩子就是 HOLD，缺的是脚本不是代码〕 |
+| 5 | 采样首帧（C 稿本体：CPU「—」+ 10 空槽 + 磁盘「—/—」无原因行） | 首帧后立刻被第二帧覆盖，无暂停钩子 | 采样节流/暂停钩子。〔P43a：**仍 0 张**，同 #3〕 |
+| 6 | 磁盘 IO 四种 `.unavailable` reason 的实机排版（D2） | 本机 IOKit 正常返回，无法构造；沙盒限制分支需要换宿主 | 注入 `DiskIOStatus` 的钩子，或在单测里渲染。〔P43a：**仍 0 张**。`disk-unavailable:<reason>` 前缀档已在解析里，`grep -rln` 在 `Scripts/`、`docs/verification/` 两处 0 命中——四种 reason 一种都没拍过〕 |
+| 7 | 内存 `nil` 分支那句（D3） | `host_statistics64` 本机不会失败 | 注入 `memory = nil` 的钩子。〔P43a：**仍 0 张**。`memoryNil` 档在枚举里，同样两处 0 命中〕 |
+| 8 | `perCoreCPU.isEmpty` → 单个「—」（D1） | `host_processor_info` 本机恒返回 10 核 | 同上。〔P43a：**仍 0 张**。`perCoreEmpty` 档在枚举里，同样两处 0 命中〕 |
+| 9 | 每核 ≥85% 红档（D 稿第一格） | 本机采样峰值 78.0%，未越线；不能人为压 CPU 制造（会影响其他并发代理） | 注入 `perCoreCPU` 的钩子。〔P43a：**仍 0 张**。`perCoreRed`（核 1 = 91.4%）在枚举里，同样两处 0 命中〕 |
+| 10 | `swapAvailable == false` 的 Swap 行（D 稿） | 本机 `sysctl VM_SWAPUSAGE` 正常 | 同上。〔P43a：**已由照片收口**——`p65/03-monitor-memory-swapoff` ↔ `p65-dark/03`；0 值那一档另见 #10b（`p65/02`）〕 |
+| 11 | 「菜单栏监控」关闭态 | 关掉即停止采样，页面会冻帧，且需要点击开关（禁止） | 键盘/点击事件之外的开关钩子。〔P43a：**已由照片收口**——`p67-menubar-off/01↔02`，判据见 §4.1 #11 那格的 P6.7 修正〕 |
+| 12 | 浅色模式下的实机配色 | 实机截图取自**深色模式**；稿按设计系统浅色档重绘，浅色档只做了一次交叉核对 | 在浅色模式外观下重跑一次截图流程。〔P43a：**已由照片收口**——`docs/verification/p4-light-dark/light-monitor.jpg` ↔ `dark-monitor.jpg`（#54 那一轮 `MM_APPEARANCE` 九屏），另有 `p64/`＋`p65/` 整批浅色实拍 12 张〕 |
+| 13 | `MMFormat.bytes` 在各 locale 的确切输出（「1.42 GB」vs「1,42 GB」等） | 只在本机默认 locale 下量过 | 用 `MMFormat` 单测矩阵覆盖，不属于设计稿能验证的范围。〔P43a：非照片项，维持原判——由 `FormatTests` 承担〕 |
 
 **已验证的部分**（与上表相对，避免把整页都写成"没验过"）：页头标题/副标题格式/开关位置、
 四个读数标签与格式、每核卡标题/图标/`核 N` 编号/56-60 列宽/28pt 行高/6pt 条与轨道几何、
@@ -385,7 +385,7 @@ A 稿 10 个百分比数值、磁盘 IO 两行标签与 monospace、卡片底/�
 > **2026-10-04**；温度键名 `TZZa…TZZh` 对上实机的 `TCMz/Tp0c/…`（174 个点）。两处都对上，
 > 才敢说这一整批档位是真夹具。顺带一句机制上的澄清：注了夹具就**不会起后台采样循环**
 > （`MMMonitor.swift:90` 那行"不 enable"就是为此），所以 §4 #2 猜的"夹具与真实采样抢同一个赋值口"
-> 在本模块不成立——这条已写进 `docs/analysis/hook-ledger.md` §4 #4。
+> 在本模块不成立——这条已写进 `docs/analysis/hook-ledger.md` §4 #4。**P43a 顺手量到的一笔口径账（2026-10-15）**：`p64/`、`p64-dark/`、`p65/`、`p65-dark/`、`p67-menubar-off/` 这五族 **26 张 png 的 26 份同名 `.log` 各只有 2~3 行**（`wc -l` 合计 54），里面**既没有 `# digest:` 归因头**（`grep -l '# digest:'` 对这批 0 命中）**也没有夹具"已生效"那一行**（`grep -l 已生效` 同样 0 命中；那两行装的是 `sandbox_extension_issue_file_to_process` 告警与 `MM_APPEARANCE=…` 强制外观留痕，`p64/08`＋`p64-dark/08` 各多第三行"含非法取值…整个钩子已忽略"——那一行才是 08 这两张的判据）。对照 `p37-battery/`（2026-10-14 出片）八张的 `.log` **两类都有**——差别不是纪律而是时序：这批出在 2026-10-04，早于 P23b 那道"照片与二进制同源"的门，属 §7.14 残余第②条"历史夹具没回头补头"那一族。**判据上怎么算这一笔**：上一段那套哨兵值交叉验证（画面上的「2023-11-15 06:13」与 `TZZ*` 键名）替得起"已生效"那一行——它查的是生产路径产生不出来的值，比日志行更硬；但**没有任何东西替得起 `# digest:`**，所以这 26 张能证明"当时那个界面长成这样"，不能证明它是哪个 commit 的产物。P44 那批新照片两行都必须有。
 
 ### 4.2 P6.4 新卡取证矩阵（8 档 × 明暗两套，`Scripts/p64-capture.sh`）
 

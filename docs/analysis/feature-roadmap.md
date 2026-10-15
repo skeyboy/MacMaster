@@ -1116,7 +1116,7 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
   通知 `.notDetermined`/`.authorized`）——要么换机器，要么由用户手动改系统授权档位再拍，
   本轮**没有**为了拍照去动用户的系统设置。
 - 五份 fidelity 的"待量"里，本轮只交叉核对了 disk/cleaner/optimizer 三份的现读收口，
-  monitor/guardian/uninstaller 三份的"待量/无 HOLD 钩子"以各文档自记文本为准，**没有逐张照片目录扫过**。
+  monitor/guardian/uninstaller 三份的"待量/无 HOLD 钩子"以各文档自记文本为准，**没有逐张照片目录扫过**。〔P43a/P43b/P43c（本轮）已把这笔债翻掉：三份文档逐条对着 `docs/verification/` 的照片目录扫过并就地改判。结论形状三份不一样——**monitor §4 那张 13 行表：6 行已由照片收口、7 行仍 0 张**，成因是"有钩子但只有一批脚本用了其中一部分"（`MM_MONITOR_HOLD` 落地至今没有一支脚本调用过）；**guardian 的钩子口径成立**，卡点是"真实摄像头/占用"这一态只能靠夹具、需要第二台设备；**uninstaller §5 那张 9 行表：1 行已收口（浅色档）、8 行仍 0 张**，且这 8 行缺的是钩子语义（HOLD / 零残留夹具 / 多 app 夹具 / 人工授权）而不是缺脚本。三份共同的另一笔账：出片早于 P23b 的那些族（monitor 26 张、guardian 22 张、uninstaller 的 p68 11 张）`.log` 里都没有 `# digest:` 源码指纹，"照片与二进制同源"对它们说不成立。另查 `release-readiness.md`：`grep -n "待量\|无 HOLD\|逐张照片"` → 0 命中，这一族结论只在这三份文档里。〕
 
 ### 9. v1.1 第 1 条的落地记录（P31a，2026-10-10）
 
