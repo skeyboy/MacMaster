@@ -1,0 +1,123 @@
+# p42b-statbar-metrics.sh  2026-10-15 12:20:12 +0800
+# repo: 3cb62f0  branch=main
+# digest: 3cb62f0+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 宽度链真源原文（探针里的常量抄的就是这五段，现读行号随本段一起打）：
+#   Sources/MacMaster/MacMasterApp.swift:36
+#                     .frame(minWidth: 1000, minHeight: 600)
+#   Sources/MacMaster/MainWindow.swift:22
+#                     .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 280)
+#   Packages/MMUI/Sources/MMUI/MMDesign.swift:93-101（MMGap）
+#     public enum MMGap {
+#         public static let xxs: CGFloat = 2
+#         public static let xs: CGFloat = 4
+#         public static let sm: CGFloat = 8
+#         public static let md: CGFloat = 12
+#         public static let lg: CGFloat = 16
+#         public static let xl: CGFloat = 24
+#         public static let xxl: CGFloat = 32
+#     }
+#   Packages/MMUI/Sources/MMUI/MMDesign.swift:399-408（MMStatItem 的 body：谁缩字、谁换行）
+#         public var body: some View {
+#             VStack(alignment: .leading, spacing: MMGap.xxs) {
+#                 Text(title).font(.caption).foregroundStyle(MMColor.secondaryLabel)
+#                 Text(value).font(.title3).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+#             }
+#             .padding(.vertical, MMGap.sm)
+#             .padding(.horizontal, MMGap.md)
+#             .frame(maxWidth: .infinity, alignment: .leading)
+#             .background(MMColor.underPageSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+#             .overlay(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous).stroke(MMColor.separator))
+#   Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:118-124（现状 4 格）
+#         private var statsRow: some View {
+#             HStack(spacing: MMGap.md) {
+#                 MMStatItem("CPU 总占用", MenuBarManager.percentText(menuBar.snapshot.totalCPU))
+#                 MMStatItem("内存", MenuBarManager.percentText(menuBar.snapshot.memory?.usedRatio))
+#                 MMStatItem("磁盘 读", rateText(menuBar.snapshot.diskReadBytesPerSecond))
+#                 MMStatItem("磁盘 写", rateText(menuBar.snapshot.diskWriteBytesPerSecond))
+#             }
+# 口径声明：上面五段是**当轮现读**，探针里的 220/1000/16/12 若与真源漂移，本读数作废。
+#   「取证窗 1100pt」取自 fidelity-monitor.md §0（p64 那批照片的窗宽），不是硬约束。
+
+度量口径：标题 10pt（preferredFont .caption1）· 数值 15pt monospacedDigit
+        可缩到 0.7 ⇒ 数值可用上限 = 单格文字宽 ÷ 0.7；标题无 lineLimit ⇒ 超宽就换行，每多一行 +13pt
+
+── 最小窗 1000pt：滚动区可用宽 748.0pt
+   4 格：单格 178.0pt · 标题/数值可用文字宽 154.0pt · 数值缩字可用到 220.0pt
+   5 格：单格 140.0pt · 标题/数值可用文字宽 116.0pt · 数值缩字可用到 165.7pt
+   6 格：单格 114.7pt · 标题/数值可用文字宽 90.7pt · 数值缩字可用到 129.5pt
+── 取证窗 1100pt：滚动区可用宽 848.0pt
+   4 格：单格 203.0pt · 标题/数值可用文字宽 179.0pt · 数值缩字可用到 255.7pt
+   5 格：单格 160.0pt · 标题/数值可用文字宽 136.0pt · 数值缩字可用到 194.3pt
+   6 格：单格 131.3pt · 标题/数值可用文字宽 107.3pt · 数值缩字可用到 153.3pt
+
+══ 窗宽 1000pt
+── A · 现状 4 格（单格文字宽 154.0pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读」  32.8pt ✓  数值「1.9 MB/s」  61.1pt ✓
+   标题「磁盘 写」  32.8pt ✓  数值「293.3 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── B · 加网络进出 = 6 格（单格文字宽 90.7pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读」  32.8pt ✓  数值「1.9 MB/s」  61.1pt ✓
+   标题「磁盘 写」  32.8pt ✓  数值「293.3 KB/s」  76.3pt ✓
+   标题「网络 下」  32.8pt ✓  数值「5.6 MB/s」  61.1pt ✓
+   标题「网络 上」  32.8pt ✓  数值「812.4 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── C · 磁盘合成一格 = 5 格（单格文字宽 116.0pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读/写」  48.4pt ✓  数值「1.9 / 293.3 KB/s」 111.2pt ✓
+   标题「网络 下」  32.8pt ✓  数值「5.6 MB/s」  61.1pt ✓
+   标题「网络 上」  32.8pt ✓  数值「812.4 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── 最坏位数（同一条数值分别放进 1000pt 窗的 4 / 5 / 6 格）
+   「—」需  12.9pt： 4 格 154.0pt→不缩字   5 格 116.0pt→不缩字   6 格  90.7pt→不缩字  
+   「100.0%」需  54.7pt： 4 格 154.0pt→不缩字   5 格 116.0pt→不缩字   6 格  90.7pt→不缩字  
+   「812.4 KB/s」需  76.3pt： 4 格 154.0pt→不缩字   5 格 116.0pt→不缩字   6 格  90.7pt→不缩字  
+   「1023.9 TB/s」需  85.1pt： 4 格 154.0pt→不缩字   5 格 116.0pt→不缩字   6 格  90.7pt→不缩字  
+   「1.9 / 293.3 KB/s」需 111.2pt： 4 格 154.0pt→不缩字   5 格 116.0pt→不缩字   6 格  90.7pt→缩字  
+   「1023.9 / 1023.9 TB/s」需 147.7pt： 4 格 154.0pt→不缩字   5 格 116.0pt→缩字   6 格  90.7pt→截断  
+
+══ 窗宽 1100pt
+── A · 现状 4 格（单格文字宽 179.0pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读」  32.8pt ✓  数值「1.9 MB/s」  61.1pt ✓
+   标题「磁盘 写」  32.8pt ✓  数值「293.3 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── B · 加网络进出 = 6 格（单格文字宽 107.3pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读」  32.8pt ✓  数值「1.9 MB/s」  61.1pt ✓
+   标题「磁盘 写」  32.8pt ✓  数值「293.3 KB/s」  76.3pt ✓
+   标题「网络 下」  32.8pt ✓  数值「5.6 MB/s」  61.1pt ✓
+   标题「网络 上」  32.8pt ✓  数值「812.4 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── C · 磁盘合成一格 = 5 格（单格文字宽 136.0pt）
+   标题「CPU 总占用」  54.0pt ✓  数值「35.8%」  45.5pt ✓
+   标题「内存」  19.9pt ✓  数值「80.2%」  45.5pt ✓
+   标题「磁盘 读/写」  48.4pt ✓  数值「1.9 / 293.3 KB/s」 111.2pt ✓
+   标题「网络 下」  32.8pt ✓  数值「5.6 MB/s」  61.1pt ✓
+   标题「网络 上」  32.8pt ✓  数值「812.4 KB/s」  76.3pt ✓
+   ⇒ 标题超宽 0 个（），卡高 48→48pt；缩字 0 个、截断 0 个
+── 最坏位数（同一条数值分别放进 1100pt 窗的 4 / 5 / 6 格）
+   「—」需  12.9pt： 4 格 179.0pt→不缩字   5 格 136.0pt→不缩字   6 格 107.3pt→不缩字  
+   「100.0%」需  54.7pt： 4 格 179.0pt→不缩字   5 格 136.0pt→不缩字   6 格 107.3pt→不缩字  
+   「812.4 KB/s」需  76.3pt： 4 格 179.0pt→不缩字   5 格 136.0pt→不缩字   6 格 107.3pt→不缩字  
+   「1023.9 TB/s」需  85.1pt： 4 格 179.0pt→不缩字   5 格 136.0pt→不缩字   6 格 107.3pt→不缩字  
+   「1.9 / 293.3 KB/s」需 111.2pt： 4 格 179.0pt→不缩字   5 格 136.0pt→不缩字   6 格 107.3pt→缩字  
+   「1023.9 / 1023.9 TB/s」需 147.7pt： 4 格 179.0pt→不缩字   5 格 136.0pt→缩字   6 格 107.3pt→缩字  
+
+══ 一句话余量（6 格 · 最窄窗 1000pt）
+   单格文字可用宽 90.7pt：最宽标题 54.0pt、本档常用数值最宽 76.3pt、位数天花板 85.1pt
+   ⇒ 三者都不越线：不折行、不缩字、卡高仍 48pt，§0 那条折叠线落点不动
+
+══ 竖向代价（与缩字/换行分开算，两者可叠加）
+   读数条拆成两行：+卡高 48 + 块间距 16 = +64pt，
+     滚动视口高 = 窗高 700 − 标题栏 52 − 页头 46 = 602pt，吃掉 64pt = 10.6%
+   只让标题折行不拆行：每个折行标签 +13pt（§0 那句「磁盘 IO 卡后内存卡只露一行」的落点会跟着下移这么多）
+   口径限制：本探针算的是 SwiftUI 同一套字体与内边距的**固有宽**，没实测 SwiftUI 的 HStack 压缩顺序；
+     真落地要拍一张 6 格的最小窗照片，不能只凭这张表结案。

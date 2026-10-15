@@ -1,0 +1,87 @@
+# p42-owner-resolve-probe.sh  2026-10-15 12:08:20 +0800
+# repo: 3cb62f0  branch=main
+# digest: 3cb62f0+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 全程只读：只列 ~/Library/Preferences 与 ByHost 的文件名，不读内容、不写盘。
+# 三道闸的真源原文（Packages/MMUninstaller/Sources/MMUninstaller/OrphanScanner.swift，现读行号随本段一起打）：
+#   --- 剥扩展名（正则那一条）
+#           // 剥掉真扩展名（.plist / .savedState / .shm）；`com.foo.Bar` 的最后一段不是
+#           // 扩展名，一律 deletingPathExtension() 会把强证据本身削掉。
+#           let base = fileName.replacingOccurrences(
+#               of: #"\.(plist|savedState|shm|binarycookies)$"#, with: "", options: .regularExpression
+#           )
+#   --- 削 UUID 尾段
+#       /// 末段是 UUID 时把它削掉，其余原样。真实应用标识不会以 UUID 结尾，
+#       /// 但"应用 + 每次运行一个实例目录"会（`com.foo.Bar.<uuid>`），
+#       /// 所以只削尾段、保留前缀，让它仍然能被认出来。
+#       static func strippingUUIDTailSegment(_ base: String) -> String {
+#           let segments = base.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
+#           guard let last = segments.last, segments.count > 1, isUUIDLike(last) else { return base }
+#           return segments.dropLast().joined(separator: ".")
+#       }
+#   --- 反向域名形态
+#       /// 强证据只认"反向域名"形态：至少两段点分、每段不短。
+#       /// `Caches`、`Saved`、`HomeKit` 这种单词目录不可能是应用归属线索。
+#       static func isOwnerShaped(_ base: String) -> Bool {
+#           let segments = base.split(separator: ".").map(String.init)
+#           guard segments.count >= 3 else { return false }
+#           return segments.allSatisfy { $0.count >= 2 }
+#       }
+#   --- isUUIDLike
+#       /// 容器目录名常是随机标识，正向要靠元数据反查；反向同理，没有名称可判。
+#       static func isUUIDLike(_ name: String) -> Bool {
+#           let layout = [8, 4, 4, 4, 12]
+#           let parts = name.lowercased().split(separator: "-", omittingEmptySubsequences: true).map(String.init)
+#           guard parts.count == layout.count else { return false }
+#           return zip(parts, layout).allSatisfy { part, length in
+#               part.count == length && part.allSatisfy(\.isHexDigit)
+#           }
+#       }
+# 口径声明：上面这四段是**抄的语义**，探针自己实现了一遍。落地时判定必须由真源那一处出；
+#   两串若漂移，本读数只能算近似，不能当判据。
+
+# 口径：NSWorkspace.urlForApplication(withBundleIdentifier:) 是唯一判据；查不到即 nil，UI 该画「—」。
+# 三道闸（剥扩展名 / 削 UUID 尾段 / 反向域名形态）语义抄自 OrphanScanner.swift，落地时以真源为准。
+
+## 顶层 /Users/lee/Library/Preferences
+  .plist 总数 597｜形态闸通过 467｜闸外 130
+  反查命中 91（占总数 15.2%、占闸内 19.5%）
+  其中 Apple 前缀 51｜第三方 40
+  ⇒ 这一列真能画出名字的只有第三方那一档：40 / 597 = 6.7%
+  命中样本（前 6 条，bundle id → 显示名）：
+    com.DanPristupov.Fork → Fork
+    com.alicloud.smartdrive → aDrive
+    com.apple.AccessibilityUIServer → Accessibility
+    com.apple.AddressBook.abd → AddressBookManager
+    com.apple.AddressBook → Contacts
+    com.apple.AppStore → App Store
+  未命中样本（前 6 条）：
+    com.Breakpad.crash_report_sender
+    com.abcwyc.pi-agent
+    com.amplitude.storage.amplitude-swift-229f784cadbc7facc285d38e00635034
+    com.amplitude.storage.amplitude-swift-identify-$default_instance
+    com.amplitude.storage.amplitude-swift-identify-229f784cadbc7facc285d38e00635034-$default_instance
+    com.amplitude.storage.amplitude-swift-identify-229f784cadbc7facc285d38e00635034
+
+## ByHost /Users/lee/Library/Preferences/ByHost
+  .plist 总数 37｜形态闸通过 36｜闸外 1
+  反查命中 10（占总数 27.0%、占闸内 27.8%）
+  其中 Apple 前缀 10｜第三方 0
+  ⇒ 这一列真能画出名字的只有第三方那一档：0 / 37 = 0.0%
+  命中样本（前 6 条，bundle id → 显示名）：
+    com.apple.FaceTime → FaceTime
+    com.apple.ManagedClient → ManagedClient
+    com.apple.MobileSMS → Messages
+    com.apple.Music → Music
+    com.apple.QuickLookDaemon → Quick Look Helper
+    com.apple.controlcenter → ControlCenter
+  未命中样本（前 6 条）：
+    com.alicloud.smartdrive.ShipIt
+    com.apple.AMPLibraryAgent
+    com.apple.AOSKit.RegInfo
+    com.apple.AOSPushRelay.TopicInfo
+    com.apple.CrashReporter
+    com.apple.commcenter.csidata
+
+## 合起来
+  两族共 634 行；画 owner 列时能给第三方应用名的 40 行（6.3%），其余 594 行画「—」。
