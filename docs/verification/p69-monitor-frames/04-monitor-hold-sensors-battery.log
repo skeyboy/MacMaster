@@ -1,0 +1,11 @@
+# p69-monitor-frames-capture.sh 04-monitor-hold-sensors-battery  2026-10-15 13:51:32 +0800  app=/tmp/mm-app-p69/MacMaster.app
+# repo: 1d530d8-dirty   # app-repo: 1d530d8-dirty
+# digest: tree=1d530d8+52db0ea7 app=1d530d8+52db0ea7
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=sensors,battery MM_MONITOR_HOLD=hold
+# 卡：sensors,battery   # 冻结：hold   # 夹具：（未注入，读这台机器）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p69/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_MONITOR_HOLD=hold 已生效：onAppear 不启动采样，页面冻结在首帧
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=15553): windowid=8084 pid=15553 layer=0 title=MacMaster bounds=["Width": 1400, "X": 284, "Height": 900, "Y": 68]
+# frame: 未取到

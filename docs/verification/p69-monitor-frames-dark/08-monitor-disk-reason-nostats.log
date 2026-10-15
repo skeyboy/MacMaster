@@ -1,0 +1,11 @@
+# p69-monitor-frames-capture.sh 08-monitor-disk-reason-nostats  2026-10-15 13:54:29 +0800  app=/tmp/mm-app-p69/MacMaster.app
+# repo: 1d530d8-dirty   # app-repo: 1d530d8-dirty
+# digest: tree=1d530d8+52db0ea7 app=1d530d8+52db0ea7
+# env: MM_APPEARANCE=dark MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=disk MM_MONITOR_FIXTURE=disk-unavailable:所有磁盘驱动均未暴露 Statistics 字典（可能被沙盒/权限限制）
+# 卡：disk   # 冻结：（未冻结，onAppear 正常启动采样）   # 夹具：disk-unavailable:所有磁盘驱动均未暴露 Statistics 字典（可能被沙盒/权限限制）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p69/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=dark 已强制 dark 外观（仅本进程，不改系统设置）
+MM_MONITOR_FIXTURE=diskUnavailable 已生效：这是合成快照，不是这台机器的读数
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=20596): windowid=8184 pid=20596 layer=0 title=MacMaster bounds=["X": 285, "Height": 900, "Y": 68, "Width": 1400]
+# frame: 未取到

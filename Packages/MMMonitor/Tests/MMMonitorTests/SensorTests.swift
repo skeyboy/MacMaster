@@ -179,6 +179,25 @@ final class MonitorCardFilterTests: XCTestCase {
         XCTAssertEqual(result.rejected, ["typo"])
     }
 
+    /// P44 实拍当场抓出来的那一格：`perCore` 是这张表里唯一的驼峰 rawValue，
+    /// 而解析原先把输入 `lowercased()` 之后再去按 rawValue 精确匹配，所以它**永远选不中**；
+    /// 又因为整批作废，取证脚本里 `MM_MONITOR_CARDS=stats,perCore` 会连带把 `stats` 一起作废，
+    /// 照片拍成全卡七块、判据静默失效（上面三行小写用例一条都盖不到）。
+    func testCamelCaseCardIsReachable() {
+        XCTAssertEqual(MonitorCardFilter.parse("stats,perCore").visible, [.stats, .perCore])
+        // 大小写不敏感是双向的：全小写那一格也要认，否则改了驼峰又把旧写法丢了。
+        XCTAssertEqual(MonitorCardFilter.parse("percore").visible, [.perCore])
+        XCTAssertEqual(MonitorCardFilter.parse("PERCORE").visible, [.perCore])
+    }
+
+    /// 七块卡逐块单独选一次：任何一格 rawValue 与表内比对口径不一致，这里都会红。
+    func testEveryCardSelectableAlone() {
+        for card in MonitorCard.allCases {
+            XCTAssertEqual(MonitorCardFilter.parse(card.rawValue).visible, [card],
+                           "\(card.rawValue) 单独特指时选不中")
+        }
+    }
+
     func testSensorFixtureTiers() {
         XCTAssertEqual(MonitorSnapshotFixture.parse("sensors").snapshot?.sensors.status, .loaded)
 

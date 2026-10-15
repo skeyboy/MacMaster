@@ -25,14 +25,25 @@ enum MonitorLoadHook {
         let rejected: String?
     }
 
+    /// 生效留痕（配方同 `MonitorFixtureTier.appliedNote`）。
+    /// HOLD 这一档不改任何数值，它冻结出来的画面和"真机首帧"本来就同形，
+    /// 所以没有这一行就分不开"钩子生效"与"钩子被忽略、恰好停在首帧"——
+    /// 取证脚本判这一族只看这一行，不看照片。
+    static let appliedNote = "MM_MONITOR_HOLD=hold 已生效：onAppear 不启动采样，页面冻结在首帧"
+
     /// 只认 `hold`：onAppear 不调用 enable()、也不 loadProcesses()，
     /// 页面停在 `.empty` 首帧（测量中 + 骨架 + 内存"尚未采样"），可截图核对折叠线以上态。
+    /// 取值非法时整枚钩子作废并写 stderr（口径同 `MM_MONITOR_FIXTURE`），未设置时生产路径不变。
     static func parse(_ raw: String?) -> Result {
-        guard let raw, !raw.isEmpty else { return Result(holdInitialFrame: false, rejected: nil) }
-        if raw.trimmingCharacters(in: .whitespaces).lowercased() == "hold" {
-            return Result(holdInitialFrame: true, rejected: nil)
+        let resolution = MMHookValue.resolveFlag(raw: raw ?? "", token: "hold")
+        guard resolution.rejected == nil else {
+            if let note = resolution.note(key: "MM_MONITOR_HOLD", token: "hold") {
+                MMHookValue.emit(note)
+            }
+            return Result(holdInitialFrame: false, rejected: resolution.rejected)
         }
-        return Result(holdInitialFrame: false, rejected: raw)
+        if resolution.on { MMHookValue.emit(appliedNote) }
+        return Result(holdInitialFrame: resolution.on, rejected: nil)
     }
 }
 
@@ -295,7 +306,7 @@ struct MonitorSnapshotFixture {
 // MARK: - 卡片过滤（MM_MONITOR_CARDS）
 
 /// 监控页的七块卡，顺序即代码里的堆叠顺序。
-enum MonitorCard: String, Sendable {
+enum MonitorCard: String, CaseIterable, Sendable {
     case stats, perCore, disk, memory, process, sensors, battery
 }
 
@@ -315,7 +326,12 @@ enum MonitorCardFilter {
         var accepted: Set<MonitorCard> = []
         var rejected: [String] = []
         for token in tokens {
-            if let card = MonitorCard(rawValue: token.lowercased()) {
+            // 整张表按小写比对，而不是 `MonitorCard(rawValue: token.lowercased())`：
+            // 后者把输入小写了却去比驼峰的 rawValue，`perCore` 那一格永远匹配不上，
+            // 于是"每核 CPU"这张卡**永远选不中**——而按整批作废的规矩，
+            // 只要卡集里带上它就必然连带把同批合法的卡一起作废（照片拍成全卡，判据静默失效）。
+            let needle = token.lowercased()
+            if let card = MonitorCard.allCases.first(where: { $0.rawValue.lowercased() == needle }) {
                 accepted.insert(card)
             } else {
                 rejected.append(token)

@@ -1,0 +1,11 @@
+# p69-monitor-frames-capture.sh 06-monitor-disk-reason-matching  2026-10-15 13:51:46 +0800  app=/tmp/mm-app-p69/MacMaster.app
+# repo: 1d530d8-dirty   # app-repo: 1d530d8-dirty
+# digest: tree=1d530d8+52db0ea7 app=1d530d8+52db0ea7
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=monitor MM_MONITOR_CARDS=disk MM_MONITOR_FIXTURE=disk-unavailable:IOServiceMatching("IOBlockStorageDriver") 返回空，无法枚举磁盘统计
+# 卡：disk   # 冻结：（未冻结，onAppear 正常启动采样）   # 夹具：disk-unavailable:IOServiceMatching("IOBlockStorageDriver") 返回空，无法枚举磁盘统计
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p69/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_MONITOR_FIXTURE=diskUnavailable 已生效：这是合成快照，不是这台机器的读数
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=16538): windowid=8099 pid=16538 layer=0 title=MacMaster bounds=["X": 284, "Width": 1400, "Y": 68, "Height": 900]
+# frame: 未取到
