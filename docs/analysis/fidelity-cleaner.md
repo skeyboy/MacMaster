@@ -15,7 +15,7 @@
 > 其余差异集中在三类：**① 与共享组件的结构差**（只读行丢掉复选框列、行内要素顺序、
 > `MMFailurePanel` 比 `05-states` 规格少统计行与页脚）、**② 02/02b 两稿互相打架的结构**
 > （02 缺容器三页签、02b 把页签塞进页头同一行、过滤条第 4 项"开发" vs 实现"临时"）、
-> **③ 全站骨架层继承项**（侧栏 footer、页底/卡片 token、侧栏尾数占位，与 `fidelity-monitor` 同源）。〔**P38f 现读**：这一族里**侧栏 footer 与侧栏尾数占位两项都已经落地**——组件在 `tokens.css:286`、16 张稿在用（含本页 02/02b/02c 三张），尾数由同一笔 `0c61fbf` 从稿侧删掉；这一族今天只剩页底/卡片那一半（S4，等 `coordination-audit.md` §5 第 2 条）还开着。判据与残留三处见 `release-readiness.md` §7.35。〕
+> **③ 全站骨架层继承项**（侧栏 footer、页底/卡片 token、侧栏尾数占位，与 `fidelity-monitor` 同源）。〔**P38f 现读**：这一族里**侧栏 footer 与侧栏尾数占位两项都已经落地**——组件在 `tokens.css:287`、16 张稿在用（含本页 02/02b/02c 三张），尾数由同一笔 `0c61fbf` 从稿侧删掉；这一族今天只剩页底/卡片那一半（S4，等 `coordination-audit.md` §5 第 2 条）还开着。判据与残留三处见 `release-readiness.md` §7.35。〕
 >
 > **逐元素对照 59 项**，其中 **需归属的差异 23 项**（**高 1 / 中 6 / 低 16**）：
 > **实现该改 10 条**（I1–I10）、**设计稿该改 13 条**（S1–S13，其中 S2 为两边都改）。
@@ -88,7 +88,7 @@
 | 行结构：勾选 · 图标 · 名称/副标题 · **大小 → 风险徽章 → 操作** | `MMItemRow`（`MMDesign.swift:838-868`，P36 现读重指：原引 `:719-747` 落在 `MMFailurePanel` 的 body 里，与这个组件无关）：`勾选 → 图标 → 名称/副标题 → Spacer → 徽章 → accessory → 大小` | ❌ | **大小永远在最右**，徽章/折叠箭头/文件夹都在它左边；稿内大小在徽章**之前**。分类行与安装包行都如此 | **中** | 实现该改 I3 |
 | 行内图标配色：安全档 `--c-warning`（橙）/ 谨慎档 secondary（灰）/ 只读 tertiary | `MMItemRow` 用 `risk?.color`（安全=绿 `systemGreen`、谨慎=橙、只读=secondary） | ❌ | 安全档图标实现是**绿**、稿内是**橙**；谨慎档实现是**橙**、稿内是**灰**。且稿内"安全徽章绿 + 图标橙"自身不一致 | 低 | 设计稿该改 S7 |
 | 只读行：虚线禁用复选框（`.chk.off-allowed`）+ 锁图标 + 「只读」徽章 | `categoryRows` `MMCleaner.swift:522-546` 传 `isSelectable: category.risk.allowsDeletion` → 只读档 **不渲染 Toggle** | ❌ | 实现**整列删掉复选框**（`MMItemRow` 里 `if isSelectable { Toggle }`），不是画虚线禁用框；后果是只读行的图标列相对可勾选行**左移、列不对齐** | **中** | 实现该改 I2 |
-| 只读行操作列 = info 图标 | `categoryRows` 仍按 `subItems` 非空给 `chevron.down/up` + `folder` | ❌ | 只读分类只要 `subItems` 非空就仍带**展开箭头**，稿内只给 info | 低 | 实现该改 I7 |
+| 只读行操作列 = info 图标 | `categoryRows` 仍按 `subItems` 非空给 `chevron.down/up` + `folder` | ✅（P41 现读） | 只读分类只要 `subItems` 非空就仍带**展开箭头**，稿内只给 info〔**P41 已落地**：`MMCleaner.swift:578` 现在前面多了 `category.risk.allowsDeletion` 这一道闸，只读分类不再给箭头；上一句是审计当天的读数〕 | 低 | ~~实现该改 I7~~ **已改**（见 §2 第 7 条） |
 | 「沙盒容器缓存」大小占位「·」 | `MMCleaner.swift:572` `scannedSize > 0 ? bytes : "—"` | ❌ | 稿内未测用「·」，实现用「—」；且实现把"扫到 0 字节"也画成「—」（与"未测"同形） | 低 | 设计稿该改 S7 |
 | 行高 44 / 表头 26 / 分组头 30 / 卡圆角 8 | `MMMetric.rowRegular` 44、`:478` 26、`:518` 30、`MMRadius.card` 8 | ✅ | 与稿内 `.crow min-height:44`、`.hdr 26`、`.gtitle 30`、`--r-md 8` **数值一致**（代码层；实机像素 `⚠️待真机测量`） | — | — |
 | 底部注脚「所有删除一律先移入废纸篓…不会静默跳过。」 | `MMCleaner.swift:436-446` | ✅ | 文案逐字一致 | — | — |
@@ -118,12 +118,12 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| PROTECTED 行：琥珀盾 + 原因 + 错误码三列 | `MMFailurePanel`（`MMDesign.swift:647-670`）：`failure.code=="PROTECTED"` → `exclamationmark.shield` 琥珀 + 原因 2 行 + 右列 `PROTECTED` | ✅ | 与 `cleaner-refusal-panel.jpg` 实拍一致：三条 PROTECTED，盾牌/原因/码齐全；文案由 `DeletionGuard.rejection` 现场算，非手写 | — | — |
+| PROTECTED 行：琥珀盾 + 原因 + 错误码三列 | `MMFailurePanel`（`MMDesign.swift:735-757`，**P41 现读重指**：原引 `:647-670` 落在组件外的别的类型里，那一段今天已经不是 PROTECTED 行）：`failure.code=="PROTECTED"` → `exclamationmark.shield` 琥珀 + 原因 2 行 + 右列 `PROTECTED` | ✅ | 与 `cleaner-refusal-panel.jpg` 实拍一致：三条 PROTECTED，盾牌/原因/码齐全；文案由 `DeletionGuard.rejection` 现场算，非手写 | — | — |
 | 顶部摘要「已回收 X GB」（绿） + 「N 项失败」徽章 + 忽略 | `MMCleaner.swift:337-344` 传 `"已回收 \(MMFormat.bytes(model.lastResult?.totalSize))"` | ⚠️ | 实拍图摘要显示「已回收 **测量中**」（夹具下 `lastResult==nil`）；真实删除后才会是「已回收 X GB」 | 低 | 实现该改 I10 |
 | 「计划 N · 成功 N · 失败 N · 跳过 N」统计行 | 实现无此行 | ❌ | `05-states.html` 局部失败态明确画了这行；实现只给"已回收 + N 项失败" | **中** | 实现该改 I5 |
 | 页脚「复制诊断信息 / 重试失败项 / 完成」 | 实现只有「忽略」 | ❌ | 缺"重试失败项"等补救入口；`05-states` 规格有 | **中** | 实现该改 I5 |
 | 面板形态：带边框圆角卡（`05-states`） | 实现是**琥珀底通栏条**（`MMColor.soft(caution,0.10)` + 顶部 Divider，无圆角/边框），贴动作栏上方 | ❌ | 形态不同；影响的是共享组件 | 低 | 实现该改 I5（→ 协调者） |
-| 超过 4 条折叠为「另有 N 项失败」 | `MMDesign.swift:647` `failures.prefix(4)` | ✅ | 夹具正好 3 条，全部列出 | — | — |
+| 超过 4 条折叠为「另有 N 项失败」 | `MMDesign.swift:735` `failures.prefix(4)` + 折叠文案 `:760-764`（P41 现读重指：原引 `:647` 落在 `MMPermissionBanner` 一侧，与组件无关） | ✅ | 夹具正好 3 条，全部列出 | — | — |
 
 ### 1.8 删除后状态一致性（无稿，代码走查）
 
@@ -166,7 +166,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 侧栏 footer = 1px 线 + 平铺「设置」nav-item | 实机图左下是 **`Macintosh HD` + `7%` + 红色容量条 + 带边框「设置」按钮** | ✅（P38f 现读） | 与 `fidelity-monitor` S1 同源：02/02b 沿用了 01–06 的错误画法——**这一半由 `0c61fbf` 作废**（那一笔就把 02/02b 换成 `tokens.css:286` 的 `.sidebar-footer`，02c 新建时从一开始就在用） | **中** | 两边都改 S2 → **稿侧已落地（P38f）** |
+| 侧栏 footer = 1px 线 + 平铺「设置」nav-item | 实机图左下是 **`Macintosh HD` + `7%` + 红色容量条 + 带边框「设置」按钮** | ✅（P38f 现读） | 与 `fidelity-monitor` S1 同源：02/02b 沿用了 01–06 的错误画法——**这一半由 `0c61fbf` 作废**（那一笔就把 02/02b 换成 `tokens.css:287` 的 `.sidebar-footer`，02c 新建时从一开始就在用） | **中** | 两边都改 S2 → **稿侧已落地（P38f）** |
 | 侧栏尾数「系统清理 2.4 GB」「应用卸载 46」 | 无来源；实机 系统清理尾数随扫描变化（图上为 653.6 MB） | ✅（P38f 现读） | 纯占位，见 monitor S2——**这一条由 `0c61fbf` 作废**：现读 `02-cleaner.html`、`02b-cleaner-installers.html`、`02c-cleaner-dev.html` 三份稿里 `class="tail"` 出现 0 次，侧栏不挂尾数；实现也只在 `MainWindow.swift:105-110` 的 `.measured` 分支给清理那一行挂真实值 | 低 | 设计稿该改 S8 → **稿侧已落地（P38f）** |
 | 页面底 / 卡片底色 | `tokens.css` 用 `--c-content-bg`（白）；实机页底 = `windowBackgroundColor`、卡 = `textBackgroundColor` | ❌ | 全站性 token 差，见 monitor S3/S4 | 低 | 设计稿该改 S9 |
 | 页内卡未复用 `MMCard` | `MMCleaner.swift:503-506` 内联 `contentBackground`+8pt+描边，**不调用 `MMCard`**（后者是 `cardSurface`） | ❌ | 与 monitor I4 同类：同一 App 出现第三种"卡底 token" | **中** | 实现该改 I4（→ 协调者） |
@@ -182,7 +182,7 @@
 >
 > **P6.6 追加（2026-10-04）**：**I9 已量完并判为"非缺陷"**（最长那句 groupNote 实宽 ≈187pt < 280pt 封顶，
 > 照片 `docs/verification/p66-layout/04-cleaner-caution-note.png`，拍法见 §2 I9）。
-> 所以"一天没动"的四条现在只剩 **I4 / I7 / I8** 三条。
+> 所以"一天没动"的四条现在只剩 **I4 / I7 / I8** 三条。〔**P41 现读**：I7 已落地（§2 第 7 条），这一族只剩 **I4 / I8** 两条。〕
 
 1. **【高】I1 · 失败条目从分类表/系统分析表里被静默移除 —— 主表面把失败当成已清理**
    `CleanerModel.clean()`（`MMCleaner.swift:224`）用 `let cleaned = Set(paths)`（**尝试过的全部路径**）
@@ -241,12 +241,12 @@
    所以归因头多了第三行 `# defaults:`；跑完 `trap` 还原，02 就是还原后的对照档）。
    ②③ 两档**没有新照片**：②需要"扫到一半取消"、③需要真机上恰好全干净，
    两者都不是钩子能定格的；这一条的闭环只到"①不再是假话"为止。
-5. **【中】I5 · `MMFailurePanel` 比 `05-states` 局部失败规格少两截**（`MMDesign.swift:620-684`）
+5. **【中】I5 · `MMFailurePanel` 比 `05-states` 局部失败规格少两截**（`MMDesign.swift:672-795`，P41 现读重指：原引 `:620-684` 是组件创建前的旧落点）
    缺 **「计划 N · 成功 N · 失败 N · 跳过 N」统计行**，缺 **页脚「重试失败项 / 复制诊断信息」**；
    面板形态也由"带边框圆角卡"变成"琥珀底通栏条"。这是共享组件，见 §5。
    **复核 2026-10-04：⚠️ 组件侧做完了、调用侧一处没用 = 页面上仍然看不到**（`c74f045` 给组件加了
    `Stats` 结构体 + 带 `stats:`/`onRetry:`/`onCopyDiagnostics:` 的新 init（`MMDesign.swift:682-714`）、
-   统计行 `:726-728`、页脚，但旧 init `:688` 原样保留，而**全仓 11 个调用点无一使用新 init**
+   统计行 `:732-734`、页脚 `:765-778`，但旧 init `:694-698` 原样保留，而**全仓 11 个调用点无一使用新 init**（P41 现读：新 init 是 `:700-714`，原引 `:726-728`/`:688` 是这一轮之前的旧落点）
    （**P20 现读重跑，判据换成能罩住壳层的那一条**：
    `grep -rn 'MMFailurePanel(' --include='*.swift' Packages Sources | grep -v 'struct MMFailurePanel' | wc -l` = 11，
    逐个位置是 `MMCleaner.swift:376`、`SystemAnalysisView.swift:37`、`UserFolderCleanView.swift:72`、
@@ -278,9 +278,9 @@
    `Text("操作").frame(width: 52)`（`e84066a`）；列宽仍是 44/52（稿 92/60，**这条的 `⚠️待真机测量` 至今没人量**）；
    I6b 的撤回开关仍只在缓存页 sheet（`:739`），另两页还是系统 `.alert`。
 7. **【低】I7 · 只读分类仍带展开 chevron**（`MMCleaner.swift:578`，只要 `subItems` 非空；P36 现读重指：原引裸写 `:533-537` 落在「全选」binding 里，与 chevron 无关）——
-   稿内只读行只给 info 图标。
+   稿内只读行只给 info 图标。   稿内只读行只给 info 图标。
    **复核 2026-10-04：❌ 仍未做**（现坐标 `MMCleaner.swift:578`，条件仍是 `!category.subItems.isEmpty`，
-   没有 `allowsDeletion` 这一道闸）。
+   没有 `allowsDeletion` 这一道闸）。〔**P41 已落地（2026-10-15）**：`:578` 现为 `if category.risk.allowsDeletion, !category.subItems.isEmpty {`，与上一行 `:575` 的 `isSelectable: category.risk.allowsDeletion` 同一道闸；上面那半句"条件仍是"是当天的读数〕
 8. **【低】I8 · 页头标题与页签名不同源**：页签「缓存清理」而页头「系统清理」
    （`CleanerContainerView.swift:9-11` vs `MMCleaner.swift:305`）。记录，非必要改。
    **复核 2026-10-04：❌ 未做，且按原文判断**不该**做**——这一条审计自己写的就是"记录，非必要改"，
@@ -331,7 +331,7 @@
    画进 46pt 工具栏**与标题同行**。实机是**页头之上独立 30pt 一行**（`cleaner-refusal-panel.jpg` 顶部可核）。
    → 两稿都要重画：补出/挪正「缓存清理｜用户文件夹｜系统分析」这一行。
 2. **【中】S2 · 侧栏 footer 全站画错**（与 `fidelity-monitor` S1 同源）：稿内是"分隔线 + 平铺设置"，
-   实机是容量行 + 带边框设置按钮。**两边都改**：设计层补一个侧栏 footer 组件，01–07 一起换。〔**P38f 现读：这条作废，且出生即假**——组件在 `tokens.css:286`、02/02b 由 `0c61fbf` 那天就换了（那一笔的文件列表里就有这两张），02c 后来新建时从一开始就在用；现读 20 张里 16 张在用。这一族只剩 `components.html` 改稿前第 141-142 行 一格旧画法与磁盘 04b/04e 没画，见 `release-readiness.md` §7.35。〔**P39 收这一族**：那一格现读就是 `<div class="sidebar-footer">`（`components.html:141`），04b/04e 三块补了 footer，九张 png 重渲染，判据在 `release-readiness.md` §7.36。〕
+   实机是容量行 + 带边框设置按钮。**两边都改**：设计层补一个侧栏 footer 组件，01–07 一起换。〔**P38f 现读：这条作废，且出生即假**——组件在 `tokens.css:287`、02/02b 由 `0c61fbf` 那天就换了（那一笔的文件列表里就有这两张），02c 后来新建时从一开始就在用；现读 20 张里 16 张在用。这一族只剩 `components.html` 改稿前第 141-142 行 一格旧画法与磁盘 04b/04e 没画，见 `release-readiness.md` §7.35。〔**P39 收这一族**：那一格现读就是 `<div class="sidebar-footer">`（`components.html:141`），04b/04e 三块补了 footer，九张 png 重渲染，判据在 `release-readiness.md` §7.36。〕
 3. **【低】S3 · 过滤条第 4 项「开发」应改「临时」**：实现 `CleanerFilter.temp` 映射 `CacheScope.temp`，
    "开发"在这里没有对应扫描范围。
 4. **【低】S4 · 02 稿动作栏主按钮用蓝色 primary 应改 destructive 红**：与 02b、`05-states` 危险确认
@@ -398,7 +398,7 @@
 4. **容器三页签 vs 页头过滤条的层级**（S1）：两稿都画错位置。期望：协调者定稿"模块内二级导航"
    的统一画法（页签在页头之上独立一行），02/02b 一起重出。
 5. **侧栏 footer / 侧栏尾数（全站）**：与 monitor S1/S2 同一处，需 tokens/screen 层统一补组件，
-   七张稿一起换，cleaner 的 02/02b 随批。〔**P38f 现读：这一整条已经做完，提请作废**——组件在 `tokens.css:286`，"随批"这件事 `0c61fbf` 当天就带了 02/02b，尾数也在同一笔里清掉；现读 16 张稿在用，cleaner 侧 02/02b/02c 三张都有。全站剩的只有 `components.html` 那一格与磁盘 04b/04e 没画，不属于本模块。〔**P39 那两处也清了**（`components.html:141` 现读是组件本身、04b/04e 补画并重渲染），见 `release-readiness.md` §7.36。〕
+   七张稿一起换，cleaner 的 02/02b 随批。〔**P38f 现读：这一整条已经做完，提请作废**——组件在 `tokens.css:287`，"随批"这件事 `0c61fbf` 当天就带了 02/02b，尾数也在同一笔里清掉；现读 16 张稿在用，cleaner 侧 02/02b/02c 三张都有。全站剩的只有 `components.html` 那一格与磁盘 04b/04e 没画，不属于本模块。〔**P39 那两处也清了**（`components.html:141` 现读是组件本身、04b/04e 补画并重渲染），见 `release-readiness.md` §7.36。〕
 6. **要不要补"扫描完成但无可清理"的空态规格**（I4）：需要产品/设计定义"真干净"与"扫描未完成"
    两种空态各自的文案与图标（现在实现把两者混在 `categories.isEmpty` 一个分支里）。
 7. **缺失的定格 / 空结果钩子**：cleaner 现有 7 个钩子覆盖了展开态、确认态、安装包夹具、拒绝预演，
@@ -577,10 +577,10 @@ roadmap 候选 #5 落地。四张实机照片在 `docs/verification/p61-continue
 > （3200 条目 + 0.05 s 根预算，专门把截止线咬在成案中途——旧的出事位置）、
 > `:892` `testWalkDerivationUnreadableIsAConclusionNotATruncation`（切分那条）、
 > `:879` 超时与取消并成一个结论。
-> **还剩一件没结**：`dev-artifact-walk-merge.md` §4.2(b) 的收紧（子树内部读不进 → `size = nil`）
-> **仍是待拍板**，现口径照旧静默计 0（`ProjectArtifactScanner.swift:615`、`:676-677` 两处注释都写着
-> "§4.2(b) 待拍板，本轮不做"）。所以本节的"已扫完 vs 读不到"矛盾消除了，
-> 但"量到了其实没量全"那一条**依然在**，它是口径变更、归协调者拍板，不是这页能自己改的。
+> ~~**还剩一件没结**：`dev-artifact-walk-merge.md` §4.2(b) 的收紧（子树内部读不进 → `size = nil`）~~
+> **P41 已结（2026-10-15，采纳 (b)）**：判据函数 `ProjectArtifactScanner.swift:680` 的 guard 现在带
+> `walk.unreadableDirectories.isEmpty`，两处旧注释（`:615`、`:676-677`，当时写的是"待拍板，本轮不做"）已就地改成"已收紧"。
+> 所以本节的"已扫完 vs 读不到"矛盾消除了，"量到了其实没量全"那一条**也一并消除**；本机影响面由只读探针 `Scripts/p41-nil-size-probe.sh` 量过（repo `87a3e69`，日志 `docs/verification/p41-nil-size/nil-size.log`）：可测 7 行里因 (b) 新翻 nil **0 行**、群 **0 个**，上界口径，本页今天不会因此少一个数字。
 
 ### 8.7 还原度结论
 

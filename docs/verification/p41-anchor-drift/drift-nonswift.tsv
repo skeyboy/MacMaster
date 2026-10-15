@@ -1,0 +1,46 @@
+DRIFT	doc=docs/analysis/feature-roadmap.md:1086	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-disk.md:301	move=docs/design-system/tokens.css:36 -> docs/design-system/tokens.css:37	reason=唯一命中原文	| --row-h-compact: 28px;
+DRIFT	doc=docs/analysis/fidelity-monitor.md:9	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-shell.md:159	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-shell.md:5	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/release-readiness.md:1311	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/release-readiness.md:3416	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/release-readiness.md:3453	move=docs/design-system/tokens.css:268 -> docs/design-system/tokens.css:269	reason=唯一命中原文	| width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+DRIFT	doc=docs/analysis/coordination-audit.md:152	move=docs/design-system/tokens.css:268 -> docs/design-system/tokens.css:269	reason=唯一命中原文	| width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+DRIFT	doc=docs/analysis/coordination-audit.md:152	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/coordination-audit.md:156	move=docs/design-system/tokens.css:297 -> docs/design-system/tokens.css:298	reason=唯一命中原文	| .sidebar-footer .vol-bar > i { display: block; height: 100%; border-radius: var(--r-pill);
+DRIFT	doc=docs/analysis/coordination-audit.md:16	move=docs/design-system/tokens.css:66 -> docs/design-system/tokens.css:67	reason=唯一命中原文	| --c-card-content: var(--c-content-bg);
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:18	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:180	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/coordination-audit.md:27	move=docs/design-system/tokens.css:105 -> docs/design-system/tokens.css:106	reason=唯一命中原文	| --c-content-bg: #282828;
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:169	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:18	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:334	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:401	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-disk.md:30	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-disk.md:303	move=docs/design-system/tokens.css:37 -> docs/design-system/tokens.css:38	reason=唯一命中原文	| --row-h-regular: 44px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:310	move=docs/design-system/tokens.css:36 -> docs/design-system/tokens.css:37	reason=唯一命中原文	| --row-h-compact: 28px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:387	move=docs/design-system/tokens.css:36 -> docs/design-system/tokens.css:37	reason=唯一命中原文	| --row-h-compact: 28px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:478	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-disk.md:64	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:15	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:18	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:189	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:243	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+UNRESOLVED	doc=docs/analysis/fidelity-guardian.md:284	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:431	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-guardian.md:73	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-monitor.md:163	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-monitor.md:250	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-monitor.md:291	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-monitor.md:294	move=docs/design-system/tokens.css:297 -> docs/design-system/tokens.css:298	reason=唯一命中原文	| .sidebar-footer .vol-bar > i { display: block; height: 100%; border-radius: var(--r-pill);
+DRIFT	doc=docs/analysis/fidelity-monitor.md:294	move=docs/design-system/tokens.css:326 -> docs/design-system/tokens.css:327	reason=唯一命中原文	| .content { flex: 1; min-width: var(--content-min); background: var(--c-content-bg); display: flex; flex-direction: column; }
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:202	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:285	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/fidelity-shell.md:144	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:160	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/fidelity-shell.md:85	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/release-readiness.md:3185	move=docs/design-system/tokens.css:268 -> docs/design-system/tokens.css:269	reason=唯一命中原文	| width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);
+DRIFT	doc=docs/analysis/release-readiness.md:3227	move=docs/design-system/tokens.css:297 -> docs/design-system/tokens.css:298	reason=唯一命中原文	| .sidebar-footer .vol-bar > i { display: block; height: 100%; border-radius: var(--r-pill);
+DRIFT	doc=docs/analysis/release-readiness.md:3351	move=docs/design-system/tokens.css:286 -> docs/design-system/tokens.css:287	reason=唯一命中原文	| .sidebar-footer {
+DRIFT	doc=docs/analysis/release-readiness.md:788	move=docs/design-system/tokens.css:268 -> docs/design-system/tokens.css:269	reason=唯一命中原文	| width: var(--sidebar-w); flex: 0 0 var(--sidebar-w);

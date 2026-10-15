@@ -1,0 +1,51 @@
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:16	src=docs/design-system/screens/mmmonitor/07-monitor.html:14	reason=工作区里 0 处命中（0 处以上需人工认）	| .mcard{background:var(--c-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
+UNRESOLVED	doc=docs/analysis/feature-roadmap.md:1076	src=docs/design-system/screens/mmmonitor/07-monitor.html:14	reason=工作区里 0 处命中（0 处以上需人工认）	| .mcard{background:var(--c-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
+DRIFT	doc=docs/analysis/feature-roadmap.md:1086	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:301	move=docs/design-system/tokens.css:37 -> docs/design-system/tokens.css:38	reason=唯一命中原文	| --row-h-regular: 44px;
+DRIFT	doc=docs/analysis/fidelity-monitor.md:9	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-shell.md:159	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-shell.md:5	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/release-readiness.md:1311	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/release-readiness.md:3416	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/release-readiness.md:3453	move=docs/design-system/tokens.css:269 -> docs/design-system/tokens.css:270	reason=唯一命中原文	| background: var(--c-sidebar-bg);
+DRIFT	doc=docs/analysis/coordination-audit.md:180	move=docs/analysis/fidelity-guardian.md:284 -> docs/analysis/fidelity-guardian.md:284	reason=唯一命中原文	| - **结论**：稿的 220pt 对得上，但只能由 `min` 承载；代价是用户能拖到的最窄处从 200 变成 220。`--sidebar-w-min: 200px` 这个令牌在 CSS 里声明后**从未被引用**（全仓仅 `tokens.css:33` 一处命中），所以没有实际合同被破坏。
+DRIFT	doc=docs/analysis/coordination-audit.md:180	move=docs/analysis/fidelity-shell.md:160 -> docs/analysis/fidelity-shell.md:160	reason=唯一命中原文	| 2. **I10b/S3/S4 全站几何修正（P38a 现读改判：前两件已落地，剩的那件不是"调令牌"）**：`--titlebar-h` 已是 52px、`--c-content-bg` 与两个卡底令牌（`--c-card-content` / `--c-card-under-page`）也都已声明（同一笔 c74f045），**所以"改动会作废全部模块像素基线"这件事已经发生过一次**；真正仍开的是**那两个卡底令牌至今 0 处 `var()` 引用**——接线还是删要逐屏决定，判据见 `coordination-audit.md` §2。**这一条不等决定的部分（I10b/S3）本轮已翻，S4 那半句等 §5 第 2 条**。**I10a（侧栏）P6.2b 已落地**，但落地位置是 `MainWindow.swift:22` 的 `min:`（首屏宽度只认 `min`，`ideal` 与 AppKit 那条持久化记录都不参与），令牌 `--sidebar-w: 220px` 本来就是对的、没动；顺带一条待办：`--sidebar-w-min: 200px` 全仓从未被引用（仅 `tokens.css:33` 声明处一处命中），而应用现在也拖不到 200，要么删令牌要么把稿改成 220。
+DRIFT	doc=docs/analysis/coordination-audit.md:152	move=docs/design-system/tokens.css:269 -> docs/design-system/tokens.css:270	reason=唯一命中原文	| background: var(--c-sidebar-bg);
+DRIFT	doc=docs/analysis/coordination-audit.md:152	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:156	src=docs/design-system/tokens.css:298	reason=工作区里 2 处命中（2 处以上需人工认）	| background: var(--c-accent); }
+DRIFT	doc=docs/analysis/coordination-audit.md:16	move=docs/design-system/tokens.css:67 -> docs/design-system/tokens.css:68	reason=唯一命中原文	| --c-card-under-page: var(--c-under-page);
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:18	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:180	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/coordination-audit.md:27	move=docs/design-system/tokens.css:106 -> docs/design-system/tokens.css:107	reason=唯一命中原文	| --c-sidebar-bg: rgba(38, 38, 38, 0.78);
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:169	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:18	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:334	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-cleaner.md:401	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:30	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:303	move=docs/design-system/tokens.css:38 -> docs/design-system/tokens.css:39	reason=唯一命中原文	| --row-h-app: 56px;      /* 应用列表行（含 32pt 图标） */
+DRIFT	doc=docs/analysis/fidelity-disk.md:310	move=docs/design-system/tokens.css:37 -> docs/design-system/tokens.css:38	reason=唯一命中原文	| --row-h-regular: 44px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:387	move=docs/design-system/tokens.css:37 -> docs/design-system/tokens.css:38	reason=唯一命中原文	| --row-h-regular: 44px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:478	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-disk.md:64	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:15	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:18	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:189	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:243	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+UNRESOLVED	doc=docs/analysis/fidelity-guardian.md:284	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:431	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-guardian.md:73	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-monitor.md:163	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-monitor.md:250	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-monitor.md:291	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+UNRESOLVED	doc=docs/analysis/fidelity-monitor.md:294	src=docs/design-system/tokens.css:298	reason=工作区里 2 处命中（2 处以上需人工认）	| background: var(--c-accent); }
+DRIFT	doc=docs/analysis/fidelity-monitor.md:294	move=docs/design-system/tokens.css:327 -> docs/design-system/tokens.css:328	reason=唯一命中原文	| .statusbar {
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:203	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-optimizer.md:286	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/fidelity-shell.md:144	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:160	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/fidelity-shell.md:85	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+DRIFT	doc=docs/analysis/release-readiness.md:3185	move=docs/design-system/tokens.css:269 -> docs/design-system/tokens.css:270	reason=唯一命中原文	| background: var(--c-sidebar-bg);
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3227	src=docs/design-system/tokens.css:298	reason=工作区里 2 处命中（2 处以上需人工认）	| background: var(--c-accent); }
+DRIFT	doc=docs/analysis/release-readiness.md:3351	move=docs/design-system/tokens.css:287 -> docs/design-system/tokens.css:288	reason=唯一命中原文	| display: flex; flex-direction: column; gap: 6px;
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3571	src=docs/design-system/tokens.css:33	reason=工作区里 0 处命中（0 处以上需人工认）	| --sidebar-w-min: 200px;
+DRIFT	doc=docs/analysis/release-readiness.md:788	move=docs/design-system/tokens.css:269 -> docs/design-system/tokens.css:270	reason=唯一命中原文	| background: var(--c-sidebar-bg);

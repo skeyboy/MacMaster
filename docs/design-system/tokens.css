@@ -30,7 +30,8 @@
        原令牌 216/38 是旧值，与实机差 +4/+14pt，本轮统一修正（I10a/I10b）。 */
     --titlebar-h: 52px;
     --sidebar-w: 220px;
-    --sidebar-w-min: 200px;
+    --sidebar-w-min: 220px;   /* 与实机同值：最窄那一档由 AppKit 的 min:220 定（壳层 navigationSplitViewColumnWidth 那一行）。
+       本令牌在稿侧没有任何 var() 消费者，留在这里只为「别再写一个与实机不同的数」，不是第二份宽度合同。 */
     --content-min: 760px;
     --statusbar-h: 28px;
     --row-h-compact: 28px;

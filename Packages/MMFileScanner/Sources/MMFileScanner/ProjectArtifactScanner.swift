@@ -612,7 +612,7 @@ public actor ProjectArtifactScanner {
         var fileCount = 0
         // 嵌套产物不单独量：体积已经在祖先候选那里整体计入，再量一遍就是重复计数。
         // 预算内没量完（stopReason 非空）→ nil 显示"—"，绝不拿部分和冒充完整数字；
-        // 子树内部读不进仍按 stats 现口径静默计 0（§4.2(b) 的收紧待拍板，本轮不做）。
+        // 子树内部读不进同样给 nil（§4.2(b) 已于 P41 收紧：静默计 0 是"偏小的完整数字"）。
         if let walk, let measured = Self.measuredSize(from: walk, isNested: isNested) {
             size = measured.size
             fileCount = measured.fileCount
@@ -673,11 +673,11 @@ public actor ProjectArtifactScanner {
 
     /// 合并遍历 → 体积结论。嵌套恒 nil（体积在祖先处整体计入）；
     /// stopReason 非空 = 预算内没量完 → nil 显示"—"，绝不拿部分和冒充完整数字。
-    /// `unreadableDirectories` 非空但 stopReason==nil 时**照旧给数字**（读不进的
-    /// 子目录静默计 0，与 stats/其它页一致）——§4.2(b) 的 size=nil 收紧是待拍板项，本轮不做。
+    /// `unreadableDirectories` 非空也给 nil（§4.2(b) 已收紧：子树里有读不进的目录却报一个
+    /// 完整数字，是"偏小的完整数字"那种假话，宁可显示"—"。本机影响面由 p41 那支只读探针量出来：0 行）。
     nonisolated static func measuredSize(from walk: FileTreeWalker.SubtreeWalk,
                                          isNested: Bool) -> (size: UInt64, fileCount: Int)? {
-        guard !isNested, walk.stopReason == nil else { return nil }
+        guard !isNested, walk.stopReason == nil, walk.unreadableDirectories.isEmpty else { return nil }
         return (walk.size, walk.fileCount)
     }
 

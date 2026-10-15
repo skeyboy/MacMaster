@@ -575,7 +575,7 @@ public struct CleanerView: View {
             isSelectable: category.risk.allowsDeletion,
             isSelected: selectionBinding(for: category)
         ) {
-            if !category.subItems.isEmpty {
+            if category.risk.allowsDeletion, !category.subItems.isEmpty {
                 MMRowAction(systemImage: model.expandedCategories.contains(category.id)
                             ? "chevron.up" : "chevron.down",
                             help: "展开明细") { model.toggleCategoryExpanded(category) }

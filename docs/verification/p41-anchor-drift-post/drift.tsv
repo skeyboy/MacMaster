@@ -1,0 +1,10 @@
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:280	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:578	reason=工作区里 0 处命中（0 处以上需人工认）	| if !category.subItems.isEmpty {
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:282	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:578	reason=工作区里 0 处命中（0 处以上需人工认）	| if !category.subItems.isEmpty {
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:91	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:578	reason=工作区里 0 处命中（0 处以上需人工认）	| if !category.subItems.isEmpty {
+UNRESOLVED	doc=docs/analysis/release-readiness.md:1275	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:578	reason=工作区里 0 处命中（0 处以上需人工认）	| if !category.subItems.isEmpty {
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3570	src=Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:578	reason=工作区里 0 处命中（0 处以上需人工认）	| if !category.subItems.isEmpty {
+UNRESOLVED	doc=docs/analysis/coordination-audit.md:19	src=Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680	reason=工作区里 0 处命中（0 处以上需人工认）	| guard !isNested, walk.stopReason == nil else { return nil }
+UNRESOLVED	doc=docs/analysis/feature-roadmap.md:967	src=Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680	reason=工作区里 0 处命中（0 处以上需人工认）	| guard !isNested, walk.stopReason == nil else { return nil }
+UNRESOLVED	doc=docs/analysis/fidelity-cleaner.md:581	src=Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680	reason=工作区里 0 处命中（0 处以上需人工认）	| guard !isNested, walk.stopReason == nil else { return nil }
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3103	src=Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680	reason=工作区里 0 处命中（0 处以上需人工认）	| guard !isNested, walk.stopReason == nil else { return nil }
+UNRESOLVED	doc=docs/analysis/release-readiness.md:3569	src=Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680	reason=工作区里 0 处命中（0 处以上需人工认）	| guard !isNested, walk.stopReason == nil else { return nil }

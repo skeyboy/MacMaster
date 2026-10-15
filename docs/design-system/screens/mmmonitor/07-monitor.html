@@ -11,14 +11,14 @@
 /* —— 以下结构样式逐条对齐 MMMonitor.swift 的实现 —— */
 /* 页面卡片：MMMonitor 私有 card() = underPage 底 + 12pt 内边距 + 8 圆角 + separator 描边，
    卡头 = 16pt 次级色图标 + headline 标题，卡内元素间距 8pt；SwiftUI 复用 MMCard(.underPage) */
-.mcard{background:var(--c-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
+.mcard{background:var(--c-card-under-page);border:1px solid var(--c-separator);border-radius:var(--r-md);
        padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)}
 .mcard .hd{display:flex;align-items:center;gap:var(--sp-2);line-height:16px}
 .mcard .hd .i{color:var(--c-label-secondary)}
 .mcard .hd b{font-size:var(--fs-headline);font-weight:600}
 /* 顶部读数：MMStatItem = underPage 底 + 6 圆角 + 8/12 内边距，caption 标题 + title3 数值
    （实机整卡实测 50pt 含描边：caption 13 / title3 18 / 纵向 padding 8+8） */
-.stat{flex:1;min-width:0;background:var(--c-under-page);border:1px solid var(--c-separator);
+.stat{flex:1;min-width:0;background:var(--c-card-under-page);border:1px solid var(--c-separator);
       border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);display:flex;flex-direction:column;gap:2px}
 .stat .k{font-size:var(--fs-caption);color:var(--c-label-secondary);line-height:13px}
 .stat .v{font-size:var(--fs-title3);line-height:18px;font-variant-numeric:tabular-nums;white-space:nowrap;

@@ -249,7 +249,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
    五处消费方零改动，这是本方案与"直接给 stats 加 mtime"（continuation §8 提过的
    另一条路）的关键区别：后者会牵动跨模块口径一致性（`FileTreeWalker.swift:157-160`）。
 4. **不顺手改 verdict/嵌套判定/删除链路**：`verdict`、`nestedFlags`、`DeletionGuard`、
-   `FileTrashService` 一概不碰；本调研连 §4.2(b) 的 size 收紧都只列为待拍板选项。
+   `FileTrashService` 一概不碰；本调研连 §4.2(b) 的 size 收紧都只列为待拍板选项〔**P41 更新**：那条已于 P41 按 (b) 落地，见 §7 第 5 条与 `docs/verification/p41-nil-size/`〕。
 5. **不把 probe 的早退在嵌套/无体积需求路径上改掉**（§3.2）——那会让"近期在用的大
    嵌套目录"从近免费变全量。
 6. **不做父遍历结果复用给嵌套子候选**的子树最大 mtime 传播（§3.2 末），收益真实但
@@ -280,7 +280,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
    continuation §7.3 的 `0.05` 小预算档）拍"截断→续扫→收尾"三态，验证 §8.6 的矛盾组合
    （已扫完 + 读不到(预算用尽)）在照片里不可能再同屏；真机 `~/Desktop`/`~/Documents`
    各跑一次全量与 P6.1a §2 数字对照。
-5. **（待拍板，独立提交）§4.2(b) 的 unreadable→size=nil 收紧**与 UI 文案联动
+5. **§4.2(b) 的 unreadable→size=nil 收紧**（**P41 已落地**，原标"待拍板，独立提交"）与 UI 文案联动
    （`DevArtifactView.swift:585-587`「其余 N 个根已扫完」的计数可能因修复而变小——
    这是更诚实，不是回归，但要在文案评审里点名）。
 
@@ -300,5 +300,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
 - **合并后"截断根一趟扫得完"是否成立**：continuation §9 已声明真机可能拍不到，
   本调研同样只能留作假设，需第 4 步真机取证。
 - **§4.2(b) 收紧对 `reclaimableSize`/UI 的连带影响**：没算过真机上有多少行会从有数字
-  变"—"。缺第 2 步夹具里对 unreadable 子目录的行数统计。
+  变"—"。缺第 2 步夹具里对 unreadable 子目录的行数统计。〔**P41 补量**：只读探针 `Scripts/p41-nil-size-probe.sh` 已在本机量过，
+  结论是**可测 7 行里新翻 nil 0 行、新翻 nil 的群 0 个**（日志 `docs/verification/p41-nil-size/nil-size.log`，repo `87a3e69`）；
+  探针的 deadline 比真扫描宽裕，所以这是**影响面的上界**，不是恒等于 0 的承诺。UI 文案「其余 N 个根已扫完」因此本机不变。〕
 - **UI 侧「已扫完」计数变化是否要改文案**（第 5 步）：没和产品设计口径对过，属待拍板。

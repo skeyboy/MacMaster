@@ -1,0 +1,31 @@
+# p41-nil-size-probe.sh  2026-10-15 10:17:32 +0800
+# repo: 87a3e69  branch=main
+# digest: 87a3e69+e3b0c442
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 参与编译的真源文件（2 个 + 探针）：
+#   467 行  Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift
+#   1148 行  Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift
+#   89 行  Scripts/p41-nil-size-probe.swift
+# 两个真源文件一行没改、也不需要剥 import（它们只 import Foundation/Darwin）。
+# 口径：这是 (b) 影响面的**上界**——探针给的 deadline（600 s）比真扫描按 rootBudget/
+#   totalBudget 分给每个候选的那条线宽裕；真扫描里被截断的行今天已经是 nil，
+#   不会「因为 (b) 才变 nil」，所以上界不减掉那部分。
+# 全程只读：不调用删除接口；走的根与页面点一次「重新扫描」同一套。
+
+# 真扫描结论
+  根：扫完 12 / 截断 9 / 读不动 0 / 不存在 9
+  成案：群 6 个，行 7 条，越界丢弃 0 条
+  isComplete=false  真扫描耗时 50.1 s（探针总耗时 50.1 s）
+
+# (b) 的影响面（上界）
+  行合计 7，其中嵌套候选 0 条（今天体积恒 nil，不受 (b) 影响）
+  可测行 7：今天已是 nil 的 0 条，**因 (b) 新翻成 nil 的 0 条**
+  占比：0.0% of 可测行
+  群：今天 reclaimableSize 已是 nil 的 0 个，**因 (b) 新翻成 nil 的 0 个**（页顶「可释放」总数就是按群加的）
+  附：深于 23 层的行 0 条（`sizeDepthTruncated`，与 (b) 无关，顺带记录）
+
+# 新翻 nil 的行（前 (Function) 条）
+  （无）
+
+# 读不进的目录（按被牵到的行数排，前 15）
+  （无）

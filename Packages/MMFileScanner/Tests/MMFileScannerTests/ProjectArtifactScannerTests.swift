@@ -887,14 +887,14 @@ final class ProjectArtifactScannerTests: XCTestCase {
         }
     }
 
-    /// 行 4：目录读不进（TCC/权限）→ incomplete("读不动…")，但**不是**预算问题：
-    /// 体积按现口径照给（§4.2(b) 的收紧待拍板，本轮不并），根不进 truncated。
+    /// 行 4：目录读不进（TCC/权限）→ incomplete("读不动…")，但**不是**预算问题：根不进 truncated；
+    /// 体积按 §4.2(b) 收紧后给 nil——静默计 0 的"偏小的完整数字"冒充量到了，比"—"更像假话。
     func testWalkDerivationUnreadableIsAConclusionNotATruncation() throws {
         let w = walkDone(size: 4096, count: 2, unreadable: ["/p/locked", "/p/x"])
         XCTAssertEqual(ProjectArtifactScanner.activityProbeResult(from: w, path: "/p"),
                        .incomplete("读不动：/p/locked"))
-        let measured = try XCTUnwrap(ProjectArtifactScanner.measuredSize(from: w, isNested: false))
-        XCTAssertEqual(measured.size, 4096)
+        XCTAssertNil(ProjectArtifactScanner.measuredSize(from: w, isNested: false),
+                     "读不进的非空集合不许换成一个看起来完整的数字")
         XCTAssertFalse(ProjectArtifactScanner.budgetIncomplete(from: w),
                        "权限性读不进是已出的 fail-closed 结论，不许把根拖进截断账（§8.6 对齐）")
     }
