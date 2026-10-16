@@ -188,7 +188,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 `ResidualCatalog` 那两张表（`ResidualScanner.swift` 起）一条插件根都没加。
 不顺手做的理由不是代价：**判据一行就够，缺的是"`.component` 该算哪一档"**。风险档的语义在
 `Packages/MMCore/Sources/MMCore/Risk.swift:9-42` 是固定的一套，音频插件既不属于 `.applicationSupport` 那一类，
-也不该和缓存同级；而页面上没有它的对标物（哪一屏、哪一类清单、详情页给不给"来源"那一格）。所以这一片进设计稿队列，
+也不该和缓存同级；而页面上没有它的对标物（哪一屏、哪一类清单、详情页给不给"来源"那一格）。所以这一片进设计稿队列（P51a 已把它拆成两半：3-A 只是往 `ResidualCatalog` 加插件根、复用残留层现成的档位机制，3-B 才是"插件作为独立可卸载条目"、需要本体档位的决定，见 `docs/analysis/uninstaller-app-body-risk.md` 建议3），
 稿子出来再谈代码。
 一条别忘的：它那个后缀集合是**三处复用**（`Utilities/LibraryPaths.swift:11-13` 起，扫描 / 扩展菜单 / 废纸篓监听），
 我们若只做扫描侧、不做监听侧，就会造出"列表里看得见、装卸事件不报"的第四种不一致——监听与列举同源那条不变量在
@@ -204,7 +204,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 装卸事件成双出现，那是监听侧的假话。这条由 `testNonBootPathsDropTheBootVolumeAndItsAliasMounts` 钉住。
 
 两件没做的，都写清楚：①判定里"外接卷条目按 caution 起步"**没落地**——"应用本体"这一层现在压根没有风险档
-（档位在残留项上），要做就得先引入那个概念，不是加一行 `Risk`；②验收那句"实机截图看它出现在列表里"**当时没跑成**，
+（档位在残留项上），要做就得先引入那个概念，不是加一行 `Risk`（P51a 复核了这个前提：残留层档位机制本来就全，本体层唯一有自然语义的是 `readOnly` 一档，`.caution` 的机制是"默认不勾选"、在本体上没有承载物，所以外接卷那一条不该做成 caution，见 `docs/analysis/uninstaller-app-body-risk.md` 建议1·2·4）；②验收那句"实机截图看它出现在列表里"**当时没跑成**，
 理由是「本机没有第二块可挂载的非启动卷」。**P49 把这一条的理由推翻了**：`hdiutil create -fs APFS` 造出来的镜像卷
 就是第二块可挂载的非启动卷，`AppScanner` 那条枚举认它、卸载页列它、详情面板写着所在文件夹——七档实拍与判据在
 `docs/verification/p49-external-volume/`，验收那句今天算是跑成了；夹具档 `VolumeFixtureTier.two` 从此只是与实拍对账的一档。
@@ -369,6 +369,6 @@ Sources / Packages / Resources / Package.swift），所以"往 Info.plist 里注
 
 ### 6. 还没做的（沿用本文，不改判）
 
-§2 六种 bundle 与 `.component` 风险档、§3 外接卷 `caution` 分档（两条同撞在"应用本体有没有风险档"那一个决定上，进设计稿队列）、
+§2 六种 bundle 与 `.component` 风险档、§3 外接卷 `caution` 分档（两条同撞在"应用本体有没有风险档"那一个决定上；P51a 审计把这一个决定拆成了三条并各自给了建议，见 `docs/analysis/uninstaller-app-body-risk.md`，进设计稿队列）、
 §4 Homebrew 只读面板（M）、§5 appex 那一半（BLOCKED + 等 Developer ID）、落地顺序第 4 条断链别名（设计稿先行）、
 第 6 条历史时长保留，加上本轮新记的那一条：**失败原因落盘**。
