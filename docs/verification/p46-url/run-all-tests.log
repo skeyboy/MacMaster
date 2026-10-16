@@ -1,0 +1,26 @@
+# run-all-tests.sh  2026-10-16 07:45:56 +0800（stdout 落盘时刻；最后一包 MMMonitor 的原始日志 07:45:51）
+# repo: 0806189-dirty
+# digest: tree=0806189+440da29a app=0806189+440da29a
+# ↑ 这一串是归档时现算的，顺序照 p37 那一格：先 mm_provenance_check /tmp/mm-app-p46/MacMaster.app（返回 0），
+#   再 mm_provenance_line。跑测之后只动过 docs/ 与 Scripts/——两者都不在 MM_SOURCE_PATHS 里，
+#   所以重算仍等于本族八张照片日志里那行 digest。
+MMCore         XCTest=107  swift-testing=0   skipped=0  该包失败=no 
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no 
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no 
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no 
+MMUninstaller  XCTest=217  swift-testing=0   skipped=0  该包失败=no 
+MMDisk         XCTest=85   swift-testing=0   skipped=1  该包失败=no 
+MMMonitor      XCTest=92   swift-testing=0   skipped=0  该包失败=no 
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no 
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no 
+
+合计：827 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log（按 §1 那格从 P21 起的规矩：结论行入库，原始输出留 /tmp）
+
+# 与上一份归档（docs/verification/p37-battery/run-all-tests.log）的比对：
+#   按同一取数命令各抽那九行、两侧都先剥行尾空格再 diff —— 三行不同：
+#     第 1 行 MMCore 96 → 107（P46b：DeletionGuardTests +6、FileTrashServiceGuardTests +4、VolumeRootsTests +1）
+#     第 5 行 MMUninstaller 200 → 217（P46e +10 UninstallerOpenURLTests、P46b +4 UninstallerDeletionRootsTests、P46c +3 AppScannerDirectoriesTests）
+#     第 7 行 MMMonitor 85 → 92（不是这一轮：P44 的 perCore 选不中修复带的，已经进 HEAD）
+#   所以本轮的净增是 +11 与 +17 那两格 = 28，与「执行结果」§0 那条按声明数算出来的净增 28（799 → 827）互证。
+#   总账 792 → 827 = +35 = 本轮 28 + P44/P45 已提交的 7。

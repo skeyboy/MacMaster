@@ -43,7 +43,7 @@ emit() {
   print -r -- "# digest: $(mm_source_digest "$PWD")"
   print -r -- "# 编译器: $(swiftc --version 2>/dev/null | head -1)"
   print -r -- "# 宽度链真源原文（探针里的常量抄的就是这五段，现读行号随本段一起打）："
-  print -r -- "#   Sources/MacMaster/MacMasterApp.swift:36"
+  print -r -- "#   Sources/MacMaster/MacMasterApp.swift:43"
   sed -n '36p' Sources/MacMaster/MacMasterApp.swift | while IFS= read -r l; do print -r -- "#     $l"; done
   print -r -- "#   Sources/MacMaster/MainWindow.swift:22"
   sed -n '22p' Sources/MacMaster/MainWindow.swift | while IFS= read -r l; do print -r -- "#     $l"; done

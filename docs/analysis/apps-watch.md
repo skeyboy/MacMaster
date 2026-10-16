@@ -101,9 +101,9 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 - `/Applications` 是世界可读的（`AppScanner.applications(in:)` 一直列举得动，真机 44 个应用），
   不像 `~/.Trash` 需要完全磁盘访问。**所以这一路不该出现授权横幅**；
   只有 EPERM/EACCES 才说"读不到"，目录不存在要说"这台机器没有这个目录"。
-- 监听范围必须**等于列举范围**：`AppScanner.defaultSearchDirectories` 只看 `/Applications`
-  与 `~/Applications` 的**第一层** `.app`（`AppScanner.swift:27-54`）。
-  `/Applications/Utilities/Foo.app` 从来就不在清单里，它的消失不能报 —— 报了就是凭空造一次"卸载"。
+- 监听范围必须**等于列举范围**：`AppScanner.defaultSearchDirectories` 只看列举目录的**第一层** `.app`
+  （目录那条链在 `AppScanner.swift:32-48`，"只取第一层 `.app`"那一筛在 `:60`；P46c 起目录多了 `/Applications/Utilities` 与每块非启动卷的 `/Applications`）。
+  从来不在这些目录里的条目（`/System/Applications/Notes.app`）不能报消失 —— 报了就是凭空造一次"卸载"。
 
 ## 4. 设计决定
 
@@ -112,7 +112,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 学的是 `PearcleanerSentinel` 要解决的问题，不是它的部署形态。常驻代理意味着：
 安装时写 LaunchAgent、崩溃后要有人重启、退出后仍在监听用户目录 —— 这三件事我们都不欠用户。
 照 `TrashWatcher` 的形态做：`AppFolderWatcher` 在卸载页 `.onAppear`（P36 现读：落地在 `.onAppear`，不是 `.task`）里 `start()`、
-`onDisappear` 里 `stop()`（`MMUninstaller.swift:222-227` 起监听、`:255-257` 停；`:223-224` 那条注释写的正是这条约束：监听不能排在
+`onDisappear` 里 `stop()`（`MMUninstaller.swift:244-249` 起监听、`:282-284` 停；`:245-246` 那条注释写的正是这条约束：监听不能排在
 耗时的 `loadApps()` 之后，否则这段时间里的变化会漏掉）。
 
 ### 4.2 基线记的不只是名字，是身份
@@ -129,7 +129,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 1. 删除通路已经有一条测透的 —— 卸载后遗症页（`scanOrphans` + 逐条勾选 + 撤回）。
    再造一条能删文件的平行状态，就是再造一批要防的错（P1.5 那条通路的注释里
    就写着"绝不能走 `deletionPaths`，它会把本体一起加上"这类坑）。
-2. **孤儿判定的依据正是"本机已装应用清单"**（`UninstallerModel.swift:577` 把 `apps`
+2. **孤儿判定的依据正是"本机已装应用清单"**（`UninstallerModel.swift:621` 把 `apps`
    映射成 `InstalledAppIdentity` 交给 `OrphanScanner`）。而消失发生的那一刻，
    清单**还是旧的、里面仍有那个应用** —— 直接扫会把它自己的残留判成"有主人"，
    **恰好漏掉我们正要提示的那几项**。所以动作必须是**先刷新归属清单、再扫**，
@@ -160,7 +160,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 | "刚从 `/Applications` 消失：Highball" | ~~"已卸载 Highball"~~ | 我们只看见它离开了目录。谁做的、有没有留凭据，都不知道 |
 | "残留还没扫描" | ~~"没有残留"~~ | 与 P1.5 的 `hasScannedTrashResiduals` 同一条纪律：没看过不等于干净 |
 | "这台机器没有 `~/Applications`" | ~~"无法读取，需要授权"~~ | 不存在与读不到是两件事（`TrashWatcher` 里 `needsFullDiskAccess` 只在 EPERM/EACCES 为真，同一原则） |
-| "应用列表里没有它" | ~~"安装未被检测到"~~ | 我们只监听两个目录的第一层，装在别处本来就不在范围内 |
+| "应用列表里没有它" | ~~"安装未被检测到"~~ | 我们只监听列举目录的第一层，装在别处本来就不在范围内 |
 
 ### 4.6 钩子与夹具
 
@@ -173,9 +173,9 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 ## 5. 顺带查出来的 P1.5 缺陷：自我回声
 
 `uninstallAppOnly()` / `uninstallAppWithSelection()` 都走 `FileTrashService.moveToTrash`
-（`UninstallerModel.swift:465-481`，两条都汇到 `move(to:)` 那一次 `moveToTrash`），本体是真的进了 `~/.Trash`。于是我们自己的卸载动作
-会触发自己的监听，弹出一张写着「**刚拖进废纸篓**：X」的卡（`MMUninstaller.swift:657-668`
-的 `syncTrashNotice` 不看这条是谁造成的）。
+（`UninstallerModel.swift:492-503`，两条都汇到 `move(to:)` 那一次 `moveToTrash`，那一次在 `:521`），本体是真的进了 `~/.Trash`。于是我们自己的卸载动作
+会触发自己的监听，弹出一张写着「**刚拖进废纸篓**：X」的卡（`MMUninstaller.swift:821-839`
+的 `syncTrashNotice`，写作当时它不看这条是谁造成的——今天那一判在 `:822-824` 的 filter 里，见下面的「改法」。**P46f 顺带修一处旧锚**：本文此前记的 `:657-668` 在 HEAD 就落在 `requestConfirmation` 上，从没圈到过这个函数）。
 
 两件事都不成立：
 
@@ -203,7 +203,7 @@ DeepLink 在 `Logic/` 而不是 `Views/`；FilesView 在 `Views/FilesView/` 而�
 凭据本该来自卸载动作本身。`FileTrashService` 在移动时就回填了目的地
 （`TrashRecord.trashPath`），包标识与显示名卸载前已经读好——一个字节都不必再读废纸篓。
 
-改法（`UninstallerModel.swift:483-498` / `TrashArrival(selfMovedPath:)`）：
+改法（`UninstallerModel.swift:524-539` / `TrashArrival(selfMovedPath:)`）：
 
 - 「仅卸载应用」成功时，模型记下 `selfEchoArrival`（目的地路径 + 名字 + 包标识，不读盘）。
 - 视图只在**监听读不动废纸篓**时拿它兜底（`syncTrashNotice` 里的 `echoFallback`）。
@@ -269,6 +269,8 @@ MM_WINDOW_SIZE=1000x620 ./Scripts/window-probe-sweep.sh light  # 夹取后的实
 - **应用目录监听只覆盖第一层 `.app`**，装在自定义目录里的应用看不见（卡片正文已写明）。
 - **`~/Applications` 不存在是常态**，所以它不占横幅；只有所有目标都读不到才升级。
 
-明确不做：常驻代理、FSEvents（kqueue 够用且已验证）、自定义 URL scheme、
+明确不做：常驻代理、FSEvents（kqueue 够用且已验证）、
+~~自定义 URL scheme~~（**P46e 改了这条**：`macmaster://uninstall?path=` 已落地，它是访达扩展那条路的入口，
+判据与否证见 [uninstally-adoption.md](uninstally-adoption.md) §5）、
 `NSWorkspace` 通知（它只报前台激活与启动，报不了"某个 bundle 不见了"）、
-监听 `/Applications` 的子孙目录（列举范围只到第一层，监听范围不能更宽）。
+监听列举目录的子孙目录（每个目录只到第一层，监听范围不能更宽）。

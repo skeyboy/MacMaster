@@ -428,6 +428,32 @@ public final class UninstallerModel: ObservableObject {
         selectedResidualIDs = UninstallSelection.defaultSelectedIDs(app.residuals)
     }
 
+    /// 入站 URL 点名的那一个 bundle：**只有在清单里才选得中**。
+    ///
+    /// 这就是这一片的安全边界：`path=` 是一个外来字符串，而清单是磁盘上真实枚举出来的
+    /// 应用目录（还过 §3 那几条根）。所以 `/System/Library/…` 这种送进来的东西顶多是
+    /// "没人认识的一句点名"，既不会被选中，也拼不进删除入参（`UninstallSelection.deletionPaths`
+    /// 只从当前选中项的残留列表拼，而那条列表只会对清单里的条目生成）。
+    /// 顺序按送进来的顺序：访达多选时第一个就是用户右键的那个。
+    ///
+    /// 大小写不同的同一路径按同一个 bundle 处理（APFS 默认区分大小写，人手打的 URL 不一定），
+    /// 精确匹配优先，免得两个只差大小写的条目并存时点错。
+    ///
+    /// 返回选中的条目 id；`nil` = 一个都没点中，此时**保留原来的选中项**，不清空——
+    /// 陌生点名不该把用户正在看的那一行踢掉。
+    @discardableResult
+    public func focusInbound(paths: [String]) -> String? {
+        for path in paths {
+            let hit = apps.first { $0.path == path }
+                ?? apps.first { $0.path.caseInsensitiveCompare(path) == .orderedSame }
+            if let hit {
+                select(hit.id)
+                return hit.id
+            }
+        }
+        return nil
+    }
+
     public func toggle(_ item: ResidualItem) {
         guard item.risk.allowsDeletion else { return }
         if selectedResidualIDs.contains(item.id) {
@@ -476,8 +502,23 @@ public final class UninstallerModel: ObservableObject {
         await move(to: [app.path], removing: app.id, movedResidualsToo: false)
     }
 
+    /// 卸载页删除动作的允许根（正向闸，判据见 `DeletionGuard.isInside`）。
+    ///
+    /// 口径 = 本页"能看见东西"的全部来源：残留清单的那几个 Library 根 + 应用目录本身。
+    /// 两边都取自同一批工厂闭包，所以单测与截图夹具把 home 换成临时目录时这道闸跟着换，
+    /// 不会拿真实 `~/Library` 去卡夹具里的路径。反过来说，"清单里看不见的位置"就删不掉 ——
+    /// 这是黑名单永远补不全的那一类误判（`docs/analysis/uninstally-adoption.md` §1）。
+    ///
+    /// internal 而非 private：这一格是"卸载页能删哪儿"的唯一口径，测试要能直接问它，
+    /// 而不是靠真的把某个 app 送进废纸篓来反推。
+    func deletionRoots(for options: ResidualScanOptions) -> [String] {
+        ResidualCatalog.libraryRoots(home: options.home, systemRoot: options.systemRoot).map(\.library)
+            + appDirectoriesFactory(options.home)
+    }
+
     private func move(to paths: [String], removing appID: String, movedResidualsToo: Bool) async {
-        let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        let result = await FileTrashService.shared.moveToTrash(paths: paths,
+                                                               allowedRoots: deletionRoots(for: optionsFactory()))
         lastResult = result
         failures = result.operation.failures
         let moved = Set(result.operation.files.map(\.originalPath))
@@ -540,6 +581,9 @@ public final class UninstallerModel: ObservableObject {
     @Published public var selectedOrphanIDs: Set<String> = []
     @Published public var isScanningOrphans = false
     @Published public var hasScannedOrphans = false
+    /// 上一次反向扫描用的 home（nil = 当前用户）。删除时的允许根必须按扫描时同一个口径算，
+    /// 否则夹具目录里扫出来的孤儿会被真实 `~/Library` 那道闸挡掉（与 `trashScanHome` 同理）。
+    private var orphanScanHome: String?
 
     public var selectedOrphans: [OrphanCandidate] {
         orphans.filter { selectedOrphanIDs.contains($0.id) }
@@ -585,6 +629,7 @@ public final class UninstallerModel: ObservableObject {
             }
             return items
         }.value
+        orphanScanHome = home
         orphans = found
         selectedOrphanIDs = []
         hasScannedOrphans = true
@@ -593,7 +638,8 @@ public final class UninstallerModel: ObservableObject {
     public func trashSelectedOrphans() async {
         let paths = selectedOrphans.map(\.path)
         guard paths.isEmpty == false else { return }
-        let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        let result = await FileTrashService.shared.moveToTrash(
+            paths: paths, allowedRoots: deletionRoots(for: ResidualScanOptions(home: orphanScanHome)))
         lastResult = result
         failures = result.operation.failures
         let moved = Set(result.operation.files.map(\.originalPath))
@@ -701,7 +747,8 @@ public final class UninstallerModel: ObservableObject {
         guard let report = trashResidualReport else { return }
         let paths = report.deletionRoots(for: selectedTrashResidualIDs)
         guard paths.isEmpty == false else { return }
-        let result = await FileTrashService.shared.moveToTrash(paths: paths)
+        let result = await FileTrashService.shared.moveToTrash(
+            paths: paths, allowedRoots: deletionRoots(for: ResidualScanOptions(home: trashScanHome)))
         lastResult = result
         failures = result.operation.failures
         let moved = Set(result.operation.files.map(\.originalPath))

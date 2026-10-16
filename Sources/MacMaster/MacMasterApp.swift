@@ -24,7 +24,14 @@ struct MacMasterApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        // 用 `Window` 而不是 `WindowGroup`：后者把"外部送进来一个 URL"当成"再开一个窗口"，
+        // 于是深链一按就出现第二扇主窗口（实测：`open -a MacMaster.app -u macmaster://…`
+        // 之后 pid 不变、`title=MacMaster` 的窗口从 1 扇变 2 扇，新那扇还是 `.defaultSize` 的
+        // 1100×700——`LaunchWindowSizeOverride` 是一次性的，只夹得住第一扇）。
+        // 两扇 `MainWindow` 各有自己的 `@StateObject`，而卸载页的点名队列是进程级的，
+        // 谁先 `onChange` 谁吃掉点名，另一扇就停在没选中的样子——那是给用户看两个互相矛盾的结论。
+        // 本应用从设计上就是单窗口（侧栏 + 访问过的模块常驻），单例场景才是它本来的形状。
+        Window("MacMaster", id: "main") {
             MainWindow()
                 .environmentObject(moduleRegistry)
                 .environmentObject(appState)
@@ -36,6 +43,12 @@ struct MacMasterApp: App {
                 .frame(minWidth: 1000, minHeight: 600)
                 .onAppear {
                     MenuBarManager.shared.enable()
+                }
+                // 深链入口：`macmaster://uninstall?path=/Applications/Foo.app`。
+                // 这是 FinderSync 扩展的必要条件（扩展那边只会拼一条 URL 交给 `NSWorkspace.open`），
+                // 但它今天就能单独用：`open` 一条命令、或者「打开方式」把 bundle 交给我们。
+                .onOpenURL { url in
+                    appState.handleOpen(url: url)
                 }
         }
         .windowStyle(.titleBar)
@@ -92,5 +105,24 @@ final class AppState: ObservableObject {
     /// 三个入口（应用菜单「设置…」+ ⌘,、侧栏底部按钮、菜单栏下拉）都收在这一处。
     func requestSettings() {
         showSettings = true
+    }
+
+    /// 入站 URL 只有一件事可以做：把卸载页指向那个 bundle 去**扫描**。
+    ///
+    /// 它碰不到删除，两重：`UninstallerModel.focusInbound(paths:)` 只认清单里已有的条目，
+    /// 而删除入参只从"当前选中项的残留列表 + 用户勾选"拼，外面送进来的字符串没有一条路
+    /// 变成那个入参（判据与实测见 `UninstallerOpenURL`）。
+    ///
+    /// 先进队再跳转，顺序不能反：卸载页在跳转这一刻才建立，反过来的话
+    /// 它 `.task` 消费时队里还是空的，这次点名就只能等下一条 URL。
+    func handleOpen(url: URL) {
+        let paths = UninstallerOpenURL.bundlePaths(from: url)
+        guard paths.isEmpty == false else {
+            FileHandle.standardError.write("收到的 URL 里没有可用的 path=：\(url.absoluteString)\n"
+                .data(using: .utf8)!)
+            return
+        }
+        UninstallerScanRequest.shared.enqueue(paths)
+        MMNavigation.go(.uninstaller)
     }
 }

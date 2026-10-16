@@ -286,7 +286,7 @@ final class AppFolderWatcherFixtureTests: XCTestCase {
     }
 
     /// 默认监听范围必须**等于** `AppScanner` 的列举范围。
-    /// 更宽就会为从来不在清单里的条目（`/Applications/Utilities/Foo.app`）报事件，
+    /// 更宽就会为从来不在清单里的条目（`/System/Applications/Notes.app`）报事件，
     /// 更窄就会漏报 —— 两边都算凭空造一次"装卸"。
     func testDefaultTargetsMatchScannerEnumeration() {
         XCTAssertEqual(AppFolderWatcher.watchTargets(),

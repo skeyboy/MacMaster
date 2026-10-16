@@ -28,7 +28,7 @@
 #                                   这不是刁难：Mole 在 `lib/uninstall/batch.sh:928` 与
 #                                   `lib/clean/apps.sh:257` 都注释过 Steam 启动器 bundle
 #                                   "出货时就没有包标识"。没有它，我们这一侧的
-#                                   `AppScanner.bundleIdentifier`（`AppScanner.swift:63-67`）
+#                                   `AppScanner.bundleIdentifier`（`AppScanner.swift:83-86`）
 #                                   返回空串，来源识别与残留匹配的证据面一起变窄。
 #   Applications/PlainTool.app   —— 对照组：一个普通 bundle，本体里塞了 8 MiB 的真实字节。
 #                                   照片上它和启动器排同一张表，"大小"那一列自己就会说话。
@@ -39,7 +39,7 @@
 #                                   当成一条"残留"端出来。这一档在 08 那张照片上。
 #   Applications/Steam Shortcuts/DeepShortcut.app
 #                                —— 藏在子目录里的 bundle。我们的应用根
-#                                   （`AppScanner.swift:28` `defaultSearchDirectories`，
+#                                   （`AppScanner.swift:32` `defaultSearchDirectories`，
 #                                   非递归枚举）应当**看不见**它；这一档是用来钉住
 #                                   "清单里那几行是全集还是子集"这句话的，
 #                                   也是 Pearcleaner 把 `~/Desktop`（`Logic/Locations.swift:62`）
@@ -187,7 +187,7 @@ plutil -create xml1 "$fixture_root/Library/Preferences/com.example.steamgame.pli
 plutil -insert launches -integer 3 "$fixture_root/Library/Preferences/com.example.steamgame.plist"
 
 # 假 brew 账本留空目录：`MM_UNINSTALL_CONFIRM_FIXTURE_HOME` 会把来源识别的前缀指向
-# `$home/.homebrew`（`MMUninstaller.swift:234`），没有这一档时来源那一行是「无法判定」——
+# `$home/.homebrew`（`MMUninstaller.swift:256`），没有这一档时来源那一行是「无法判定」——
 # 照片里"来源"与"这是启动器"两件事互不干扰，才能各说各的。
 mkdir -p "$fixture_root/.homebrew"
 

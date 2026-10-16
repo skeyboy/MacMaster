@@ -32,7 +32,11 @@ public final class FileTrashService: ObservableObject {
         }
     }
 
-    public func moveToTrash(paths: [String]) async -> TrashResult {
+    /// `allowedRoots` 是给"职责范围明确"的入口用的正向闸（见 `DeletionGuard.isInside`）：
+    /// 路径必须严格落在其中之一内，否则按 `OUT_OF_SCOPE` 逐条上报。
+    /// nil = 不启用，行为与只有黑名单时完全一致 —— 清理页与磁盘页的可选范围本来就跨整盘，
+    /// 硬套一个根清单只会把它们自己的功能挡掉。
+    public func moveToTrash(paths: [String], allowedRoots: [String]? = nil) async -> TrashResult {
         var movedFiles: [TrashRecord] = []
         var failures: [TrashFailure] = []
 
@@ -42,6 +46,10 @@ public final class FileTrashService: ObservableObject {
             // 用户看到"移走 3 项"而实际挡了 1 项，比看到一条拒绝更糟。
             if let rejection = DeletionGuard.rejection(for: path) {
                 failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "PROTECTED"))
+                continue
+            }
+            if let allowedRoots, let rejection = DeletionGuard.allowedRootRejection(for: path, roots: allowedRoots) {
+                failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "OUT_OF_SCOPE"))
                 continue
             }
             let fileURL = URL(fileURLWithPath: path)
@@ -78,13 +86,17 @@ public final class FileTrashService: ObservableObject {
     ///   这里没有"到哪去"，写进「最近操作」只会多出一个点不动的撤回按钮。
     /// - **目录连同整棵子树一起消失**。`removeItem` 逐层递归，中途失败会留下半个目录，
     ///   失败的那条照样上报 —— 所以确认面板必须点名是哪几项，不能只给一个合计字节。
-    public func permanentlyDelete(paths: [String]) async -> PermanentDeleteResult {
+    public func permanentlyDelete(paths: [String], allowedRoots: [String]? = nil) async -> PermanentDeleteResult {
         var deleted: [PermanentDeletion] = []
         var failures: [TrashFailure] = []
 
         for path in paths {
             if let rejection = DeletionGuard.rejection(for: path) {
                 failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "PROTECTED"))
+                continue
+            }
+            if let allowedRoots, let rejection = DeletionGuard.allowedRootRejection(for: path, roots: allowedRoots) {
+                failures.append(TrashFailure(path: rejection.path, message: rejection.reason, code: "OUT_OF_SCOPE"))
                 continue
             }
             // 删之前量一次：删完之后原路径只剩 0，"释放了多少"就变成编的。

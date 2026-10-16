@@ -12,7 +12,7 @@
 # LaunchServiceScanner→ResidualCollector→ResidualNameMatcher→SteamLauncherProbe）加 MMCore 的
 # Risk 与 HookValues 两个文件；UI 文件（MMUninstaller.swift 引 SwiftUI/MMUI）与
 # UninstallerModel.swift（引 MMFileScanner）**不参与**，页面调用 scan 时传的参数形态由
-# 本探针按 UninstallerModel.swift:379 那一行逐字照抄（appName 用 bundleName，不用显示名）。
+# 本探针按 UninstallerModel.swift:391 那一行逐字照抄（appName 用 bundleName，不用显示名）。
 # OrphanScanner.swift 只定义 `InstalledAppIdentity`（P33b 之后 `ResidualScanOptions.foreignApps`
 # 引用它），只 import Foundation，所以拉进来不会牵进 UI 依赖。
 #

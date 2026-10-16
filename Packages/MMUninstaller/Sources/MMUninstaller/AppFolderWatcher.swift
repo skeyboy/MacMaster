@@ -111,7 +111,7 @@ public final class AppFolderWatcher: ObservableObject {
     /// 监听哪些目录。夹具钩子给了就只听那一个（截图要能造出"消失"，
     /// 又不能拿真 `/Applications` 做实验）；否则与列举口径完全一致 ——
     /// **监听范围必须等于 `AppScanner` 的列举范围**，
-    /// 更宽就会为从来不在清单里的条目报事件（`/Applications/Utilities/Foo.app`），
+    /// 更宽就会为从来不在清单里的条目报事件（`/System/Applications/Notes.app`），
     /// 更窄就会漏报。
     nonisolated public static func watchTargets() -> [String] {
         if let fixture = TrashWatcher.fixtureEnvironmentValue(key: "MM_APPS_WATCH_FIXTURE_DIR") {

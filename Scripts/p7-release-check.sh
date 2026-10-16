@@ -91,7 +91,7 @@ shot 01-dashboard
 # 02 设置 · 关于：版本号唯一能被人读到的地方，照片上必须出现打包时给的 $ver。
 shot 02-about MM_SHOW_SETTINGS=1 MM_SETTINGS_TAB=about
 # 03 概览页 × 最小窗口：发版要的是"拖到最窄也不坏"，而 note 行是全站最容易先截断的地方。
-#     1000x600 就是那层地板本身（`MacMasterApp.swift:36` 的 `.frame(minWidth: 1000, minHeight: 600)`，
+#     1000x600 就是那层地板本身（`MacMasterApp.swift:43` 的 `.frame(minWidth: 1000, minHeight: 600)`，
 #     默认窗 1100x700 在 `:42`），再小的请求会被夹回来。
 shot 03-dashboard-min MM_WINDOW_SIZE=1000x600
 

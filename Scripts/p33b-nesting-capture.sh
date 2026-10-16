@@ -16,7 +16,7 @@
 #      为什么这一帧只有两条降级行：见 `Scripts/p33b-nesting-fixture.sh` 里"能装进画面的行数由屏幕决定"
 #      那一段；被砍掉的同层无嵌套形状由 p32b 交叉验证那一档在原图上拍。
 #   2) 02 窄窗：1000 pt 硬最小宽度下，行下方那句提醒会不会像 P25/P26 那一族一样被中间省略吃掉。
-#      它走的是 `caveat` 这条多行通道（`MMUninstaller.swift:1956-1963`），
+#      它走的是 `caveat` 这条多行通道（`MMUninstaller.swift:1983-1990`），
 #      照片负责证这句话——不成立时一个字都不要说。
 #   3) 03 主人那一份：切到 IDEFoo，它自己的行一条都没因为"我们替 Fork 复核"而少勾。
 #   4) 04 边界：切到 AssetsFork，`Caches/IDEFoo/AssetsFork` 这条**同路径**的行证据是硬的
@@ -173,8 +173,8 @@ shot 01-fork-nested-downgraded Fork enhanced 1400x1050 || FAILED_SHOTS+=(01-fork
 # 02 窄窗：宽度 1000 pt 是硬最小值（判据只看宽度），高度顶到实测上限 1050，
 # 好让提醒换行之后的第二行也落在画面里。判据是那两句都**不带省略号**——
 # P25/P26 那一族的教训就是截断把要紧的话藏起来。副标题那一行按设计是中间省略的
-# （两条通道：副标题串在 `MMUninstaller.swift:1938`、省略由 `MMDesign.swift:807` 的
-# `MMItemRow` 施加；提醒串在 `MMUninstaller.swift:1956`，走 `fixedSize` 换行），
+# （两条通道：副标题串在 `MMUninstaller.swift:1965`、省略由 `MMDesign.swift:807` 的
+# `MMItemRow` 施加；提醒串在 `MMUninstaller.swift:1983`，走 `fixedSize` 换行），
 # 02 要分清的就是这两条通道的差别。
 shot 02-fork-narrow-window Fork enhanced 1000x1050 || FAILED_SHOTS+=(02-fork-narrow-window)
 # 03 主人的清单：IDEFoo 自己的行不因"我们替 Fork 复核"而少勾。

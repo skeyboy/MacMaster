@@ -75,6 +75,9 @@ else
     print -u2 -- "提示：缺 Resources/AppIcon.icns，本次产物不写 CFBundleIconFile（跑 ./Scripts/make-icon.sh 生成）"
 fi
 
+# `CFBundleURLTypes` 里那个 scheme 的另一个出处是 MMUninstaller 的
+# `UninstallerOpenURL.scheme`，两边必须同一个字面量。注册它不等于能删任何东西：
+# 收到 URL 只会把卸载页指向那个 bundle 去扫描，删除仍要用户在页面上逐项确认。
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -95,6 +98,17 @@ ${ICON_KEY}
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
     <string>$VERSION</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.macmaster.uninstall</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>macmaster</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleVersion</key>
     <string>$BUILD</string>
     <key>MMGitCommit</key>

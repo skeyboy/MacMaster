@@ -144,10 +144,10 @@ C 只有在"我们不想为归属复核付任何扫描成本"时才选，D 单�
 
 **② 主人写进 `caveat`，不写进 `reason`。** §5 原话是"把那句主人写进证据里"，落地改成写进**行下方那句
 提醒**，证据串一个字不动。原因是量出来的，不是审美：副标题是 `displayPath · reason`
-（`MMUninstaller.swift:1938`），由 `MMItemRow` 做**中间省略**（`MMUI/Sources/MMUI/MMDesign.swift:807`），
+（`MMUninstaller.swift:1965`），由 `MMItemRow` 做**中间省略**（`MMUI/Sources/MMUI/MMDesign.swift:807`），
 路径本身就已经把它占满（判据照片 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`）；
 写进 `reason` 的后半句会被吃掉，那就退回 §7.5 那个教训。`caveat` 那一族是 `fixedSize(vertical)`、
-会折行不会被截（`MMUninstaller.swift:1956`），1000 pt 宽实拍在
+会折行不会被截（`MMUninstaller.swift:1983`），1000 pt 宽实拍在
 `docs/verification/p33b-nesting/02-fork-narrow-window.png`：整句"…已默认取消勾选，确认后再勾。"
 两行显示完，一个省略号都没有。
 

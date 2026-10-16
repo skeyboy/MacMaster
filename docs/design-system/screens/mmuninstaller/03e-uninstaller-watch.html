@@ -183,9 +183,9 @@
 "刚装好"和"该清理"之间没有因果关系，把两张卡画成一个样就是在暗示一个不存在的结论。
 新条目<b>只列目录名</b>：包标识读不出来（替身、缺 <code>Info.plist</code>）也照样算"多了个条目"，
 因为这里报的是<b>清单过期</b>这个事实，不是"这是个可卸载应用"。
-<b>口径必须等于列举口径</b>：监听 <code>/Applications</code> 与 <code>~/Applications</code> 的
-<b>第一层</b> <code>.app</code>（与 <code>AppScanner.defaultSearchDirectories</code> 完全一致），
-所以 <code>/Applications/Utilities/Foo.app</code> 这种从来就不在清单里的条目<b>不进这条提示</b>；
+<b>口径必须等于列举口径</b>：监听 <code>AppScanner.defaultSearchDirectories</code> 返回的<b>每一个根</b>（P46c 起是 <code>/Applications</code>、<code>/Applications/Utilities</code>、<code>~/Applications</code>，外加每块非启动卷上的 <code>/Applications</code>）的
+<b>第一层</b> <code>.app</code>（表意不变，只是根变多了——扩目录仍只改那一处），
+所以再往下一层的 <code>/Applications/Utilities/某厂商/Foo.app</code> 这种从来就不在清单里的条目<b>不进这条提示</b>；
 装在别处的应用我们看不见，文案只能说<b>「应用目录里没有它」</b>，不能说「安装未被检测到」。
 下面那张是<b>同一批里两个方向都发生</b>（删一个装一个很常见）：消失卡在上，因为它是可执行的那一张。
 <b>两种情况不报消失</b>：① 包标识命中 P1.5 废纸篓清单时<b>让位</b> —— 拖进废纸篓会同时触发两个监听，
@@ -263,7 +263,7 @@
 <div class="mini">
   <div class="toolbar" style="border-bottom:1px solid var(--c-separator)">
     <div class="title-block"><h1 style="font-size:var(--fs-title2)">应用卸载</h1>
-      <p>监听范围与列举范围一致：<code>/Applications</code> + <code>~/Applications</code> 第一层 <code>.app</code></p></div>
+      <p>监听范围与列举范围一致：每个应用目录（P46c 起含 <code>/Applications/Utilities</code>、外接卷）的第一层 <code>.app</code></p></div>
     <div class="sp"></div>
     <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
   </div>

@@ -14,7 +14,7 @@
 #      进程生命周期要管，也就没有 pid 哨兵，取而代之的是**字节数哨兵**（见下）。
 #   2) 假 home 走的是同一条钩子（`MM_UNINSTALL_CONFIRM_FIXTURE_HOME`，只认 /tmp），
 #      它同时把应用根换成 `$home/Applications`、把残留扫描换成 `$home/Library`
-#      （`MMUninstaller.swift:229-236` 那三行 factory），所以照片里"清单三行 + 残留两处"
+#      （`MMUninstaller.swift:251-258` 那三行 factory），所以照片里"清单三行 + 残留两处"
 #      都是这台机器上不存在的东西，用户的应用一个都不会被卷进来。
 #   3) 哨兵是字节数，不是 pid：日志里每一档都写两行——
 #      `# sentinel: 本体 <目录> = <N> B / <M> 个文件`（照片「本体」那一行必须与 N 一致），

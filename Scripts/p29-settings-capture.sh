@@ -7,7 +7,7 @@
 # 我要看的正是另外三张 tab 在这一格里到底摆得下摆不下，所以这里按**边界宽度**认窗口：
 # sheet 的宽度由 `SettingsView.swift` 的 `.frame(width: 500, ...)` 钉死（P29a 之后高度从
 # 400 变成 560，宽度没动，所以这一条判据仍然只认 500），
-# 主窗口的地板是 1000x600（`MacMasterApp.swift:36`），两个数不会撞。
+# 主窗口的地板是 1000x600（`MacMasterApp.swift:43`），两个数不会撞。
 #
 # 只用"抓窗口"这一条路：本项目验证原生 UI 绝不做合成点击（会逃逸到用户的前台应用）。
 # tab 由 MM_SETTINGS_TAB 选，sheet 由 MM_SHOW_SETTINGS 开，两者都是只给取证用的钩子。

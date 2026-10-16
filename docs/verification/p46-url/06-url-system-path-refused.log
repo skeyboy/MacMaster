@@ -1,0 +1,11 @@
+# p46-url-capture.sh 06-url-system-path-refused  2026-10-16 07:50:48 +0800  app=/tmp/mm-app-p46/MacMaster.app
+# repo: 0806189-dirty   # app-repo: 0806189-dirty
+# digest: tree=0806189+440da29a app=0806189+440da29a
+# fixture: /private/tmp/macmaster-p46-url.jWxAjV
+# url: macmaster://uninstall?path=/System/Library/CoreServices/Finder.app
+# 额外 env：
+# 进程 stderr：
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+入站点名的 bundle 不在应用清单里：/System/Library/CoreServices/Finder.app
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=73807): windowid=10633 pid=73807 layer=0 title=MacMaster bounds=["Y": 68, "Width": 1400, "X": 287, "Height": 900]

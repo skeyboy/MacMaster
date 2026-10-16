@@ -122,7 +122,7 @@ make_residual Caches/IDEFoo/ts-go-fork-embedded cache.bin 1
 make_residual "Application Support/IDEFoo" profile.bin 2
 
 # 假 brew 账本留空目录：`MM_UNINSTALL_CONFIRM_FIXTURE_HOME` 会把来源识别的前缀指向
-# `$home/.homebrew`（`MMUninstaller.swift:234` 附近那对 factory），没有这一档时来源那一行
+# `$home/.homebrew`（`MMUninstaller.swift:256` 附近那对 factory），没有这一档时来源那一行
 # 是「无法判定」。这一族不在乎来源，但照片上那一行不该莫名其妙变成另一种样子，
 # 所以把它固定成"账本存在、里面没有"。
 mkdir -p "$fixture_root/.homebrew"

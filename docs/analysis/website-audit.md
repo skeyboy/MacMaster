@@ -17,7 +17,7 @@
 |---|---|---|---|
 | 1 | 「智能扫描系统缓存、日志、临时文件，释放宝贵磁盘空间。」 | `Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:128`（扫描结果按类别落列表）；勾选集由 `CacheScanScope` 决定（`release-readiness.md` §8 第一条记的 P8 收口） | **真** |
 | 2 | 「支持一键清理和安全撤回。」 | 界面上那个按钮写的是「清理已选 N 类」（`MMCleaner.swift:688`），点下去先弹确认、默认按钮是「移到废纸篓」（`MMCleaner.swift:753`）；撤回是开关 + 15 秒窗口（`MMCleaner.swift:746`）与删除历史里的「恢复」（`MMCleaner.swift:798`） | **说不到**（"一键清理"恰恰是产品内注释里那句要避免的语义） |
-| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1349` 的判定依据说明） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
+| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1418` 的判定依据说明；**P46f 顺带修一处旧锚**：本文此前记的 1349 在 HEAD 就落在「两份账本把同一个 .app 摆到了这里」那一句上，收据那一档判定依据当时在 1391） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
 | 4 | 「可视化磁盘空间使用情况，快速定位大文件和占用目录。Treemap 直观展示。」 | `Packages/MMUI/Sources/MMUI/TreemapView.swift:132` 起算、`:140` 放置；分类与可清理是两条独立判定链（`DiskClassify.swift:4-7`） | **真** |
 | 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:162`） | **真** |
 | 6 | 「检测摄像头与麦克风的当前占用（手动测量，非实时监听），查看 TCC 授权与密钥目录的改动时间，管理登录项启停。」 | 这一句就是产品内页头清单的改写：`Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:797-802` 四段（占用 / TCC 只读视图 / 登录项 / mtime 卡）；TCC 有独立探针文件 `TCCProbe.swift` | **真**（P14 已把这格对齐到实现） |
@@ -28,7 +28,7 @@
 | 11 | 「0 广告和追踪」 | `release-readiness.md` §1 那一格：`URLSession`/`NWConnection`/`Socket`/`Reachability` 在非测试源码里零命中 | **真**（还可以更硬：整个应用不联网） |
 | 12 | 「∞ 免费使用」 | 许可还没拍板（`release-readiness.md` §2.3），产物里关于页那一格写的是"尚未选择许可" | **真·需标注**（没有许可条款时，"免费"只是一个口头说法） |
 | 13 | 两个下载按钮：hero 的「免费下载」与末屏的「下载 MacMaster」 | 末屏那个按钮的 `href` 是 `#`——**点了什么都不发生**；而根本没有可分发的产物：adhoc 签名、`TeamIdentifier=not set`、Gatekeeper 判 `rejected`（§2.1） | **说不到**（产品内对同一件事的写法是"未找到官方反馈渠道地址，不做虚构链接"） |
-| 14 | 「适用于 macOS 14.0 或更高版本」 | `Scripts/make-app.sh:104-105` 写进 plist 的就是 `LSMinimumSystemVersion` / `14.0`（**P19 现读改指**：那一轮往同一份 plist 里插了 `MMGitCommit` 两行，这一对键往下走了 10 行；改之前审计器的硬判据没亮、只有符号面报了"位置存疑 +1"，这就是那一层唯一能看见的一类漂。**P23 再改指**：同一处又插了 `MMSourceDigest` 两行，编译之后另加 7 行算指纹，95-96 → 104-105。连着两轮都被"往 plist 里加一对键"挪动，说明这一格天然脆——按符号名找比按行号找可靠） | **真** |
+| 14 | 「适用于 macOS 14.0 或更高版本」 | `Scripts/make-app.sh:118-119` 写进 plist 的就是 `LSMinimumSystemVersion` / `14.0`（**P19 现读改指**：那一轮往同一份 plist 里插了 `MMGitCommit` 两行，这一对键往下走了 10 行；改之前审计器的硬判据没亮、只有符号面报了"位置存疑 +1"，这就是那一层唯一能看见的一类漂。**P23 再改指**：同一处又插了 `MMSourceDigest` 两行，编译之后另加 7 行算指纹，95-96 → 104-105 → 118-119（**P46e 再改指**：URL scheme 那一族 `CFBundleURLTypes` 又插了 14 行）。连着三轮都被"往 plist 里加一对键"挪动，说明这一格天然脆——按符号名找比按行号找可靠） | **真** |
 | 15 | 页脚「© 2026 MacMaster. All rights reserved.」 | 权利人与年份属于 §10 第 4 步那三项人的决定之一（`NSHumanReadableCopyright` 也还没填） | **待人拍板**（本轮不动它，只记账） |
 | 16 | 四个截图位：审计时是四个灰底占位 `<div class="screenshot-placeholder">`，全页 `<img>` 计数为 **0** | 仓库里有 47 个 `docs/verification/` 目录的真实照片（P16 现读数；本轮实拍之后是 48），但**没有一张适合直接放上去**（见 §3） | **已补**（P17c 走夹具档实拍，见 §7；夹具覆盖不到的部分改成"在页面上明说"） |
 

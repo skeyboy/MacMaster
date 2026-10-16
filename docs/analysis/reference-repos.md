@@ -36,7 +36,7 @@ P16 收口那一跑（`docs/verification/p16-citations/audit.log`，本机 2026-
 `SwiftFormat` 一份都被 clone 了却**零处逐行引用**（引它的时候只说结论，没给行号）。
 分仓库的准确数字看 `.log` 里 `#     <仓库名>: N` 那几行。
 
-## 2. 六个参考仓库与钉住的 commit
+## 2. 这张表里的每一行：上游、钉住的 commit、本地路径、许可证
 
 **引用里的行号只在这些 commit 上成立。** 这一列不是装饰：`Pearcleaner` 里 `AVMonitor.m` 这种
 几百行的文件，上游动一次，行号全线漂。换 commit 之后要重跑 `./Scripts/p16-citation-audit.sh`，
@@ -50,6 +50,7 @@ P16 收口那一跑（`docs/verification/p16-citations/audit.log`，本机 2026-
 | disktree | `https://github.com/tobi/disktree.git` | `158f9cc2f0b332194a3ffc5acec47760c99146d8`（2026-09-26） | `docs/github-references/disktree` | MIT |
 | stats | `https://github.com/exelban/stats.git` | `e888802a4efce288576f2817ab381b4d31bcb7a1`（2026-09-28） | `docs/github-references/stats` | MIT |
 | SwiftFormat | `https://github.com/nicklockwood/SwiftFormat.git` | `173d2cb252474cd8e8baeaf13636f5d565408ec9`（2026-09-16） | `docs/github-references/SwiftFormat` | MIT |
+| Uninstally | `https://github.com/gostonx/uninstally.git` | `c01646dcb9d2c56146fc156e800befdbd5c5beab`（2026-07-10，= tag v1.7.3） | `docs/github-references/uninstally` | MIT（`LICENSE` 第 1 行 "MIT License"） |
 | lemon-cleaner | `https://github.com/Tencent/lemon-cleaner.git` | `7ff8676f1dbe624b039f6b5d50ca81b50963629e`（2026-05-08） | `docs/lemon-cleaner` | GPL-3.0（`LICENSE.txt`）；`LemonCleaner/LemonDaemon` 另见 `LICENSE_LemonCleaner_LemonDaemon.txt`（GPL-2.0） |
 
 取法（在仓库根执行；`checkout` 那一步是把工作树钉回上表那一行）：
@@ -59,18 +60,38 @@ git clone --depth 1 https://github.com/tw93/Mole.git docs/github-references/Mole
 cd docs/github-references/Mole && git fetch --unshallow origin && git checkout f32fa0c6b082ed76705cbc45f2c42169a09e2503
 ```
 
-其余六个照这一条换 URL 与 commit。
+其余各行照这一条换 URL 与 commit（行数以脚本自己报的「抽出 N 行」为准，本轮现读 8）。
 
-**P20 起这一段有脚本了，别再手工换七次**：`./Scripts/clone-references.sh`（默认 `--check` 只报状态，
+**P20 起这一段有脚本了，别再手工逐行换**：`./Scripts/clone-references.sh`（默认 `--check` 只报状态，
 加 `--fetch` 才联网）。它**逐行现读上面这张表**——URL 取第二列、40 位 commit 取第三列、本地路径取第四列，
 **脚本里不另存一份 commit**（同一份事实存两处就一定先漂一处，本项目为这类事已经记过好几笔）。
 表形一改（列序变了、抽出的行数少于 6）它会大声退出而不是静默少抽一行。
 `--fetch` 走的是 `git fetch --depth 1 origin <那个 commit>`，比上面那段样板**少一次 `--unshallow`**：
-引用审计只要那一份文件树，不要全部历史（七个仓库浅取 159 MB）。
+引用审计只要那一份文件树，不要全部历史（P20 那一跑七个目录浅取 159 MB；本轮现读这八个目录 `du -ch` 合计 163 MB，新加的 `uninstally` 只占 2.2 MB，原因见第 2 节末那一段）。
 两边取法不同不影响结论一致：P20 实测作者树七份 HEAD 与表里逐字相同、克隆树取齐之后引用门禁六个数与作者树逐位相同。这些目录**只在分析参考实现时临时存在**，
 不进版本控制，也不随产物分发——所以它们的 GPL/Apache/Commons Clause 义务没有被触发：
 本项目没有复制它们的代码（各份 `docs/analysis/*.md` 的结论都写的是"实现独立"），
 分发时也没有附带它们。若将来真的引了某一段源代码，这张表要连同许可证义务一起重看。
+
+### 2.1 `uninstally` 这一支在本机是怎么取下来的（媒体没落盘）
+
+上游那一份仓库 API 报 `size=133274`（KB，约 130 MB），其中约 60 MB 是 README 用的截图加一张 GIF。
+本机到 `github.com:443` 的吞吐不稳：不带过滤的 `git fetch --depth 1` 两次分别断在
+`early EOF`（原文是「201 bytes of body are still expected」，就差最后一寸）与
+`Operation too slow`；`codeload` 的 tar 包是服务端现生成的、**不支持 Range 续传**，
+三次 attempt 全停在同一个字节数上不再走。所以这一支改成按大小过滤的浅取：
+
+```
+git -C docs/github-references/uninstally fetch --depth 1 --filter=blob:limit=100k origin <表里那串 sha>
+```
+
+几秒取完，`git rev-parse HEAD` 仍然是表里钉的那一串（不是重新造出来的对象，也不影响
+`clone-references.sh --check` 的比对）。代价是这份工作树**只落了代码**：png / gif 那一类大 blob
+被 `.git/info/sparse-checkout` 挡在检出之外，于是 `git ls-files` 报 **140** 而磁盘上只有 **120** 个文件，
+差的 20 条 = 1 张 GIF + 19 张 PNG（全是截图），`git ls-files -v` 里都标着 `S`（skip-worktree）。
+**读这一支的逐行引用：代码路径直接能打开，媒体路径会撞上"在索引里但不在盘上"。**
+网络正常的机器照上面那条标准取法（不加 `--filter`）取到的是全量，两个数一致——
+这一格记的是**本机这一份的取法与状态**，不是表里那一行对所有人的定义。
 
 ## 3. 写引用的三条口径（本轮定下，由脚本判）
 

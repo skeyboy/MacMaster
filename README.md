@@ -276,9 +276,9 @@ per-user 的 `getconf DARWIN_USER_CACHE_DIR`、系统级 `/Library/Caches` 与 `
   现在没有任何代码在里面。
 - `docs/github-references/`、`docs/Mole/`、`docs/lemon-cleaner/` 在 `.gitignore` 里（各自带独立 `.git` 与许可）。
   多份分析文档按这些路径引了第三方源码位置，**clone 之后那些引用是断链**。
-  取法写在 `docs/analysis/reference-repos.md`（七个仓库的 URL + 本轮钉住的 commit + 各自 `git ls-files` 条数），
-  照它 clone 一次，那 57 条引用就都能打开。为什么这些目录**故意不入库**：它们是 GPL /
-  Apache-2.0+Commons Clause 的第三方仓库，本项目只读、不转发。
+  取法写在 `docs/analysis/reference-repos.md`（八个仓库的 URL + 本轮钉住的 commit + 各自 `git ls-files` 条数），
+  照它 clone 一次，这些引用就都能打开（这一档的条数每轮由下面的脚本重算，本文不写死）。为什么这些目录**故意不入库**：
+  它们是第三方仓库，本项目只读、不转发——GPL / Apache-2.0+Commons Clause 那四份尤其不能随产物分发。
 - 入库文档里每一处 `文件:行号` 引用由 `./Scripts/p16-citation-audit.sh` 逐条落盘验一遍
   （四道硬判据不过就 exit 1；第五道"符号面"只提示不当门）。跑一次约 40 秒，纯读，不改任何东西。
   改过 `docs/` 下任何 .md 之后请跑一次——引用会像代码一样漂，而且不报错。

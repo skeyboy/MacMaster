@@ -88,6 +88,43 @@ public enum DeletionGuard {
         return check(trimmed, original: path)
     }
 
+    // MARK: 正向闸（允许根）
+
+    /// 黑名单回答"这里绝不能动"，它永远补不全 —— "这个位置本来就不归这个功能管"
+    /// 这一类误判没有任何一条黑名单能对上。允许根回答的是另一半：这次操作只可能在这几个目录里。
+    ///
+    /// 纯字面判定，不调 `realpath`：与 `literalRejection` 同一个理由（视图里做系统调用不划算），
+    /// 而且纯函数才能把三档边界钉死在单测里 —— 根本身、同前缀的兄弟目录、大小写。
+    public static func isInside(_ path: String, roots: [String]) -> Bool {
+        let normalized = canonicalize(path)
+        return roots.contains { rawRoot in
+            let root = rawRoot.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard root.isEmpty == false else { return false }
+            // 空串归一之后是 `/`，拿它当前缀等于放行整台机器 —— 那正是这道闸要挡的东西。
+            let canonicalRoot = canonicalize(root)
+            guard canonicalRoot != "/" else { return false }
+            return matches(normalized, prefix: canonicalRoot) && equals(normalized, canonicalRoot) == false
+        }
+    }
+
+    /// 执行处用的正向闸：**字面路径与 `realpath` 之后的路径都要在根内**。
+    ///
+    /// 只查字面会漏 `~/Library/Caches/Foo → ~/Documents/重要目录` 这一类别名：负向黑名单挡得住
+    /// "逃进保护区"，挡不住"逃出自己的职责范围"。与 `rejection(for:)` 一样，
+    /// 解析失败时 `physicalPath` 原样返回，等于退回只按字面判，而不是"读不到就当安全"。
+    public static func allowedRootRejection(for path: String, roots: [String]) -> Rejection? {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isInside(trimmed, roots: roots) else {
+            return Rejection(path: path, reason: "不在本次操作允许的位置之内（只处理清单列出的那几个目录），已拒绝。")
+        }
+        let resolved = physicalPath(trimmed)
+        guard isInside(resolved, roots: roots) else {
+            return Rejection(path: path,
+                             reason: "这条路径实际指向允许位置之外（\(resolved)），已拒绝。")
+        }
+        return nil
+    }
+
     private static func check(_ path: String, original: String) -> Rejection? {
         let normalized = canonicalize(path)
 

@@ -1,0 +1,10 @@
+# p46-url-capture.sh 03-url-multi-first-wins  2026-10-16 07:50:40 +0800  app=/tmp/mm-app-p46/MacMaster.app
+# repo: 0806189-dirty   # app-repo: 0806189-dirty
+# digest: tree=0806189+440da29a app=0806189+440da29a
+# fixture: /private/tmp/macmaster-p46-url.jWxAjV
+# url: macmaster://uninstall?path=/private/tmp/macmaster-p46-url.jWxAjV/Applications/ThirdFoo.app&path=/private/tmp/macmaster-p46-url.jWxAjV/Applications/UrlFoo.app
+# 额外 env：
+# 进程 stderr：
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+# windows(pid=73725): windowid=10626 pid=73725 layer=0 title=MacMaster bounds=["Width": 1400, "Height": 900, "X": 287, "Y": 68]

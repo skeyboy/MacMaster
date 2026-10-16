@@ -1,0 +1,12 @@
+# p46-url-capture.sh 08-hot-instance-receives-url  2026-10-16 07:50:50 +0800  app=/tmp/mm-app-p46/MacMaster.app
+# repo: 0806189-dirty   # app-repo: 0806189-dirty
+# digest: tree=0806189+440da29a app=0806189+440da29a
+# fixture: /private/tmp/macmaster-p46-url.jWxAjV
+# 时序：先起（无 URL）→ 数窗口 → 送 macmaster://uninstall?path=/private/tmp/macmaster-p46-url.jWxAjV/Applications/UrlFoo.app → 再数窗口
+# 送 URL 之前：主窗口 1 扇
+# 第二次 open（送 URL 进热实例）rc=0
+# windows(pid=73873): windowid=10637 pid=73873 layer=0 title=MacMaster bounds=["Width": 1400, "Y": 68, "X": 287, "Height": 900]
+# 送 URL 之后：主窗口 1 扇
+# 进程 stderr：
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt

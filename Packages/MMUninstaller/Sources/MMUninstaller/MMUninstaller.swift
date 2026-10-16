@@ -119,7 +119,29 @@ public struct UninstallerView: View {
         return model.apps.first { $0.path.hasPrefix(home + "/Applications/") }
     }
 
+    /// 消费一次入站点名（`macmaster://uninstall?path=…`，见 `UninstallerOpenURL`）。
+    ///
+    /// 只切"看哪一个"，不做任何删除动作，也不额外改勾选——勾选仍由 `select(_:)` 按 safe 档给。
+    ///
+    /// 清单没就绪时**不消费**（请求继续挂在 `scanRequest` 上）：`reloadListing` 一边把
+    /// `apps` 清空一边在测几十个大文件，这时候取走就等于把点名吞了，
+    /// 而 `.task` 载入完成后那一次调用才是它能被找到的第一个时刻。
+    private func applyScanRequestIfNeeded() {
+        guard model.isScanningApps == false, model.apps.isEmpty == false else { return }
+        let paths = scanRequest.consume()
+        guard paths.isEmpty == false else { return }
+        // 点名只在「已装应用」那一屏有意义，先把人带到能看见的地方。
+        pane = .apps
+        if model.focusInbound(paths: paths) == nil {
+            FileHandle.standardError.write("入站点名的 bundle 不在应用清单里：\(paths.joined(separator: "、"))\n"
+                .data(using: .utf8)!)
+        }
+    }
+
     @StateObject private var model = UninstallerModel()
+    /// 入站 URL 的待办点名。用进程级那一份而不是本视图的状态：URL 到得比视图建起来早
+    /// （冷启动、从别的页跳转），见 `UninstallerScanRequest`。
+    @ObservedObject private var scanRequest = UninstallerScanRequest.shared
     @StateObject private var trashWatcher = TrashWatcher()
     @StateObject private var appWatcher = AppFolderWatcher()
     @ObservedObject private var settings = AppSettings.shared
@@ -251,6 +273,11 @@ public struct UninstallerView: View {
             }
             // 启动就落在「卸载后遗症」时 onChange(of: pane) 不会触发，这里补一次。
             startOrphanScanIfNeeded()
+            // 点名也可能在清单还没建起来时就到了（冷启动那条时序），这里补消费一次。
+            applyScanRequestIfNeeded()
+        }
+        .onChange(of: scanRequest.paths) { _, _ in
+            applyScanRequestIfNeeded()
         }
         .onDisappear {
             trashWatcher.stop()

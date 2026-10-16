@@ -1206,7 +1206,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
    起点是对的、终点停在了 `register()` 那一行）。P29 给这一段加了可见性以后整体下移，
    现在的三个落点是 `:61`（`register()`）、`:63`（`unregister()`）、`:69`
    「一切以系统真实状态收尾，不假装成功」——旧的那两个裸行号 `:37`/`:39`/`:45` 已经不作数了）。
-4. 删除本身：`FileManager.trashItem`（`FileTrashService.swift:52`）或永久删除路径（§5）。
+4. 删除本身：`FileManager.trashItem`（`FileTrashService.swift:60`）或永久删除路径（§5）。
 
 **不做的**：零网络代码（§1 实测），无任何遥测/统计上报；通知是唯一会弹系统授权的入口
 （`MenuBarManager.swift:227`，`.alert,.sound`，且脱离 bundle 时不初始化 `UNUserNotificationCenter`）；
@@ -1215,7 +1215,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 ## 5. 删除安全：闸门只有一道
 
 - `DeletionGuard.rejection(for:)` 在**非测试源码里 4 个调用点**：
-  `FileTrashService.swift:43`（移入废纸篓）、`:86`（永久删除）、`DiskRemoval.swift:98`（磁盘页裁决）、
+  `FileTrashService.swift:47`（移入废纸篓）、`:94`（永久删除）、`DiskRemoval.swift:98`（磁盘页裁决）、
   `MMCleaner.swift:931`（清理页预检；**P25 现读**，此前本文写 `:938`——清理页副标题整段搬家后那一屏之后整体 −7）。**两个删除出口都过它**，没有第三道口子。
 - **永久删除全仓只有一个入口**：`MMDisk.swift:1362` 的 `deleteMarkedPermanently` → `:1374` `permanentlyDelete`。
   UI 侧必须勾选确认（`MMDisk.swift:1244` 的 Toggle，`:1261` 的
@@ -1224,9 +1224,11 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
   照片证据：`docs/verification/p68-disk/` 四档。
 - 永久删除**不写台账**（`FileTrashService.swift` 的 `permanentlyDelete` 上面那段文档注释写明理由，
   P12 现读 `:71-81`、"不写台账"那两行在 `:77-78`。此前本文写的是"`:79-83` 的**文件注释**"——
-  行号漂了三行，而且那是**函数**的文档注释、不是文件头注释，两个错各属一类）。
+  行号漂了三行，而且那是**函数**的文档注释、不是文件头注释，两个错各属一类。**P46b 现读**：那段注释在 `:79-88`、
+  "不写台账"两行在 `:85-86`，整段 +8——`moveToTrash` 签名前插了 4 行参数说明、循环里插了 4 行正向闸）。
 - 撤回路径**故意不经 DeletionGuard**：它写回的是台账里记的 `originalPath`，
-  不是新路径。这条是设计而非漏洞，记在 `docs/analysis/deletion-guard.md`。
+  不是新路径。这条是设计而非漏洞，记在 `docs/analysis/deletion-guard.md`。**P46b 追记**：它也不经新增的那道正向闸
+  （正向闸的调用点在 `FileTrashService` 那两个删除方法里，撤回那条没接），撤回的落点因此仍由台账自己负责。
 - **P12 现读复核这一节的全部位置引用**：`DeletionGuard.rejection` 的非测试调用点仍是 **4 处**
   （`FileTrashService.swift:43`、`:86`、`DiskRemoval.swift:98`、`MMCleaner.swift:931`），
   **这一格是 P12 当时的现读，不改它**；P25 顺手对了一遍，那个调用点现在**又**在 931——
@@ -1281,7 +1283,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 优化页对每一行都给勾选框（`MMOptimizer.swift:558-564`），没有"某组不给入口"这回事；
 代码里真正的保证是三条别的——默认一个都不勾（`actionBar` 那句"未勾选的文件不会被改动"，`:465-468`）、
 一组里其余都勾完之后最后一份的框变禁用（`isKeepRequired`，`:424-428`，至少留一份）、
-勾到受保护路径时由服务层拒绝并回一条 PROTECTED 回执（`FileTrashService.swift:44`，UI 不拦、闸门拦）。
+勾到受保护路径时由服务层拒绝并回一条 PROTECTED 回执（`FileTrashService.swift:48`，UI 不拦、闸门拦）。
 发版说明按这三条写，不写"不给删除入口" |
 | 壳层 `Sources/MacMaster` | **可发布·但零测试** | 根 `Package.swift` 只有一个 `.executableTarget`（`:22`），**没有测试目标**（`ls Sources/` 只有 `MacMaster`）。九包 **792** 个测试（**P27 现读更正**：这一格从前停在 612，那是 P18 之后的数；P21 621、P22 622、P25 629、P26 633，四笔都没回写到这里；**P29 也没回写，本轮 P30 才跟上**——这一格当时是第三次被同一句话抓到；**P31 当轮回写了**（641 → 668），**P32b 也当轮回写**（668 → 706；
 "壳层零测试"那一轮一个字没变——新加的 38 条判据全在 MMUninstaller 那一包的判定与呈现层，
@@ -2211,11 +2213,11 @@ MMCore 写着 48（现读 **73**）、MMCleaner 写着 18（**25**）、MMDisk �
 
 | 那一格从前怎么说 | 现读 | 锚点 |
 | --- | --- | --- |
-| §9「发全部功能屏，九屏」 | 应用里能到达的是**八屏**（侧边栏七行 + 设置窗），"九"来自设计稿编号，其中 `05-states.html` 是状态稿不是屏 | `MacMasterApp.swift:55-60`、`Scripts/p4-sweep.sh:48` 那个 `targets` 数组、`docs/verification/p26-min/` 16 个文件 = 8×2 |
+| §9「发全部功能屏，九屏」 | 应用里能到达的是**八屏**（侧边栏七行 + 设置窗），"九"来自设计稿编号，其中 `05-states.html` 是状态稿不是屏 | `MacMasterApp.swift:68-73`、`Scripts/p4-sweep.sh:48` 那个 `targets` 数组、`docs/verification/p26-min/` 16 个文件 = 8×2 |
 | §4 写盘面「18 个 UserDefaults 键」 | **17 个 `settings.*` 键**，另加清理排除项那 2 个（`mmcleaner.exclusions.v1` 与它的 schema），合计 **19** | `AppSettings.swift:19-38` 逐行数 case 值 |
 | §4 写盘面里列的那个键名 | 文档写的 `CleanerExclusions` 那个 UserDefaults 键**不存在**，真实键名是 `settings.cleaner.excludedFolderPaths` | `AppSettings.swift:35` |
 | §4 读面 | 漏了 **TCC.db**：守护页那一列设备占用是直接只读 `TCC.db` 的，漏记了四轮 | `TCCProbe.swift:76`（只读打开）、`TCCProbe.swift:53-54`（五个 service 名） |
-| §6 优化页「需标注」那一句 | 从前写"PROTECTED 组永远不给删除入口"，**比实现强**。真实合同是三条：默认一条都不勾、每组至少保留一份、服务层拒 PROTECTED | `MMOptimizer.swift:558-564`、`MMOptimizer.swift:466-469`、`MMOptimizer.swift:425-429`、`FileTrashService.swift:44` |
+| §6 优化页「需标注」那一句 | 从前写"PROTECTED 组永远不给删除入口"，**比实现强**。真实合同是三条：默认一条都不勾、每组至少保留一份、服务层拒 PROTECTED | `MMOptimizer.swift:558-564`、`MMOptimizer.swift:466-469`、`MMOptimizer.swift:425-429`、`FileTrashService.swift:48` |
 | §8「五处空骨架」 | 现读五处**都还在**（每处 `find … -type f` 都是 0 个文件）；§9 那句"helper/widget 两个空壳"指的是其中前两处骨架，这一格对得上 | `MacMaster/`、`MacMasterHelper/Sources/MacMasterHelper/`、`MacMasterWidgets/Sources/MacMasterWidgets/`、`docs/verification/mmguardian/`、`docs/verification/shell/` |
 
 实物是仓库根的 **`RELEASE-NOTES.md`（P28 那一读 123 行；第十五遍改成 1.0.1 正文后现读 181 行）**：
@@ -2372,8 +2374,8 @@ zip 3,233,024 B、dmg 3,831,239 B，归因行 `# digest: 5487f95+70948ba4`——
 | # | 现象（用户看到的） | 现读到的根因 | 修法 | 这一条凭什么算修好了 |
 | --- | --- | --- | --- | --- |
 | 1 | 清理页横幅上「打开系统设置」按下去什么都不发生 | 传进去的 pane 串自带 `x-apple.systempreferences:`，`MMReveal.openSystemSettings` 又拼一次前缀（`MMDesign.swift:519-520`），拼出来是双 scheme 串 | 深链收口成枚举，见第 2 条 | 探针 C 档：`面板没动`（A/B 两档同一时刻都是 `面板换了`） |
-| 2 | 同上，而且这类串散在四个包的六处调用点、类型是 `String` | 每个调用点自己写一份 pane 字面量，编译器管不了"前缀拼了几次" | 新增 `Packages/MMCore/Sources/MMCore/SystemSettings.swift`，`MMSettingsPane` 三档（`SystemSettings.swift:16`），拼接只发生在 `settingsURL`（`:30-31`）；六处调用点改成 `.fullDiskAccess` / `.loginItems`（`MMCleaner.swift:369`、`MMUninstaller.swift:911`、`:1083`、`MMGuardian.swift:177` 与守护页另两处） | `MMSettingsPaneTests` 4 条：rawValue 里不许有 scheme、拼完只许有一个前缀、`?Privacy_AllFiles` 不许被百分号编码、三档不许重复 |
-| 3 | 主窗口一关，设置就打不开；⌘, 也按不出来 | 唯一的入口是侧栏那个按钮（`MainWindow.swift:128`），`.appSettings` 那一组 SwiftUI 默认给的是**空的**，没有键位 | `CommandGroup(replacing: .appSettings)` 补「设置…」+ `⌘,`（`MacMasterApp.swift:46-48`），三条路（侧栏 / 键位 / 菜单栏）都汇到 `AppState.requestSettings()`（`:93`） | `MM_DUMP_MENUS` 那一行：`应用菜单   设置… [⌘,]` |
+| 2 | 同上，而且这类串散在四个包的六处调用点、类型是 `String` | 每个调用点自己写一份 pane 字面量，编译器管不了"前缀拼了几次" | 新增 `Packages/MMCore/Sources/MMCore/SystemSettings.swift`，`MMSettingsPane` 三档（`SystemSettings.swift:16`），拼接只发生在 `settingsURL`（`:30-31`）；六处调用点改成 `.fullDiskAccess` / `.loginItems`（`MMCleaner.swift:369`、`MMUninstaller.swift:938`、`:1110`、`MMGuardian.swift:177` 与守护页另两处；卸载页那两条 **P46f 现读重指**，此前本文写 911/1083，P46e 净增的 27 行把它们顶下去了） | `MMSettingsPaneTests` 4 条：rawValue 里不许有 scheme、拼完只许有一个前缀、`?Privacy_AllFiles` 不许被百分号编码、三档不许重复 |
+| 3 | 主窗口一关，设置就打不开；⌘, 也按不出来 | 唯一的入口是侧栏那个按钮（`MainWindow.swift:128`），`.appSettings` 那一组 SwiftUI 默认给的是**空的**，没有键位 | `CommandGroup(replacing: .appSettings)` 补「设置…」+ `⌘,`（`MacMasterApp.swift:59-61`），三条路（侧栏 / 键位 / 菜单栏）都汇到 `AppState.requestSettings()`（`:93`） | `MM_DUMP_MENUS` 那一行：`应用菜单   设置… [⌘,]` |
 | 4 | 菜单栏图标里也没有设置 | 状态菜单只有「打开 MacMaster…」和「退出」两项 | `MenuBarManager` 加「设置...」，跨模块用通知（`SystemSettings.swift:40` 那个 `Name`）而不是把 `AppState` 递进去——`AppState` 归 App struct 所有，比任何 view 都活得久，递进去就是一条反向依赖 | 同一次 dump 的菜单栏段：`打开 MacMaster...` → `设置...` → `───` → `退出` |
 | 5 | 「开机自动启动」显示关着，但系统设置里那一栏是有登记的 | 开关绑的是 `SMAppService.Status == .enabled`，而 `.requiresApproval` 在用户没去批之前**一直是这个值**——它不是 OFF，是"等批" | `LoginItemManager` 加 `isOn`（`.enabled \|\| .requiresApproval`，`LaunchBehavior.swift:31`）、`statusCaption`（`:37`）、`needsSystemSettings`（`:49`），设置页那一节按后两者多出一行说明和「打开系统设置 · 登录项」按钮 | 本机 `status == .enabled`，所以照片里**不出现**那一行——否证形状：它只在需要的时候出现 |
 | 6 | 通知两个开关拨得动，但系统里已经拒绝过这个 App，于是永远不会有通知 | 设置页**从来没读过**授权状态；这一屏上"开关"和"系统允不允许"是两件事，它只说前者 | 新增 `NotificationStatusModel`（`NotificationStatus.swift:11`，`refresh()` 在 `:20`），文案与判据是两个 `nonisolated` 静态（`:27`、`:46`）；`MenuBarManager.supportsUserNotifications`（`MenuBarManager.swift:52`）改成 `static` 就是为了让它复用——裸可执行文件里 `UNUserNotificationCenter.current()` 会崩 | `docs/verification/p29-after/monitor.png`：通知那一节第一行是橙色的"系统里已拒绝 MacMaster 发送通知：这两个开关拨成开也不会有任何通知，要去系统设置里允许。"，下面跟着「打开系统设置 · 通知」 |
@@ -3825,7 +3827,7 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
 ## 9. 建议的 v1.0 范围与版本号
 
 **发**：§6 表中所有"可发布"档，即全部功能屏——**P28 现读更正这一格说"九屏"**：
-应用里能到达的是**八屏**（侧边栏七行 = 概览 + `moduleRegistry` 注册的那 6 个模块，`MacMasterApp.swift:55-60`，
+应用里能到达的是**八屏**（侧边栏七行 = 概览 + `moduleRegistry` 注册的那 6 个模块，`MacMasterApp.swift:68-73`，
 另加设置窗），逐屏取证的 `Scripts/p4-sweep.sh:48` 里那个 `targets` 数组也是这 8 个名字，
 `docs/verification/p26-min/` 那一批照片同样是 8 屏 × 2 档 = 16 个文件。
 "九"这个数来自设计稿编号 01–09，其中 `05-states.html` 是设计系统的状态稿、不是应用里的一屏
@@ -4752,7 +4754,7 @@ zsh 的 NOMATCH 配上 `set -e` 在 §7.11 打死过一条降级分支，本轮�
 这一遍的产物出自一棵 `git clone` 出来的树（`fd2ec86+e3b0c442`，照片 `docs/verification/p27-clone/`），
 所以它是第一遍**同时**满足"别人也能复现这棵树"和"照片与二进制当场自证同源"两件事的核验。
 第 4 步那三项在这份产物上现读还是原样：`plutil -p /tmp/mm-app-p27/MacMaster.app/Contents/Info.plist`
-里 `NSHumanReadableCopyright` 仍是占位值 `MacMaster`（它的来源是 `Scripts/make-app.sh:110` 那一对键，本轮没动过），
+里 `NSHumanReadableCopyright` 仍是占位值 `MacMaster`（它的来源是 `Scripts/make-app.sh:124-125` 那一对键，本轮没动过；**P46f 现读重指**，此前本文写 110——卸载页那一族深链往同一份 plist 里插了 `CFBundleURLTypes`，一对键跟着往下走了 14 行），
 `# codesign:` 那一行与 P25 一字不差、`# spctl:` 仍是 `rejected`。
 **换句话说：核验跑到第十三遍、跑到别人的机器上也能复现的那一棵树上，卡住的还是同样那三项人拍板的事**——
 许可证（§2.3）、权利人与年份、签名与公证的身份（§2.1）。
@@ -4765,7 +4767,7 @@ zsh 的 NOMATCH 配上 `set -e` 在 §7.11 打死过一条降级分支，本轮�
 所以卡点从**"能不能发"**挪到了**"发出去的这一版对外说了什么"**，而这三条今天都还是未定态的原样：
 关于页那一格现读仍是「许可 尚未选择许可」（`Sources/MacMaster/SettingsView.swift:321`），
 产物 plist 的 `NSHumanReadableCopyright` 仍是无权利人的占位值 `MacMaster`
-（来源 `Scripts/make-app.sh:110`，本轮没动），下载回来的那一份 `spctl` 仍判 `rejected`
+（来源 `Scripts/make-app.sh:124-125`，本轮没动；**P46f 现读重指**，此前本文写 110），下载回来的那一份 `spctl` 仍判 `rejected`
 （ad-hoc，逐字在 `docs/verification/p28-ci/downloaded-assets.log`）。
 **当前唯一的缓解是可见性**：仓库实测仍是 private（`private=true`、fork 0、watcher 0，2026-10-08 现读），
 所以今天能拿到这三个附件的只有登录进来的协作者，"陌生人双击被拒"要等仓库或 Release 公开那一天才成为对外事实。

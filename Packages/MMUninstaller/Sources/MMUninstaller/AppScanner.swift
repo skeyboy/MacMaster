@@ -1,6 +1,7 @@
 import Foundation
 import Security
 import Darwin
+import MMCore
 
 // MARK: - 应用清单
 
@@ -23,9 +24,27 @@ public struct DiscoveredApp: Sendable, Equatable {
 /// 单测里的伪造 bundle 没有经过 LaunchServices 注册，只有直接读 plist 才能测到真实行为。
 public enum AppScanner {
 
-    /// 默认应用目录：系统级与用户级 `/Applications`。
+    /// 默认应用目录：系统级与用户级 `/Applications`、`/Applications/Utilities`，
+    /// 外加每块非启动卷上的 `/Applications`（存在才算）。
+    ///
+    /// 这一格同时是 `AppFolderWatcher` 的监听范围 —— 监听范围必须等于列举范围，
+    /// 所以扩目录只改这一处，装卸监听自动跟着宽。
     public static func defaultSearchDirectories(home: String) -> [String] {
-        ["/Applications", "\(home)/Applications"]
+        applicationDirectories(home: home,
+                               volumePaths: VolumeRoots.nonBootVolumePaths(from: VolumeRootProbe.snapshot() ?? []),
+                               directoryExists: { FileManager.default.fileExists(atPath: $0) })
+    }
+
+    /// 纯的那一半：三条固定的 + 每个候选卷一条。拆开是为了让"外接卷上得有这个目录才算"
+    /// 这一条在单测里跑完，不用真插一块盘。
+    ///
+    /// `VolumeRootProbe` 读不到（`MM_VOLUME_FIXTURE=fail` 那档）时传空数组进来：
+    /// 那是"没数过外接卷"，不是"没有外接卷"，名单退回固定三条即可，界面上不假装扫过。
+    static func applicationDirectories(home: String, volumePaths: [String],
+                                       directoryExists: (String) -> Bool) -> [String] {
+        var directories = ["/Applications", "/Applications/Utilities", "\(home)/Applications"]
+        directories += volumePaths.map { "\($0)/Applications" }.filter(directoryExists)
+        return directories
     }
 
     public static func applications(in directories: [String]) -> [DiscoveredApp] {

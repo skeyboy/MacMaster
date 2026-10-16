@@ -211,4 +211,85 @@ final class DeletionGuardTests: XCTestCase {
         XCTAssertEqual(DeletionGuard.physicalPath("/tmp"), "/private/tmp")
         XCTAssertEqual(DeletionGuard.physicalPath("/does-not-exist-at-all"), "/does-not-exist-at-all")
     }
+
+    // MARK: - 正向闸（允许根）
+
+    /// 三档边界里的第一档：**根本身不放行**。卸载"整个应用目录"这种动作不该因为
+    /// "它正好在根上"就通过正向闸 —— 位置对了不等于对象对了，那一条要交给黑名单判。
+    func testIsInsideExcludesTheRootItself() {
+        let roots = ["/Applications", "/tmp/mm/Library"]
+        XCTAssertFalse(DeletionGuard.isInside("/Applications", roots: roots))
+        XCTAssertFalse(DeletionGuard.isInside("/Applications/", roots: roots), "尾部斜杠归一之后仍是根")
+        XCTAssertFalse(DeletionGuard.isInside("/tmp/mm/Library", roots: roots))
+        XCTAssertTrue(DeletionGuard.isInside("/Applications/Foo.app", roots: roots))
+        XCTAssertTrue(DeletionGuard.isInside("/tmp/mm/Library/Caches/com.example.app", roots: roots))
+    }
+
+    /// 第二档：**同前缀的兄弟目录不放行**。组件边界比较在这里接着生效。
+    func testIsInsideRespectsPathComponentBoundary() {
+        XCTAssertFalse(DeletionGuard.isInside("/ApplicationsOther/Foo.app", roots: ["/Applications"]))
+        XCTAssertFalse(DeletionGuard.isInside("/tmp/mm/LibraryX/Foo", roots: ["/tmp/mm/Library"]))
+        XCTAssertFalse(DeletionGuard.isInside("/Library/Caches/com.example", roots: ["/tmp/mm/Library"]))
+        // `..` 先归一再比：绕一圈跑到根外就不算在内。
+        XCTAssertFalse(DeletionGuard.isInside("/Applications/../Users/lee/x", roots: ["/Applications"]))
+    }
+
+    /// APFS 大小写不敏感：根写 `/Applications`，`/applications/Foo.app` 是同一个目录，
+    /// 正向闸的松紧不能因为调用方传的是显示名而变。
+    func testIsInsideIgnoresCase() {
+        XCTAssertTrue(DeletionGuard.isInside("/applications/Foo.app", roots: ["/Applications"]))
+        XCTAssertTrue(DeletionGuard.isInside("/Applications/FOO.APP", roots: ["/applications"]))
+    }
+
+    /// 空根串归一之后是 `/`，拿它当前缀等于放行整台机器 —— 那正是这道闸要挡的东西。
+    /// 根列表为空、根为 `/` 都当"没有这条根"处理，而不是"什么都能删"。
+    func testMeaninglessRootsGrantNothing() {
+        for roots in [[String](), [""], ["   "], ["/"]] {
+            XCTAssertFalse(DeletionGuard.isInside("/Applications/Foo.app", roots: roots),
+                           "roots=\(roots)")
+        }
+        // 根列表为空时 `allowedRootRejection` 给出拒绝（而不是"没有清单所以放行"）：
+        // 传了空清单就是不授权任何东西，授权逻辑本身不该被当成"忘了传"。
+        XCTAssertNotNil(DeletionGuard.allowedRootRejection(for: "/Applications/Foo.app", roots: []))
+    }
+
+    /// 第三档：**符号链接解析后判定**。字面路径在根内、实际指向根外的普通目录，
+    /// 黑名单挡不住（目标不是保护区，只是不归这个功能管），只能靠正向闸这一遍。
+    func testAllowedRootRejectsSymlinkThatEscapesTheRoot() throws {
+        let root = symlinkDirectory.appendingPathComponent("fixtureRoot", isDirectory: true)
+        let outside = symlinkDirectory.appendingPathComponent("fixtureOutside", isDirectory: true)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("Caches"),
+                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        let legitimate = root.appendingPathComponent("Caches/com.example.app")
+        try FileManager.default.createFile(atPath: legitimate.path, contents: Data())
+
+        let escape = root.appendingPathComponent("Caches/looks-inside")
+        try FileManager.default.createSymbolicLink(at: escape, withDestinationURL: outside)
+
+        let roots = [root.path]
+        XCTAssertNil(DeletionGuard.allowedRootRejection(for: legitimate.path, roots: roots),
+                     "根内真实存在的普通文件不该被正向闸挡下")
+        let rejection = try XCTUnwrap(DeletionGuard.allowedRootRejection(for: escape.path, roots: roots))
+        XCTAssertTrue(rejection.reason.contains("允许位置之外"), "拒绝要说清是别名跑出去了：\(rejection.reason)")
+
+        // 断链解析不出来时退回链接自身的位置 —— 与负向闸门同一个口径（见上面的实测说明）。
+        let dangling = root.appendingPathComponent("Caches/dangling")
+        try FileManager.default.createSymbolicLink(at: dangling, withDestinationURL:
+            symlinkDirectory.appendingPathComponent("没有这个目录"))
+        XCTAssertNil(DeletionGuard.allowedRootRejection(for: dangling.path, roots: roots))
+    }
+
+    /// 夹具在 `/var/folders/…` 下：路径两侧都归一，`/private` 前缀不会把同一个目录判成两个位置。
+    /// 这条锁住"临时目录里的单测与截图夹具能整条走通"这件事。
+    func testAllowedRootAgreesAcrossPrivatePrefix() throws {
+        let file = symlinkDirectory.appendingPathComponent("probe.txt")
+        try FileManager.default.createFile(atPath: file.path, contents: Data())
+        let roots = [symlinkDirectory.path]
+        XCTAssertNil(DeletionGuard.allowedRootRejection(for: file.path, roots: roots))
+        // 根写成带 `/private` 前缀的同一个目录，结论必须不变。
+        XCTAssertNil(DeletionGuard.allowedRootRejection(for: file.path,
+                                                        roots: [DeletionGuard.physicalPath(file.path)
+                                                                    .replacingOccurrences(of: "/probe.txt", with: "")]))
+    }
 }

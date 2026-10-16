@@ -1,0 +1,48 @@
+产物注册的 scheme：macmaster
+✅ 01-baseline-no-url pid=73584 windowid=10622 
+✅ 02-url-named-app pid=73620 windowid=10625 url=<已送>
+✅ 03-url-multi-first-wins pid=73725 windowid=10626 url=<已送>
+✅ 04-url-space-percent20 pid=73751 windowid=10629 url=<已送>
+✅ 05-url-overrides-select-hook pid=73778 windowid=10630 url=<已送>
+✅ 06-url-system-path-refused pid=73807 windowid=10633 url=<已送>
+✅ 07-url-without-path-refused pid=73846 windowid=10634 url=<已送>
+✅ 08-hot-instance-receives-url pid=73873 windowid=10637（送前 1 扇 / 送后 1 扇）
+
+# 窗口数核对
+  ✓ 01-baseline-no-url：主窗口正好一扇
+  ✓ 02-url-named-app：主窗口正好一扇
+  ✓ 03-url-multi-first-wins：主窗口正好一扇
+  ✓ 04-url-space-percent20：主窗口正好一扇
+  ✓ 05-url-overrides-select-hook：主窗口正好一扇
+  ✓ 06-url-system-path-refused：主窗口正好一扇
+  ✓ 07-url-without-path-refused：主窗口正好一扇
+  ✓ 08-hot-instance-receives-url：主窗口正好一扇
+
+# 留痕核对
+  ✓ 01-baseline-no-url：没送 URL，自然没有留痕
+  ✓ 02-url-named-app：两条拒绝留痕都没有（点名落进了清单）
+  ✓ 03-url-multi-first-wins：两条拒绝留痕都没有（点名落进了清单）
+  ✓ 04-url-space-percent20：两条拒绝留痕都没有（点名落进了清单）
+  ✓ 05-url-overrides-select-hook：两条拒绝留痕都没有（点名落进了清单）
+  ✓ 06-url-system-path-refused：有「不在应用清单里」留痕
+  ✓ 07-url-without-path-refused：有「没有可用的 path=」留痕
+  ✓ 08-hot-instance-receives-url：两条拒绝留痕都没有（点名落进了清单）
+
+# 画面交叉核对
+  md5 d2eec5d34d57e2cf7ea66621c818d056  01-baseline-no-url.png
+  md5 c4e9a7eb8652fe9a7e27db545ba2126e  02-url-named-app.png
+  md5 fa98904d2804529be85d42c80125acbf  03-url-multi-first-wins.png
+  md5 88485a934228762dfce5ad9f3d4dc2fa  04-url-space-percent20.png
+  md5 c4e9a7eb8652fe9a7e27db545ba2126e  05-url-overrides-select-hook.png
+  md5 985c23704b73ef4ca08c952096eb7332  06-url-system-path-refused.png
+  md5 985c23704b73ef4ca08c952096eb7332  07-url-without-path-refused.png
+  md5 96133812834d0dfc6efa8d3857aa40a2  08-hot-instance-receives-url.png
+  ✓ 01-baseline-no-url ↔ 02-url-named-app：可辨差异 66229 个像素（最大幅度 217）
+  ✓ 02-url-named-app ↔ 03-url-multi-first-wins：可辨差异 92416 个像素（最大幅度 219）
+  ✓ 02-url-named-app ↔ 04-url-space-percent20：可辨差异 94076 个像素（最大幅度 219）
+  ✓ 01-baseline-no-url ↔ 05-url-overrides-select-hook：可辨差异 66229 个像素（最大幅度 217）
+  ✓ 01-baseline-no-url ↔ 06-url-system-path-refused：可辨差异 0 个像素（最大幅度 1，被拒的 URL 没动画面）
+  ✓ 01-baseline-no-url ↔ 07-url-without-path-refused：可辨差异 0 个像素（最大幅度 1，被拒的 URL 没动画面）
+  ℹ 02-url-named-app ↔ 05-url-overrides-select-hook：可辨差异 0 个像素（最大幅度 0，不作判据，理由见脚本头 ③）
+  ℹ 02-url-named-app ↔ 08-hot-instance-receives-url：可辨差异 163 个像素（最大幅度 61，不作判据，理由见脚本头 ③）
+→ /Users/lee/Desktop/MacMaster/docs/verification/p46-url（light）

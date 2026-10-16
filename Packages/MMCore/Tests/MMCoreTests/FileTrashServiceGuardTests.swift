@@ -85,4 +85,54 @@ final class FileTrashServiceGuardTests: XCTestCase {
         XCTAssertTrue(operation.files.isEmpty)
         XCTAssertEqual(operation.failures.first?.code, "PROTECTED")
     }
+
+    // MARK: - 正向闸（允许根）
+
+    /// 清单之外的位置删不掉，而且要记成 `OUT_OF_SCOPE` 而不是 `PROTECTED` ——
+    /// 前者是"这个功能不该碰那里"，后者是"那里绝对不能碰"，界面与排障要能分清。
+    /// 用的路径在临时目录里、并不存在：闸门一旦失效，失败来自 ENOENT，测试照样报红。
+    func testPathOutsideAllowedRootsIsRefusedWithItsOwnCode() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mm-roots-\(UUID().uuidString)", isDirectory: true)
+        let missing = dir.appendingPathComponent("Foo.app").path
+        let result = await service().moveToTrash(paths: [missing], allowedRoots: ["/Applications"])
+        XCTAssertEqual(result.successCount, 0)
+        let failure = try XCTUnwrap(result.operation.failures.first)
+        XCTAssertEqual(failure.code, "OUT_OF_SCOPE")
+        XCTAssertFalse(failure.message.isEmpty)
+    }
+
+    /// 否证：给了允许根不等于把黑名单换成白名单。根内的东西若同时位于保护区，
+    /// 仍按 `PROTECTED` 挡 —— 两道闸是叠加的，正向那道只会更严。
+    func testAllowedRootsNeverOverrideTheDenylist() async throws {
+        let home = NSHomeDirectory()
+        let credential = home + "/.ssh/探针-\(UUID().uuidString)"
+        let result = await service().moveToTrash(paths: [credential],
+                                                 allowedRoots: [home + "/.ssh", home])
+        XCTAssertEqual(result.errorCount, 1)
+        XCTAssertEqual(try XCTUnwrap(result.operation.failures.first).code, "PROTECTED")
+    }
+
+    /// 不传允许根时行为一字不变（清理页、磁盘页走的就是这一条）。
+    /// 这里断言的是"根外路径照样能走到文件系统那一层"，即 ENOENT 而不是 OUT_OF_SCOPE。
+    func testNilAllowedRootsKeepsTheOldBehavior() async throws {
+        let missing = NSTemporaryDirectory() + "mm-roots-\(UUID().uuidString).txt"
+        let result = await service().moveToTrash(paths: [missing], allowedRoots: nil)
+        let failure = try XCTUnwrap(result.operation.failures.first)
+        XCTAssertNotEqual(failure.code, "OUT_OF_SCOPE")
+    }
+
+    /// 永久删除那条出口同样接闸：它没有废纸篓兜底，误删的代价更高，不该是第二套规矩。
+    func testPermanentDeleteHonoursAllowedRoots() async throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mm-roots-\(UUID().uuidString)", isDirectory: true)
+        let kept = dir.appendingPathComponent("keep.txt")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try FileManager.default.createFile(atPath: kept.path, contents: Data())
+        let result = await service().permanentlyDelete(paths: [kept.path], allowedRoots: ["/Applications"])
+        XCTAssertEqual(result.successCount, 0)
+        XCTAssertEqual(try XCTUnwrap(result.failures.first).code, "OUT_OF_SCOPE")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: kept.path), "挡下之后文件必须还在")
+        try? FileManager.default.removeItem(at: dir)
+    }
 }

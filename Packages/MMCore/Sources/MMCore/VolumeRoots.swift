@@ -156,6 +156,17 @@ public enum VolumeRoots {
             VolumeRoot(path: row.path, totalBytes: row.totalBytes ?? 0, availBytes: caliber.avail(of: row))
         })
     }
+
+    /// 卸载页与应用监听要看的**外接卷挂载点** = 候选根里除启动卷之外的那些。
+    ///
+    /// 复用 `candidates(from:)` 而不是只看 `browsable`：这一步得连带容量去重。
+    /// 本机本轮实测（`FileManager.mountedVolumeURLs(options: [])` 14 条，只有 `/` 是 browsable）：
+    /// `/Volumes/Recovery` 与 `/` 报同一对容量数（494384795648 / 24033464320），
+    /// 一块容器的第二个挂载点如果不去重就会被列两遍，`AppFolderWatcher` 于是为同一个
+    /// `/Applications` 开两个 kqueue —— 装卸事件成双出现，那是监听侧的假话，不是功能的功劳。
+    public static func nonBootVolumePaths(from rows: [VolumeRootRow]) -> [String] {
+        candidates(from: rows).map(\.path).filter { $0 != "/" }
+    }
 }
 
 // MARK: 夹具档位（`MM_VOLUME_FIXTURE`）

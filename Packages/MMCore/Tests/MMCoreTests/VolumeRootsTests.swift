@@ -216,6 +216,21 @@ final class VolumeRootsTests: XCTestCase {
         XCTAssertEqual(candidates.count - 1, 1)
     }
 
+    /// 卸载页与应用监听只要"除启动卷之外的那些挂载点"。这一格的价值全在去重那一步：
+    /// 本机本轮实测（`mountedVolumeURLs(options: [])` 14 条）`/Volumes/Recovery` 与 `/`
+    /// 报同一对容量数（494384795648 / 24033464320），少了去重就会给同一个 `/Applications`
+    /// 开两个 kqueue —— 装卸事件成双出现，那是监听侧的假话。
+    func testNonBootPathsDropTheBootVolumeAndItsAliasMounts() {
+        let rows = [bootRow("/"), bootRow("/Volumes/Macintosh HD"), bootRow("/Volumes/Recovery"),
+                    row("/Volumes/Ext", total: 2_000_000_000_000, regular: 900_000_000_000,
+                        important: 950_000_000_000)]
+        XCTAssertEqual(VolumeRoots.nonBootVolumePaths(from: rows), ["/Volumes/Ext"])
+        XCTAssertEqual(VolumeRoots.nonBootVolumePaths(from: [bootRow("/")]), [],
+                       "只有启动卷的机器（本机默认档）不该拼出任何外接卷目录")
+        XCTAssertEqual(VolumeRoots.nonBootVolumePaths(from: VolumeFixtureTier.two.rows ?? []),
+                       ["/Volumes/p35b-fixture-data"])
+    }
+
     func testFixtureTierZeroAndFailShapes() {
         guard let rows = VolumeFixtureTier.zero.rows else { return XCTFail("zero 档不该返回 nil") }
         XCTAssertEqual(VolumeRoots.candidates(from: rows).count, 0, "zero 档该有挂载点、没有候选根")

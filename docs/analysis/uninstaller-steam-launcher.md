@@ -49,9 +49,9 @@
 
 | 档 | 画面上读到什么 | 独立哨兵对不对得上 |
 | --- | --- | --- |
-| 01 列表 + 详情（SteamGame） | 五行清单（PlainTool 8.4 MB / Steam 581 字节 / SteamGame 593 字节 +「3 项残留 524 KB」/ SteamNoId 518 字节 / SteamRunSh 516 字节），页头「5 个应用 · 合计 8.4 MB · 大小已实测」 | 593 B / 2 个文件 ✓；`DeepShortcut` **不在清单里** ✓（应用根非递归，`AppScanner.swift:41` 只枚举直接子项） |
+| 01 列表 + 详情（SteamGame） | 五行清单（PlainTool 8.4 MB / Steam 581 字节 / SteamGame 593 字节 +「3 项残留 524 KB」/ SteamNoId 518 字节 / SteamRunSh 516 字节），页头「5 个应用 · 合计 8.4 MB · 大小已实测」 | 593 B / 2 个文件 ✓；`DeepShortcut` **不在清单里** ✓（应用根非递归，`AppScanner.swift:56` 只枚举直接子项） |
 | 02 详情（SteamNoId） | 「包名 —」「来源 无法判定」「残留大小 0 字节 · 残留项 0」「可执行文件 SteamNoId」 | 518 B ✓；无包标识 ⇒ 残留只剩名字这一条腿，而 `Application Support/Steam` 与它名字不同 ⇒ 0 项 ✓ |
-| 03 详情（SteamRunSh） | 「可执行文件 run.sh」，其余与 02 同形 | 516 B ✓；`run.sh` 这一格现在只是把 plist 里的字符串抄出来（`MMUninstaller.swift:1735`），没人拿它当识别依据 |
+| 03 详情（SteamRunSh） | 「可执行文件 run.sh」，其余与 02 同形 | 516 B ✓；`run.sh` 这一格现在只是把 plist 里的字符串抄出来（`MMUninstaller.swift:1811`），没人拿它当识别依据。**P46f 顺带修一处旧锚**：本文此前记的 `:1735` 在 HEAD 就落在「残留项」那张统计卡上，从没圈到过这一行 |
 | 04 确认面板（SteamGame，连残留） | 「应用 SteamGame / 来源 无法判定 / 包名 com.example.steamgame / 本体 593 字节 / 残留 1 项 · 524 KB / **合计 525 KB**」，两条路径：本体 + `Caches/com.example.steamgame` | 593 B ✓；**24 MiB 的游戏本体不在任何一行里** ✓ |
 | 05 确认面板（SteamNoId） | 「本体 518 字节 / 残留 0 项 · 0 字节 / 合计 518 字节」 | 518 B ✓ |
 | 06 详情（PlainTool 对照组） | 「应用大小 8.4 MB · 包含文件 3 · 残留 0 字节 · 残留项 0」；另有一处与本族无关的显示瑕疵见 §5 第 6 条 | 8,389,057 B ✓ |
@@ -86,8 +86,8 @@ Mole 的测试夹具 `tests/uninstall_steam_launcher.bats:38-48` 用的包标识
 | 本体大小是真话，但不是"这个游戏有多大" | 「本体」= 遍历累加 `st_size` | `Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:65`，取数在 `UninstallerModel.swift:355-367` 那一趟 |
 | 游戏本体在任何一档都进不了残留清单 | `Application Support` 那条 entry（`ResidualScanner.swift:222`）没有传 `extraDescent`，默认 0（`init` 在 `:209`），下探层数 = 敏感度秩 + 0 ⇒ 严格 0 层 / 增强 1 层 / 深度 2 层；而 `Steam/steamapps/common/SteamGame` 在第三层。第二层 `common` 名字对不上就不再往下走。**另一条能探更深的路径也够不到**：Library 根那条 entry（`:232`，增强起、`extraDescent: 1`）在深度档层数到 3，最深检查到的是 `common` 这一层的名字，仍然不是游戏目录 | `ResidualScanner.swift:222`（entry）、`:232`（Library 根 entry）、`:253-256`（层数）、`:554`（取层数）、`:578-597`（逐层判，命中即停、不整目录收） |
 | 但 Steam 本体自己会把整个游戏库当一条残留 | 同名直接子项，严格档第 0 层就命中「名称与包名对应」 | 同上 `:222` + `ResidualNameMatcher.swift:83-85`；风险档来自 `ResidualCategory.defaultRisk`（`applicationSupport` = caution，`:97-105`） |
-| 没有包标识 ⇒ 证据面一起变窄 | `bundleIdentifier` 读不到就返回空串，界面上「包名 —」，来源必然「无法判定」，残留只剩名字一条腿 | `AppScanner.swift:63-67`、`MMUninstaller.swift:1780`、`AppProvenance.swift:40-48`（五档里没有"启动器"这一档） |
-| 子目录里的快捷方式看不见 | 应用根只有 `/Applications` 与 `~/Applications`，且只枚举直接子项的 `.app` | `AppScanner.swift:27-29`、`:41`；照片 01/08 的清单里确实没有 `DeepShortcut` |
+| 没有包标识 ⇒ 证据面一起变窄 | `bundleIdentifier` 读不到就返回空串，界面上「包名 —」，来源必然「无法判定」，残留只剩名字一条腿 | `AppScanner.swift:83-86`、`MMUninstaller.swift:1807`、`AppProvenance.swift:40-48`（五档里没有"启动器"这一档） |
+| 子目录里的快捷方式看不见 | 应用根只有 `/Applications` 与 `~/Applications`（**P46c 改判**：2026-10-16 起固定三条 + 每块非启动卷一条，见 `uninstally-adoption.md` §3 落地；但「藏在子目录里」这一档不变——根变宽、枚举仍不递归），且只枚举直接子项的 `.app` | `AppScanner.swift:32-36`、`:43-48`、`:60`（**P46f 还锚点债**：此前本文写 `:27-36`，那是 P46c 之前"固定两条"的字面量清单所在那一格；现在清单在 `:45-46`，`:32-36` 只剩装配）；照片 01/08 的清单里确实没有 `DeepShortcut` |
 | 运行状态一律「未检测到」 | 这一族从没启动过（夹具是 shell 脚本，`open` 它会真的去叫 `steam://`，本机没有 Steam 只会弹报错） | 八张的「未检测到运行中的进程」；启动之后那一行会不会变，本轮**没测**（§6） |
 
 一句话把两面缝起来：**我们既不会误删游戏（层数够不到），也完全说不出游戏在哪（同一句层数）**。
@@ -179,7 +179,7 @@ ONLY=08 FIX=/tmp/macmaster-steam-fixture.XXXX ./Scripts/p32-steam-capture.sh …
 确认面板）第一次拍到的照片是**删除之后**的状态——列表少一行、一条「已卸载 2 项 · 532 KB」的
 toast，而夹具目录里的 `Applications/SteamGame.app` 当场没了（那张照片仍在目录里，
 叫 `incident-04-panel-opened-then-confirmed.png`）。代码上能走到删除的只有一处：
-`MMUninstaller.swift:728-735` 那个 prominent 的「卸载」按钮；本脚本不发任何合成事件
+`MMUninstaller.swift:755-762` 那个 prominent 的「卸载」按钮；本脚本不发任何合成事件
 （老规矩），所以最可能是那十秒钟里一次真实按键落在了我们自己的窗口上——
 钩子自动把面板弹出来，而面板的默认按钮是破坏性的。
 同一档重拍时 05 的面板就好好地开着（照片 05 是证据），所以这不是"每次都会发生"，
