@@ -268,12 +268,20 @@ Sources / Packages / Resources / Package.swift），所以"往 Info.plist 里注
 
 - 只落 §6 收尾那两句里的一条（删完复验），另一条现读之后判成"本来就有、但不完全等价"（见 §2）；
   外加一处待办处置（§4）与一轮锚点重指（§5）。
-- 代码面 `Packages/MMCore/Sources/MMCore/FileTrashService.swift` 现读 390 行（`git diff --numstat` 对 HEAD 是 +68/−4）；
+- 代码面 `Packages/MMCore/Sources/MMCore/FileTrashService.swift` 现读 390 行（`git diff --numstat` 对**改动前那一版**是 +68/−4；
+  写这一句时 HEAD 还是 `0a01952`，提交之后同一命令读空，所以这里点名比较对象）；
   测试面一个新文件 `Packages/MMCore/Tests/MMCoreTests/FileTrashServiceReverifyTests.swift` 167 行、7 个 `func test`、无 swift-testing、无跳过。
 - 全量单测 **834 个测试 / 0 失败 / 1 跳过**；上一份归档 827 → 834，+7 全部来自那个新文件，其余八包一字不动。
   结论表与取数口径：`docs/verification/p47-reverify/run-all-tests.log`。
 - 产物 `./Scripts/make-app.sh -o /tmp/mm-app-p47 -s /tmp/mm-scratch-p47` 建成（adhoc、HARDENED=0），
   现读 `# digest: tree=0a01952+5f95fc05 app=0a01952+5f95fc05`，`mm_provenance_check` 返回 0。
+- **提交号回填（提交之后现读）**：本批落在 `95ca21a`。提交后同一对参数重读成
+  `# digest: tree=95ca21a+e3b0c442 app=0a01952+5f95fc05`、`mm_provenance_check` 返回 1——**这不是照片失效**：
+  树那一侧的头段跟着 HEAD 走、尾段是"对 HEAD 的源码 diff"的哈希，提交把 diff 清空于是落成真·空流前缀（与本文 P46 那格同一支，
+  那边写的是 `4b55495+e3b0c442`）。产物 plist 里那串仍是它自己构建时那棵树的指纹，`0a01952+5f95fc05` 与本批证据的对应关系没变。
+- 门禁在提交前后各跑了一遍，归档留**提交后那一份**（`docs/verification/p47-reverify/audit.log`，`# repo: 95ca21a-dirty`）：
+  两份除 `# date:` 与 `# repo:` 两行外逐字相同，`# index:` 仍是 1473——提交把 2 个新文件从"已暂存"变成"已跟踪"，
+  而 `git ls-files` 在两边都数它们，所以跟踪文件数不因提交而变，那一格不自引用。
 
 ### 1. 「每项删完立刻复验，仍在原地当失败」—— 已落地，三处刻意不照抄
 
@@ -347,9 +355,9 @@ Sources / Packages / Resources / Package.swift），所以"往 Info.plist 里注
 副本面六份、共 11 行：`dev-artifact-continuation.md` 2、`disk-double-gate-review.md` 1、`feature-roadmap.md` 2、
 `fidelity-optimizer.md` 1、`release-readiness.md` 5、本文 4。十一行全部行内追加，重指这件事本身零新行：
 五份被指的文档现读 `wc -l` 与 `git show HEAD:` 逐份相等（333 / 50 / 1530 / 394 / 4870）。
-本文不在这一列里，它自己涨了——本节（执行结果）整段是新写的：`git show HEAD:` 那一份 263 行，现读 364 行。
-它那 4 处重指仍是行内、零新行；写这一句时先填过 361，改完这句才定在 364（这一格行内换行、行数不变，所以数字到此为止）。
-按"落点写自己刚改过的行"这条老账的规矩，这里只报现读的两个数，不报推出来的数。
+本文不在这一列里：本节（执行结果）整段是新写的，`git show HEAD:` 那一份是 263 行，本文现在多少行**不写死**——
+它还会被"提交号回填"这类追加继续撑高，写死一个数就是给下一轮埋一条假话（这一格自己就中过一次：先填 361、再改 364，
+两次都是同一轮的编辑把上一句改旧的）。它那 4 处重指仍是行内、零新行，这一句与行数无关，可以一直成立。
 
 - **一条不是本轮造成的**：旧 `:86` 在改动之前就已指偏——`git show HEAD` 那一版的第 86 行是永久删除 doc 注释里的一句
   （"这里没有'到哪去'……"），作者意图是循环开头。本轮按意图重指到 `:149`，并把"此前已指偏"写在 `dev-artifact-continuation.md` 那一格。
