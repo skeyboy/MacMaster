@@ -47,7 +47,7 @@
   `.background(MMColor.soft(MMColor.caution, 0.10))`（今天 `:783`），直接导致 §3 I1 那个"橙底缺失"疑点被立案。
   **方法教训（写进本节，供后续审计照办）：判"组件没有某个修饰符"必须读到 body 的收尾大括号，
   按估计范围截行会把"有"读成"无"。** 同一天里 `MMFormat.bytes` 那条是按整段读的，结论就站住了。
-- `FileTrashService.moveToTrash`（`FileTrashService.swift:39-77`）：循环开头即 `DeletionGuard.rejection(for:)`（:47），PROTECTED → `TrashFailure(code:"PROTECTED")`（:48），逐条上报、不静默跳过；执行用 `trashItem`（可撤回、入台账）。**P46b 现读**：这条链上现在还有第二道**可选**的正向闸（`allowedRootRejection` `:51-54`，拒绝码 `OUT_OF_SCOPE`），只有卸载页与孤儿清理传根清单，优化页/清理页/磁盘页不传即维持原状。
+- `FileTrashService.moveToTrash`（`FileTrashService.swift:88-133`）：循环开头即 `DeletionGuard.rejection(for:)`（:96），PROTECTED → `TrashFailure(code:"PROTECTED")`（:97），逐条上报、不静默跳过；执行用 `trashItem`（可撤回、入台账）。**P46b 现读**：这条链上现在还有第二道**可选**的正向闸（`allowedRootRejection` `:100-103`，拒绝码 `OUT_OF_SCOPE`），只有卸载页与孤儿清理传根清单，优化页/清理页/磁盘页不传即维持原状。**P47 现读重指**：这一行此前的四个落点是 `:39-77`、`:47`、`:48`、`:51-54`，全部因为同一处插入（复验与两个可注入步骤）整体下移；移动之后每一项还要过一道"报成功就当场复验"（`:107` 取证、`:114` 归 `STILL_PRESENT`）。
 - `DeletionGuard`（`DeletionGuard.swift:25-62`）：系统域子树 / 凭证与活数据子树 / 六个用户目录"**目录本身挡、内容放**"。**P36 现读重指**：这一格此前收口在 `:57`，只圈到第三层的说明注释（54-59），没圈到那六个目录名的字面量（`protectedHomeDirectories` 在 `:60-62`）；本轮按"讲的是哪三层就收到哪一行"放宽。
 
 ---

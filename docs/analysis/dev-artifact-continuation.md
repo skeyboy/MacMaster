@@ -55,7 +55,7 @@
 `apply(_:)`（:101）把 `selectedPaths` 清空；`clean()`（:147）删完直接 `scan()`；
 橙色那条点名在 `scopeBar`（:306-316），文案是"有 N 个根扫到一半就超时，本轮不报数"。
 
-删除链路：`FileTrashService.swift:43`/`:86` 在真正移动每条路径之前再问一次
+删除链路：`FileTrashService.swift:92`/`:149`（P47 现读重指，此前写 `:43`/`:86`；**后一个在改动前就已指偏**——HEAD 那版第 86 行是永久删除的 doc 注释里的一句，作者意图是循环开头，本轮按意图落到 149）在真正移动每条路径之前再问一次
 `DeletionGuard.rejection(for:)`。**闸门在删除现场，不在扫描现场。**
 
 > 行号约定：本节之后不带文件名的 `:NN` 一律指 `ProjectArtifactScanner.swift`；
@@ -223,7 +223,7 @@
 - 合并只会让行的可选性**变窄不会变宽**：`protected` 不会因为再扫一遍变成可勾，
   而唯一会让可勾行失去框的变化是 §5.1 说的嵌套重标（方向是更安全的一侧）；
 - 按下删除后，`FileTrashService` 对每条路径现场问 `DeletionGuard`
-  （`FileTrashService.swift:43`），`DeletionGuard` 同时检查逻辑路径和
+  （`FileTrashService.swift:92`，P47 现读重指，此前写 `:43`），`DeletionGuard` 同时检查逻辑路径和
   `realpath` 解析后的物理路径（`DeletionGuard.swift:68-72`）。
   扫描是几分钟前还是几批前，对这道闸门没有影响。
 

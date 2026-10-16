@@ -128,7 +128,7 @@ final class FileTrashServiceGuardTests: XCTestCase {
             .appendingPathComponent("mm-roots-\(UUID().uuidString)", isDirectory: true)
         let kept = dir.appendingPathComponent("keep.txt")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try FileManager.default.createFile(atPath: kept.path, contents: Data())
+        FileManager.default.createFile(atPath: kept.path, contents: Data())
         let result = await service().permanentlyDelete(paths: [kept.path], allowedRoots: ["/Applications"])
         XCTAssertEqual(result.successCount, 0)
         XCTAssertEqual(try XCTUnwrap(result.failures.first).code, "OUT_OF_SCOPE")

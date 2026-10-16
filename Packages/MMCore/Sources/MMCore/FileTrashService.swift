@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Darwin
 
 @MainActor
 public final class FileTrashService: ObservableObject {
@@ -32,6 +33,54 @@ public final class FileTrashService: ObservableObject {
         }
     }
 
+    /// 真会动盘的那一步留成可注入，两个理由都在测试那一侧：
+    /// ① 单测不能把东西真送进用户废纸篓——本机 `~/.Trash` 读不到，落点回不来，现场清不掉；
+    /// ② "调用没抛错而项还在原地"这一档在真机上造不出来，而那正是复验要防的一档。
+    /// 返回值 = 废纸篓里的落点；永久删除没有落点。
+    var trashStep: (String) throws -> String? = FileTrashService.moveToFinderTrash
+    var eraseStep: (String) throws -> Void = FileTrashService.eraseFromDisk
+
+    private static func moveToFinderTrash(atPath path: String) throws -> String? {
+        var resultingURL: NSURL?
+        try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resultingURL)
+        return resultingURL?.path
+    }
+
+    private static func eraseFromDisk(atPath path: String) throws {
+        try FileManager.default.removeItem(at: URL(fileURLWithPath: path))
+    }
+
+    /// 复验的读法：移走前后各看一眼原路径，把"调用没报错"翻译成"这一项到底走了没有"。
+    /// **用 `lstat` 不用 `fileExists`**：悬空的符号链接与断掉的别名在 `fileExists` 那里读成
+    /// "不存在"，而那一项在盘上还实实在在占着一个目录项——复验要防的正是这一类"看着没了"。
+    enum Aftermath: Equatable {
+        /// 原路径上查不到东西了（`ENOENT`）：删除成立。
+        case gone
+        /// 原地站着同一个目录项（同一对 `(st_dev, st_ino)`）：假成功，报失败。
+        case sameEntry
+        /// 原地换成了另一个目录项：老那条确实走了，只是这个名字被别的东西占了
+        /// （跑着的应用立刻把自己的缓存文件写回来就是这一档）。这不是一次失败的删除。
+        case replacedEntry
+        /// 核对不了（`EACCES` 一类）：既不能说还在，也不能说走了。
+        case unverifiable
+    }
+
+    private static func entryIdentity(of path: String) -> (dev: UInt64, ino: UInt64)? {
+        var info = stat()
+        guard Darwin.lstat(path, &info) == 0 else { return nil }
+        return (UInt64(truncatingIfNeeded: info.st_dev), UInt64(truncatingIfNeeded: info.st_ino))
+    }
+
+    /// 事前那一眼没给到身份（事前就 `lstat` 失败）时按"还是那一条"处理：
+    /// 宁可多报一条可疑，也不把"读不到"说成"换了东西"。
+    /// `unverifiable` 与 `replacedEntry` 都由调用方按成功走——把 API 报的成功改成失败
+    /// 是另一种谎，用户会对着一个已经进废纸篓的条目再按一次删除。
+    static func aftermath(atPath path: String, movedFrom identity: (dev: UInt64, ino: UInt64)?) -> Aftermath {
+        guard let now = entryIdentity(of: path) else { return errno == ENOENT ? .gone : .unverifiable }
+        guard let identity else { return .sameEntry }
+        return (now.dev, now.ino) == (identity.dev, identity.ino) ? .sameEntry : .replacedEntry
+    }
+
     /// `allowedRoots` 是给"职责范围明确"的入口用的正向闸（见 `DeletionGuard.isInside`）：
     /// 路径必须严格落在其中之一内，否则按 `OUT_OF_SCOPE` 逐条上报。
     /// nil = 不启用，行为与只有黑名单时完全一致 —— 清理页与磁盘页的可选范围本来就跨整盘，
@@ -55,10 +104,17 @@ public final class FileTrashService: ObservableObject {
             let fileURL = URL(fileURLWithPath: path)
             // 移走之后再想统计就没机会了：原来那条路径会直接消失。
             let size = Self.allocatedBytes(of: fileURL)
+            let identity = Self.entryIdentity(of: path)
             do {
-                var resultingURL: NSURL?
-                try FileManager.default.trashItem(at: fileURL, resultingItemURL: &resultingURL)
-                let trashPath = resultingURL?.path
+                let trashPath = try trashStep(path)
+                // 没抛错不等于移走了：还站着同一条就不算成功，并且**不**留撤回凭据
+                // ——台账里那条"从哪来、到哪去"这时候是假的，撤回按钮会指向一个原地未动的条目。
+                if Self.aftermath(atPath: path, movedFrom: identity) == .sameEntry {
+                    failures.append(TrashFailure(
+                        path: path, message: "移入废纸篓后该项仍在原地", code: "STILL_PRESENT"
+                    ))
+                    continue
+                }
                 movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath, size: size))
             } catch {
                 failures.append(TrashFailure(path: path, error: error))
@@ -101,8 +157,16 @@ public final class FileTrashService: ObservableObject {
             }
             // 删之前量一次：删完之后原路径只剩 0，"释放了多少"就变成编的。
             let size = Self.allocatedBytes(of: URL(fileURLWithPath: path))
+            let identity = Self.entryIdentity(of: path)
             do {
-                try FileManager.default.removeItem(at: URL(fileURLWithPath: path))
+                try eraseStep(path)
+                // 同一条复验。永久删除这一侧更贵：没有废纸篓兜底，也没有撤回按钮。
+                if Self.aftermath(atPath: path, movedFrom: identity) == .sameEntry {
+                    failures.append(TrashFailure(
+                        path: path, message: "永久删除后该项仍在原地", code: "STILL_PRESENT"
+                    ))
+                    continue
+                }
                 deleted.append(PermanentDeletion(path: path, size: size))
             } catch {
                 failures.append(TrashFailure(path: path, error: error))

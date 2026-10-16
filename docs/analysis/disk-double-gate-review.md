@@ -19,7 +19,7 @@
 1. `trashMarked(plan:)` 只取 `plan.targets`（`MMDisk.swift:1339`），被 `DiskRemoval` 拦下的
    `blocked` 项**根本进不了删除清单**——第一层已经挡掉"整卷根/系统树/主目录/消失项"。
 2. `targets` 仍会**再**走 `FileTrashService.shared.moveToTrash`（`MMDisk.swift:1347`），
-   其内部对每条路径调 `DeletionGuard.rejection(for:)`（`FileTrashService.swift:47`），
+   其内部对每条路径调 `DeletionGuard.rejection(for:)`（`FileTrashService.swift:96`，P47 现读重指，此前写 `:47`），
    命中即拒绝并进 `failures`。这是第二道、也是最后一道闸。
 3. 两层的判据集合有重叠但不矛盾：
    - `DiskRemoval.systemFirstComponents`（`System/usr/bin/sbin/private/dev/Library`）用于

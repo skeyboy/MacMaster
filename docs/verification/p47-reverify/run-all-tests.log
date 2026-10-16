@@ -1,0 +1,34 @@
+# run-all-tests.sh  2026-10-16 10:24:56 +0800（stdout 落盘时刻；最后一包 MMOptimizer 的原始日志同一分钟）
+# repo: 0a01952-dirty
+# digest: tree=0a01952+5f95fc05 app=0a01952+5f95fc05
+# ↑ 这一串是归档时现算的：先 `mm_provenance_check "$PWD" /tmp/mm-app-p47/MacMaster.app`（返回 0），再 `mm_provenance_line`。
+#   产物出自 `./Scripts/make-app.sh -o /tmp/mm-app-p47 -s /tmp/mm-scratch-p47`（10:21 完成，Build complete! 53.55 秒，
+#   adhoc 签名、HARDENED=0，make-app.sh 自己打出的指纹与这一行同一个数）。
+#   跑测之后到归档之间只动过 `docs/` 与 `.gitignore`——两者都不在 `MM_SOURCE_PATHS` 里，所以重算仍等上一行。
+MMCore         XCTest=114  swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=217  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=85   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=92   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no
+
+合计：834 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests-p47/<pkg>.log（按 §1 那格从 P21 起的规矩：结论行入库，原始输出留 /tmp）
+
+# 与上一份归档（docs/verification/p46-url/run-all-tests.log）的比对：
+#   取数命令与那一轮同一条（`./Scripts/run-all-tests.sh`，LOG 换到 /tmp/macmaster-tests-p47），
+#   比对沿用 p46 那格的作法：两侧都先剥行尾空格再 diff（脚本每行结论后面本来就带一个空格，落盘时不去动它）。
+#   九行里只有第 1 行不同：MMCore 107 → 114，其余八包一字不动。
+#   +7 正好等于本轮新文件 Packages/MMCore/Tests/MMCoreTests/FileTrashServiceReverifyTests.swift 里的
+#   7 个 `func test`（现读 `grep -c "^    func test"` = 7，无 swift-testing、无跳过）。
+#   总账 827 → 834 = +7，全部来自这一片，没有别的包被顺手动过。
+
+# 本轮没有照片证据族，也不会有——不是漏拍，是这一片新增的那一条在真机上造不出来：
+#   要复现 `STILL_PRESENT`，需要"删除调用报了成功而原路径上还是同一个目录项"，
+#   任何一次真的 `trashItem`/`removeItem` 都不长成这样；而全仓没有一个 `MM_*` 钩子会做真删除
+#   （钩子只渲染状态），单测也一律把动盘那一步注入成假动作——真机截图只会拍到"一切正常"那一档，
+#   拍不到这一片要防的那一档。所以证据 = 上面这张结论表 + 那 7 条单测，
+#   合同与两处刻意的分歧写在 docs/analysis/uninstally-adoption.md「执行结果（P47，2026-10-16 复验轮）」。

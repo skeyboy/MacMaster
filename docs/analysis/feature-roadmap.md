@@ -566,7 +566,7 @@ Mole 会 `git ls-files` 探产物里是否混了签入的源码，我们**不 sp
    ——UI 上就是一个**勾了也删不掉**的复选框。修法：云同步在 `verdict` 里早于名单和
    CACHEDIR.TAG 拦下，理由原样带到行上（"位于 iCloud 同步目录：删除会同步到所有设备"）。
    删除链路本身仍是双层的：`FileTrashService.moveToTrash` 对每条路径再问一次
-   `DeletionGuard.rejection(for:)`（`FileTrashService.swift:47`），扫描器的判定只是前置体验。
+   `DeletionGuard.rejection(for:)`（`FileTrashService.swift:96`，P47 现读重指，此前写 `:47`），扫描器的判定只是前置体验。
 
 ### 数字口径（本轮定下的规矩）
 
@@ -780,7 +780,7 @@ P6.2c 留下的三处"仍未拍"（`scanerror`、活动卡 `empty`、§6.6.5）�
   §8.6 那个"根报已扫完而组里挂着读不到"的矛盾在合并口子上修掉（`stopReason` 变显式字段）。
 
 先说一条**否证**：代理报告称"删除失败被 `try?` 吞掉、P0 的 0.1 第三条没做到"，
-逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:60,105` 两处，
+逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:45,50` 两处（P47 现读重指，此前写 `:60,105`；那两个名字现在被挪进了 `eraseFromDisk`/`moveToFinderTrash` 两个静态方法，正是为了让复验能注入假动作），
 都是 `try` 并逐条回 `TrashFailure`；MMUninstaller / MMCleaner / UserFolderCleanView /
 SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号也是编的
 （`MMUninstaller.swift:1313` 不存在）。**0.1 三条判据均已满足**，不要据此立项。

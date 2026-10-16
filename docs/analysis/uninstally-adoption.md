@@ -25,8 +25,8 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 
 ## MacMaster 卸载侧现状速览（本轮现读）
 
-- 唯一删除出口：`Packages/MMCore/Sources/MMCore/FileTrashService.swift:39` `moveToTrash(paths:)`，
-  每一条路径在执行处过闸（`:47` 调 `DeletionGuard.rejection(for:)`）；永久删除同一形态（`:89`、`:94`）。
+- 唯一删除出口：`Packages/MMCore/Sources/MMCore/FileTrashService.swift:88` `moveToTrash(paths:)`（**P47 现读重指**，本文写这一格时是 `:39`），
+  每一条路径在执行处过闸（`:96` 调 `DeletionGuard.rejection(for:)`）；永久删除同一形态（`:145`、`:150`）。
   **执行时确实会重判一次**，这一点与它的 `DeletionExecutor` 同构，不是差距。
 - 闸的判据：`Packages/MMCore/Sources/MMCore/DeletionGuard.swift` 是**黑名单**——
   系统根 `:25-33`、home 下整棵子树 `:44-52`、只挡目录本身的六个用户目录 `:60-62`、废纸篓自身 `:66`；
@@ -47,7 +47,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
   `:252`（只报"新出现的那批"）。与它的 `TrashMonitor` 同构，**不是差距**。
 - 风险三档：`Packages/MMCore/Sources/MMCore/Risk.swift:9-42`，默认勾选与"是否给删除入口"都由这一档决定
   （`:38-41`），扫描器与 UI 引用同一个定义（文件头 `:3-5` 就是这个理由）。
-- 删除历史上界是**条数**：`FileTrashService.swift:15` `historyLimit = 20`，`:165-166` 超限裁尾（**P46f 现读重指**，此前本文写 153-154：正向闸那四行插在执行处上面）。
+- 删除历史上界是**条数**：`FileTrashService.swift:16` `historyLimit = 20`，`:229-230` 超限裁尾（**P47 现读重指**，此前本文写 `:15`、`:165-166`；那两个数是 **P46f 现读重指**从 153-154 换上来的——正向闸那四行插在执行处上面）。
   落盘与"读不出来就改名留档不静默覆盖"在 `TrashHistoryStore.swift:27-36`、`:52-56`。
 
 ## 逐维度判定
@@ -124,7 +124,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 3. **删除后通知访达**：`DeletionExecutor.swift:156-158` 那条 `NSWorkspace.shared.noteFileSystemChanged(dir)` 值得抄——我们删完靠 `AppFolderWatcher` 事件回环，但**开着访达窗口的那一侧**并不会因此刷新。代价一行，验收方式是实机：开着 `/Applications` 窗口删一个夹具 app，看它是否当场消失。（**P46d 改判：不采纳**——这条验收当时写得太顺，它没有先解决"我们不知道不通知会不会真的不刷新"；量法与不采纳的理由见「执行结果」§3-落地顺序第 3 条。）
 4. **断链别名**（`LeftoverScanner.swift:120-136`）：应用目录里的悬空 `.alias`/符号链接是一类"看得见但打不开"的真实垃圾。做成纯判定 + 夹具单测，先只读展示（`Risk.readOnly`），不给删除入口。（**P46d 改判：设计稿先行**，不在本轮——理由与要定的那一件事见「执行结果」§4-落地顺序第 4 条。）
 5. **URL scheme 接收端**（§5 的②，独立一片）。验收：`open -a` 一条命令送进一个 `.app` 路径，页面切到该项的残留清单；**并附一条否证**：同一个 URL 里塞 `/System/Library`，断言它进不了删除计划的入参。（**P46e 已落地，否证两半都有**，另外为这一片改了一处壳层场景，见「执行结果」§5。）
-6. 之后进路线图、不在本轮：Homebrew 只读面板（§4，M）、FinderSync 扩展（§5，BLOCKED + 等 Developer ID）、历史时长保留（它的 `HistoryRetention.swift:4-40` 四档 + `prune`，对上我们 `FileTrashService.swift:15` 的条数上界）。
+6. 之后进路线图、不在本轮：Homebrew 只读面板（§4，M）、FinderSync 扩展（§5，BLOCKED + 等 Developer ID）、历史时长保留（它的 `HistoryRetention.swift:4-40` 四档 + `prune`，对上我们 `FileTrashService.swift:16` 的条数上界，P47 重指，此前 `:15`）。
 
 ## 这一片改了哪些文档面
 
@@ -169,8 +169,8 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 
 判据两段在 `Packages/MMCore/Sources/MMCore/DeletionGuard.swift:98-108`（纯字面 `isInside`）与 `:115-126`
 （执行处那一遍：字面与 `realpath` 之后**各判一次**，解析失败退回按字面判而不是"读不到就当安全"）。
-出口在 `Packages/MMCore/Sources/MMCore/FileTrashService.swift:39` 与 `:89`，各接一个默认 `nil` 的 `allowedRoots`，
-被挡下按 `OUT_OF_SCOPE` 逐条进 failures（`:51`、`:98`）——判定里那句"被挡下要当成失败逐条上报，不能静默跳过"照此实现。
+出口在 `Packages/MMCore/Sources/MMCore/FileTrashService.swift:88` 与 `:145`（P47 现读重指，此前本文写 `:39` 与 `:89`），各接一个默认 `nil` 的 `allowedRoots`，
+被挡下按 `OUT_OF_SCOPE` 逐条进 failures（`:100`、`:154`，此前 `:51`、`:98`）——判定里那句"被挡下要当成失败逐条上报，不能静默跳过"照此实现。
 接线一份口径三处共用：`Packages/MMUninstaller/Sources/MMUninstaller/UninstallerModel.swift:514-517`
 （= 残留清单那几个 Library 根 + 应用目录，两边都来自页面工厂闭包，所以夹具把 home 换成 `/tmp` 时这道闸跟着换），
 调用点是 `:519-521`（卸载）、`:642`（孤儿）、`:748-751`（废纸篓残留）。
@@ -261,3 +261,104 @@ Sources / Packages / Resources / Package.swift），所以"往 Info.plist 里注
 `# digest: tree=X app=X` 那句话盖不到打包脚本，一份产物完全可能带着一个树里没有的 plist 键。
 本轮的补救写在取证脚本里——它不抄 scheme 字面量，而是从**产物 plist** 读回 `CFBundleURLTypes`，读不到就一张都不出（exit 4）。
 要不要把 `Scripts/` 纳入指纹是另一个决定，先记在这儿。
+
+## 执行结果（P47，2026-10-16 复验轮）
+
+### 0. 这一轮的账
+
+- 只落 §6 收尾那两句里的一条（删完复验），另一条现读之后判成"本来就有、但不完全等价"（见 §2）；
+  外加一处待办处置（§4）与一轮锚点重指（§5）。
+- 代码面 `Packages/MMCore/Sources/MMCore/FileTrashService.swift` 现读 390 行（`git diff --numstat` 对 HEAD 是 +68/−4）；
+  测试面一个新文件 `Packages/MMCore/Tests/MMCoreTests/FileTrashServiceReverifyTests.swift` 167 行、7 个 `func test`、无 swift-testing、无跳过。
+- 全量单测 **834 个测试 / 0 失败 / 1 跳过**；上一份归档 827 → 834，+7 全部来自那个新文件，其余八包一字不动。
+  结论表与取数口径：`docs/verification/p47-reverify/run-all-tests.log`。
+- 产物 `./Scripts/make-app.sh -o /tmp/mm-app-p47 -s /tmp/mm-scratch-p47` 建成（adhoc、HARDENED=0），
+  现读 `# digest: tree=0a01952+5f95fc05 app=0a01952+5f95fc05`，`mm_provenance_check` 返回 0。
+
+### 1. 「每项删完立刻复验，仍在原地当失败」—— 已落地，三处刻意不照抄
+
+合同原话在本文 §6 末尾：`DeletionExecutor.swift:86-112` 每项删完立刻 `fileExists` 复验，
+"仍在原地"当成失败而不是成功（`:101`、`:109`）。
+
+先动结构：真会动盘那一步从函数体里提出来，做成两个可注入属性 `trashStep`（`:40`）/ `eraseStep`（`:41`），
+默认实现 `moveToFinderTrash`（`:43`，`trashItem` 落在 `:45`）与 `eraseFromDisk`（`:49`，`removeItem` 落在 `:50`）。
+**全仓真删盘的仍旧只有那两处**——`feature-roadmap.md` 那一格这句话今天仍然成立，只是两个名字换了房间。
+提出的唯一理由是：单测不能把东西真送进用户废纸篓（本机 `~/.Trash` 读不到、落点回不来、现场清不掉），
+而"调用没抛错、项还在原地"这一档在真机上根本造不出来，复验要防的正是这一档。
+
+复验不按 `fileExists` 按，按 `(st_dev, st_ino)` 认条：执行前取证 `entryIdentity(of:)`（`:68`，调用点 `:107`、`:160`），
+执行后由 `aftermath(atPath:movedFrom:)`（`:78`）判四档（`Aftermath`，`:56`），
+只有 `.sameEntry` 记失败、归 `STILL_PRESENT`（`:114`、`:166`）。三处与参考的做法不同，每一条都是刻意的：
+
+1. **不用 `fileExists`**：它把三件事读成同一件。悬空符号链接与断掉的别名在它那里读"不存在"，而盘上实实在在还占着一个目录项——
+   照 `fileExists` 复验，这一档会一路绿灯成假成功，而假成功正是复验存在的唯一理由。`lstat` 一次过整条链才拦得住
+   （`testDanglingSymlinkIsCaughtByTheWholeChain`）。
+2. **`.unverifiable` 不判失败**（`:79` 只有 `ENOENT` 算 `.gone`）：`EACCES` 一类是"这次核不了"，不等于"还在原地"。
+   把 API 已报成功的一档改成失败是另一种谎——用户会对着一个已经进了废纸篓的条目再按一次删除。
+3. **`.replacedEntry` 不判失败**：跑着的应用把它刚被移走的缓存文件立刻按同名写回，老那条确实走了。
+   参考那条只看"路径在不在"，这一档在它那里是假失败；报成失败等于把一次真删除说成没发生，
+   而界面会因此把释放量少算、把同一个名字再摆给用户（`testReplacedEntryIsNotReportedAsAFailure`：体积按移走前那条算，新写回来的不算我们的账）。
+
+三档读法各有一条单测把它们点名分开（`testAftermathNamesTheThreeReadingsApart`）。那一格在 root 下造不出 `unverifiable`，
+用 `XCTSkip` 挡而不是放宽断言——**跳过要让人看见，假绿不行**。
+
+验收对上了什么（7 条，按正面/否证分）：
+
+- 否证——假成功必须变失败：`testPhantomTrashIsReportedAsFailureWithNoUndoCredential`（不进台账、不发撤回凭据）、
+  `testPhantomPermanentDeleteIsNotCountedAsDeleted`（`totalSize == 0`：没删掉的字节不计进释放量）。
+- 正向——真删除行为不变：`testRealRemovalPassesTheReverifyUnchanged`。
+- 批量——一条假成功不拖累其它条、也不静默吞掉：`testPhantomInABatchStaysSeparate`。
+- 读法——三档点名：另三条（上两段各引一次）。
+
+### 2. 「跳过原因单独存、失败与跳过不合并计数」—— 本来就有，但落盘那半截没有
+
+现读确认（没为这一条写新代码）：`TrashFailure` 一条一项、带 `code`（`:326`、`:331`），
+错误文本优先取 POSIX 名（`:339`-`:355`：顺着 `NSUnderlyingErrorKey` 找 `NSPOSIXErrorDomain` 再 `strerror`，取不到退回 `Cocoa <code>`）；
+成功与失败分两个数组返回（`:283`、`:375`、`:383`），两个计数各读自己那个数组（`:361`、`:377`）——**没有合并计数的那一格**，
+这一句与参考同构。拒绝原因现在四档：`PROTECTED`（`:97`、`:151`）、`OUT_OF_SCOPE`（`:101`、`:155`）、
+`STILL_PRESENT`（`:114`、`:166`）、POSIX/Cocoa 原文（`:120`、`:172`）。
+
+**差距一条，记成差距**：参考把每一项的跳过/失败原因落盘且可导出文本（`DeletionLogger.swift:16-22`、`:40-46`、`:59-77`），
+我们的 failures 只在一次操作的结果对象里，重启即不见——台账只存成功项的撤回凭据（`:238` `store?.save(trashHistory)`）。
+要不要把失败也落盘是另一个决定（要设计：写多深、留多久、里面全是用户路径的隐私面），
+与本文 §「落地顺序」第 6 条同一批处理，不在本轮。
+
+### 3. 这一轮为什么没有照片
+
+不是漏拍。新增的那一档要的是"删除调用报了成功、而原路径上还是同一个目录项"，
+任何一次真的 `trashItem` / `removeItem` 都不长成这样；全仓没有一个 `MM_*` 钩子会做真删除（钩子只渲染状态），
+而单测一律把动盘那一步注入成假动作。带窗实机截图在这一片只能拍到"一切正常"那一档，拍不到要防的那一档——
+按"视觉/运行时验证必须实机截图"的规矩，这一轮的证据就不该是照片，而是 7 条单测 + 那张结论表；
+把这句话写在这里，比补一张证明不了任何事的图诚实。同一条判断也挡掉了 §1 里那个"给复验加钩子档"的省事做法：
+钩子档只能渲染，造不出假成功。
+
+### 4. 待办处置（P47a）：`docs/verification/p41-tests/` 那一族
+
+五个文件不删（台账四数连着五轮的算术都要减两道：`build/` 与"有意不入库那一族"，删了就断），
+改判为**有意不入库**并写进 `.gitignore` 第 27 行；`git check-ignore -v` 现读命中这一条。
+`comm -13` 那三行差不受影响（它比的是 `git ls-files`，这一族本来就没在里面）。
+顺手清一条每轮构建都在响的编译器告警：`FileTrashServiceGuardTests.swift:131` 在非 throwing 的 `createFile` 前多一个 `try`（P46b 带进来的，行数未变）。
+
+### 5. 锚点重指（P47c）：一次插入，动了 15 个落点
+
+本轮的插入让 `FileTrashService.swift` 整体下移，另有两条是搬家而不是位移。旧→新（全部现读复核）：
+`15→16`、`39→88`、`43→92`、`47→96`、`48→97`、`51→100`、`54→103`、`86→149`、`89→145`、`94→150`、`98→154`、
+`39-77→88-133`、`165-166→229-230`，以及**反方向的** `60→45`、`105→50`。
+副本面六份、共 11 行：`dev-artifact-continuation.md` 2、`disk-double-gate-review.md` 1、`feature-roadmap.md` 2、
+`fidelity-optimizer.md` 1、`release-readiness.md` 5、本文 4。十一行全部行内追加，重指这件事本身零新行：
+五份被指的文档现读 `wc -l` 与 `git show HEAD:` 逐份相等（333 / 50 / 1530 / 394 / 4870）。
+本文不在这一列里，它自己涨了——本节（执行结果）整段是新写的：`git show HEAD:` 那一份 263 行，现读 364 行。
+它那 4 处重指仍是行内、零新行；写这一句时先填过 361，改完这句才定在 364（这一格行内换行、行数不变，所以数字到此为止）。
+按"落点写自己刚改过的行"这条老账的规矩，这里只报现读的两个数，不报推出来的数。
+
+- **一条不是本轮造成的**：旧 `:86` 在改动之前就已指偏——`git show HEAD` 那一版的第 86 行是永久删除 doc 注释里的一句
+  （"这里没有'到哪去'……"），作者意图是循环开头。本轮按意图重指到 `:149`，并把"此前已指偏"写在 `dev-artifact-continuation.md` 那一格。
+- `release-readiness.md` 里 P12 那格是当时的现读快照，**原数不动**，只在同一行后面补今天的读数与一句"为什么漂了两次"。
+- 门禁只保证路径存在 / 行号在界内 / 区间不整段空白；**机械位移能保证不越界，保证不了指对**。
+  这一轮 15 个落点里有 2 个方向相反（`60→45`、`105→50`），只有开进源码看才知道那是搬家——所以上面那张表是逐条开进去对出来的，不是按偏移量算出来的。
+
+### 6. 还没做的（沿用本文，不改判）
+
+§2 六种 bundle 与 `.component` 风险档、§3 外接卷 `caution` 分档（两条同撞在"应用本体有没有风险档"那一个决定上，进设计稿队列）、
+§4 Homebrew 只读面板（M）、§5 appex 那一半（BLOCKED + 等 Developer ID）、落地顺序第 4 条断链别名（设计稿先行）、
+第 6 条历史时长保留，加上本轮新记的那一条：**失败原因落盘**。

@@ -20,3 +20,8 @@ xcuserdata/
 docs/github-references/
 docs/Mole/
 docs/lemon-cleaner/
+
+# 九包逐包原始测试输出：结论行入库（docs/verification/pNN-*/run-all-tests.log），原始日志留本地。
+# p41-tests/ 那一族是 P41 用 LOG= 指到证据目录里写的，留着别删：
+# release-readiness.md 台账四数那句「要减两道：build/ 与有意不入库那一族」正是靠这 9 份对账的。
+docs/verification/p41-tests/
