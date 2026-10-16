@@ -1,0 +1,13 @@
+# p49-external-volume-capture.sh 02-uninst-detached-absent  2026-10-16 12:07:21 +0800  app=/tmp/mm-app-p49/MacMaster.app
+# repo: 0d122f9-dirty   # app-repo: 0d122f9-dirty
+# digest: tree=0d122f9+b539b844 app=0d122f9+b539b844
+# env: MM_APPEARANCE=light MM_WINDOW_SIZE=1400x900 MM_OPEN_MODULE=uninstaller MM_UNINSTALL_SELECT=AaaP49VolumeFixture
+# 卷这一档读的是这台机器的挂载表，不注合成快照（钩子名见 p35b 那一族）
+# 卷：/Volumes/MMVolumeP49 未挂载
+#   /Volumes: Macintosh HD Recovery 
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p49/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x900 请求 1400x900pt，窗口实际 1400x900pt
+MM_UNINSTALL_SELECT=AaaP49VolumeFixture 没有对应的应用
+# 点名留痕：抓到（初等 30s + 轮询 63s）：MM_UNINSTALL_SELECT=AaaP49VolumeFixture 没有对应的应用
+# windows(pid=8130): windowid=12264 pid=8130 layer=0 title=MacMaster bounds=["Height": 900, "Width": 1400, "X": 286, "Y": 68]

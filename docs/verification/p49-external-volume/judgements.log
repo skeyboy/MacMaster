@@ -1,0 +1,34 @@
+# p49-external-volume-capture.sh 的核对输出（归档：判据行数不重跑也能数）
+# 时间：2026-10-16 12:04~12:12 +0800   digest: tree=0d122f9+b539b844 app=0d122f9+b539b844
+# 命令：KEEP_MOUNT=1 ./Scripts/p49-external-volume-capture.sh /tmp/mm-app-p49/MacMaster.app docs/verification/p49-external-volume
+# 逐行数以本文件为准：✓ 17 条、ℹ 1 条（05↔06 不作像素判据）
+# 挂载态核对
+  ✓ 01-uninst-mounted-lists-it：挂载态留痕 = 已挂载
+  ✓ 03-disk-mounted-badge：挂载态留痕 = 已挂载
+  ✓ 05-overview-mounted-count：挂载态留痕 = 已挂载
+  ✓ 07-uninst-mounted-bogus-name：挂载态留痕 = 已挂载
+  ✓ 02-uninst-detached-absent：挂载态留痕 = 未挂载
+  ✓ 04-disk-detached-no-badge：挂载态留痕 = 未挂载
+  ✓ 06-overview-detached-count：挂载态留痕 = 未挂载
+  ✓ 01-uninst-mounted-lists-it：AaaP49VolumeFixture 已点名到 /Volumes/MMVolumeP49/Applications/AaaP49VolumeFixture.app ⟹ 外接卷那一行进了清单，而且被点名选中
+  ✓ 02-uninst-detached-absent：AaaP49VolumeFixture 没有对应的应用 ⟹ 卸盘后这条候选不存在——外接卷那一行不是常驻清单
+  ✓ 07-uninst-mounted-bogus-name：ZzP49NoSuchApp 没有对应的应用 ⟹ 点不到就什么都不选（合同里的空态那一档）
+  ✓ 03-disk-mounted-badge：没有卷夹具留痕
+  ✓ 04-disk-detached-no-badge：没有卷夹具留痕
+  ✓ 05-overview-mounted-count：没有卷夹具留痕
+  ✓ 06-overview-detached-count：没有卷夹具留痕
+
+# 画面交叉核对
+  md5 4c206c96ab407903050d10baa12c2ea2  01-uninst-mounted-lists-it.png
+  md5 7434c324428091315206f54ca67bec07  02-uninst-detached-absent.png
+  md5 29927a753354d2bb2a45c96a69915d45  03-disk-mounted-badge.png
+  md5 c775eb4329ce80a2bba79282526ea629  04-disk-detached-no-badge.png
+  md5 207b9f8bca94adaba9570ca187ee67db  05-overview-mounted-count.png
+  md5 051c27ff53cbc9236171b5ce33eae000  06-overview-detached-count.png
+  md5 b9bdc87c25da4a23d0688473c53d5066  07-uninst-mounted-bogus-name.png
+  ✓ 01-uninst-mounted-lists-it ↔ 02-uninst-detached-absent：可辨差异 118204 个像素（最大幅度 240）
+  ✓ 01-uninst-mounted-lists-it ↔ 07-uninst-mounted-bogus-name：可辨差异 101189 个像素（最大幅度 220）
+  ✓ 03-disk-mounted-badge ↔ 04-disk-detached-no-badge：可辨差异 4612 个像素（最大幅度 209）
+  ℹ 05-overview-mounted-count ↔ 06-overview-detached-count：可辨差异 11507 个像素（最大幅度 217，不作判据，理由见上）
+→ docs/verification/p49-external-volume（light）
+ℹ KEEP_MOUNT=1：/Volumes/MMVolumeP49 留在挂载态，调试完自己跑 ./Scripts/p49-external-volume-fixture.sh detach

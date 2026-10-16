@@ -1,0 +1,235 @@
+# P49 附加跑：挂载态下重跑 MMDisk 单测（把唯一那条跳过变成真执行）
+# 命令：PKGS=MMDisk ./Scripts/run-all-tests.sh   时间：2026-10-16 12:13:58 +0800
+# repo: 0d122f9-dirty   前置：./Scripts/p49-external-volume-fixture.sh create && … mount && … seed AaaP49VolumeFixture（卷已挂在 /Volumes/MMVolumeP49）
+# 结论行：见本文件末尾「合计」；testMountedVolumeRootIsBlocked 由「跳过」变「passed」
+Building for debugging...
+[Computing dependencies]
+[Provisioning 8 / 10]
+[1 / 1]
+[2 / 18] MMCore
+[4 / 20] MMCore
+[10 / 21] MMCore
+[12 / 13] MMDiskTests-product
+Build complete! (5.03秒)
+Test Suite 'All tests' started at 2026-10-16 12:12:50.785.
+Test Suite 'MMDiskTests.xctest' started at 2026-10-16 12:12:50.787.
+Test Suite 'DiskClassifyTests' started at 2026-10-16 12:12:50.787.
+Test Case '-[MMDiskTests.DiskClassifyTests testAndroidSDKFamilyIsDeveloperNotOther]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testAndroidSDKFamilyIsDeveloperNotOther]' passed (0.006 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testBuildDirsNeedManifestEvidence]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testBuildDirsNeedManifestEvidence]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testCategoryColorsAreTheDesignLegendColors]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testCategoryColorsAreTheDesignLegendColors]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testCategoryFollowsOwnNameNotParent]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testCategoryFollowsOwnNameNotParent]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testReclaimInheritsDownwardsSoWholeSubtreeIsHatched]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testReclaimInheritsDownwardsSoWholeSubtreeIsHatched]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testRootContextSeedsInheritance]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testRootContextSeedsInheritance]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskClassifyTests testUnrecognisedChildInheritsParentCategory]' started.
+Test Case '-[MMDiskTests.DiskClassifyTests testUnrecognisedChildInheritsParentCategory]' passed (0.000 seconds).
+Test Suite 'DiskClassifyTests' passed at 2026-10-16 12:12:50.799.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.010 (0.012) seconds
+Test Suite 'DiskHeaderContractTests' started at 2026-10-16 12:12:50.799.
+Test Case '-[MMDiskTests.DiskHeaderContractTests testFileCountWithItsUnitHoldsTheTail]' started.
+Test Case '-[MMDiskTests.DiskHeaderContractTests testFileCountWithItsUnitHoldsTheTail]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskHeaderContractTests testGroupedCountKeepsItsUnitAdjacent]' started.
+Test Case '-[MMDiskTests.DiskHeaderContractTests testGroupedCountKeepsItsUnitAdjacent]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskHeaderContractTests testOnlyThePathIsSacrificial]' started.
+Test Case '-[MMDiskTests.DiskHeaderContractTests testOnlyThePathIsSacrificial]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskHeaderContractTests testSizeHoldsTheHead]' started.
+Test Case '-[MMDiskTests.DiskHeaderContractTests testSizeHoldsTheHead]' passed (0.000 seconds).
+Test Suite 'DiskHeaderContractTests' passed at 2026-10-16 12:12:50.803.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.003 (0.003) seconds
+Test Suite 'DiskInsightsTests' started at 2026-10-16 12:12:50.803.
+Test Case '-[MMDiskTests.DiskInsightsTests testBelowThresholdReclaimableDirectoryIsNotDescended]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testBelowThresholdReclaimableDirectoryIsNotDescended]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testFindingsNeverNestSoTheirTotalIsTrustworthy]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testFindingsNeverNestSoTheirTotalIsTrustworthy]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testLargeFileThresholdIsPerFileNotPerDirectory]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testLargeFileThresholdIsPerFileNotPerDirectory]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testPanelIsCappedAtSixLargest]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testPanelIsCappedAtSixLargest]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testReclaimableDirectoryIsListedOnceWithoutItsChildren]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testReclaimableDirectoryIsListedOnceWithoutItsChildren]' passed (0.004 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleIgnoresSmallDirectories]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleIgnoresSmallDirectories]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleNeedsAMeasuredDate]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleNeedsAMeasuredDate]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleParentWinsOverLargeChildBecauseItIsSeenFirst]' started.
+Test Case '-[MMDiskTests.DiskInsightsTests testStaleParentWinsOverLargeChildBecauseItIsSeenFirst]' passed (0.000 seconds).
+Test Suite 'DiskInsightsTests' passed at 2026-10-16 12:12:50.808.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.005 (0.006) seconds
+Test Suite 'DiskInspectorTextTests' started at 2026-10-16 12:12:50.808.
+Test Case '-[MMDiskTests.DiskInspectorTextTests testEnumeratedDirectoryReportsItsDirectChildCount]' started.
+Test Case '-[MMDiskTests.DiskInspectorTextTests testEnumeratedDirectoryReportsItsDirectChildCount]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInspectorTextTests testFileHasNoChildrenCell]' started.
+Test Case '-[MMDiskTests.DiskInspectorTextTests testFileHasNoChildrenCell]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskInspectorTextTests testMeasuredEmptyDirectoryShowsZero]' started.
+Test Case '-[MMDiskTests.DiskInspectorTextTests testMeasuredEmptyDirectoryShowsZero]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskInspectorTextTests testUnmeasuredDirectoryNeverShowsZero]' started.
+Test Case '-[MMDiskTests.DiskInspectorTextTests testUnmeasuredDirectoryNeverShowsZero]' passed (0.000 seconds).
+Test Suite 'DiskInspectorTextTests' passed at 2026-10-16 12:12:50.811.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+Test Suite 'DiskMarksTests' started at 2026-10-16 12:12:50.811.
+Test Case '-[MMDiskTests.DiskMarksTests testIsDirectChildComparesWholePathComponents]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testIsDirectChildComparesWholePathComponents]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachDropsMarksOutsideTheNewRoot]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachDropsMarksOutsideTheNewRoot]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachDropsMarksTheNewScanDoesNotContainAndNamesThem]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachDropsMarksTheNewScanDoesNotContainAndNamesThem]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachFindsMarkedNodesDeeperThanTheTopLevel]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachFindsMarkedNodesDeeperThanTheTopLevel]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachKeepsAMarkOnTheScannedRootItself]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachKeepsAMarkOnTheScannedRootItself]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachKeepsMarksAndReplacesTheirSizeWithTheNewScan]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachKeepsMarksAndReplacesTheirSizeWithTheNewScan]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testReattachOnAnEmptyMarkSetIsCheapAndSilent]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testReattachOnAnEmptyMarkSetIsCheapAndSilent]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshDropsOnlyWithinTheEnumeratedLevelAndKeepsSiblings]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshDropsOnlyWithinTheEnumeratedLevelAndKeepsSiblings]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshKeepsAMarkOnTheEnumeratedDirectoryItself]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshKeepsAMarkOnTheEnumeratedDirectoryItself]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshKeepsMarksDeeperThanTheEnumeratedLevel]' started.
+Test Case '-[MMDiskTests.DiskMarksTests testRefreshKeepsMarksDeeperThanTheEnumeratedLevel]' passed (0.001 seconds).
+Test Suite 'DiskMarksTests' passed at 2026-10-16 12:12:50.818.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.005 (0.006) seconds
+Test Suite 'DiskRemovalTests' started at 2026-10-16 12:12:50.818.
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingAddsFreedBytes]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingAddsFreedBytes]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingSaturatesAtCapacity]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingSaturatesAtCapacity]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingSurvivesByteOverflow]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testAfterRemovingSurvivesByteOverflow]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testBlockedMarksNeverInflateTheTotal]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testBlockedMarksNeverInflateTheTotal]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testEmptyMarksProduceEmptyPlan]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testEmptyMarksProduceEmptyPlan]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testGuardedIsReportedBeforeVanished]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testGuardedIsReportedBeforeVanished]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testGuardedPathIsBlockedUpFrontWithItsReason]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testGuardedPathIsBlockedUpFrontWithItsReason]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testHomeIsBlockedEvenWhenScanningFromRoot]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testHomeIsBlockedEvenWhenScanningFromRoot]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testMarkingAParentAbsorbsItsChild]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testMarkingAParentAbsorbsItsChild]' passed (0.003 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testMountedVolumeRootIsBlocked]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testMountedVolumeRootIsBlocked]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testOnlySuccessfulMovedRootsClearMarks]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testOnlySuccessfulMovedRootsClearMarks]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testPathsOutsideScanRootAreBlocked]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testPathsOutsideScanRootAreBlocked]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testPathsThatVanishedAfterScanningAreBlocked]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testPathsThatVanishedAfterScanningAreBlocked]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testScanRootItselfIsBlocked]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testScanRootItselfIsBlocked]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testSiblingWithSharedPrefixIsNotInsideRoot]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testSiblingWithSharedPrefixIsNotInsideRoot]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testSystemTreeIsBlockedButUserLibraryIsNot]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testSystemTreeIsBlockedButUserLibraryIsNot]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testTargetInsideScanRootIsAccepted]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testTargetInsideScanRootIsAccepted]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRemovalTests testUnrelatedMarksAreNotAbsorbed]' started.
+Test Case '-[MMDiskTests.DiskRemovalTests testUnrelatedMarksAreNotAbsorbed]' passed (0.001 seconds).
+Test Suite 'DiskRemovalTests' passed at 2026-10-16 12:12:50.838.
+	 Executed 18 tests, with 0 failures (0 unexpected) in 0.019 (0.020) seconds
+Test Suite 'DiskRiskTests' started at 2026-10-16 12:12:50.838.
+Test Case '-[MMDiskTests.DiskRiskTests testCleanupTargetsStayMarkable]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testCleanupTargetsStayMarkable]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskRiskTests testGuardRefusedPathsAreNoLongerOfferedAsMarkable]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testGuardRefusedPathsAreNoLongerOfferedAsMarkable]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskRiskTests testInjectedHomeDoesNotRelaxTheGuardPass]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testInjectedHomeDoesNotRelaxTheGuardPass]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRiskTests testLabelNeverContradictsTheGuard]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testLabelNeverContradictsTheGuard]' passed (0.001 seconds).
+Test Case '-[MMDiskTests.DiskRiskTests testNewSystemRootsShowAsReadOnly]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testNewSystemRootsShowAsReadOnly]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskRiskTests testStricterThanGuardLabelsStay]' started.
+Test Case '-[MMDiskTests.DiskRiskTests testStricterThanGuardLabelsStay]' passed (0.000 seconds).
+Test Suite 'DiskRiskTests' passed at 2026-10-16 12:12:50.842.
+	 Executed 6 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'DiskScannerHierarchyTests' started at 2026-10-16 12:12:50.842.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testNestedProtectedSkipIsDisclosed]' started.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testNestedProtectedSkipIsDisclosed]' passed (0.007 seconds).
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testNothingSkippedLeavesEmptyDisclosure]' started.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testNothingSkippedLeavesEmptyDisclosure]' passed (0.004 seconds).
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testPerformScanKeepsChildrenAtEveryLevel]' started.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testPerformScanKeepsChildrenAtEveryLevel]' passed (0.004 seconds).
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testProtectedDirectorySkipIsReported]' started.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testProtectedDirectorySkipIsReported]' passed (0.006 seconds).
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testRealDirectoryScanKeepsChildren]' started.
+Test Case '-[MMDiskTests.DiskScannerHierarchyTests testRealDirectoryScanKeepsChildren]' passed (20.559 seconds).
+Test Suite 'DiskScannerHierarchyTests' passed at 2026-10-16 12:13:11.422.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 20.580 (20.580) seconds
+Test Suite 'DiskScannerSizeTests' started at 2026-10-16 12:13:11.422.
+Test Case '-[MMDiskTests.DiskScannerSizeTests testDirectorySizeIsSumOfChildren]' started.
+Test Case '-[MMDiskTests.DiskScannerSizeTests testDirectorySizeIsSumOfChildren]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskScannerSizeTests testFileSizesUseAllocatedBlocksNotApparentSize]' started.
+Test Case '-[MMDiskTests.DiskScannerSizeTests testFileSizesUseAllocatedBlocksNotApparentSize]' passed (0.003 seconds).
+Test Case '-[MMDiskTests.DiskScannerSizeTests testHardlinksCountOnce]' started.
+Test Case '-[MMDiskTests.DiskScannerSizeTests testHardlinksCountOnce]' passed (0.003 seconds).
+Test Case '-[MMDiskTests.DiskScannerSizeTests testSymlinkContributesNothing]' started.
+Test Case '-[MMDiskTests.DiskScannerSizeTests testSymlinkContributesNothing]' passed (0.001 seconds).
+Test Suite 'DiskScannerSizeTests' passed at 2026-10-16 12:13:11.432.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.010 (0.010) seconds
+Test Suite 'DiskTreeFilterTests' started at 2026-10-16 12:13:11.432.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testDescendantHitSurfacesAncestorWithMatchedBytes]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testDescendantHitSurfacesAncestorWithMatchedBytes]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testEmptyFilterReturnsNilSoLayoutIsUnchanged]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testEmptyFilterReturnsNilSoLayoutIsUnchanged]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testLayoutReordersByMatchedBytesNotRawSize]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testLayoutReordersByMatchedBytesNotRawSize]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testMatchIsCaseInsensitive]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testMatchIsCaseInsensitive]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testNoMatchDirectoryIsExcludedFromResult]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testNoMatchDirectoryIsExcludedFromResult]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testRealScanThroughFilterPipeline]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testRealScanThroughFilterPipeline]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testSelfMatchedDirectoryCountsWholeSubtree]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testSelfMatchedDirectoryCountsWholeSubtree]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testSelfMatchedUnmeasuredDirectoryCountsFullSize]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testSelfMatchedUnmeasuredDirectoryCountsFullSize]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testUnmeasuredSubtreeIsTalliedNotDropped]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testUnmeasuredSubtreeIsTalliedNotDropped]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskTreeFilterTests testUnmeasuredUnderHitAncestorStaysVisibleInTally]' started.
+Test Case '-[MMDiskTests.DiskTreeFilterTests testUnmeasuredUnderHitAncestorStaysVisibleInTally]' passed (0.000 seconds).
+Test Suite 'DiskTreeFilterTests' passed at 2026-10-16 12:13:11.436.
+	 Executed 10 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
+Test Suite 'DiskTreemapPipelineTests' started at 2026-10-16 12:13:11.436.
+Test Case '-[MMDiskTests.DiskTreemapPipelineTests testRealTreeProducesNestedRects]' started.
+Test Case '-[MMDiskTests.DiskTreemapPipelineTests testRealTreeProducesNestedRects]' passed (5.666 seconds).
+Test Suite 'DiskTreemapPipelineTests' passed at 2026-10-16 12:13:17.102.
+	 Executed 1 test, with 0 failures (0 unexpected) in 5.666 (5.666) seconds
+Test Suite 'DiskVolumeBadgeTests' started at 2026-10-16 12:13:17.102.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testCopyNeverConfusesVolumesWithDisks]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testCopyNeverConfusesVolumesWithDisks]' passed (0.002 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testEvidenceStaysInTheCaveatNotInTheBadge]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testEvidenceStaysInTheCaveatNotInTheBadge]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testExactlyTwoOfTheFourBranchesRender]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testExactlyTwoOfTheFourBranchesRender]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testGroupedCountKeepsItsUnitAdjacent]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testGroupedCountKeepsItsUnitAdjacent]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testMoreThanOneRootAnnouncesTheRest]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testMoreThanOneRootAnnouncesTheRest]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testSingleRootStaysSilent]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testSingleRootStaysSilent]' passed (0.007 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testUnreadableEnumerationSaysSo]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testUnreadableEnumerationSaysSo]' passed (0.000 seconds).
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testZeroCandidateRootsIsNotReportedAsFailure]' started.
+Test Case '-[MMDiskTests.DiskVolumeBadgeTests testZeroCandidateRootsIsNotReportedAsFailure]' passed (0.000 seconds).
+Test Suite 'DiskVolumeBadgeTests' passed at 2026-10-16 12:13:17.113.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.010 (0.011) seconds
+Test Suite 'MMDiskTests.xctest' passed at 2026-10-16 12:13:17.113.
+	 Executed 85 tests, with 0 failures (0 unexpected) in 26.315 (26.326) seconds
+Test Suite 'All tests' passed at 2026-10-16 12:13:17.113.
+	 Executed 85 tests, with 0 failures (0 unexpected) in 26.315 (26.328) seconds
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+✔ Test run with 0 tests in 0 suites passed after 0.002 seconds.
+
+# ── 对照跑（同一台、同一份源码，只把卷卸掉）：2026-10-16 12:14:33 +0800
+# 命令：./Scripts/p49-external-volume-fixture.sh detach && PKGS=MMDisk ./Scripts/run-all-tests.sh
+# 读数：MMDisk XCTest=85 swift-testing=0 skipped=1 该包失败=no
+#       合计：85 个测试，0 个失败，1 个跳过
+# 这两跑合起来才说明：那条绿是挂载态给的，不是 skipped 计数口径变了。

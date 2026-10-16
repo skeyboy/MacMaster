@@ -443,7 +443,7 @@ Steam 那一族三个新文件 34 条（`SteamLauncherProbeTests` 24 / `Residual
 `mm_provenance_line` 在后，而跑测之后只动过 `docs/`，所以重算仍等于本族八张照片日志里当场写下的那一串 |
 
 | 失败 | **0** | 同上，逐包读 `Test Suite 'All tests' passed` 后那行 |
-| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（**P15 现读复核**：函数声明在 `:167`，XCTest 日志回的是里面那句 `try XCTSkipIf` 的 `:173`——**两个数都对，指的是两件事**，从前在这两行之间来回改过一次）。跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测** |
+| 跳过 | **1** | 唯一一条在 MMDisk：`DiskRemovalTests.swift` 的 `testMountedVolumeRootIsBlocked`（**P15 现读复核**：函数声明在 `:167`，XCTest 日志回的是里面那句 `try XCTSkipIf` 的 `:173`——**两个数都对，指的是两件事**，从前在这两行之间来回改过一次。〔**P49 现读重指**：今天这两处漂到 **`:183` / `:189`**，中间那 16 行是 P31「该应用正在运行」与 P33b 那两族之后往这个文件里追加的测试；两个数的**关系**没变，变的只是坐标〕）。跳过理由原文 `本机没有第二块挂载卷`——**是环境不满足，不是功能没测**〔**P49 把"跑不了"这一半收掉了**：`Scripts/p49-external-volume-fixture.sh` 用 `hdiutil` 造一块 APFS 镜像卷挂上后重跑 MMDisk，`skipped=0` 且这一条回 `passed`；卸盘复跑回 `skipped=1`——两跑合起来才说明那条绿是挂载态给的，不是计数口径变了（证据 `docs/verification/p49-external-volume/mmdisk-tests-mounted.log`）。**表里这个 1 记的仍是"不挂卷时的基线档"，没作废**〕 |
 | 生产代码量 | **29,732 行**〔P48 现读；抬头 29,374 是 P37 那一读的，**断了三轮**，见这一格末尾〕 | `find Sources Packages -name '*.swift' -not -path '*/.build/*' -not -path '*/Tests/*' \| xargs wc -l`（**P22 于 2026-10-06 现跑**；**P21 时 26,688**；**P18 时 26,645**：P8 时 26,310，P10 +15 是关于页那枚 `appIconArtwork`，P11 +103 是 `scanUnifiedLog` 的并行读 + 拆行 + 取尾，**P11c −88 是那一族整批删除**，P14 +18 是 `GuardianPageCopy` 那一份清单与两条注释，P15 +95 = `CommandRunner.swift` 120 行 − 两处调用点各自删掉的旧读法 25 行；P18 新增 `Packages/MMCore/Sources/MMCore/HookValues.swift` **169 行**（取证钩子的判定层），其余十个源文件净 **+21**。**P21 +43**，四笔全在删除闸门那一条链上：新增 `Packages/MMDisk/Sources/MMDisk/DiskRisk.swift` **37 行**（从 `MMDisk.swift` 里提出来的风险标签），`DeletionGuard.swift` 165 → **180**（+15：`/dev`、`/private` 两条与 `literalRejection` 那一对入口），`MMDisk.swift` 2037 → **2026**（−11：`risk(of:)` 那 14 行换成一行委托），`Packages/MMDisk/Package.swift` +2（测试目标要依赖 MMCore）。**P22 +42，一笔**：`MMDisk.swift` 2026 → **2068**——`ProtectedSkipLedger` 那一整类（含注释 25 行）、三处调用点各加一个可选参数、`skippedDisclosure(_:)` 那 8 行浮层截断，同一次改动里删掉的只有 `skippedProtectedNames(rootPath:)` 那 6 行。**这一格从来是"当轮现跑"，不是"上一格 + 增量"**：P18 前的 HEAD 现读 26,455，与 P15 记的 26,453 差 2 行——那 2 行是 P15 之后落地的别的改动，抄表的人不会知道，所以每一轮都重跑同一条命令。**P22 现读 HEAD 那一跑是 26,688，与工作区 26,730 差 42，与上面那一笔逐文件对得上**。对照命令**必须逐 blob**：`git ls-tree -r HEAD --name-only \| xargs wc -l` 看着像在量 HEAD，其实 `wc` 打开的是工作树里那个同名文件，**它量出来会恰好等于现值 26,730，差异被抹成 0**（那一句写于 P22，当时的工作区现值就是 26,730；本轮 26,776，**坑的性质不随数值变**——照着抄的人会把"恰好等于"读成"没有差异"），本轮真就这么错了一次，是那个"差 0"看着太可疑才回去重跑的。正确写法是 `while read f; do git cat-file blob "HEAD:$f"; done \| wc -l` 逐项求和。**P23 现读仍是 26,730，与 P22 那一格逐字相同**——本轮只动 `Scripts/*.sh`，而 .sh 不是编译输入；这一格之所以还要重跑，是因为"没动源码"这句话本轮是要拿来当判据用的（§7.14 那条指纹主张的前提就是"编译输入一模一样"）。**P24 现读仍是 26,730**——本轮动的两处全在 `Scripts/` 那两支 .sh，而 .sh 不是编译输入。**P25 现读 26,776（+46，一笔）**：`MMCleaner.swift` 964 → **1010**（副标题的构造从调用点抽成 `CleanerHeaderCopy`，调用点本身反而 −7，净 +46）。**HEAD 逐 blob 那一跑也是 26,776**（`git cat-file blob` 逐项求和，与 §7.14 那条"必须逐 blob"的写法同一条命令）——**两值相同正是"这一轮的源码改动全部已入库、工作树里再没有未提交的编译输入"的证据**，也就是产物指纹 `fc2a7b2+e3b0c442` 后半截还是空流前缀的原因。**P26 现读 26,798（+22，两笔）**：`MMDisk.swift` `git diff --numstat` 现读 **+29 / −11 = +18**（新写的 `DiskHeaderCopy` 那 7 行代码连同它上面 14 行合同注释，换掉旧 `headerSubtitle` 的 8 行注释与 2 行字符串拼接，另外删掉 `scanDuration` 那两行——它随"用时"一起出的页头），`MMDesign.swift` **+4**（`.help(subtitle)` 一行，加它上面三行判据注释）。**HEAD 逐 blob 那一跑本轮也是 26,798**（`git cat-file blob "HEAD:$f"` 逐项求和，与 §7.14 那条"必须逐 blob"的写法同一条命令）——两值相同，所以"这 633 条量的还是那 92 个编译输入"这句话在 P26 的三份取证产物（`59e653b` / `6aa897e` / `17f4371`）上都有指纹背书，不需要谁去记）。**P29 现读 27,082**，两笔要分开看，因为这一轮**第一次出现"上一格记的表值不等于本轮的 HEAD 值"是别的轮次欠的**：HEAD 逐 blob 那一跑现读 **26,806**，比 P26 记的 26,798 多 **8 行**——那 8 行是 §7.20 那一轮（CI-4b）把 `MonitorFixtureHooks.swift` 当时那一版的第 217-231 行（历史坐标，按 §7.7 裸写——P37 的电池夹具档把这一段顶到了别的行上，带冒号就成了一条会说谎的当前引用）那个编译超时的表达式拆成带类型的局部量，**它动的是 `Packages/*/Sources/**`，不是测试目录**，所以它进了生产代码量，而那一轮的 §1 这一格没有重跑（它重跑的是测试结论行）。**这是一笔真账，不是量法不同**：P26 那一格往后，任何一格抄 26,798 都少 8 行。本轮工作区 27,082 = HEAD 26,806 **+276**，那 276 对得上分解——十个已跟踪文件 `git diff --numstat` 净 **+183**（`LaunchBehavior.swift` +79、`SettingsView.swift` +40、`MenuBarManager.swift` +37、`MacMasterApp.swift` +26，其余六处合计 +1），加两个新文件 `SystemSettings.swift` 41 行与 `NotificationStatus.swift` 52 行 = **93**，**183 + 93 = 276 与总量差逐位相等**，这个等式就是"没有第三个文件被顺手动过"的自证（与 P21 那句"136 = 101 + 35"、P25/P26 那句"行数差 = 那个新文件的 `wc -l`"同一手法）。
 **P34b 现读 28,645，同时抓到这一格落后了四轮**：表值停在 P29 的 27,082，而 HEAD 逐 blob 那一跑现读 **27,944**——
 **+862 是 P30/P31/P32b/P33b 四轮都没重跑这一格欠下的**（P31a 的三个新探针文件、P32b 的 SteamLauncherProbe 一族、
@@ -505,7 +505,7 @@ P33b 的 `ResidualCollector` +102 / `ResidualScanner` +34 全在 `Packages/*/Sou
 **P35b 现读 55（运行时 54），这一格本轮还了两笔**：① `MM_UNINSTALL_SENSITIVITY`——它是 **P32b 新增的档位钩子，当时没进这一格**，
 `hook-ledger.md` §0 那一条也没数它，本轮补登记并把它算进计数；② `MM_VOLUME_FIXTURE`——本轮的新键，
 磁盘页候选根的合成快照档位 `off|two|zero|fail`。**这一枚与 P29 那一枚同族**：它也不"顶替真实读数"，
-而是**造出本机根本不存在的形状**（一块内部盘、候选根恒为 1，"这台机器还有 N 卷"那一档在真机上拍不出来），
+而是**造出本机根本不存在的形状**（一块内部盘、候选根恒为 1，"这台机器还有 N 卷"那一档在真机上拍不出来）〔**P49 更正**：这半句记的是 P35b 那一跑的现场，今天 `Scripts/p49-external-volume-fixture.sh` 用 `hdiutil` 挂一块 APFS 镜像卷就能让候选根 = 2，那一档有这台机器的实拍（`docs/verification/p49-external-volume/` 七档）；这一枚钩子剩下真正拍不到的只有 `zero`/`fail` 两档〕，
 所以它的 stderr 留痕必须自己说明"这是合成快照，不是这台机器的读数"。留痕文案本轮做成了纯函数 `appliedNote`，
 理由写在 `fidelity-disk.md` §16 ⑤：第一版把插值 `\(tier.rawValue)` 漏写成 `\tier.rawValue`，于是照片照常拍到徽标、
 日志照常有一行"已生效"，而那一行**说不出自己用的是哪一档**——判据当场是假绿，只能靠单测钉住。**数法上两条教训**：
@@ -936,13 +936,13 @@ P15 只动了三包：MMCore +5（`CommandRunnerPipeTests`）、MMFileScanner +1
 **但这一轮比 P25 多一条，而且那条才是本轮的账**：第一档修复（只调段序）**在这四条单测下是全绿的**，
 实拍却把"用时"切成一半——真值 0.1 s 在画面上成了 1 s。所以"本轮 0 失败"这件事
 **不能**被读成"段序改对了"，它只被照片读过一次、并且是被照片**否掉**过一次之后才改对的（见 §7.17）。
-这一包还剩一条旧教训没变：唯一那条跳过仍是 `testMountedVolumeRootIsBlocked`（本机没有第二块挂载卷）。
+这一包还剩一条旧教训没变：唯一那条跳过仍是 `testMountedVolumeRootIsBlocked`（本机没有第二块挂载卷）。〔**P49**：这一句记的是 P11 那一跑的现场；"本机没有第二块"后来被 `hdiutil` 镜像卷推翻了，见 §1 那一格与 `disk-volume-enumeration.md` §15。〕
 
 > **P12（2026-10-05，发版核验轮）把上表八行全部现读复核了一遍**：581/0/1（逐包分布同上，MMGuardian 93）、
 > 26,428 / 8,957 行、52 个钩子名、4 处 `Process()`、网络代码零命中——**六个数一个都没漂**；
 > 漂的是两处**位置引用**：MMGuardian 的 93 条没同步进 §6（那里还写 83），
 > 以及这一行原本的 `DiskRemovalTests.swift:173`（现读 `:167`）。
-> 唯一那条跳过仍是 `testMountedVolumeRootIsBlocked`（本机没有第二块挂载卷）。
+> 唯一那条跳过仍是 `testMountedVolumeRootIsBlocked`（本机没有第二块挂载卷）。〔P49：这一行是 P12 读数的照抄，不改；但"本机没有第二块挂载卷"这句今天已被 `hdiutil` 镜像卷推翻，现行账在 §1 那一格。〕
 > **教训**：加一轮只往 §1 追加一个数，不等于全文档同步；计数漂移的地方是**引用计数的句子**，不是计数表。
 
 > **P11c（2026-10-05，活动卡文案合同轮）是这一表第一次往下减**：579/0/1、26,340 / 8,984 行、

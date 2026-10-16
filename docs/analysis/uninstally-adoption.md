@@ -120,7 +120,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 ## 落地顺序（本轮"执行"只跑到这里）
 
 1. **允许根正向闸**（§1，纯函数 + 单测 + 卸载页接线）。验收：`isInside` 单测含"根本身不放行、`/ApplicationsOther` 不放行、符号链接解析后判定"三档；`./Scripts/run-all-tests.sh` 全绿。（**P46b 已落地**，三档各有对应单测，见「执行结果」§1。）
-2. **`.app` 之外的五种 bundle + 四个插件根 + `/Applications/Utilities` + 外接卷根**（§2、§3，同一片代码面）。验收：夹具目录造一个 `.component` 与一个 `/Volumes/<夹具>/Applications/Foo.app`，实机截图看它出现在列表里、风险档是 caution、默认不勾选。（**P46c 只落了后半，且后半也只做了一半**：两个新目录进了清单、`.component` 那一条与"caution 档"都没落地，外接卷那一条只有单测证据没有照片。逐条见「执行结果」§2、§3。）
+2. **`.app` 之外的五种 bundle + 四个插件根 + `/Applications/Utilities` + 外接卷根**（§2、§3，同一片代码面）。验收：夹具目录造一个 `.component` 与一个 `/Volumes/<夹具>/Applications/Foo.app`，实机截图看它出现在列表里、风险档是 caution、默认不勾选。（**P46c 只落了后半，且后半也只做了一半**：两个新目录进了清单、`.component` 那一条与"caution 档"都没落地，外接卷那一条只有单测证据没有照片。逐条见「执行结果」§2、§3。**〔P49 收掉"没有照片"这一半〕**：`Scripts/p49-external-volume-fixture.sh` 用 `hdiutil` 造并挂一块 APFS 镜像卷，`Scripts/p49-external-volume-capture.sh` 拍出七张（`docs/verification/p49-external-volume/`）——01 那张的清单里有 `/Volumes/MMVolumeP49/Applications/AaaP49VolumeFixture.app` 而且它被选中（详情面板「所在文件夹 /Volumes/MMVolumeP49/Applications」），卸盘的 02 里同一条不在、页头退回 45 个应用（清单底部那行也跟着从「46 个应用 · 已选 46」变「45 个应用 · 已选 45」）；`.component` 那一条与"caution 档"**仍然没做**，这一格剩下的缺口只有它。）
 3. **删除后通知访达**：`DeletionExecutor.swift:156-158` 那条 `NSWorkspace.shared.noteFileSystemChanged(dir)` 值得抄——我们删完靠 `AppFolderWatcher` 事件回环，但**开着访达窗口的那一侧**并不会因此刷新。代价一行，验收方式是实机：开着 `/Applications` 窗口删一个夹具 app，看它是否当场消失。（**P46d 改判：不采纳**——这条验收当时写得太顺，它没有先解决"我们不知道不通知会不会真的不刷新"；量法与不采纳的理由见「执行结果」§3-落地顺序第 3 条。）
 4. **断链别名**（`LeftoverScanner.swift:120-136`）：应用目录里的悬空 `.alias`/符号链接是一类"看得见但打不开"的真实垃圾。做成纯判定 + 夹具单测，先只读展示（`Risk.readOnly`），不给删除入口。（**P46d 改判：设计稿先行**，不在本轮——理由与要定的那一件事见「执行结果」§4-落地顺序第 4 条。）
 5. **URL scheme 接收端**（§5 的②，独立一片）。验收：`open -a` 一条命令送进一个 `.app` 路径，页面切到该项的残留清单；**并附一条否证**：同一个 URL 里塞 `/System/Library`，断言它进不了删除计划的入参。（**P46e 已落地，否证两半都有**，另外为这一片改了一处壳层场景，见「执行结果」§5。）
@@ -204,8 +204,10 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 装卸事件成双出现，那是监听侧的假话。这条由 `testNonBootPathsDropTheBootVolumeAndItsAliasMounts` 钉住。
 
 两件没做的，都写清楚：①判定里"外接卷条目按 caution 起步"**没落地**——"应用本体"这一层现在压根没有风险档
-（档位在残留项上），要做就得先引入那个概念，不是加一行 `Risk`；②验收那句"实机截图看它出现在列表里"**没跑成**，
-本机没有第二块可挂载的非启动卷，外接卷进清单目前只有单测证据（夹具档 `VolumeFixtureTier.two`）。
+（档位在残留项上），要做就得先引入那个概念，不是加一行 `Risk`；②验收那句"实机截图看它出现在列表里"**当时没跑成**，
+理由是「本机没有第二块可挂载的非启动卷」。**P49 把这一条的理由推翻了**：`hdiutil create -fs APFS` 造出来的镜像卷
+就是第二块可挂载的非启动卷，`AppScanner` 那条枚举认它、卸载页列它、详情面板写着所在文件夹——七档实拍与判据在
+`docs/verification/p49-external-volume/`，验收那句今天算是跑成了；夹具档 `VolumeFixtureTier.two` 从此只是与实拍对账的一档。
 
 ### 4. 落地顺序第 3 条 `noteFileSystemChanged` —— 改判：不采纳
 

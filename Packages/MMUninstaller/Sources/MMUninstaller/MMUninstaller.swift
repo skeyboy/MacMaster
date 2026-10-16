@@ -110,7 +110,14 @@ public struct UninstallerView: View {
         let named = ProcessInfo.processInfo.environment["MM_UNINSTALL_SELECT"]
         if let named, named.isEmpty == false {
             let hit = model.apps.first { $0.bundleName.caseInsensitiveCompare(named) == .orderedSame }
-            if hit == nil {
+            // 点到了也留一行，而且把**点到的那一条在哪**写进去。判"外接卷那一行进了清单"不能靠
+            // "日志里没有『没有对应的应用』"：真扫 `/Applications` 的耗时在本机从十几秒到两分钟
+            // 以上都有（P49 同一份产物三档实测 96 s / 81 s / 126 s 才落定），还没走到这一行的那一跑，
+            // 读起来与点到了完全一样——一条缺席判据在这种耗时上就是假绿。
+            // 留痕成对，判据才只有一种读法。
+            if let hit {
+                FileHandle.standardError.write("MM_UNINSTALL_SELECT=\(named) 已点名到 \(hit.path)\n".data(using: .utf8)!)
+            } else {
                 FileHandle.standardError.write("MM_UNINSTALL_SELECT=\(named) 没有对应的应用\n".data(using: .utf8)!)
             }
             return hit

@@ -1047,7 +1047,7 @@ P6.5 在监控页发现"清单挂了 4 天 5 条假开放项"之后，这一轮�
 含 "statvfs" 那一句从第 14 行挪到了第 15 行，整段现在在 `:13-16`；全仓 `statvfs` 命中仍只有这一条））。审计量到的三件事改变了这一条的写法：**① 方向和从前以为的相反**——这个 SDK 里**没有** `.includeHiddenVolumes` 这个成员（现读编译核实），**默认档已经包含隐藏卷**，本机实测挂载表 16 / 默认档 14 / 传 `.skipHiddenVolumes` 档 **1**，概览页那句"1 个卷"就是最后这一档给的；**② disktree 的两把去重键在本机都不触发**（默认档里没有一个 fsid 对应两条路径、设备名也不重复），真正的重复是**同一对容量数**——5 条挂载点报的是启动卷那一对（容器 disk3 的 6 个挂载点共用同一份空闲），所以去重键得换成容量对/容器；而 Foundation 恰好**不给** `/System/Volumes/Data`，disktree 的 `never_scanned` 那笔债我们**不欠**；**③ "fullest first" 有三把尺子、给出三个名单**（`普通 vs 重要 排序相同=false`），照抄 disktree 那把"可用字节升序"在本机把用户真正要清的盘排到**第 9 / 共 14**——排序键必须用使用率，且只跑在候选根上（本机 `browsable && isDirectory` = **1 条**）。事实、四格文案合同与 A/B/C 三档建议在 `docs/analysis/disk-volume-enumeration.md`，一份读数在 `docs/verification/p35a-volumes/volumes.log`。**P35b 已落地（2026-10-12，A 档 + B 档同轮做掉，C 档没做）**：
 判定层 `Packages/MMCore/Sources/MMCore/VolumeRoots.swift`（262 行，候选根 = 可浏览 ∧ 是目录 ∧ 总容量读得到 →
 按**容量对**去重、代表取路径最短那一条 → 使用率降序、读不到可用的排最后；枚举走默认档再自筛 `browsable`，
-见 `VolumeRoots.swift:237` 那句注释与 `VolumeRoots.swift:252` 那行调用，不 spawn `mount`；夹具 `MM_VOLUME_FIXTURE` 四档 `off|two|zero|fail` 带生效留痕），
+见 `VolumeRoots.swift:243` 那句注释与 `VolumeRoots.swift:258` 那行调用（**P49 现读重指**：从前写 237/252，P49 改那段夹具档位的作废说明时净 +6 行把这两处顶下去了），不 spawn `mount`；夹具 `MM_VOLUME_FIXTURE` 四档 `off|two|zero|fail` 带生效留痕），
 A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeCopy`，`MMDisk.swift:1603`，N = 候选根数 − 1、
 0 与 1 两档沉默），B 档呈现在概览页页脚（`DashboardModel.swift:35` 的 `volumeCount: Int?` 换成候选根数、
 读不到是 nil，状态条那两档分支在 `MainWindow.swift:279-285`，nil 走占位 `—` 加一句 help"这里不猜数字"）。
