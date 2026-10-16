@@ -1,0 +1,314 @@
+# p16 citation audit
+# date: 2026-10-16 13:21:04
+# repo: c9e06da branch=main
+# docs scanned: 47 个真抽了 / 47 个入库 .md（两个数不等就是有文件没被读到）
+# index: 本仓库 1509 个跟踪文件 / 参考仓库 5611 个 / SDK 头文件 6274 个
+# vocab: 本仓库源码 token 9370 个（已排除本脚本自身，见第 1 步②）
+# ref: docs/github-references/Mole head=f32fa0c tracked=264 remote=https://github.com/tw93/Mole.git
+# ref: docs/github-references/OverSight head=58e4a64 tracked=198 remote=https://github.com/objective-see/OverSight.git
+# ref: docs/github-references/Pearcleaner head=7724df7 tracked=204 remote=https://github.com/alienator88/Pearcleaner.git
+# ref: docs/github-references/SwiftFormat head=173d2cb tracked=722 remote=https://github.com/nicklockwood/SwiftFormat.git
+# ref: docs/github-references/disktree head=158f9cc tracked=52 remote=https://github.com/tobi/disktree.git
+# ref: docs/github-references/stats head=e888802 tracked=301 remote=https://github.com/exelban/stats.git
+# ref: docs/github-references/uninstally head=c01646d tracked=140 remote=https://github.com/gostonx/uninstally.git
+# ref: docs/Mole head=无工作树 tracked=0 remote=https://github.com/tw93/Mole.git
+# ref: docs/lemon-cleaner head=7ff8676 tracked=3730 remote=https://github.com/Tencent/lemon-cleaner.git
+# sdk: version=27.0 headers=6274 root=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+# ---- 汇总 ----
+# 引用条次（同一处再引一次也计）: 1472
+# 唯一「路径+行段」: 1104
+#   命本仓库: 966
+#   命参考仓库: 137
+#     Mole: 41
+#     OverSight: 2
+#     Pearcleaner: 36
+#     disktree: 17
+#     lemon-cleaner: 4
+#     stats: 6
+#     uninstally: 31
+#   命苹果 SDK 头文件: 1
+#   两头都不到: 0
+#   定位不到文件因而没试行号判据的（参考仓库没克隆时走这一支）: 0
+# 本仓库里同一条路径命中两个文件（引用不自证是哪一篇）: 0
+# 行号越界: 0
+# 整段空白的引用: 0
+# 符号面·死符号（点名的成员名在本仓库源码词汇表里根本找不到；**只提示，不当门**——苹果 API 会混在这一层）: 0
+# 符号面·位置存疑（成员名还在，只是不在引用那几行上；噪声大，**只提示**）: 132
+# 行号判据实际跑过: 1104 条（另 0 条定位不到文件，没跑）
+# ---- 明细：本仓库引用漂了（必须改文档）----
+# ---- 明细：符号面·死符号（点名的符号全仓找不到，带 * 的就是找不到的那个）----
+# ---- 明细：符号面·位置存疑（符号存在但不在那几行；噪声大，本跑最多列 400 条，总条数看上面那一行）----
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:244-249 ← 引于 docs/analysis/apps-watch.md:115；点名：onDisappear
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/UninstallerModel.swift:492-503 ← 引于 docs/analysis/apps-watch.md:176；点名：moveToTrash
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:255-256 ← 引于 docs/analysis/coordination-audit.md:14；点名：MMBadge /risk.groupTitle
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1898 ← 引于 docs/analysis/coordination-audit.md:14；点名：MMBadge /risk.groupTitle
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:440 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 docs/design-system/screens/mmmonitor/07-monitor.html:14 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 docs/design-system/screens/mmdisk/04-disk.html:79 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 docs/design-system/screens/mmdisk/04e-disk-rescan.html:74 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 docs/design-system/screens/mmdisk/04b-disk-confirm.html:104 ← 引于 docs/analysis/coordination-audit.md:16；点名：MMCardStyle /cardSurface /underPageSurface
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:49 ← 引于 docs/analysis/coordination-audit.md:19；点名：reclaimableSize
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/ProjectArtifactScanner.swift:680 ← 引于 docs/analysis/coordination-audit.md:19；点名：reclaimableSize
+#   位置 Packages/MMFileScanner/Tests/MMFileScannerTests/ProjectArtifactScannerTests.swift:892 ← 引于 docs/analysis/coordination-audit.md:19；点名：reclaimableSize
+#   位置 docs/analysis/fidelity-guardian.md:284 ← 引于 docs/analysis/coordination-audit.md:180；点名：DRIFT /UNRESOLVED
+#   位置 docs/analysis/fidelity-shell.md:160 ← 引于 docs/analysis/coordination-audit.md:180；点名：DRIFT /UNRESOLVED
+#   位置 Packages/MMDisk/Sources/MMDisk/DiskRisk.swift:27 ← 引于 docs/analysis/deletion-guard.md:135；点名：DiskAnalyzerView /DiskRisk
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/FileTreeWalker.swift:58-66 ← 引于 docs/analysis/dev-artifact-walk-merge.md:292；点名：listAllEntries
+#   位置 Packages/MMUI/Sources/MMUI/TreemapView.swift:132 ← 引于 docs/analysis/disktree-adoption.md:17；点名：TreemapItem.children /isOthers /options.minTile
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/MMOptimizer.swift:434 ← 引于 docs/analysis/feature-roadmap.md:17；点名：MMOptimizer.deleteSelected*FileTrashService /FileTrashService
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift:44 ← 引于 docs/analysis/feature-roadmap.md:18；点名：MMUninstaller.findResiduals*ContainerScanner /LaunchServiceScanner /OrphanScanner /MCMMetadataIdentifier /MCMMetadataIdentifier
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift:98 ← 引于 docs/analysis/feature-roadmap.md:18；点名：MMUninstaller.findResiduals*ContainerScanner /LaunchServiceScanner /OrphanScanner /MCMMetadataIdentifier /MCMMetadataIdentifier
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MetricTypes.swift:138-140 ← 引于 docs/analysis/feature-roadmap.md:81；点名：perCoreCard /IOBlockStorageDriver /AppleSmartBattery /IOBlockStorageDriver /AppleSmartBattery /AppleSmartBattery /IOReport*batteryCard /BatterySnapshot /BatteryReader /AppleSmartBattery
+#   位置 Packages/MMMonitor/Sources/MMMonitor/Sensors.swift:80 ← 引于 docs/analysis/feature-roadmap.md:81；点名：perCoreCard /IOBlockStorageDriver /AppleSmartBattery /IOBlockStorageDriver /AppleSmartBattery /AppleSmartBattery /IOReport*batteryCard /BatterySnapshot /BatteryReader /AppleSmartBattery
+#   位置 Packages/MMGuardian/Sources/MMGuardian/LoginItemStore.swift:111 ← 引于 docs/analysis/feature-roadmap.md:1045；点名：OptimizerTab /PropertyListSerialization
+#   位置 Packages/MMGuardian/Sources/MMGuardian/LoginItemStore.swift:122 ← 引于 docs/analysis/feature-roadmap.md:1045；点名：OptimizerTab /PropertyListSerialization
+#   位置 Sources/MacMaster/DashboardModel.swift:75 ← 引于 docs/analysis/feature-roadmap.md:1046；点名：mountedVolumeURLs /volumeIsBrowsable
+#   位置 Packages/MMDisk/Sources/MMDisk/MMDisk.swift:1416-1426 ← 引于 docs/analysis/feature-roadmap.md:1046；点名：mountedVolumeURLs /volumeIsBrowsable
+#   位置 Packages/MMCore/Sources/MMCore/VolumeRoots.swift:258 ← 引于 docs/analysis/feature-roadmap.md:1050；点名：MM_VOLUME_FIXTURE
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:511-526 ← 引于 docs/analysis/fidelity-cleaner.md:45；点名：MMItemRow /MMMetric.rowRegular
+#   位置 Packages/MMCore/Sources/MMCore/Risk.swift:22-36 ← 引于 docs/analysis/fidelity-cleaner.md:86；点名：groupHeader /MMRisk
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:838-868 ← 引于 docs/analysis/fidelity-cleaner.md:88；点名：MMItemRow /MMFailurePanel
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:522-546 ← 引于 docs/analysis/fidelity-cleaner.md:90；点名：categoryRows /MMItemRow
+#   位置 Packages/MMCleaner/Sources/MMCleaner/UserFolderCleanView.swift:83-90 ← 引于 docs/analysis/fidelity-cleaner.md:111；点名：confirmSheet
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:735 ← 引于 docs/analysis/fidelity-cleaner.md:126；点名：MMPermissionBanner
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/InstallerScanner.swift:37-38 ← 引于 docs/analysis/fidelity-cleaner.md:153；点名：Whatever.dmg
+#   位置 docs/design-system/screens/mmdisk/04-disk.html:47-55 ← 引于 docs/analysis/fidelity-disk.md:30；点名：findingsPanel
+#   位置 docs/design-system/screens/mmdisk/04-disk.html:62 ← 引于 docs/analysis/fidelity-disk.md:30；点名：findingsPanel
+#   位置 docs/design-system/screens/mmdisk/04b-disk-confirm.html:96 ← 引于 docs/analysis/fidelity-disk.md:30；点名：findingsPanel
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:114 ← 引于 docs/analysis/fidelity-disk.md:46；点名：MMPageHeader
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:307 ← 引于 docs/analysis/fidelity-disk.md:46；点名：MMPageHeader
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:268 ← 引于 docs/analysis/fidelity-disk.md:50；点名：MMBadge
+#   位置 Packages/MMDisk/Sources/MMDisk/DiskClassify.swift:12-39 ← 引于 docs/analysis/fidelity-disk.md:90；点名：TreemapView
+#   位置 Packages/MMUI/Sources/MMUI/TreemapView.swift:151-161 ← 引于 docs/analysis/fidelity-disk.md:99；点名：TreemapLayout.place
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:349 ← 引于 docs/analysis/fidelity-disk.md:132；点名：MMActionBar
+#   位置 Packages/MMCore/Sources/MMCore/Risk.swift:14-16 ← 引于 docs/analysis/fidelity-disk.md:195；点名：risk.groupTitle
+#   位置 Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:183-190 ← 引于 docs/analysis/fidelity-guardian.md:112；点名：TCCViewer.build
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:164-170 ← 引于 docs/analysis/fidelity-monitor.md:102；点名：diskStatus /diskRate
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MetricTypes.swift:305 ← 引于 docs/analysis/fidelity-monitor.md:186；点名：onAppear
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:192-214 ← 引于 docs/analysis/fidelity-monitor.md:219；点名：MMCard
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:772-788 ← 引于 docs/analysis/fidelity-monitor.md:219；点名：MMCard
+#   位置 docs/website/index.html:341 ← 引于 docs/analysis/fidelity-monitor.md:253；点名：MMStatItem /MMFormat.compactBytes /statsRow /rateText /Sources /Packages /NSLocalizedString*
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MonitorFixtureHooks.swift:66-68 ← 引于 docs/analysis/fidelity-monitor.md:494；点名：appliedNote /MMHookValue.emit
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/MMOptimizer.swift:439 ← 引于 docs/analysis/fidelity-optimizer.md:26；点名：FileManager.removeItem
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:783 ← 引于 docs/analysis/fidelity-optimizer.md:94；点名：MMFailurePanel
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/DevToolCacheView.swift:28 ← 引于 docs/analysis/fidelity-optimizer.md:142；点名：DevToolCacheView
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift:355-364 ← 引于 docs/analysis/fidelity-optimizer.md:336；点名：ForEach
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/PreferencesView.swift:53 ← 引于 docs/analysis/fidelity-optimizer.md:336；点名：ForEach
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift:125 ← 引于 docs/analysis/fidelity-optimizer.md:336；点名：ForEach
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift:135 ← 引于 docs/analysis/fidelity-optimizer.md:336；点名：ForEach
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/PreferencesAudit.swift:258 ← 引于 docs/analysis/fidelity-optimizer.md:336；点名：ForEach
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:476 ← 引于 docs/analysis/fidelity-optimizer.md:367；点名：MMEmptyState
+#   位置 docs/design-system/screens/shell/01-dashboard.html:40 ← 引于 docs/analysis/fidelity-shell.md:86；点名：SidebarView
+#   位置 Packages/MMCore/Sources/MMCore/SystemSettings.swift:25 ← 引于 docs/analysis/fidelity-shell.md:98；点名：MMSettingsPane /NSWorkspace.open
+#   位置 Sources/MacMaster/LaunchBehavior.swift:31 ← 引于 docs/analysis/fidelity-shell.md:101；点名：statusCaption /needsSystemSettings /SMAppService /lastError
+#   位置 Sources/MacMaster/SettingsView.swift:169 ← 引于 docs/analysis/fidelity-shell.md:102；点名：needsSystemSettings /requestAuthorization /notifyHighCPU /notifyLowMemory
+#   位置 Packages/MMMonitor/Sources/MMMonitor/NotificationStatus.swift:31-38 ← 引于 docs/analysis/fidelity-shell.md:102；点名：needsSystemSettings /requestAuthorization /notifyHighCPU /notifyLowMemory
+#   位置 docs/design-system/screens/shell/09-settings.html:228-236 ← 引于 docs/analysis/fidelity-shell.md:125；点名：watchTrashForResidualCleanup /watchAppFolderChanges
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:164 ← 引于 docs/analysis/fidelity-uninstaller.md:43；点名：Picker /MM_UNINSTALL_PANE /Picker /MM_UNINSTALL_PANE
+#   位置 docs/design-system/screens/mmui/components.html:136 ← 引于 docs/analysis/fidelity-uninstaller.md:47；点名：MMDestination
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:120 ← 引于 docs/analysis/fidelity-uninstaller.md:53；点名：trashRegion
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:113 ← 引于 docs/analysis/fidelity-uninstaller.md:54；点名：AppListRow
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:388 ← 引于 docs/analysis/fidelity-uninstaller.md:58；点名：appList /appList /MMEmptyState /MMEmptyState
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1796 ← 引于 docs/analysis/fidelity-uninstaller.md:67；点名：infoSection /MMKeyRow /MMKeyRow
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1120 ← 引于 docs/analysis/fidelity-uninstaller.md:101；点名：trashNoticeCard /Picker /Picker
+#   位置 docs/design-system/screens/mmuninstaller/03c-uninstaller-trash.html:35 ← 引于 docs/analysis/fidelity-uninstaller.md:108；点名：MMItemRow /rowRegular
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1278 ← 引于 docs/analysis/fidelity-uninstaller.md:118；点名：trashConfirmSheet
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1279 ← 引于 docs/analysis/fidelity-uninstaller.md:118；点名：trashConfirmSheet
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift:413 ← 引于 docs/analysis/fidelity-uninstaller.md:118；点名：trashConfirmSheet
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:804-806 ← 引于 docs/analysis/fidelity-uninstaller.md:119；点名：MM_SHOW_TRASH_CONFIRM /trashConfirmHook /MM_TRASH_SCAN_HOME
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1934-1936 ← 引于 docs/analysis/fidelity-uninstaller.md:158；点名：confirmationNote
+#   位置 docs/design-system/screens/mmuninstaller/03-uninstaller.html:23 ← 引于 docs/analysis/fidelity-uninstaller.md:171；点名：MMItemRow
+#   位置 docs/design-system/screens/mmuninstaller/03b-uninstaller-orphans.html:12 ← 引于 docs/analysis/fidelity-uninstaller.md:171；点名：MMItemRow
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:803 ← 引于 docs/analysis/fidelity-uninstaller.md:191；点名：trashConfirmHook /MMHookValue.flag
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:257 ← 引于 docs/analysis/fidelity-uninstaller.md:285；点名：AppProvenancePresentationTests /AppProvenancePresentationTests
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:908 ← 引于 docs/analysis/fidelity-uninstaller.md:361；点名：MM_APPS_WATCH_AUTO_SCAN
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift:159 ← 引于 docs/analysis/fidelity-uninstaller.md:652；点名：ResidualRow
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1965 ← 引于 docs/analysis/fidelity-uninstaller.md:718；点名：fixedSize
+#   位置 Packages/MMUI/Sources/MMUI/MMDesign.swift:859-860 ← 引于 docs/analysis/fidelity-uninstaller.md:718；点名：fixedSize
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1987 ← 引于 docs/analysis/fidelity-uninstaller.md:718；点名：fixedSize
+#   位置 docs/analysis/apps-watch.md:132 ← 引于 docs/analysis/fidelity-uninstaller.md:749；点名：deletionRoots
+#   位置 docs/analysis/uninstaller-steam-launcher.md:99 ← 引于 docs/analysis/fidelity-uninstaller.md:749；点名：deletionRoots
+#   位置 Sources/MacMaster/MainWindow.swift:38 ← 引于 docs/analysis/hook-ledger.md:108；点名：MM_OPEN_MODULE /MMDestination.rawValue /MMCore.MMHookValue.selected
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:930 ← 引于 docs/analysis/hook-ledger.md:119；点名：MM_FAILURE_FIXTURE /MMCleaner /MMUI.MMFailurePanel /Protect*
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:806 ← 引于 docs/analysis/hook-ledger.md:136；点名：MM_SHOW_TRASH_CONFIRM /MMUninstaller /FileTrashService
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/OptimizerFixtureHooks.swift:226 ← 引于 docs/analysis/hook-ledger.md:161；点名：MM_OPTIMIZER_FIXTURE /MMOptimizer /fixturePinned /fixturePinned /testPreferencesFixtureSurvivesALaterRealScan /testUnpinnedPreferencesModelScansNormally
+#   位置 Packages/MMOptimizer/Sources/MMOptimizer/DevToolCacheAudit.swift:166 ← 引于 docs/analysis/hook-ledger.md:186；点名：MM_OPEN_TAB /MM_OPTIMIZER_FIXTURE
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:389-392 ← 引于 docs/analysis/hook-ledger.md:321；点名：MM_PURGE_FIXTURE_HOME /volumeFooter /KEEP_FIXTURE /SETTLE /DISK_SETTLE
+#   位置 Sources/MacMaster/DashboardModel.swift:75 ← 引于 docs/analysis/hook-ledger.md:321；点名：MM_PURGE_FIXTURE_HOME /volumeFooter /KEEP_FIXTURE /SETTLE /DISK_SETTLE
+#   位置 Packages/MMDisk/Sources/MMDisk/DiskRisk.swift:27 ← 引于 docs/analysis/release-readiness.md:527；点名：MMGitCommit /LSMinimumSystemVersion /MM_PURGE_FIXTURE_HOME /DiskAnalyzerView /readEntries /DiskAnalyzerView
+#   位置 Scripts/p17-website-capture.sh:146 ← 引于 docs/analysis/release-readiness.md:528；点名：MMGitCommit /MMSourceDigest
+#   位置 Scripts/p18-hook-typo-proof.sh:133 ← 引于 docs/analysis/release-readiness.md:528；点名：MMGitCommit /MMSourceDigest
+#   位置 Sources/MacMaster/MacMasterApp.swift:42 ← 引于 docs/analysis/release-readiness.md:528；点名：MMGitCommit /MMSourceDigest
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:881-898 ← 引于 docs/analysis/release-readiness.md:528；点名：MMGitCommit /MMSourceDigest
+#   位置 Scripts/p16-citation-audit.sh:67 ← 引于 docs/analysis/release-readiness.md:792；点名：perCore /diskUnavailable /memoryNil /perCoreEmpty /perCoreRed
+#   位置 Packages/MMCore/Sources/MMCore/FileTrashService.swift:43 ← 引于 docs/analysis/release-readiness.md:1233；点名：DeletionGuard.rejection
+#   位置 docs/design-system/screens/mmdisk/04-disk.html:163 ← 引于 docs/analysis/release-readiness.md:1279；点名：DiskRiskTests /DiskHeaderContractTests
+#   位置 Packages/MMGuardian/Sources/MMGuardian/TCCProbe.swift:53-54 ← 引于 docs/analysis/release-readiness.md:2219；点名：TCC.db
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:369 ← 引于 docs/analysis/release-readiness.md:2377；点名：String /MMSettingsPane /settingsURL /MMSettingsPaneTests
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:938 ← 引于 docs/analysis/release-readiness.md:2377；点名：String /MMSettingsPane /settingsURL /MMSettingsPaneTests
+#   位置 Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:177 ← 引于 docs/analysis/release-readiness.md:2377；点名：String /MMSettingsPane /settingsURL /MMSettingsPaneTests
+#   位置 Sources/MacMaster/MainWindow.swift:128 ← 引于 docs/analysis/release-readiness.md:2378；点名：MM_DUMP_MENUS
+#   位置 Sources/MacMaster/MacMasterApp.swift:59-61 ← 引于 docs/analysis/release-readiness.md:2378；点名：MM_DUMP_MENUS
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/InstallerScanner.swift:37-38 ← 引于 docs/analysis/release-readiness.md:2957；点名：Whatever.dmg /TCC.db
+#   位置 Packages/MMCore/Sources/MMCore/Risk.swift:3-5 ← 引于 docs/analysis/uninstaller-app-body-risk.md:154；点名：ResidualCatalog /fileExists
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift:56 ← 引于 docs/analysis/uninstaller-steam-launcher.md:52；点名：DeepShortcut
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift:222 ← 引于 docs/analysis/uninstaller-steam-launcher.md:87；点名：extraDescent
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift:83-85 ← 引于 docs/analysis/uninstaller-steam-launcher.md:88；点名：ResidualCategory.defaultRisk /applicationSupport
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:1807 ← 引于 docs/analysis/uninstaller-steam-launcher.md:89；点名：bundleIdentifier
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/AppProvenance.swift:40-48 ← 引于 docs/analysis/uninstaller-steam-launcher.md:89；点名：bundleIdentifier
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift:32-36 ← 引于 docs/analysis/uninstaller-steam-launcher.md:90；点名：DeepShortcut
+#   位置 Scripts/make-app.sh:138 ← 引于 docs/analysis/uninstally-adoption.md:19；点名：CFBundleURLTypes
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/AppProvenance.swift:100-160 ← 引于 docs/analysis/uninstally-adoption.md:42；点名：Source
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/TrashWatcher.swift:74 ← 引于 docs/analysis/uninstally-adoption.md:46；点名：O_RDONLY
+#   位置 Packages/MMCore/Sources/MMCore/DeletionGuard.swift:54-62 ← 引于 docs/analysis/uninstally-adoption.md:61；点名：FileTrashService /ResidualCatalog
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift:276-283 ← 引于 docs/analysis/uninstally-adoption.md:62；点名：DeletionGuard /URL.standardizedFileURL
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift:219-245 ← 引于 docs/analysis/uninstally-adoption.md:70；点名：ResidualCatalog /standardLibrarySubdirectoryNames /Audio /Components
+#   位置 Packages/MMUninstaller/Sources/MMUninstaller/AppProvenance.swift:8-10 ← 引于 docs/analysis/uninstally-adoption.md:92；点名：AppProvenance /CaskEvidence.receiptPath
+#   位置 Scripts/make-app.sh:124 ← 引于 docs/analysis/uninstally-adoption.md:101；点名：com.apple.FinderSync
+#   位置 Packages/MMCore/Sources/MMCore/Risk.swift:38-41 ← 引于 docs/analysis/uninstally-adoption.md:109；点名：isShared*ResidualOwnershipReview
+#   位置 Sources/MacMaster/MacMasterApp.swift:34 ← 引于 docs/analysis/uninstally-adoption.md:241；点名：WindowGroup
+#   位置 Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:128 ← 引于 docs/analysis/website-audit.md:18；点名：CacheScanScope
+#   位置 Packages/MMMonitor/Sources/MMMonitor/MMMonitor.swift:162 ← 引于 docs/analysis/website-audit.md:22；点名：NSStatusItem /IOBlockStorageDriver
+#   位置 Packages/MMFileScanner/Sources/MMFileScanner/DuplicateScanner.swift:244 ← 引于 docs/analysis/website-audit.md:24；点名：unreadablePaths
+# ---- 明细：两头都不到（路径写错了，或者引的根本不是文件）----
+# ---- 明细：苹果 SDK 头文件（本机可验；别人 clone 一样打不开，SDK 版本见上面的 # sdk: 行）----
+#   SDK AVCaptureDevice.h::323 → /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/AVFoundation.framework/Versions/A/Headers/AVCaptureDevice.h
+# ---- 明细：参考仓库引用（入库的清单写了取法即可达）----
+#   参考 PearcleanerSentinel/com.alienator88.PearcleanerSentinel.plist::9-12 → docs/github-references/Pearcleaner/PearcleanerSentinel/com.alienator88.PearcleanerSentinel.plist
+#   参考 Pearcleaner/Logic/Logic.swift::1367 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Logic.swift
+#   参考 Pearcleaner/Logic/Logic.swift::1379 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Logic.swift
+#   参考 PearcleanerSentinel/FileWatcher.swift::2 → docs/github-references/Pearcleaner/PearcleanerSentinel/FileWatcher.swift
+#   参考 PearcleanerSentinel/FileWatcher.swift::84-94 → docs/github-references/Pearcleaner/PearcleanerSentinel/FileWatcher.swift
+#   参考 PearcleanerSentinel/main.swift::17 → docs/github-references/Pearcleaner/PearcleanerSentinel/main.swift
+#   参考 PearcleanerSentinel/main.swift::58 → docs/github-references/Pearcleaner/PearcleanerSentinel/main.swift
+#   参考 Pearcleaner/Logic/DeepLink.swift::143-146 → docs/github-references/Pearcleaner/Pearcleaner/Logic/DeepLink.swift
+#   参考 PearcleanerSentinel/main.swift::54-55 → docs/github-references/Pearcleaner/PearcleanerSentinel/main.swift
+#   参考 Pearcleaner/Views/FilesView/FilesView.swift::224-225 → docs/github-references/Pearcleaner/Pearcleaner/Views/FilesView/FilesView.swift
+#   参考 Pearcleaner/Views/FilesView/FilesView.swift::300-301 → docs/github-references/Pearcleaner/Pearcleaner/Views/FilesView/FilesView.swift
+#   参考 Pearcleaner/Views/FilesView/FilesView.swift::271 → docs/github-references/Pearcleaner/Pearcleaner/Views/FilesView/FilesView.swift
+#   参考 Pearcleaner/Logic/ReversePathsFetch.swift::36-47 → docs/github-references/Pearcleaner/Pearcleaner/Logic/ReversePathsFetch.swift
+#   参考 docs/github-references/Mole/AGENTS.md::29 → docs/github-references/Mole/AGENTS.md
+#   参考 lib/clean/apps.sh::151 → docs/github-references/Mole/lib/clean/apps.sh
+#   参考 main.swift::58 → docs/github-references/Pearcleaner/PearcleanerHelper/main.swift
+#   参考 lib/clean/dev.sh::72-447 → docs/github-references/Mole/lib/clean/dev.sh
+#   参考 space.rs::540 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::591 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::647 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::557-576 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::487 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::453 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::604 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 space.rs::61-67 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 scan.rs::677-743 → docs/github-references/disktree/crates/disktree-core/src/scan.rs
+#   参考 treemap.rs::107-139 → docs/github-references/disktree/crates/disktree-core/src/treemap.rs
+#   参考 classify.rs::21-93 → docs/github-references/disktree/crates/disktree-core/src/classify.rs
+#   参考 palette.rs::1-12 → docs/github-references/disktree/crates/disktree-app/src/palette.rs
+#   参考 marks.rs::64-81 → docs/github-references/disktree/crates/disktree-app/src/marks.rs
+#   参考 removal.rs::97-191 → docs/github-references/disktree/crates/disktree-core/src/removal.rs
+#   参考 AppPathsFetch.swift::323-434 → docs/github-references/Pearcleaner/Pearcleaner/Logic/AppPathsFetch.swift
+#   参考 Locations.swift::58-122 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Locations.swift
+#   参考 AppPathsFetch.swift::143-183 → docs/github-references/Pearcleaner/Pearcleaner/Logic/AppPathsFetch.swift
+#   参考 lib/uninstall/batch.sh::445-476 → docs/github-references/Mole/lib/uninstall/batch.sh
+#   参考 ReversePathsFetch.swift::110-278 → docs/github-references/Pearcleaner/Pearcleaner/Logic/ReversePathsFetch.swift
+#   参考 AppTrashDel.m::25-40 → docs/lemon-cleaner/localPod/LemonUninstaller/LemonUninstaller/Classes/TrashWatch/AppTrashDel.m
+#   参考 lib/core/history.sh::24-38 → docs/github-references/Mole/lib/core/history.sh
+#   参考 AVMonitor.m::774-1028 → docs/github-references/OverSight/Application/Application/AVMonitor.m
+#   参考 TCCQueryHelper.swift::31-119 → docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCQueryHelper.swift
+#   参考 DaemonView.swift::354-606 → docs/github-references/Pearcleaner/Pearcleaner/Views/DaemonView.swift
+#   参考 Modules/CPU/readers.swift::45 → docs/github-references/stats/Modules/CPU/readers.swift
+#   参考 Disk/readers.swift::243 → docs/github-references/stats/Modules/Disk/readers.swift
+#   参考 lib/clean/system.sh::518-733 → docs/github-references/Mole/lib/clean/system.sh
+#   参考 user.sh::890-1002 → docs/github-references/Mole/lib/clean/user.sh
+#   参考 user.sh::1021-1279 → docs/github-references/Mole/lib/clean/user.sh
+#   参考 bin/installer.sh::41-119 → docs/github-references/Mole/bin/installer.sh
+#   参考 cmd/status/metrics_disk.go::336-399 → docs/github-references/Mole/cmd/status/metrics_disk.go
+#   参考 Logic.swift::640-796 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Logic.swift
+#   参考 QMLoginItemManager.m::197-272 → docs/lemon-cleaner/localPod/QMAppLoginItemManage/QMAppLoginItemManage/Classes/QMLoginItemManager.m
+#   参考 lib/clean/system.sh::927-1180 → docs/github-references/Mole/lib/clean/system.sh
+#   参考 dev.sh::845-905 → docs/github-references/Mole/lib/clean/dev.sh
+#   参考 purge_shared.sh::18 → docs/github-references/Mole/lib/clean/purge_shared.sh
+#   参考 Logic/Utilities.swift::362 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Utilities.swift
+#   参考 lib/uninstall/batch.sh::2018 → docs/github-references/Mole/lib/uninstall/batch.sh
+#   参考 lib/uninstall/steam.sh::5 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 lib/optimize/maintenance.sh::69 → docs/github-references/Mole/lib/optimize/maintenance.sh
+#   参考 crates/disktree-core/src/space.rs::644 → docs/github-references/disktree/crates/disktree-core/src/space.rs
+#   参考 Modules/Battery/readers.swift::16 → docs/github-references/stats/Modules/Battery/readers.swift
+#   参考 QMWechatScan.m::14-22 → docs/lemon-cleaner/LemonClener/LemonClener/libcleaner/QMSpecialClean/QMWechatScan.m
+#   参考 crates/disktree-app/src/views.rs::92 → docs/github-references/disktree/crates/disktree-app/src/views.rs
+#   参考 lib/clean/apps.sh::773 → docs/github-references/Mole/lib/clean/apps.sh
+#   参考 localPod/QMCoreFunction/QMCoreFunction/Classes/McUninstaller/McSoftwareFileScanner.m::334-337 → docs/lemon-cleaner/localPod/QMCoreFunction/QMCoreFunction/Classes/McUninstaller/McSoftwareFileScanner.m
+#   参考 FilesSidebarView.swift::153 → docs/github-references/Pearcleaner/Pearcleaner/Views/FilesView/FilesSidebarView.swift
+#   参考 AVMonitor.m::232 → docs/github-references/OverSight/Application/Application/AVMonitor.m
+#   参考 cmd/analyze/scanner.go::1214-1219 → docs/github-references/Mole/cmd/analyze/scanner.go
+#   参考 format.go::247-268 → docs/github-references/Mole/cmd/analyze/format.go
+#   参考 docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCQueryHelper.swift::31-40 → docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCQueryHelper.swift
+#   参考 TCCQueryHelper.swift::118 → docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCQueryHelper.swift
+#   参考 TCCModels.swift::38-46 → docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCModels.swift
+#   参考 TCCQueryHelper.swift::44-46 → docs/github-references/Pearcleaner/Pearcleaner/Logic/TCC/TCCQueryHelper.swift
+#   参考 docs/github-references/Pearcleaner/Pearcleaner/Views/MainWindow.swift::134 → docs/github-references/Pearcleaner/Pearcleaner/Views/MainWindow.swift
+#   参考 docs/github-references/Pearcleaner/Pearcleaner/PearcleanerApp.swift::53 → docs/github-references/Pearcleaner/Pearcleaner/PearcleanerApp.swift
+#   参考 docs/github-references/Pearcleaner/Pearcleaner/Views/AppsView/AppListItems.swift::92-124 → docs/github-references/Pearcleaner/Pearcleaner/Views/AppsView/AppListItems.swift
+#   参考 Views/PluginsView.swift::906 → docs/github-references/Pearcleaner/Pearcleaner/Views/PluginsView.swift
+#   参考 docs/github-references/stats/Modules/Disk/popup.swift::448 → docs/github-references/stats/Modules/Disk/popup.swift
+#   参考 Kit/helpers.swift::273-274 → docs/github-references/stats/Kit/helpers.swift
+#   参考 Kit/constants.swift::15 → docs/github-references/stats/Kit/constants.swift
+#   参考 docs/github-references/Mole/bin/uninstall.sh::1893 → docs/github-references/Mole/bin/uninstall.sh
+#   参考 docs/github-references/Mole/lib/optimize/maintenance.sh::7-23 → docs/github-references/Mole/lib/optimize/maintenance.sh
+#   参考 docs/github-references/Mole/lib/optimize/maintenance.sh::97 → docs/github-references/Mole/lib/optimize/maintenance.sh
+#   参考 docs/github-references/Mole/lib/optimize/tasks.sh::407 → docs/github-references/Mole/lib/optimize/tasks.sh
+#   参考 tasks.sh::379 → docs/github-references/Mole/lib/optimize/tasks.sh
+#   参考 maintenance.sh::48 → docs/github-references/Mole/lib/optimize/maintenance.sh
+#   参考 maintenance.sh::59 → docs/github-references/Mole/lib/optimize/maintenance.sh
+#   参考 tasks.sh::405 → docs/github-references/Mole/lib/optimize/tasks.sh
+#   参考 HomebrewController.swift::246-247 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Brew/HomebrewController.swift
+#   参考 lib/uninstall/brew.sh::83 → docs/github-references/Mole/lib/uninstall/brew.sh
+#   参考 lib/uninstall/steam.sh::19-62 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 steam.sh::25 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 steam.sh::27-30 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 steam.sh::33-34 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 steam.sh::41-42 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 steam.sh::44-58 → docs/github-references/Mole/lib/uninstall/steam.sh
+#   参考 bin/uninstall.sh::57-63 → docs/github-references/Mole/bin/uninstall.sh
+#   参考 lib/ui/app_selector.sh::25-26 → docs/github-references/Mole/lib/ui/app_selector.sh
+#   参考 lib/uninstall/batch.sh::1754-1757 → docs/github-references/Mole/lib/uninstall/batch.sh
+#   参考 batch.sh::1774 → docs/github-references/Mole/lib/uninstall/batch.sh
+#   参考 Logic/AppInfoFetch.swift::593 → docs/github-references/Pearcleaner/Pearcleaner/Logic/AppInfoFetch.swift
+#   参考 Logic/AppPathsFetch.swift::448-451 → docs/github-references/Pearcleaner/Pearcleaner/Logic/AppPathsFetch.swift
+#   参考 Logic/AppPathsFetch.swift::343-355 → docs/github-references/Pearcleaner/Pearcleaner/Logic/AppPathsFetch.swift
+#   参考 Logic/Locations.swift::62 → docs/github-references/Pearcleaner/Pearcleaner/Logic/Locations.swift
+#   参考 crates/disktree-core/src/classify.rs::164-166 → docs/github-references/disktree/crates/disktree-core/src/classify.rs
+#   参考 lib/clean/app_caches.sh::1941-1947 → docs/github-references/Mole/lib/clean/app_caches.sh
+#   参考 lib/uninstall/batch.sh::927-929 → docs/github-references/Mole/lib/uninstall/batch.sh
+#   参考 lib/clean/apps.sh::255-258 → docs/github-references/Mole/lib/clean/apps.sh
+#   参考 Services/Security/PathValidator.swift::24-33 → docs/github-references/uninstally/Uninstally/Services/Security/PathValidator.swift
+#   参考 DeletionPlan.swift::9-10 → docs/github-references/uninstally/Uninstally/Services/Security/DeletionPlan.swift
+#   参考 Utilities/LibraryPaths.swift::11-13 → docs/github-references/uninstally/Uninstally/Utilities/LibraryPaths.swift
+#   参考 UninstallyFinder/FinderSync.swift::65 → docs/github-references/uninstally/UninstallyFinder/FinderSync.swift
+#   参考 TrashMonitor.swift::90-96 → docs/github-references/uninstally/Uninstally/Services/TrashMonitor.swift
+#   参考 LibraryPaths.swift::50-63 → docs/github-references/uninstally/Uninstally/Utilities/LibraryPaths.swift
+#   参考 LibraryPaths.swift::21-45 → docs/github-references/uninstally/Uninstally/Utilities/LibraryPaths.swift
+#   参考 Services/HomebrewService.swift::21-26 → docs/github-references/uninstally/Uninstally/Services/HomebrewService.swift
+#   参考 Services/InstallationSourceDetector.swift::56-66 → docs/github-references/uninstally/Uninstally/Services/InstallationSourceDetector.swift
+#   参考 Config/UninstallyFinder.entitlements::7-9 → docs/github-references/uninstally/Config/UninstallyFinder.entitlements
+#   参考 Config/Uninstally.entitlements::8-9 → docs/github-references/uninstally/Config/Uninstally.entitlements
+#   参考 Config/Uninstally-Info.plist::51-59 → docs/github-references/uninstally/Config/Uninstally-Info.plist
+#   参考 UninstallyApp.swift::25 → docs/github-references/uninstally/Uninstally/UninstallyApp.swift
+#   参考 Uninstally/AppDelegate.swift::50-59 → docs/github-references/uninstally/Uninstally/AppDelegate.swift
+#   参考 SelectionReceiver.swift::9-22 → docs/github-references/uninstally/Uninstally/Services/SelectionReceiver.swift
+#   参考 AppCoordinator.swift::80-83 → docs/github-references/uninstally/Uninstally/ViewModels/AppCoordinator.swift
+#   参考 Models/RemovableItem.swift::40-45 → docs/github-references/uninstally/Uninstally/Models/RemovableItem.swift
+#   参考 SafetyScore.swift::42 → docs/github-references/uninstally/Uninstally/Models/SafetyScore.swift
+#   参考 Services/DeletionExecutor.swift::75 → docs/github-references/uninstally/Uninstally/Services/DeletionExecutor.swift
+#   参考 SecurityPreferences.swift::12-14 → docs/github-references/uninstally/Uninstally/Utilities/SecurityPreferences.swift
+#   参考 Services/Security/DeletionValidator.swift::60-72 → docs/github-references/uninstally/Uninstally/Services/Security/DeletionValidator.swift
+#   参考 Services/HomebrewService.swift::63-71 → docs/github-references/uninstally/Uninstally/Services/HomebrewService.swift
+#   参考 Services/LeftoverScanner.swift::63-65 → docs/github-references/uninstally/Uninstally/Services/LeftoverScanner.swift
+#   参考 Services/InstallationSourceDetector.swift::13-22 → docs/github-references/uninstally/Uninstally/Services/InstallationSourceDetector.swift
+#   参考 DeletionExecutor.swift::86-112 → docs/github-references/uninstally/Uninstally/Services/DeletionExecutor.swift
+#   参考 DeletionLogger.swift::16-22 → docs/github-references/uninstally/Uninstally/Services/Security/DeletionLogger.swift
+#   参考 DeletionExecutor.swift::156-158 → docs/github-references/uninstally/Uninstally/Services/DeletionExecutor.swift
+#   参考 LeftoverScanner.swift::120-136 → docs/github-references/uninstally/Uninstally/Services/LeftoverScanner.swift
+#   参考 HistoryRetention.swift::4-40 → docs/github-references/uninstally/Uninstally/Models/HistoryRetention.swift
+#   参考 Uninstally/Services/DeletionExecutor.swift::155-158 → docs/github-references/uninstally/Uninstally/Services/DeletionExecutor.swift
+#   参考 Services/SelectionReceiver.swift::9-22 → docs/github-references/uninstally/Uninstally/Services/SelectionReceiver.swift
+# 硬失败（本仓库引用漂了 + 都不到）: 0

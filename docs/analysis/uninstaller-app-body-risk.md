@@ -216,3 +216,28 @@ for d in /Library/Audio/Plug-Ins/{Components,VST,VST3,CLAP} \
   [ -d "$d" ] && printf '%s\tEXISTS\t%s\n' "$d" "$(ls -1 "$d" | wc -l | tr -d ' ')" \
               || printf '%s\tABSENT\t-\n' "$d"; done              # 5 存在 / 4 不存在，存在的全 0
 ```
+
+## 8. 收口账（2026-10-16，docs-only 一轮）
+
+- **本批落在 `c9e06da`**：四个落点——本文、`uninstally-adoption.md` 的三处行内指针（第 191、207、372 行，
+  只在那三行里加字、没有加行）、两份入库前的门禁 log。源码与测试一个字节没动。
+- **引用门禁四跑**：`docs/verification/p51-citations-v2/audit.log`（本文入库后、加指针前）、
+  `docs/verification/p51-citations-final/audit.log`（加指针后）、
+  `docs/verification/p51-citations-postcommit/audit.log`（提交后，`# repo: c9e06da` 不带 `-dirty`）、
+  `docs/verification/p51-citations-symfull/audit.log`（同一棵树、把存疑明细放开到 400 行那一跑）。
+  门数四跑逐字相同：条次 1472、唯一「路径+行段」1104、命本仓库 966、命参考仓库 137、
+  行号越界 0、整段空白 0、死符号 0、**硬失败 0、退出码 0**；`docs scanned` 47 个真抽了 / 47 个入库 .md。
+  移动着的只有 `# index:`：1507（入库前，两份 log 还没进版本控制）→ 1509（提交后）——
+  P50 那一轮末尾留的预测「`git add` 之后下一轮读到的 index 是 1506」对上了（1506 + 本文 = 1507）。
+- **行数守恒现读**：`release-readiness.md` 4870、`fidelity-disk.md` 1062、`uninstally-adoption.md` 374、
+  `disk-volume-enumeration.md` 460、`hook-ledger.md` 514、`feature-roadmap.md` 1530，六格一字未动。
+  本文不在守恒清单里（新建，且没有别的文档按行号引它）。
+- **一处没归上因的数，如实记着**：位置存疑从 P50 那三跑的 133 走到本轮的 **132**，而本轮只新增了引用、
+  没删过任何一处。可见前 40 行两跑逐字相同，差的那一行排在 cap 之后，所以光看已入库的两份 log 认不出是谁走的。
+  处理办法是把明细一次性放开（`P16_SYM_DETAIL=400`，第四跑）并把全量 132 行清单入库——
+  **下一轮再用同一条命令跑，就能直接 diff 出行是哪一条、因为什么走的**，不必再靠 cap 前的 40 行猜。
+  本文自己在这 132 行里占 1 条：第 154 行把 `Risk.swift:3-5` 与同一行上的两个成员名写在了一起，
+  锚点本身对得上（那是文件头"语义固定"的理由那三行），属这一层的正常噪声，不当门。
+- **下一轮从这里接**：建议 1 的实现要单独授权（`S`，不依赖设计稿，是三条里唯一现在就动得着的）；
+  建议 2 与建议 3-B 先出设计稿，且建议 2 动手前必须先把"跨卷落点 / 拔盘后撤回"那张实拍补出来（§6 第二条）；
+  建议 3-A 的前置是把 `isDeletableByCurrentUser` 在目录型 bundle 上的行为量出来（§6 第四条）。
