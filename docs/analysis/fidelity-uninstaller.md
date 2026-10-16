@@ -919,6 +919,12 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
 - 引用门禁：`docs/verification/p52-citations/audit.log`，硬失败 0、条次 1490、唯一 1116、位置存疑 132，
   与 P51a 尾跑（`docs/verification/p51-citations-tail/audit.log`，1472 / 1104 / 132）对差 +18 / +12 / **0**——
   **存疑没涨**就是"本轮重指的那 24 对锚点对到了内容"的旁证，条次与唯一上涨是本轮新增实拍与判定层的引用带来的。
+- 引用门禁的**提交后那一跑**（本批落在 `a1f7120`）：`docs/verification/p52-citations-postcommit/audit.log`，
+  `# repo: a1f7120 branch=main` 不带 `-dirty`、index **1536**（1518 + 本批入库的 18 个跟踪文件 = 2 条测试 + 4 份脚本
+  + 5 组照片与 log + 2 份归档），四个读数 **1490 / 1116 / 132 / 0 与入库前那一跑逐字相同**——入库这一步没挪动任何一处引用。
+  同轮 `mm_source_digest` 从 `d827d33+638fe6c9` 变成 **`a1f7120+e3b0c442`**：后半是空流前缀，因为工作树再无 diff。
+  这两串是同一棵树的两种写法，所以上一条"五份 `.log` 与跑测那棵树同一个数"在提交后要按**树等于 HEAD**读，
+  别再拿 `d827d33+638fe6c9` 这一串去比提交后新拍的日志（判据本体见 `uninstaller-app-body-risk.md` §9 末尾那条「归因」）。
 - 照片归因：五份 `.log` 的 `# digest:` 全是 `d827d33+638fe6c9`，与跑测那棵树同一个数（后半截不是空流前缀，
   两支源文件当时还没入库）；夹具与实拍脚本都入库（`Scripts/p52-system-app-fixture.sh`、`Scripts/p52-system-app-capture.sh`），
   量尺另两支 `Scripts/p52-photo-diff.py`、`Scripts/p52-ref-verify.py` 同批。
