@@ -1,0 +1,11 @@
+# p52-system-app-capture.sh 02-plain-tool-default-sheet  2026-10-16 15:17:55 +0800  app=/tmp/mm-app-p52/MacMaster.app  fixture=/tmp/macmaster-p52-fixture.tyodTU
+# repo: d827d33-dirty   # app-repo: d827d33-dirty
+# digest: tree=d827d33+638fe6c9 app=d827d33+638fe6c9
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_WINDOW_SIZE=1400x1000 MM_UNINSTALL_SELECT=PlainTool MM_UNINSTALL_CONFIRM_MODE 未给（默认 appOnly，会尝试自动开确认面板）
+# 夹具残留：com.apple.FixturePages 名下 8 B，com.example.PlainTool 名下 8 B
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p52/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_UNINSTALL_SELECT=PlainTool 已点名到 /private/tmp/macmaster-p52-fixture.tyodTU/Applications/PlainTool.app
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# windows(pid=87878): windowid=13295 pid=87878 layer=0 title= bounds=["Width": 420, "Height": 271, "Y": 407, "X": 774] | windowid=13294 pid=87878 layer=0 title=MacMaster bounds=["Width": 1400, "Height": 1000, "Y": 43, "X": 284]
+# post-shot: 两行应用仍在磁盘（本族没有删除动作）

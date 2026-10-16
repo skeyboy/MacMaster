@@ -508,19 +508,25 @@ public struct UninstallerView: View {
             summary: "已选 \(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))",
             note: "未勾选项不会被修改",
             trailing: {
-                Button("仅卸载应用") {
-                    requestConfirmation(.appOnly)
-                }
-                .disabled(model.selectedApp == nil)
+                // 本体只读时这两个按钮一起收掉，和详情面板同一口径：只读档说的是"不提供删除入口"，
+                // 留两个点了没反应的按钮就是死控件（`requestConfirmation` 那道 guard 只是兜底，
+                // 不是给用户按的）。`selectedApp == nil` 仍然走 `.disabled`，那一档按钮要留着，
+                // 否则选中一个应用之前这一格是空的。
+                if model.selectedApp?.bodyDeletable != false {
+                    Button("仅卸载应用") {
+                        requestConfirmation(.appOnly)
+                    }
+                    .disabled(model.selectedApp == nil)
 
-                Button(role: .destructive) {
-                    requestConfirmation(.withResiduals)
-                } label: {
-                    Label("移到废纸篓", systemImage: "trash")
+                    Button(role: .destructive) {
+                        requestConfirmation(.withResiduals)
+                    } label: {
+                        Label("移到废纸篓", systemImage: "trash")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(MMColor.destructive)
+                    .disabled(model.selectedApp == nil)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(MMColor.destructive)
-                .disabled(model.selectedApp == nil)
             }
         )
     }
@@ -694,6 +700,9 @@ public struct UninstallerView: View {
     // MARK: 确认
 
     private func requestConfirmation(_ mode: ConfirmationMode) {
+        // 本体只读（系统自带应用）不进这一屏：详情面板已经不给它按钮了，
+        // 而 `MM_UNINSTALL_CONFIRM_MODE` 那条自动打开面板的夹具路径会绕过按钮。
+        guard model.selectedApp?.bodyDeletable == true else { return }
         // 删除前的最后一次读。进程在页面打开这段时间里起落过，
         // 面板要说的是按下按钮这一刻的状态，不是载入清单那一帧的。
         model.refreshRunningStates()
@@ -709,7 +718,8 @@ public struct UninstallerView: View {
             if let app = model.selectedApp {
                 let includeResiduals = confirmationMode == .withResiduals
                 let paths = includeResiduals
-                    ? UninstallSelection.deletionPaths(appPath: app.path, items: app.residuals,
+                    ? UninstallSelection.deletionPaths(appPath: app.path, bodyDeletable: app.bodyDeletable,
+                                                       items: app.residuals,
                                                        selectedIDs: model.selectedResidualIDs)
                     : [app.path]
                 let residualSize = includeResiduals ? model.selectedResidualSize : 0
@@ -1844,7 +1854,7 @@ struct AppDetailView: View {
     private var residualSection: some View {
         VStack(alignment: .leading, spacing: MMGap.sm) {
             HStack(spacing: MMGap.sm) {
-                Text("将一并移除的残留").font(.headline)
+                Text(app.bodyDeletable ? "将一并移除的残留" : "残留 · 不会修改").font(.headline)
                 if unselectedCount > 0 {
                     MMBadge("\(unselectedCount) 项默认不勾选", tint: MMColor.caution, systemImage: "exclamationmark.triangle")
                 }
@@ -1852,15 +1862,20 @@ struct AppDetailView: View {
                 Text("按包名与容器证据匹配 · 不含其他应用的共享文件")
                     .font(.caption)
                     .foregroundStyle(MMColor.tertiaryLabel)
-                Button(action: onToggleAll) {
-                    Label("全选可删项", systemImage: "checklist")
+                if app.bodyDeletable {
+                    // 本体不给删时这一屏没有任何东西会被移走，"全选"就是死控件。
+                    Button(action: onToggleAll) {
+                        Label("全选可删项", systemImage: "checklist")
+                    }
+                    .controlSize(.small)
+                    .buttonStyle(.borderless)
                 }
-                .controlSize(.small)
-                .buttonStyle(.borderless)
             }
 
             if app.isSystemOwned {
-                Text("系统自带应用不提供残留扫描：它的数据由系统管理，删除不会回收空间。")
+                // 这一句只管"不扫"；"不删"是本体那一层的另一个决定，说在下面那块。
+                // 两句分开是 `docs/analysis/uninstaller-app-body-risk.md` §5 第 2 条的要求。
+                Text("系统自带应用不提供残留扫描：它的容器与偏好由系统管理，清掉也不会回收空间。")
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                     .padding(MMGap.md)
@@ -1877,23 +1892,41 @@ struct AppDetailView: View {
                 residualGroups
             }
 
-            HStack(alignment: .top, spacing: MMGap.sm) {
-                Image(systemName: "info.circle").foregroundStyle(MMColor.tertiaryLabel)
-                Text(confirmationNote)
-                    .font(.caption)
-                    .foregroundStyle(MMColor.secondaryLabel)
-            }
+            if app.bodyDeletable {
+                HStack(alignment: .top, spacing: MMGap.sm) {
+                    Image(systemName: "info.circle").foregroundStyle(MMColor.tertiaryLabel)
+                    Text(confirmationNote)
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                }
 
-            Button(role: .destructive, action: onUninstallWithResiduals) {
-                Label("卸载应用并移除勾选的残留", systemImage: "trash")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(MMColor.destructive)
+                Button(role: .destructive, action: onUninstallWithResiduals) {
+                    Label("卸载应用并移除勾选的残留", systemImage: "trash")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(MMColor.destructive)
 
-            Button("仅卸载应用，保留所有残留", action: onUninstallAppOnly)
-                .controlSize(.small)
-                .buttonStyle(.borderless)
+                Button("仅卸载应用，保留所有残留", action: onUninstallAppOnly)
+                    .controlSize(.small)
+                    .buttonStyle(.borderless)
+            } else {
+                // 本体只读，两个删除入口一起收掉。这句沿用残留层只读档的同一套话
+                // （`MMRisk.groupNote` = 「仅供查看，MacMaster 不提供删除入口」）：
+                // 两处只读说同一种话，读的人不需要先学会我们的枚举。
+                HStack(alignment: .top, spacing: MMGap.sm) {
+                    MMBadge(risk: .readOnly)
+                    Text("这是 Apple 提供的应用，仅供查看，MacMaster 不提供删除入口。")
+                        .font(.caption)
+                        .foregroundStyle(MMColor.secondaryLabel)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: MMGap.sm)
+                }
+                .padding(MMGap.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(MMColor.recessedSurface,
+                            in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
+            }
         }
     }
 

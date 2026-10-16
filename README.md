@@ -110,8 +110,8 @@ P34b 那一读是 96 + 2，因为那两个新源文件当天还没 `git add`；P
 ./Scripts/p28-cpu-ticks-probe.sh  # 真机探针：host_cpu_load_info 的累计 tick 会不会给零跨度
 ```
 
-现测（**2026-10-16，P50 在作者工作树上现跑（跑测那一刻 HEAD `530bda2`，编译输入与工作树无差异、指纹 `e3604ce+e3b0c442`，归档 `docs/verification/p50-tests/run-all-tests.log`）；上一读是同日的 P47（`0a01952-dirty`、指纹 `0a01952+5f95fc05`，归档 `docs/verification/p47-reverify/run-all-tests.log`，**那一读九格与本轮逐字相同**），再往前是 2026-10-14，P37 在作者工作树上重跑（`60f4711-dirty`、指纹 `60f4711+74012c66`，归档 `docs/verification/p37-battery/run-all-tests.log`）；上一读是 2026-10-12 的 P35b（`27db42a-dirty`、指纹 `27db42a+d01abc46`），再往前是同日的 P34b，再往前是同日的 P33b，再往前是 2026-10-10 的 P32b，再往前是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
-**834 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
+现测（**2026-10-16，P52b 在作者工作树上现跑（跑测那一刻 HEAD `d827d33-dirty`，脏的两行编译输入就是本轮那两支 `Packages/MMUninstaller/Sources/**`、指纹 `d827d33+638fe6c9`，归档 `docs/verification/p52-tests/run-all-tests.log`）；上一读是同日的 P50（HEAD `530bda2`，编译输入与工作树无差异、指纹 `e3604ce+e3b0c442`，归档 `docs/verification/p50-tests/run-all-tests.log`，**那一读九格与本轮只差一格**：MMUninstaller 217 → 226，其余八格逐字相同），再往前是同日的 P47（`0a01952-dirty`、指纹 `0a01952+5f95fc05`，归档 `docs/verification/p47-reverify/run-all-tests.log`，**那一读九格与 P50 逐字相同**），再往前是 2026-10-14，P37 在作者工作树上重跑（`60f4711-dirty`、指纹 `60f4711+74012c66`，归档 `docs/verification/p37-battery/run-all-tests.log`）；上一读是 2026-10-12 的 P35b（`27db42a-dirty`、指纹 `27db42a+d01abc46`），再往前是同日的 P34b，再往前是同日的 P33b，再往前是 2026-10-10 的 P32b，再往前是同日的 P31a，再往前是 2026-10-09 P30 那棵 `git clone` 的树**）：
+**843 个测试、0 失败、1 跳过**（P11 那遍是 581，P11c 撤下统一日志那一族时
 删掉 10 条它的单测、新增 8 条活动卡文案合同单测 → 579；P14 加 4 条页头副标题合同单测 → 583；
 P15 加 7 条子进程读法判据（`CommandRunnerPipeTests` 5 + `LaunchctlRunnerTests` 1 + `SystemSpaceReportTests` 1）→ 590；
 **P18 加 22 条钩子判定单测**（`HookValueTests` 15 + `LaunchHookTests` 7，全在 MMCore）→ 612；
@@ -180,7 +180,12 @@ MMUninstaller +17：`AppScannerDirectoriesTests` 3 条钉应用目录扩根只�
 **〔上面这三笔从 792 到 834 是 P50 这轮补写的**：三轮当时都只往 `release-readiness.md` §1 追加一个数，
 README 与 §10 的期望值、§0 那一格一直没跟——"活数与史账分家"这一回的现场在同一篇文档的抬头与逐包分布两段之间，
 账目与逐格对差见 `release-readiness.md` §1 末尾的 P50 括注〕**
-**逐包求和 = 834**（**114** / 17 / 117 / 25 / **217** / **85**（含 1 跳过）/ **92** / 96 / 71），这一条自 P11c 起每轮都当自证用。
+**P52b 加 9 条，一格都没动别的包**（`UninstallBodyReadOnlyTests.swift` 5 条 + `BodyDeletableProbeTests.swift` 4 条，钉的是"Apple 自带应用的本体不给删除入口"这一档——
+判定层那一半（`bodyDeletable` 只由归属判、两态不叫 `risk`）、删除集合那一半（`deletionPaths` 对系统应用不追加本体路径）、
+两个卸载入口在只读时都不动盘（`lastResult` 与 `failures` 双双留空就是判据）、以及第三层那条**只量位置不量归属**的正向闸门
+（`/Applications/Notes.app` 在允许根里、`/System/Applications/Notes.app` 不在——所以这一档必须由 UI 与模型自己拦，闸门拦不住"位置对而归属是 Apple"这种形状）；
+前置量那四档（目录型 bundle 上 `isDeletableByCurrentUser` 与归属判定同形）与为什么没并进来的理由，都在 `docs/analysis/uninstaller-app-body-risk.md` §9）→ **843**，全在 MMUninstaller。
+**逐包求和 = 843**（**114** / 17 / 117 / 25 / **226** / **85**（含 1 跳过）/ **92** / 96 / 71），这一条自 P11c 起每轮都当自证用。
 **P25 那一跑里 MMCore 与 MMDisk 都是 73、撞过一格，P26 MMDisk 走到 77 之后撞车解开**——
 **而 P29 把它们撞回来了**：MMCore 也走到 77，于是这一跑里"77"同时是 MMCore 和 MMDisk。
 **P35b 换了撞车的一对**：MMCore 96 与 **MMGuardian** 96，MMDisk 走到 85 之后反而和 MMCore 解开了——
@@ -192,6 +197,8 @@ README 与 §10 的期望值、§0 那一格一直没跟——"活数与史账�
 **P50 这一读把两对撞车都解开了**：MMCore 走到 114、MMMonitor 走到 92，于是九格**互不相同**（114 / 17 / 117 / 25 / 217 / 85 / 92 / 96 / 71），
 "96 出现两次"那一句**当时是对的、现在不再成立**——但它上面那句才是规则：**"按包名读"这件事永远有效**，
 本轮没有撞车只是这一读的运气，下一轮只要有任何一包涨到别包的值上，按数取格的人照样会数错总数。
+**P52b 这一读：下一轮真的来了**——涨的是 MMUninstaller 217 → **226**，226 恰好不落在其余八格任何一个值上，
+九格仍互不相同（114 / 17 / 117 / 25 / **226** / 85 / 92 / 96 / 71）——**这照样只是这一读的运气**，"按包名读"那句话不动。
 **这一轮多出来的一条教训跟这 4 条判据有关**：第一档修复（只调段序）在这 4 条下是全绿的，
 实拍却把"扫描用时"切成一半——真值 0.1 s 在画面上成了 1 s。**单测钉得住段序，钉不住"这一句在 1000 pt 放不放得下"**，
 后者只有照片（§7.17）。

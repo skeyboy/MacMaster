@@ -1,0 +1,28 @@
+# ./Scripts/run-all-tests.sh   2026-10-16 16:16:39 → 16:27:57 +0800（逐包原始日志的 mtime 区间）
+# repo: d827d33-dirty（跑测那一刻的 HEAD 是 P51a 收口第四笔；`-dirty` 的两行编译输入就是本轮 P52b 那两支
+#   `Packages/MMUninstaller/Sources/MMUninstaller/*.swift`，`git status --porcelain -uno -- Sources Packages '*.swift'` 现读 2 行）
+# digest: 跑测后现算 tree=d827d33+638fe6c9（`mm_source_digest /Users/lee/Desktop/MacMaster`）。后半截不是空流前缀——
+#   这一轮源码改动还没入库，指纹量的就是"HEAD 那棵树 + 工作区那 2 个未提交的编译输入"，正是 P52b 拍那五张照片的同一棵树。
+MMCore         XCTest=114  swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=226  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=85   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=92   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no
+
+合计：843 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests-p52b-final/<pkg>.log
+# 上面九行与合计那一行不是手敲的：拿 `Scripts/run-all-tests.sh` 里那段同一口径的取数
+#   （`grep -A1 "Test Suite 'All tests' (passed|failed)" | grep -m1 Executed` + 三条 sed + swift-testing 那一支 + `^⏭` 那一支），
+#   跑在 /tmp/macmaster-tests-p52b-final/<pkg>.log 那九份原始日志上重抽一遍，与脚本 stdout 那九行逐字对过才写的。
+#   规矩还是 P21 起那一条：结论行入库、逐包原始输出留 /tmp。
+# 与 P50 归档那份（docs/verification/p50-tests/run-all-tests.log）逐格对差：
+#   两侧九行都先剥行尾空格再 diff（脚本每行结论后面本来就带一个空格），**输出就是一行不同**：
+#   MMUninstaller 217 → 226；其余八格逐字相同。**+9 与总数 834 → 843 逐位相等**——这就是"没有第二个包被顺带改过测试"的自证。
+#   这 9 条的构成（现数，`grep -c "func test"` 两个新文件）：`UninstallBodyReadOnlyTests.swift` 5 条 + `BodyDeletableProbeTests.swift` 4 条，
+#   都落在本轮改了代码的那一包，与 P25（只涨 MMCleaner）、P26（只涨 MMDisk）同形。
+# 这一跑的动机：P52b 把系统应用的本体从"给删除入口"改成"只读"，改的是 `MMUninstaller` 两支源文件 + 那两支新测试文件；
+#   判定层与实拍见 `docs/analysis/uninstaller-app-body-risk.md` §9、稿面账见 `docs/analysis/fidelity-uninstaller.md` §17。

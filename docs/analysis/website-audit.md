@@ -17,7 +17,7 @@
 |---|---|---|---|
 | 1 | 「智能扫描系统缓存、日志、临时文件，释放宝贵磁盘空间。」 | `Packages/MMCleaner/Sources/MMCleaner/MMCleaner.swift:128`（扫描结果按类别落列表）；勾选集由 `CacheScanScope` 决定（`release-readiness.md` §8 第一条记的 P8 收口） | **真** |
 | 2 | 「支持一键清理和安全撤回。」 | 界面上那个按钮写的是「清理已选 N 类」（`MMCleaner.swift:688`），点下去先弹确认、默认按钮是「移到废纸篓」（`MMCleaner.swift:753`）；撤回是开关 + 15 秒窗口（`MMCleaner.swift:746`）与删除历史里的「恢复」（`MMCleaner.swift:798`） | **说不到**（"一键清理"恰恰是产品内注释里那句要避免的语义） |
-| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1418` 的判定依据说明；**P46f 顺带修一处旧锚**：本文此前记的 1349 在 HEAD 就落在「两份账本把同一个 .app 摆到了这里」那一句上，收据那一档判定依据当时在 1391） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
+| 3 | 「完全卸载应用及其残留文件，包括配置文件、缓存和支持文件。」 | 残留引擎确实覆盖容器与共享容器（`ResidualScanner.swift:214` 一类条目）、启动项、安装包收据（`MMUninstaller.swift:1428` 的判定依据说明；**P46f 顺带修一处旧锚**：本文此前记的 1349 在 HEAD 就落在「两份账本把同一个 .app 摆到了这里」那一句上，收据那一档判定依据当时在 1391） | **真·需标注**（"完全"是一个保证不到的词：匹配靠包名与厂商子目录推断，未知形态只会漏，不会报"没找到=没有"） |
 | 4 | 「可视化磁盘空间使用情况，快速定位大文件和占用目录。Treemap 直观展示。」 | `Packages/MMUI/Sources/MMUI/TreemapView.swift:132` 起算、`:140` 放置；分类与可清理是两条独立判定链（`DiskClassify.swift:4-7`） | **真** |
 | 5 | 「实时监控 CPU、内存、磁盘和网络使用情况。菜单栏显示，一目了然。」 | 菜单栏是 `NSStatusItem`（`Packages/MMMonitor/Sources/MMMonitor/MenuBarManager.swift:69`），磁盘 IO 走 IOKit `IOBlockStorageDriver`（`MetricReaders.swift:78`）；页面上磁盘是一整张卡（`MMMonitor.swift:162`） | **真** |
 | 6 | 「检测摄像头与麦克风的当前占用（手动测量，非实时监听），查看 TCC 授权与密钥目录的改动时间，管理登录项启停。」 | 这一句就是产品内页头清单的改写：`Packages/MMGuardian/Sources/MMGuardian/MMGuardian.swift:797-802` 四段（占用 / TCC 只读视图 / 登录项 / mtime 卡）；TCC 有独立探针文件 `TCCProbe.swift` | **真**（P14 已把这格对齐到实现） |

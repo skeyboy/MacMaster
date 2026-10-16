@@ -62,6 +62,16 @@ public struct UninstallCandidate: Identifiable, Sendable {
         self.provenance = provenance
         self.steamLauncher = steamLauncher
     }
+
+    /// 本体给不给删除入口。**两态，刻意不叫 `risk`**：这一层只有"动 / 不动"，
+    /// 三档那套机制（默认勾选、按档分组）在本体上没有载体，硬贴等于按页面重定义 `MMRisk`
+    /// （合同在 `MMCore/Risk.swift` 文件头）。为什么不用 `.caution` 见
+    /// `docs/analysis/uninstaller-app-body-risk.md` §3 与 §4 建议 4。
+    ///
+    /// 只由归属判定，不掺父目录写权限：那条尺在目录型 bundle 上同形（已量，
+    /// `BodyDeletableProbeTests`），但把它并进来会让这一屏的残留勾选变成点不动的控件，
+    /// 那一屏怎么画属建议 2 那轮的稿面（同一份文档 §6 第四条）。
+    public var bodyDeletable: Bool { isSystemOwned == false }
 }
 
 // MARK: - 勾选与删除集合（纯函数，便于单测）
@@ -94,11 +104,17 @@ public enum UninstallSelection {
 
     /// 真正交给 `FileTrashService` 的路径：app 本体 + 勾选项的互不嵌套删除根。
     /// 这里再挡一次只读项，即使上层状态被改坏，root 属主文件也进不了删除列表。
-    public static func deletionPaths(appPath: String, items: [ResidualItem], selectedIDs: Set<String>) -> [String] {
+    ///
+    /// `bodyDeletable` 是本体那一层的两态判定（`UninstallCandidate.bodyDeletable`）：
+    /// 系统自带应用不给卸载入口，所以连路径列表都不该出现它——确认面板上那串路径
+    /// 是用户按下按钮前看到的最后一份"要动哪些东西"的清单。默认 `true`，
+    /// 因为残留层的判定早就各自带闸（`allowsDeletion`），这一格只管本体。
+    public static func deletionPaths(appPath: String, bodyDeletable: Bool = true,
+                                     items: [ResidualItem], selectedIDs: Set<String>) -> [String] {
         let allowed = items.filter { $0.risk.allowsDeletion && selectedIDs.contains($0.id) }
         let grouped = Dictionary(grouping: allowed, by: \.id)
         let roots = ResidualScanReport.nonNestedIDs(Array(grouped.keys)).compactMap { grouped[$0]?.first?.path }
-        return [appPath] + roots
+        return bodyDeletable ? [appPath] + roots : roots
     }
 
     /// 勾选项合计大小：同一绝对路径只算一次，父目录已入选时不再累加其子项。
@@ -491,14 +507,20 @@ public final class UninstallerModel: ObservableObject {
     /// app 本体 + 勾选的残留，一次进废纸篓；失败逐条回传，绝不 `try?` 吞掉。
     public func uninstallAppWithSelection() async {
         guard let app = selectedApp else { return }
-        let paths = UninstallSelection.deletionPaths(appPath: app.path, items: app.residuals,
-                                                     selectedIDs: selectedResidualIDs)
+        // 本体只读时这一条整体不动：系统应用没有"只删它的残留"这一档用法，
+        // 残留单独清是「卸载后遗症」那一页的活，而它按"应用已经不在了"的前提挑残留。
+        guard app.bodyDeletable else { return }
+        let paths = UninstallSelection.deletionPaths(appPath: app.path, bodyDeletable: app.bodyDeletable,
+                                                     items: app.residuals, selectedIDs: selectedResidualIDs)
         await move(to: paths, removing: app.id, movedResidualsToo: true)
     }
 
     /// 只卸载 app 本体，不动任何残留。
     public func uninstallAppOnly() async {
         guard let app = selectedApp else { return }
+        // 详情面板在这一档不给按钮，但 `MM_UNINSTALL_SELF_ECHO` 走的同一条路要自己拦得住：
+        // 夹具点名（`MM_UNINSTALL_SELECT`）点到系统应用时，这里不拦就会真的动手。
+        guard app.bodyDeletable else { return }
         await move(to: [app.path], removing: app.id, movedResidualsToo: false)
     }
 

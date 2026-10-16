@@ -171,9 +171,9 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 （执行处那一遍：字面与 `realpath` 之后**各判一次**，解析失败退回按字面判而不是"读不到就当安全"）。
 出口在 `Packages/MMCore/Sources/MMCore/FileTrashService.swift:88` 与 `:145`（P47 现读重指，此前本文写 `:39` 与 `:89`），各接一个默认 `nil` 的 `allowedRoots`，
 被挡下按 `OUT_OF_SCOPE` 逐条进 failures（`:100`、`:154`，此前 `:51`、`:98`）——判定里那句"被挡下要当成失败逐条上报，不能静默跳过"照此实现。
-接线一份口径三处共用：`Packages/MMUninstaller/Sources/MMUninstaller/UninstallerModel.swift:514-517`
+接线一份口径三处共用：`Packages/MMUninstaller/Sources/MMUninstaller/UninstallerModel.swift:536-539`
 （= 残留清单那几个 Library 根 + 应用目录，两边都来自页面工厂闭包，所以夹具把 home 换成 `/tmp` 时这道闸跟着换），
-调用点是 `:519-521`（卸载）、`:642`（孤儿）、`:748-751`（废纸篓残留）。
+调用点是 `:541-543`（卸载）、`:664`（孤儿）、`:770-773`（废纸篓残留）。
 
 验收那三档的对应单测：根本身不放行 = `testIsInsideExcludesTheRootItself`、`/ApplicationsOther` =
 `testIsInsideRespectsPathComponentBoundary`、符号链接解析后判定 = `testAllowedRootRejectsSymlinkThatEscapesTheRoot`。
@@ -237,7 +237,7 @@ A 与 B 都是 0 = 收益不存在，那"不采纳"这句话就从判断变成�
   只订阅视图的 `onChange` 会漏掉那一种，而漏掉的表象是"窗口亮了一切没发生"。取走即清（`:88-92`），
   留着的话用户手动选了别的应用之后还会被旧点名抢回去。
 - 消费层 `Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:129-139`（清单没就绪**不消费**）
-  + `UninstallerModel.swift:445-455`（精确匹配优先、大小写兜底、一个都没点中则**保留原选中项**）。
+  + `UninstallerModel.swift:461-471`（精确匹配优先、大小写兜底、一个都没点中则**保留原选中项**）。
 - 本轮唯一一处"不改壳层功能就不成立"的改动：`MacMasterApp.swift:34` 把场景从 `WindowGroup` 换成单例
   `Window(id: "main")`。`WindowGroup` 把"外部送进来一个 URL"当成"再开一个窗口"：pid 不变、
   主窗口从 1 扇变 2 扇，而两扇各有自己的 `@StateObject`、点名队列却是进程级的，谁先 `onChange` 谁吃掉——

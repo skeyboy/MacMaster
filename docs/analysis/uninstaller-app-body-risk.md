@@ -4,14 +4,22 @@
 > §2 的 `.component` 风险档与 §3 的外接卷 `caution` 分档，「两条同撞在"应用本体有没有风险档"那一个决定上，进设计稿队列」。
 > 本文把这个决定拆开：先现读"档"在我们这里到底长在哪一层，再逐条给建议与代价。
 > **本轮只审计，代码一行未动**；下面所有 `文件:行号` 都是本轮（P51a）对着磁盘现读出来的。
+>
+> **P52b（同日）已按 §4 建议 1 动手，落地账见 §9。** 本文里"今天/现在"说的都是动手前那件事：
+> §0 第 1 条与 §2.2 描述的本体层形态已被改动，那两节指向两个改动文件的行号在 P52b 逐条按内容重指过
+> （`ResidualScanner` / `ResidualCollector` / `Risk` / `DeletionGuard` / `FileTrashService` / `AppScanner` /
+> `AppFolderWatcher` 七个文件一字未动，它们的行号仍是 P51a 的读数且仍然有效）；
+> §4–§6 的建议、代价与待量项保持原样，只在被落地改变的那几句后面标了「P52b」。
 
 ## 0. 结论先行
 
-1. **本体这一层今天没有任何档位，而且不是"少见场景才成立"**：卸载页把 45 条应用全摆出来，其中 4 条是
+1. **本体这一层在 P51a 那一轮没有任何档位，而且不是"少见场景才成立"**：卸载页把 45 条应用全摆出来，其中 4 条是
    `com.apple.*`（Safari、TestFlight、Transporter、Xcode），详情面板底部那两个卸载按钮对它们**照样是 enabled 的**
-   （`MMUninstaller.swift:1887-1896`、确认面板内 `:761-771` 都没有 `.disabled`）。
-   `isSystemOwned` 改变的只有两件事：**不扫残留**（`UninstallerModel.swift:368-372`）与**一枚徽章**
-   （`MMUninstaller.swift:1689-1691`、`:1862-1868`），它不是"能不能删"的判据。
+   （`MMUninstaller.swift:1903-1912`、确认面板内 `:771-781` 都没有 `.disabled`）。
+   `isSystemOwned` 改变的只有两件事：**不扫残留**（`UninstallerModel.swift:384-388`）与**一枚徽章**
+   （`MMUninstaller.swift:1699-1701`、`:1875-1883`），它不是"能不能删"的判据。
+   **P52b 已改**：那两个按钮现在整块长在 `if app.bodyDeletable` 里，只读档换成一块只读说明
+   （`MMUninstaller.swift:1914-1929`）；判据、三处入口与实拍见 §9。
 2. **`MMRisk` 的三档搬不到本体上，缺的不是字段是机制**：caution 在本体的载体上没有落点
    （它的机制是"默认不勾选"，`Risk.swift:7-8` 的合同 + `:39`，而本体没有勾选框）；
    **只有 `readOnly` 那一档在本体上有天然落点**——`allowsDeletion` = "不给删除入口"（`Risk.swift:41`），
@@ -22,7 +30,7 @@
    只有"把插件当独立条目卸载"那一半才需要本体层的新形态（M，本机零样本，全靠夹具）。
 4. 一句话把 P46 那轮的判断改精确：§3 当年落不下"caution 起步"，**不是因为要先引入一个枚举字段，
    而是因为"本体"这一层的风险只能用两种表达——给不给删除入口、动手前必须读哪一句**。
-   这两种表达界面上都已经有了（`allowsDeletion` 决定的勾选框、`cautionNotice` 那个橙色块 `MMUninstaller.swift:780-792`），
+   这两种表达界面上都已经有了（`allowsDeletion` 决定的勾选框、`cautionNotice` 那个橙色块 `MMUninstaller.swift:790-802`），
    只是没有一个作用在本体上。
 
 ## 1. 本机实测（每条都是本轮现读，命令见 §7）
@@ -52,43 +60,60 @@
 - 定档：类别默认 `ResidualCategory.defaultRisk`（`:97-105`，13 个类别分两档，`.safe` 六个 / `.caution` 七个），
   再由 `ResidualCollector.resolvedRisk`（`ResidualCollector.swift:199-203`）跑一条**降级**：
   当前用户删不掉的一律转 `.readOnly`（判据 `isDeletableByCurrentUser`，`:206-214`：查父目录 `access(W_OK)` 加 `UF_IMMUTABLE`）。
-- 机制一：默认勾选只来自 `.safe`（`UninstallerModel.swift:86-88`，合同句在 `:85`）。
-- 机制二：不给删除入口的是 `.readOnly`（`:91-93`；执行处与行内勾选框各挡一次，`:458`、`MMUninstaller.swift:1280`、`:1936`）。
+- 机制一：默认勾选只来自 `.safe`（`UninstallerModel.swift:96-98`，合同句在 `:95`）。
+- 机制二：不给删除入口的是 `.readOnly`（`:101-103`；执行处与行内勾选框各挡一次，`:474`、`MMUninstaller.swift:1290`、`:1969`）。
 - 版式：按档分组，组序 safe → caution → readOnly（`ResidualScanner.swift:383-384`），
-  每组一枚 `MMBadge(risk:)` + 一句 `groupNote`（`MMUninstaller.swift:1902-1912`），
-  页脚那枚「N 项默认不勾选」是同一档的另一处表达（`:1849`）。
+  每组一枚 `MMBadge(risk:)` + 一句 `groupNote`（`MMUninstaller.swift:1935-1945`），
+  页脚那枚「N 项默认不勾选」是同一档的另一处表达（`:1859`）。
 
 **这一层没有缺口。** 上一轮的插件残留之所以还没做，缺的从来不是"档"。
+P52b 也没动这一层：上面那几个行号只是随同文件插入偏移，改完之后逐条按内容重读过，仍然指向同一件事。
 
 ### 2.2 本体层：没有档，也没有档的载体
 
 - 数据结构：`UninstallCandidate`（`UninstallerModel.swift:8-36`）字段读满是 `path / bundleID / version / size / residuals / isSystemOwned / provenance / steamLauncher`——**没有 `risk`**。
-- 勾选模型只作用在残留上：`deletionPaths(appPath:items:selectedIDs:)`（`:97-102`）返回的是
+  **P52b 补的是两态判定，不是档**：`bodyDeletable`（`UninstallerModel.swift:66-74`，= `isSystemOwned == false`），
+  上面那串字段名是落地前的读数；为什么不叫 `risk`、为什么不用 `.caution`，就是 §3 与 §4 建议 4 那两段，代码注释里也引了回来。
+- 勾选模型只作用在残留上：`deletionPaths(appPath:items:selectedIDs:)`（`:112-118`）返回的是
   `[appPath] + 勾选残留的互不嵌套根`，**本体那一条是无条件拼进去的**；
-  两个入口 `uninstallAppWithSelection`（`:492-497`）与 `uninstallAppOnly`（`:500-503`）都走它。
-- 界面上本体那一行（`MMUninstaller.swift:1631-1696`）有四样"看着像档位"的东西，全部是提示，
+  两个入口 `uninstallAppWithSelection`（`:508-516`）与 `uninstallAppOnly`（`:519-525`）都走它。
+  **P52b 已改这三处**：签名成 `deletionPaths(appPath:bodyDeletable:items:selectedIDs:)`，本体那一条要判定为真才进列表，
+  两个入口各加一条 `guard app.bodyDeletable`（`:512`、`:523`）——`uninstallAppOnly` 那条尤其必要，
+  因为 `MM_UNINSTALL_SELF_ECHO` 那条夹具路径根本不经过界面上的按钮。
+- 界面上本体那一行（`MMUninstaller.swift:1641-1706`）有四样"看着像档位"的东西，全部是提示，
   **没有一样改变可删性**：
-  ① `sourceChip`（判定 `:1349-1355`，只有 brew 两档占这一格，注释 `:1346-1348` 写明了理由）；
-  ② `runningChip` / `runningWarning`（`:1472`、`:1541`，P31a 那句"只提示不代杀"）；
-  ③ `steamLauncherChip`（`:1574`）；
-  ④ `isSystemOwned` 那枚「系统应用」徽章（`:1689-1691`）。
-  确认面板同样只有两枚橙色提醒（`sourceWarning` `:1441` 的文案、`runningNotice`），
-  键值六行是「应用 / 来源 / 包名 / 本体 / 残留 / 合计」（`:717-725`）——**「本体」那一格只报体积，不报风险**。
+  ① `sourceChip`（判定 `:1359-1365`，只有 brew 两档占这一格，注释 `:1356-1358` 写明了理由）；
+  ② `runningChip` / `runningWarning`（`:1482`、`:1551`，P31a 那句"只提示不代杀"）；
+  ③ `steamLauncherChip`（`:1584`）；
+  ④ `isSystemOwned` 那枚「系统应用」徽章（`:1699-1701`）。
+  确认面板同样只有两枚橙色提醒（`sourceWarning` `:1451` 的文案、`runningNotice`），
+  键值六行是「应用 / 来源 / 包名 / 本体 / 残留 / 合计」（`:727-735`）——**「本体」那一格只报体积，不报风险**。
+  **P52b 一句没改这四样提示**：它们仍然只是提示；改的只有删除入口给不给，见 §9。
 
 ### 2.3 真正拦得住本体的那条闸：它按位置判，不按身份判
 
-正向闸的根清单来自 `deletionRoots(for:)`（`UninstallerModel.swift:514-517`）= 残留清单的 Library 根 + 应用目录，
+正向闸的根清单来自 `deletionRoots(for:)`（`UninstallerModel.swift:536-539`）= 残留清单的 Library 根 + 应用目录，
 执行处两遍口径要求**字面与 `realpath` 之后都在根内**（`DeletionGuard.swift:115-126`）。于是本轮那 4 条 `com.apple.*`：
 
-- `Safari.app`：字面 `/Applications/Safari.app` 在根内，解析后是 `/System/Cryptexes/...`
+- `Safari.app`：字面 `/Applications/Safari.app` 在根内，解析后是 `/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app`
   → 正向闸拒（`:121-123`），黑名单也拒（`systemRoots` 含 `/System`，`:25-33`、`:134-136`）。**两条都拒，删不掉。**
-- `Xcode.app` / `TestFlight.app` / `Transporter.app`：字面与解析后都在 `/Applications` 之内，黑名单里没有 `/Applications`
-  → **闸门放行**。它们今天能不能真删成取决于运行时权限（见 §6，本轮没量），
+  〔P52b 现读改判这一格的**路径写法**：`ls -ld` 看到的链接目标是 `../System/Cryptexes/App/System/Applications/Safari.app`，
+  而 `realpath` 落到的最终位置是上面那条 Preboot 下的路径（`/System/Cryptexes/App` 自己也是一层链接）。
+  P51a 那轮写的是前者，两个都不是允许根里的成员，所以那一格的**结论没变**，变的是抄下来的那条字符串。〕
+- `Xcode.app` / `TestFlight.app` / `Transporter.app`：字面与解析后都在 `/Applications` 之内（P52b 用 `realpath` 逐条复量过，
+  三条解析后都等于自身，没有逃出 `/Applications`），黑名单里没有 `/Applications`
+  → **闸门放行**。它们当时能不能真删成取决于运行时权限（见 §6，本轮没量），
   但"卸载页把 Apple 提供的应用当成一个正经卸载候选、并且不给任何一句风险话"这件事与权限无关。
 
 **这里要写清一句避免误读**：Safari 那条不是"我们设计了系统应用保护"，是符号链接恰好逃出了允许根。
 按位置判的闸本来就答不了"这是谁的应用"——那正是 `uninstally-adoption.md` §1 那句"黑名单永远补不全"的镜像面：
 **正向闸补的是"位置"，任何闸都不补"身份"**。
+
+**P52b 没有改这一节说的任何一条判定**：`DeletionGuard` 与 `FileTrashService` 一字未动，那三条 `com.apple.*`
+现在**仍然**过得了正向闸。落地的那一条站在闸的上游（判定 + 删除集合 + 三处入口），
+所以这一族今天的行为是"路径压根不会被交给删除服务"，而不是"闸门把它们挡下来了"——
+这两句话在界面上读起来一样，在往后要不要把它们移出允许根那一问上不是一个东西。
+第三条证据（执行处复验）在 §9 第 4 项。
 
 ## 3. 为什么 §3 那句"外接卷按 caution 起步"当年落不了地
 
@@ -124,15 +149,17 @@
   而它不引入任何新版式、不依赖 §2 那个还没定的插件形态，**也不依赖设计稿**——被删掉的是一个入口，不是新增一屏。
 - 影响面：`UninstallerModel.swift`（判定 + 两个 uninstall 入口的 guard）、`MMUninstaller.swift`（按钮与只读文案）、
   新单测（`isSystemOwned` → 本体不进删除集合；否证：`deletionPaths` 收到系统应用时 `[appPath]` 那一条不出现）。
-  现读**没有任何一条测试钉住今天的行为**（`grep -rn isSystemOwned Packages/MMUninstaller/Tests/` 零命中），
+  现读**没有任何一条测试钉住当时的行为**（`grep -rn isSystemOwned Packages/MMUninstaller/Tests/` 零命中），
   所以这一改动不会撞旧合同，但也意味着**旧行为从来没被验收过**。
-- 待量的前置：`isDeletableByCurrentUser` 只看父目录（`ResidualCollector.swift:206-214`，那句注释的理由是"移到废纸篓要的是父目录的写权限"）。
-  这一条对**文件**够用，对**目录型 bundle** 够不够，本文不下结论——落地轮先用夹具量一次再决定是否复用
-  （复用比新写一条好，同源这件事在 P21b 已经是判据）。
+  **P52b 补正这一格少算的一处**：删除入口不是一个而是**三个**——详情面板底部那两个按钮、底部操作栏那两个按钮
+  （`MMUninstaller.swift:515` 那一格 `trailing`），加上 `requestConfirmation`（`:702-705`）那道兜底 guard；
+  建议文本里的"两个按钮"是 §2.2 那两句的口径，操作栏那一格在本轮动手前才被现读发现。
+- 待量的前置：**已量，P52b**。`isDeletableByCurrentUser` 只看父目录（`ResidualCollector.swift:206-214`，那句注释的理由是"移到废纸篓要的是父目录的写权限"）
+  这一条对**目录型 bundle 同样成立**，四条夹具单测钉在 `BodyDeletableProbeTests`，读数与"为什么不并进来"见 §9 第 2 项。
 
 ### 建议 2 外接卷上的应用：保持可删 + 强制一句警告（代价 S–M，要改稿）
 
-- 做什么：本体行增一枚 chip「外接卷」（复用 `SourceChip` 那一族的版式与字号，`MMUninstaller.swift:1647-1666`），
+- 做什么：本体行增一枚 chip「外接卷」（复用 `SourceChip` 那一族的版式与字号，`MMUninstaller.swift:1657-1676`），
   确认面板在键值六行下方插一块 `cautionNotice`，文案要说清**撤回会怎样**而不是只说"这是外置盘"，
   建议合同句：「这条本体在外接卷上，移入废纸篓后落点也在那块卷上；拔盘后「最近操作」里的撤回会失效（本轮未实拍，见 §6）」。
 - 判据从哪来：`AppScanner.applicationDirectories(home:volumePaths:directoryExists:)`（`AppScanner.swift:43-48`）
@@ -171,30 +198,40 @@
 
 ## 5. 如果这三条要落地，界面上一共新增长什么样（供设计稿用）
 
-1. 本体行的 chip 位（第二行，`SourceChip` 同族，`MMUninstaller.swift:1647-1666`）：新增「外接卷」一枚。
+1. 本体行的 chip 位（第二行，`SourceChip` 同族，`MMUninstaller.swift:1657-1676`）：新增「外接卷」一枚。
    这一行今天已经有四样东西抢宽度（运行中 / brew / 启动器 / 版本号 + 体积），
    P26 那一族截断教训在这里直接适用：**新增一枚要同时定"哪一枚让步"**，不能只加不减。
 2. 系统应用的本体：**没有**删除按钮，详情面板底部换成一句只读说明；列表行的「系统应用」徽章保留。
-   这里要定的事是「残留」那一节怎么措辞——今天 `:1862-1868` 那句"删除不会回收空间"其实说了两件不同的事，
-   改成本体只读之后，它得能说清"不扫"和"不删"是两个决定。
-3. 确认面板的警告块：复用 `cautionNotice`（`:780-792`），与 `sourceWarning` / `runningNotice` 同一版式——
-   这三块在同一屏里叠起来时**谁在上、要不要合并成一块**，是稿子要画的第一件事（`:730-736` 现在只允许两块）。
+   这里要定的事是「残留」那一节怎么措辞——落地前 `MMUninstaller.swift:1875-1883` 那句"删除不会回收空间"
+   其实说了两件不同的事，改成本体只读之后，它得能说清"不扫"和"不删"是两个决定。
+   **P52b 已落这一条**：那一节现在只说"不扫"（「…它的容器与偏好由系统管理，清掉也不会回收空间」，
+   `MMUninstaller.swift:1878`），"不删"由只读说明那块说（`:1914-1929`），标题也跟着分成两话
+   （`残留 · 不会修改` / `将一并移除的残留`，`:1857`）。稿面（03 系）没动，账记在
+   `docs/analysis/fidelity-uninstaller.md` 的 P52 那一节。
+3. 确认面板的警告块：复用 `cautionNotice`（`:790-802`），与 `sourceWarning` / `runningNotice` 同一版式——
+   这三块在同一屏里叠起来时**谁在上、要不要合并成一块**，是稿子要画的第一件事（`:740-746` 现在只允许两块）。
+   **P52b 没动这一条**：建议 1 走的是"收起入口"而不是"加一句警告"，本体那一层的"必须读哪一句"仍属建议 2。
 4. 建议 3-A 的插件残留行：走现成的按档分组版式，零新版式；只有类别名与 `note` 那句"为什么算它"要新写
    （对照 `ResidualCategory.note` 那张表，`ResidualScanner.swift:108-123`）。
 
 ## 6. 本轮没测的（如实记）
 
 - **没删过任何东西**：本文全部结论来自读代码与读目录，没运行过一次卸载动作，也没有照片。
-  建议 1 的"系统应用今天能被删"这句只到"闸门不拦、按钮可点"为止，**没量到 `trashItem` 的真实成败**。
+  建议 1 的"系统应用当时能被删"这句只到"闸门不拦、按钮可点"为止，**没量到 `trashItem` 的真实成败**。
+  P52b 也没有补这一量：它落的是"不给入口"，而验"入口没了"不需要真的去删 Apple 的应用；
+  这一族的实拍与判据见 §9 第 3、4 项。**"删得掉/删不掉"这句到今天仍然只有代码依据，没有实测。**
 - **本轮的权限读数是脏的**：`test -w /Applications/Xcode.app` 这一类 `access(W_OK)` 读数来自
   Qoder 代理的受限 shell（只能写工作区与 `/tmp`），**它测的不是 MacMaster 运行时的判据**，
   所以本文不引它作为"删得掉/删不掉"的证据。要量这一条得在应用自己那一侧走夹具（`MM_*` 钩子 + 假 home，
   机制现成：`MMUninstaller.swift:258-265`）。
+  **P52b 照这句话量的**：`BodyDeletableProbeTests` 跑在 `swift test` 里、夹具在 `NSTemporaryDirectory()` 下，
+  截图走 `MM_*` 钩子 + 假 Applications 根（`Scripts/p52-system-app-fixture.sh`），没有一处引用受限 shell 的 `W_OK`。
 - 跨卷废纸篓的真实落点（落在那块卷自己的 `.Trashes` 还是用户的 `~/.Trash`）与"拔盘后撤回长什么样"：只有代码依据
   （`FileTrashService.swift:195-217`、`:298`），**没有实拍**。建议 2 的文案要落地前必须先把这一张拍出来，
   否则那句"拔盘后撤回会失效"就是我们自己写的一句没量过的话——与 P46d 判 `noteFileSystemChanged` 不采纳时
   同一类错误（`uninstally-adoption.md` 第 216-218 行那段）。
-- `isDeletableByCurrentUser` 对目录型 bundle 是否成立（§4 建议 1 那条待量前置）：未测。
+- `isDeletableByCurrentUser` 对目录型 bundle 是否成立（§4 建议 1 那条待量前置）：**P52b 已量，成立、且同形**；
+  四条读数与"为什么仍然没有把它并进 `bodyDeletable`"见 §9 第 2 项。
 - 音频插件的价值大小：本机 0 样本（§1），**"重灾区"这句话目前只有参考项目那侧的依据**，我们这侧没有证据；
   3-A 值不值得做，取决于是否愿意靠夹具与真机用户反馈定，而不是靠本机读数。
 
@@ -256,6 +293,117 @@ for d in /Library/Audio/Plug-Ins/{Components,VST,VST3,CLAP} \
   下一轮不必再猜：同一条 `P16_SYM_DETAIL=400` 跑一遍，跟这份 132 行的清单 diff 就知道动了谁。
   本文自己在这 132 行里占 1 条（第 154 行把代码区间与同一行上的两个成员名写在了一起，锚点本身对得上，
   那是文件头"语义固定"的理由那三行），属这一层的正常噪声，不当门。
-- **下一轮从这里接**：建议 1 的实现要单独授权（`S`，不依赖设计稿，是三条里唯一现在就动得着的）；
+- **下一轮从这里接**（这一格在 P52b 之后重读过，原文照抄在下面第一条的引号里，只有状态变了）：
+  建议 1 的实现要单独授权——**已授权并已落地，见 §9**（`S`，不依赖设计稿，是三条里唯一当时就动得着的）；
   建议 2 与建议 3-B 先出设计稿，且建议 2 动手前必须先把"跨卷落点 / 拔盘后撤回"那张实拍补出来（§6 第二条）；
-  建议 3-A 的前置是把 `isDeletableByCurrentUser` 在目录型 bundle 上的行为量出来（§6 第四条）。
+  建议 3-A 的前置是把 `isDeletableByCurrentUser` 在目录型 bundle 上的行为量出来——**这一条 P52b 顺手量了**（§9 第 2 项）。
+  所以今天还欠的只剩两样：建议 2 的那张跨卷实拍，与建议 2 / 3-B 的设计稿；建议 3-A 已经**没有前置**了。
+
+## 9. 建议 1 落地收口（P52b，2026-10-16）
+
+授权口径两则，都是本轮开工前问定的：**先量前置再实现**（§4 建议 1 那条待量前置跑完才动代码），
+**代码先落地、稿账记在 fidelity 文档**（03 系设计稿这轮一字未动，差额记在
+`docs/analysis/fidelity-uninstaller.md` §17，与建议 2 的改稿捆在一起走）。
+
+### 1. 落了什么：判定在上游，三处入口各拦一次
+
+- 判定：`UninstallCandidate.bodyDeletable`（`UninstallerModel.swift:66-74`，两态、注释里写明为什么不叫 `risk`），
+  取值就是 `isSystemOwned == false`，只由归属判定、不掺父目录写权限（理由见下面第 2 项）。
+- 删除集合：`UninstallSelection.deletionPaths` 多了一个 `bodyDeletable` 形参（`UninstallerModel.swift:112-118`，
+  默认 `true` 所以旧调用口径不变），`false` 时 `[appPath] + roots` 只剩 `roots` —— 本体那一格压根不进那串路径。
+- 三处入口（§4 建议 1 那格补正过的"不是一个而是三个"）：
+  详情面板两个按钮 `MMUninstaller.swift:1895`（`if app.bodyDeletable`，`else` 走 `:1914-1929` 那块只读说明）、
+  底部操作栏两个按钮 `:515`（`if model.selectedApp?.bodyDeletable != false`）、
+  `requestConfirmation` `:702-705` 那道 guard（它要单独拦，因为 `MM_UNINSTALL_CONFIRM_MODE` 那条自动开面板的
+  夹具路径不经过按钮）。模型侧再加两道：`uninstallAppWithSelection` `UninstallerModel.swift:512`、
+  `uninstallAppOnly` `:523`——后者是这一族唯一能拦住 `MM_UNINSTALL_SELF_ECHO` 那条同路的地方。
+- 措辞沿用 `Risk.swift:34` 那句只读话的句式（`MMUninstaller.swift:1919`「这是 Apple 提供的应用，仅供查看，
+  MacMaster 不提供删除入口。」+ 同一块里一枚 `MMBadge(risk: .readOnly)`），残留那一节的标题跟着分两话
+  （`:1857`：`将一并移除的残留` / `残留 · 不会修改`）。
+- **没动的**：`DeletionGuard`、`FileTrashService`、`MMRisk`、四类提示（`sourceWarning` / `runningNotice` /
+  确认面板两枚橙色提醒 / 「本体」那一格只报体积）、03 系设计稿。
+
+### 2. 前置量的读数：那把尺同形，但故意没并进来
+
+`BodyDeletableProbeTests`（`Packages/MMUninstaller/Tests/MMUninstallerTests/BodyDeletableProbeTests.swift`，4 条）
+跑在 `swift test` 里、夹具在 `NSTemporaryDirectory()` 下——所以 `access(W_OK)` 说的是真的，
+不引 §6 第二条那种受限 shell 的脏读数。四条读数：
+
+1. 父目录可写 ⇒ 目录型 bundle 判可删，**哪怕把 bundle 内部的 `Contents` 锁成只读**；
+   同一把尺量 `Contents/Info.plist` 就判不可删。移的是顶层那一项、走 rename，子树权限不参与——
+   `ResidualCollector.swift:206-214` 那句"要的是父目录的写权限"对目录同样成立。
+2. 父目录不可写 ⇒ bundle 与普通文件同形降级，两条断言一起过。
+3. `UF_IMMUTABLE` 挂在 bundle 目录本身上 ⇒ 判不可删，清掉标志要能回到可删（否则上一条测的是残留状态）。
+4. 路径没有父目录（`/`）⇒ 判不可删，不被 `deletingLastPathComponent` 走到根时误判成可删。
+
+**为什么不并进 `bodyDeletable`**：并进来这一屏的残留勾选会变成点不动的控件（父目录只读时连"清它的缓存"都按不动），
+而"那一屏该长什么样"是建议 2 的稿面问题，不该由一次归属判定顺手定掉。
+这一条写在 `UninstallerModel.swift:71-73` 的注释里，测试文件头也钉了一句。
+
+### 3. 实拍：`docs/verification/p52-system-app/`，5 张 5 log，判据 8 ✓
+
+脚本 `Scripts/p52-system-app-capture.sh`（270 行）+ 夹具 `Scripts/p52-system-app-fixture.sh`（38 行，两行应用只差包标识前缀：
+`ApplePages` = `com.apple.FixturePages` / `PlainTool` = `com.example.PlainTool`，两边各放 8 B 名下残留——
+系统应用那一档"连扫都不扫"这件事，只有夹具里真放着它名下的文件才拍得出来）。
+钩子组合：`MM_UNINSTALL_CONFIRM_FIXTURE_HOME` + `MM_UNINSTALL_SELECT` + `MM_UNINSTALL_CONFIRM_MODE` +
+`MM_APPEARANCE=light` + `MM_WINDOW_SIZE`。归因头五份都是 `# repo: d827d33-dirty`、
+`# digest: tree=d827d33+638fe6c9 app=d827d33+638fe6c9`（照片与二进制同源那道门禁当场算的）。
+
+判据一共 8 条，全过：**5 ✓ 点名**（每张 log 里都要有 `MM_UNINSTALL_SELECT=<app> 已点名到 …/Applications/<app>.app` 这一行，
+缺一张就整族失败）+ **3 ✓ 像素**（`Scripts/p52-photo-diff.py`，脚本自己那套口径：
+`ImageChops.difference` → 按通道取最大 → 直方图 → 数 `≥9/255` 的像素，内容区 = `x ≥ 218`）：
+
+| 对照 | 判 | 全帧 | 内容区 | 最大幅度 | 这一格说明什么 |
+| --- | --- | --- | --- | --- | --- |
+| 01 ↔ 03 | `same` | 215 | **0** | 167 | 01 是"请求自动开确认面板"（`CONFIRM_MODE` 未给，默认 `appOnly`）、03 是"明确请求 none"。两帧内容区**逐像素相同** ⟹ 那道 guard 让面板一次也没弹出来。215 个像素全在侧栏（`Macintosh HD 4%`/`3%`、系统清理那一行的体积数在两次跑之间自己变了），不在页面里 |
+| 02 ↔ 04 | `diff` | 1 295 221 | 1 078 429 | 217 | 同一个 `PlainTool`，只改 `CONFIRM_MODE`：默认档弹出确认面板、`none` 档不弹 ⟹ 这一族钩子是活的，01↔03 那个"相同"不是脚本没生效 |
+| 01 ↔ 04 | `diff` | 66 815 | 66 596 | 218 | 两帧都没有面板，差别全在详情面板与底部操作栏：`ApplePages` 那块是只读说明，`PlainTool` 那侧是「将一并移除的残留」+ 两个删除按钮 + 操作栏两枚按钮 |
+
+出片之后脚本还追一句 `# post-shot: 两行应用仍在磁盘` —— 这一族**没有任何删除动作**，
+验的是入口给不给，不是删完之后（§6 第一条那句"没量到 `trashItem` 的真实成败"到今天仍然成立）。
+
+人读（01 与 04 两张对着读）：01 的页头「应用卸载 / 2 个应用 · 合计 991 字节 · 大小已实测」、
+列表两行（ApplePages 带「系统应用」徽章、PlainTool 带「1 项残留 8 字节」）、详情四卡里「残留大小 0 字节 / 残留项 0」、
+标题「残留 · 不会修改」+ 那句「系统自带应用不提供残留扫描：它的容器与偏好由系统管理，清掉也不会回收空间。」、
+只读卡「只读 · 这是 Apple 提供的应用，仅供查看，MacMaster 不提供删除入口。」、
+底部操作栏只剩「已选 0 项残留 · 0 字节 / 未勾选项不会被修改」而**右侧两枚按钮整块不在**；
+04 的同一位置是「卸载应用并移除勾选的残留」+「仅卸载应用，保留所有残留」两枚 + 操作栏「仅卸载应用」「移到废纸篓」，
+「全选可删项」也在。两帧各带两条与本轮无关的横幅（`~/Applications 不在这台机器上`、`读不到废纸篓`），
+那是本机没有完全磁盘访问的常态，不是这一族引入的。
+
+### 4. 第三条证据：执行处那一层拦不住它们，从来没拦住过
+
+`UninstallBodyReadOnlyTests.testThePositiveGateJudgesPositionNotOwnership`（第 5 条，纯字面判定、不碰盘）钉住三行读数：
+卸载页允许根里应用目录那半是固定三条 `["/Applications", "/Applications/Utilities", "<home>/Applications"]`
+（`AppScanner.swift:43-48`），`/Applications/Notes.app` **在根内**、`/System/Applications/Notes.app` 不在。
+配套两条 `realpath` 实测（本轮现量，写进 §2.3 那两格）：`/Applications` 与
+`/Applications/{Xcode,TestFlight,Transporter}.app` 解析后都等于自身 ⟹ 正向闸放行；
+`/Applications/Safari.app` 是条链接，`realpath` 落到 `/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app`
+⟹ 正向闸拒。执行处两遍口径里黑名单先跑、允许根那一遍才报 `OUT_OF_SCOPE`，两个动作各一份：
+移入废纸篓 `FileTrashService.swift:96-101`、永久删除 `:150-155`，
+所以 `/System/Applications/*` 那种路径拿到的是 `PROTECTED` 而不是 `OUT_OF_SCOPE`。
+
+结论要说得跟§2.3 同一口径：**这一层按位置判，Apple 的应用在 `/Applications` 里就在闸内**，
+P52b 之前没有任何一层拦住那三条，今天拦住它们的是上面那一层归属判定。
+哪天有人把 `/Applications` 从允许根里挪走，这条测试会先响。
+
+### 5. 账
+
+- 测试：新增两份文件、**9 条**（`UninstallBodyReadOnlyTests` 5 + `BodyDeletableProbeTests` 4），
+  全绿。全量九包与合计那一行以 `docs/verification/p52-tests/run-all-tests.log` 为准（本文不抄总数，
+  规矩是 P50 那轮定的"活数与史账分家"；那一跑是 `d827d33-dirty`、指纹 `d827d33+638fe6c9`，
+  与 P50 归档逐格 `diff` **只有 MMUninstaller 那一行不同**，其余八格逐字相同）。
+- 引用门禁：`Scripts/p16-citation-audit.sh` 跑在本文与 `fidelity-uninstaller.md` 改完之后，
+  归档 `docs/verification/p52-citations/audit.log`（222 行，`# repo: d827d33-dirty`、index 1518）。
+  四个读数：**硬失败 0**、退出码 0、引用条次 **1490**、唯一「路径+行段」**1116**、位置存疑 **132**。
+  与 P51a 尾跑那份（`docs/verification/p51-citations-tail/audit.log`，1472 / 1104 / 132 / 0）对差是
+  **条次 +18、唯一 +12、存疑一字未动**——本轮确实往正文里新增了真引用（§9 那些锚点与 §17 的表格），
+  所以这两个数上涨是应当的，而"存疑没涨"是本轮改锚点改对了的证据。**这一轮新增的引用不是零风险形状**：
+  本文 §9 写的锚点带冒号，会被门禁逐条量；写"第 N 行/§N"那种裸写不进量尺面（口径见 §7.7）。
+- 旧锚点重指：本轮改过的两份源码让本文里 24 对 `File.swift:NNN` 引用整体位移，
+  用 `Scripts/p52-ref-verify.py` 按**逐行内容相等**一一对过（不是按位移量算），
+  其中 23 对对得上、1 对（`:1862-1868`）因为那块自己长了两行而改成 `:1875-1883`。
+  这一跑顺带抓出上一轮自己埋的一处错：本文第 12 行那条 `MMUninstaller.swift:1920-1929` 当时按 +33 位移算的，
+  正确值是 +16，现读已改成 `:1903-1912`。
+- **还欠**：03 系稿面（列表行「系统应用」那一行与详情面板只读卡）——记在 `fidelity-uninstaller.md` §17；
+  建议 2 的跨卷实拍；建议 2 / 3-B 的设计稿。建议 3-A 无前置，随时可接。

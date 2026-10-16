@@ -22,7 +22,7 @@
 
 风险不是按证据强度定的，是按**类别**定的：`ResidualCollector.swift:200` 取 `category.defaultRisk`，
 而 `ResidualScanner.swift:99` 把 `cache/savedState/log/httpStorage/webKit/containerCache` 六类一律标 `safe`；
-`Risk.swift:39` 里 `isDefaultSelected == (self == .safe)`，页面按它建勾选集（`UninstallerModel.swift:87`）。
+`Risk.swift:39` 里 `isDefaultSelected == (self == .safe)`，页面按它建勾选集（`UninstallerModel.swift:97`）。
 **这两条链在同一个格子里错过：一句「名称包含应用名」只要落在 Caches 上，就是默认勾选。**
 反过来，落在 `Application Scripts` 上（caution）就不会被自动勾——救它的是类别，不是证据。
 
@@ -144,10 +144,10 @@ C 只有在"我们不想为归属复核付任何扫描成本"时才选，D 单�
 
 **② 主人写进 `caveat`，不写进 `reason`。** §5 原话是"把那句主人写进证据里"，落地改成写进**行下方那句
 提醒**，证据串一个字不动。原因是量出来的，不是审美：副标题是 `displayPath · reason`
-（`MMUninstaller.swift:1965`），由 `MMItemRow` 做**中间省略**（`MMUI/Sources/MMUI/MMDesign.swift:807`），
+（`MMUninstaller.swift:1998`），由 `MMItemRow` 做**中间省略**（`MMUI/Sources/MMUI/MMDesign.swift:807`），
 路径本身就已经把它占满（判据照片 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`）；
 写进 `reason` 的后半句会被吃掉，那就退回 §7.5 那个教训。`caveat` 那一族是 `fixedSize(vertical)`、
-会折行不会被截（`MMUninstaller.swift:1983`），1000 pt 宽实拍在
+会折行不会被截（`MMUninstaller.swift:2016`），1000 pt 宽实拍在
 `docs/verification/p33b-nesting/02-fork-narrow-window.png`：整句"…已默认取消勾选，确认后再勾。"
 两行显示完，一个省略号都没有。
 
@@ -158,7 +158,7 @@ C 只有在"我们不想为归属复核付任何扫描成本"时才选，D 单�
 （`Foobar/baz` 挂在 `Foo` 名下），不剔除就会把自己每一层嵌套的弱证据项全降成谨慎。
 这一层做成 `internal` 而不是 `private`，因为端到端拿不到那个形状（自己一主张那一层，
 `enumerate` 就收下并 `continue`，下探到不了子项），所以剔除逻辑只能在这支函数上直接钉。
-调用侧 `UninstallerModel` 传的是**整张清单**（`installedIdentities`，`UninstallerModel.swift:227-229`）、用 `bundleName` 而不是显示名（产生那条弱证据的扫描
+调用侧 `UninstallerModel` 传的是**整张清单**（`installedIdentities`，`UninstallerModel.swift:243-245`）、用 `bundleName` 而不是显示名（产生那条弱证据的扫描
 本身就是按目录名做的，`enrich` 传 `appName: app.bundleName`），三处接入：`loadApps` 的 enrich、
 `rescanSelectedApp`、`scanTrashResiduals`。孤儿那一路不接（`scanOrphans` 判的是"有没有主人"，
 不是"这一项归谁"）。A 档措辞落在一行字符串上：`ResidualNameMatcher.swift:90`

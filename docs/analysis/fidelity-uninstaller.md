@@ -15,6 +15,8 @@
 > **实现该改 3 条**（I1–I3，均为文案/路径写法小不一致）、
 > **设计稿该改 7 条**（S2–S8，稿面行高/令牌/缺档）、
 > **两边都改·提协调者 2 条**（B1 列表宽度/操作栏高度与共享令牌冲突、B2 `MM_SHOW_TRASH_CONFIRM` 互锁未写清）。
+> 〔P52b 现读：上面这三格是 **P1 那一读的历史快照**，此后 §8–§16 七轮各自追加没有回填（§5 表尾、§17.3 各点破过一次）；
+> 本轮又加了一条 **S9**（稿 03 缺"本体只读"那一档，见 §17.3），**没有**并进上面的 7 条。现读口径：待改稿 8 条。〕
 
 ## 0. 对照方法（先说清楚哪些是量出来的，哪些是推导的）
 
@@ -22,9 +24,9 @@
 | --- | --- |
 | 设计稿 | `docs/design-system/screens/mmuninstaller/03-uninstaller.html`（1 张：apps 正常态 + 详情）、`03b-uninstaller-orphans.html`（1 张：孤儿列表 + 确认面板）、`03c-uninstaller-trash.html`（3 个 artboard：03c 正常提示卡 / 03c-2 三档 + 横幅 / 03c-3 无权限横幅） |
 | 实现 | `Packages/MMUninstaller/Sources/MMUninstaller/`：`MMUninstaller.swift`、`UninstallerModel.swift`、`OrphanScanner.swift`、`ResidualScanner.swift`、`ContainerScanner.swift`、`LaunchServiceScanner.swift`、`TrashWatcher.swift`、`ResidualCollector.swift`、`ResidualNameMatcher.swift`〔P43c 现读：该目录 **15 个文件**，本格只列了 9 个，缺 `AppScanner.swift`、`AppProvenance.swift`、`AppFolderWatcher.swift`、`RunningAppProbe.swift`、`SteamLauncherProbe.swift`、`UninstallFixtureHooks.swift`——都是 §8/§9/§13/§14/§15 那几轮各自新增的判层，写进清单却没回填本格〕 |
-| 可用钩子 | `MM_UNINSTALL_PANE`（初始档）、`MM_ORPHAN_FIXTURE_HOME`（孤儿扫描 home + 自动勾选+开确认）、`MM_TRASH_FIXTURE_DIR`（假废纸篓）、`MM_TRASH_SCAN_HOME`（假 home）、`MM_SHOW_TRASH_CONFIRM`（自动开废纸篓清理确认）〔P43c 现读：源码里是 **10 枚**，本格只列了 5 枚。缺的 5 枚是 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`（`MMUninstaller.swift:54`）、`MM_UNINSTALL_CONFIRM_MODE`（`:79`）、`MM_UNINSTALL_SELF_ECHO`（`:103`）、`MM_UNINSTALL_SELECT`（`:110`）、`MM_UNINSTALL_SENSITIVITY`（`UninstallerModel.swift:184`）；本文列的那 5 枚调用点在 `MMUninstaller.swift:43/164/806`（**P46f 现读**：后两枚此前写 142 与 779）+ `TrashWatcher.swift:110/123`。还有一句要钉死：**这一页没有 HOLD 钩子**——全仓带 HOLD 的键现读只有 `MM_DISK_HOLD`、`MM_MONITOR_HOLD` 两枚，所以 §5 前四行"没有冻结钩子"到本轮仍成立〕 |
-| 几何来源 | 设计系统 README 明确"CSS px 与 SwiftUI pt 一一对应"，故稿内 px 与 Swift 常量可直接比对；**本环境无头、未跑 App、未截图**，凡依赖真实渲染外观（颜色、字重、勾选框外观、垂直对齐）的项标 `⚠️待真机测量`，几何类差异凭 CSS/常量推导、不再编像素〔P43c 现读：**"本环境无头、未跑 App、未截图"这一句早已过期**，但它把后面所有格的口径都带偏了——卸载页现在有一整批带窗口的实机照片，本格下面两行与 §4 都得按照片重判。现读该页证据族 **13 个目录 63 张**〔P43c 复算更正：本句初稿写作"12 个目录 54 张"，是照抄上一格漏改的分项相加——下面逐项枚举本身就是 13 项、相加 63（`p4-light-dark` 目录共 18 张，本页只计卸载页那 2 张）〕：`p1.5-trash` 2、`mmuninstaller` 2、`p7-brew` 9、`p4-light-dark` 卸载页 2（light/dark 各一张）、`p11-hardened/watch-trash-base` 1、`watch-trash-hr` 1、`p68-brew` 9、`p68-trash` 2、`p31-running` 7、`p32-steam` 9、`p32b-steam` 12、`p33b-nesting` 6＋`p32b-crosscheck` 1〕 |
-| 实机图 | `docs/verification/p1.5-trash/uninstaller-no-fda-banner.jpg`、`uninstaller-trash-notice.jpg` 两图均**已入库存在**（前者对应 03c-3 无权限默认态，后者对应 03c 钩子态卡片 + 4 项残留）〔P43c 现读：两图确实都在（目录里各 1 张、无 `.log`）。但这格是 §0 里唯一还只提这两张的地方，账要补全：上面那 63 张里〔P43c 复算更正：初稿此句写"54 张"，随 §0 几何来源那格的同一个错数一路带到 §5 表尾，三处已同轮改成 63；另"34 张 + 交叉 1 张"口径已核——p33b 目录 8 份 `.log` 只有 6 张配图，`fixture-rows.log`、`ownership-review.log` 是分析日志、无照片〕，**只有 p31/p32/p32b/p33b 四族（34 张 + 交叉 1 张）的 `.log` 带 `# digest:` 源码指纹**——逐族 `grep -c digest`：p31 7/7、p32 9/9、p32b 12/12、p33b 8/8；而 `p68-brew` 0/9、`p68-trash` 0/2、`p11-hardened` 两族 0/1+0/1，`grep -l digest Scripts/*.sh` 里也没有 `p68-brew-capture.sh`/`p68-trash-capture.sh`（它们出片早于 P23b 那道门禁）。所以"照片与二进制同源"这句话对这 11 张**说不成立**，它们的归因只有 §12.5 那两行手写头（`# <脚本> <档> <时间> app= fixture=` + `# env:`）〕 |
+| 可用钩子 | `MM_UNINSTALL_PANE`（初始档）、`MM_ORPHAN_FIXTURE_HOME`（孤儿扫描 home + 自动勾选+开确认）、`MM_TRASH_FIXTURE_DIR`（假废纸篓）、`MM_TRASH_SCAN_HOME`（假 home）、`MM_SHOW_TRASH_CONFIRM`（自动开废纸篓清理确认）〔P43c 现读：源码里是 **10 枚**，本格只列了 5 枚。缺的 5 枚是 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME`（`MMUninstaller.swift:54`）、`MM_UNINSTALL_CONFIRM_MODE`（`:79`）、`MM_UNINSTALL_SELF_ECHO`（`:103`）、`MM_UNINSTALL_SELECT`（`:110`）、`MM_UNINSTALL_SENSITIVITY`（`UninstallerModel.swift:200`）；本文列的那 5 枚调用点在 `MMUninstaller.swift:43/164/806`（**P46f 现读**：后两枚此前写 142 与 779）+ `TrashWatcher.swift:110/123`。还有一句要钉死：**这一页没有 HOLD 钩子**——全仓带 HOLD 的键现读只有 `MM_DISK_HOLD`、`MM_MONITOR_HOLD` 两枚，所以 §5 前四行"没有冻结钩子"到本轮仍成立〕 |
+| 几何来源 | 设计系统 README 明确"CSS px 与 SwiftUI pt 一一对应"，故稿内 px 与 Swift 常量可直接比对；**本环境无头、未跑 App、未截图**，凡依赖真实渲染外观（颜色、字重、勾选框外观、垂直对齐）的项标 `⚠️待真机测量`，几何类差异凭 CSS/常量推导、不再编像素〔P43c 现读：**"本环境无头、未跑 App、未截图"这一句早已过期**，但它把后面所有格的口径都带偏了——卸载页现在有一整批带窗口的实机照片，本格下面两行与 §4 都得按照片重判。现读该页证据族 **14 个目录 68 张**〔P43c 复算更正：本句初稿写作"12 个目录 54 张"，是照抄上一格漏改的分项相加——下面逐项枚举本身就是 13 项、相加 63（`p4-light-dark` 目录共 18 张，本页只计卸载页那 2 张）〕〔P52b 现读：P43c 那一读的 13/63 在它自己那轮是对的，本轮往上加了 `p52-system-app` 一族 5 张，于是 14 目录 / 68 张；下面逐项枚举末尾已补那一族，相加可对上 68〕：`p1.5-trash` 2、`mmuninstaller` 2、`p7-brew` 9、`p4-light-dark` 卸载页 2（light/dark 各一张）、`p11-hardened/watch-trash-base` 1、`watch-trash-hr` 1、`p68-brew` 9、`p68-trash` 2、`p31-running` 7、`p32-steam` 9、`p32b-steam` 12、`p33b-nesting` 6＋`p32b-crosscheck` 1、`p52-system-app` 5〕 |
+| 实机图 | `docs/verification/p1.5-trash/uninstaller-no-fda-banner.jpg`、`uninstaller-trash-notice.jpg` 两图均**已入库存在**（前者对应 03c-3 无权限默认态，后者对应 03c 钩子态卡片 + 4 项残留）〔P43c 现读：两图确实都在（目录里各 1 张、无 `.log`）。但这格是 §0 里唯一还只提这两张的地方，账要补全：上面那 63 张里〔P43c 复算更正：初稿此句写"54 张"，随 §0 几何来源那格的同一个错数一路带到 §5 表尾，三处已同轮改成 63；另"34 张 + 交叉 1 张"口径已核——p33b 目录 8 份 `.log` 只有 6 张配图，`fixture-rows.log`、`ownership-review.log` 是分析日志、无照片〕〔P52b 现读：本句"63 张"随上面那格改成 68，下面那句"四族 34 张 + 交叉 1 张"改成五族 40 张——新增的正是 `p52-system-app` 那 5 张，它们**带** `# digest:`（`grep -l digest p52-system-app/*.log` → 5/5），因为出片脚本 `Scripts/p52-system-app-capture.sh` 是 P23b 那道门禁之后写的〕，**只有 p31/p32/p32b/p33b/p52 五族（34 张 + 交叉 1 张 + 5 张）的 `.log` 带 `# digest:` 源码指纹**——逐族 `grep -c digest`：p31 7/7、p32 9/9、p32b 12/12、p33b 8/8、p52 5/5；而 `p68-brew` 0/9、`p68-trash` 0/2、`p11-hardened` 两族 0/1+0/1，`grep -l digest Scripts/*.sh` 里也没有 `p68-brew-capture.sh`/`p68-trash-capture.sh`（它们出片早于 P23b 那道门禁）。所以"照片与二进制同源"这句话对这 11 张**说不成立**，它们的归因只有 §12.5 那两行手写头（`# <脚本> <档> <时间> app= fixture=` + `# env:`）〕 |
 | 硬约束 | 全程未发合成鼠标/滚轮/键盘；未改 `tokens.css/screen.css/icons.js/Packages/MMUI/Packages/MMCore/Sources/MacMaster`；未 `git` 任何操作；未动 `/var/db/receipts` 相关代码（#46 P1.8 等卸载路收工后再动，本次仅审计） |
 
 > `03b` 与 `03c` 的图标（`i-app-x`/`i-tray-down`/`i-trash`/`i-sparkles`/`i-gauge`/`i-treemap`/`i-activity`/`i-shield-check`/`i-speed`/`i-gear`/`i-search`/`i-refresh`/`i-folder`/`i-list`/`i-box`/`i-power`/`i-lock`/`i-term`/`i-info`/`i-chev-d`）经核对**全部在 `icons.js` 中定义**，无缺图。实现侧改用 SF Symbol（`xmark.circle`/`tray.and.arrow.down.fill`/`trash`/`lock.fill` 等），与设计精灵的注释映射一致。
@@ -38,7 +40,7 @@
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 标题「应用卸载」+ 副标题「N 个应用 · 合计 X · 大小已实测」 | `UninstallerView.headerSubtitle`（`MMUninstaller.swift:371-379`，用在 `:177` 的 `MMPageHeader`；**P46f 现读**：此前本文写 344-352 / 150，P46c 与 P46e 在它上方共插 27 行） | ✅ | 实现：扫描中写"已测 M · K 个测量中"，扫完才写"合计 X · 大小已实测"，稿面只画了稳态那一句，口径一致。**P16 两处更正**：本文此前把它记成 `UninstallerModel.headerSubtitle`、位置写在 `MMUninstaller.swift` 的 206 行——行号是写作当时的位置（已漂），而且**归属也错**：`headerSubtitle` 在 `UninstallerView` 里，`UninstallerModel` 是 `UninstallerModel.swift:127` 那个类，它没有这个属性。行号判据（在不在文件里、是不是空行）抓不出这种错，这一条是顺着被点名的行把周围三行一起读出来的。**P36 第五笔债再指一次**：`:326-332` 那一读也已漂，现读那一格落在 `MMUndoToast` 的 `.overlay` 上 | — | — |
+| 标题「应用卸载」+ 副标题「N 个应用 · 合计 X · 大小已实测」 | `UninstallerView.headerSubtitle`（`MMUninstaller.swift:371-379`，用在 `:177` 的 `MMPageHeader`；**P46f 现读**：此前本文写 344-352 / 150，P46c 与 P46e 在它上方共插 27 行） | ✅ | 实现：扫描中写"已测 M · K 个测量中"，扫完才写"合计 X · 大小已实测"，稿面只画了稳态那一句，口径一致。**P16 两处更正**：本文此前把它记成 `UninstallerModel.headerSubtitle`、位置写在 `MMUninstaller.swift` 的 206 行——行号是写作当时的位置（已漂），而且**归属也错**：`headerSubtitle` 在 `UninstallerView` 里，`UninstallerModel` 是 `UninstallerModel.swift:143` 那个类，它没有这个属性。行号判据（在不在文件里、是不是空行）抓不出这种错，这一条是顺着被点名的行把周围三行一起读出来的。**P36 第五笔债再指一次**：`:326-332` 那一读也已漂，现读那一格落在 `MMUndoToast` 的 `.overlay` 上 | — | — |
 | 副标题在「卸载后遗症」档仍显示"应用数/合计" | `headerSubtitle` 不随 `pane` 变 | ⚠️ 稿面取舍 | 稿 03b 同样如此，属稿面决定；语义上副标题与当前档弱相关 | 低 | 设计稿该改 S7 |
 | 两枚分段控件：已装应用/卸载后遗症、严格/增强/深度 | `MMUninstaller.swift:173-188` 两枚 `Picker`，`.pickerStyle(.segmented)` 在 `:183`/`:193`〔**P46f 现读**：两枚 `.pickerStyle` 此前本文写 161 与 171（P43c 那一读），整段 **+22 行**；`MM_UNINSTALL_PANE` 那行 `@State` 在 `MMUninstaller.swift:164`〕 | ✅ | 实现用 `Picker` 分段，`MM_UNINSTALL_PANE` 决定初始档（P16 现读：本文此前记 77–95 行，是写作当时的位置） | — | — |
 | 分段控件初始档由 `MM_UNINSTALL_PANE` 决定 | `:62` `Pane(hookValue:)` | ✅ | 钩子缺省回落 `.apps`，符合稿面默认 | — | — |
@@ -51,25 +53,25 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 列表列宽 300pt | `appList.frame(width: MMMetric.inspector)` → **268**（`MMUninstaller.swift:213`，`MMDesign.swift:120`；**P46f 顺带修一处旧锚**：本文此前记的 186 在 HEAD 就落在 `trashRegion` 那一行，`.frame(width:)` 当时在 191，本轮再 +22） | ❌ | 稿画 300pt，实现用共享令牌 `inspector=268pt`，**差 32pt**；改令牌影响其它模块（P16 现读：本文此前记 110 行 / 89 行，两处都漂） | **中** | 两边都改·提协调者 B1 |
-| 行高 52pt、图标 28pt | `AppListRow` 用 `MMMetric.rowApp=56`、图标 `iconApp=32`（`MMUninstaller.swift:1614-1690`，`MMDesign.swift:113`、`:128`） | ❌ | 稿 52/28，实现 56/32，各差 4pt | 低 | 设计稿该改 S3 |
+| 行高 52pt、图标 28pt | `AppListRow` 用 `MMMetric.rowApp=56`、图标 `iconApp=32`（`MMUninstaller.swift:1624-1700`，`MMDesign.swift:113`、`:128`） | ❌ | 稿 52/28，实现 56/32，各差 4pt | 低 | 设计稿该改 S3 |
 | 行内容：图标 + 名称 + 版本·大小 + （残留计数徽标 / 系统应用徽标） | `AppListRow` `:807-819` | ✅ | 实现用真实 `NSWorkspace` 图标（稿用字母占位头像，属稿面惯例），数量徽标用 `accent` + 大小 `tertiary`，与稿一致 | — | — |
 | 搜索框「搜索应用…」 | `:227` `TextField` | ✅ | 实现按名称/包名过滤（`filteredApps` `:67`） | — | — |
 | 列表页脚「N 个应用 · 已测 M · K 个测量中」 | `listFooter` `:278` | ✅ | 与稿 03/03c 页脚文案一致（03c 稳态为"45 个应用 · 已测 45"） | — | — |
 | 列表扫描中转（ProgressView + 扫描应用…）/ 无应用空态 | `appList` 的 `:401-410`〔**P46f 现读**：`appList` 在 `MMUninstaller.swift:388`，扫描中转在 `:401-406`、空态 `MMEmptyState` 在 `:408`；本文此前写 361 与 381（P43c 那一读），再早写 236-245；且这两档**一张照片都没有**，见 §5 第 9 行那格〕 | ⚠️ 稿缺 | 稿 03 未画扫描中/空态；实现有 `MMEmptyState`/"扫描应用…"，属实现补状态 | 低 | 设计稿该改 S6（同类） |
-| 行右侧"N 项残留"徽标 | `:807-816` | ✅ | `app.residuals.isEmpty == false` 时显示；系统应用显示"系统应用"徽标 | — | — |
+| 行右侧"N 项残留"徽标 | `:817-826` | ✅ | `app.residuals.isEmpty == false` 时显示；系统应用显示"系统应用"徽标 | — | — |
 
 ### 1.3 应用详情（03 · 选中应用）
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 身份头：38pt 图标 + 名称 + `包名 · 大小 · /Applications` | `AppDetailView.identityHeader` `MMUninstaller.swift:1725-1743` | ✅ | 实现 `deletingLastPathComponent` 取父目录，与稿一致（P16 现读：本文此前只写裸行号 853，是写作当时的位置） | — | — |
-| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1757` → `MMStatItem` | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:390`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:407`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
-| 键值对：包名/版本/开发者/最低系统/可执行文件/修改时间/所在文件夹 | `infoSection` `MMUninstaller.swift:1796` → `MMKeyRow` | ✅ | 实现 `MMKeyRow("版本", "\(version) (\(build))")` 与稿"26.2 (17C4011)"一致；空值填空字符串；`MMKeyRow` 在 `MMDesign.swift:366` | — | — |
+| 身份头：38pt 图标 + 名称 + `包名 · 大小 · /Applications` | `AppDetailView.identityHeader` `MMUninstaller.swift:1735-1753` | ✅ | 实现 `deletingLastPathComponent` 取父目录，与稿一致（P16 现读：本文此前只写裸行号 853，是写作当时的位置） | — | — |
+| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1767` → `MMStatItem` | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:390`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:407`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
+| 键值对：包名/版本/开发者/最低系统/可执行文件/修改时间/所在文件夹 | `infoSection` `MMUninstaller.swift:1806` → `MMKeyRow` | ✅ | 实现 `MMKeyRow("版本", "\(version) (\(build))")` 与稿"26.2 (17C4011)"一致；空值填空字符串；`MMKeyRow` 在 `MMDesign.swift:366` | — | — |
 | 「将一并移除的残留」+ 徽标"N 项默认不勾选" + "按包名…匹配·不含共享文件" + 全选可删项 | `residualSection` `:902-918` | ✅ | 实现徽标 `unselectedCount` 项、文案"按包名与容器证据匹配 · 不含其他应用的共享文件"，与稿一致 | — | — |
 | 残留按风险分组，每行：图标 + 路径 + 原因 + 徽标 + 勾选框 | `residualGroups` `:958` → `ResidualRow`/`MMItemRow` | ✅ | 实现 `MMItemRow`（`MMDesign.swift:807`）逐行：risk 徽标、`risk.allowsDeletion` 为假时勾选框禁用（root 属主项不可选），与稿"root 属主项勾选框直接禁用"一致 |
 | 残留行高 28pt（稿 `.res`） | `MMItemRow` 用 `MMMetric.rowRegular`（=44，`MMDesign.swift:870`） | ❌ | 稿 28pt 两行文案放不下且与 03b 的 52pt 自相矛盾；实现统一 44pt 更合理 | 低 | 设计稿该改 S2 |
 | 说明："卸载会把 X.app 及勾选的 N 项（合计 X）移到废纸篓，可在 15 秒内撤回" | `confirmationNote` `:999` | ❌ | 实现写"可在 15 秒内撤回"，**漏了"或「最近操作」中**；而它自己的确认面板（`:502`）有完整句——实现内部口径不一致 | 低 | 实现该改 I2 |
-| 两个动作按钮：卸载应用并移除勾选的残留（破坏红）/ 仅卸载应用，保留所有残留（borderless） | `:945-954` | ✅ | 实现同稿：破坏红 full-width + borderless small | — | — |
+| 两个动作按钮：卸载应用并移除勾选的残留（破坏红）/ 仅卸载应用，保留所有残留（borderless） | `:945-954` | ✅ | 实现同稿：破坏红 full-width + borderless small。**P52b 现读改判**：本格锚的 `:945-954` 早已漂（现读那两枚按钮在 `MMUninstaller.swift:1903-1912`），而**它们现在外面套了一层 `if app.bodyDeletable`（`:1895`）**——系统应用那一档两枚按钮一起收掉，换成一块只读说明（`:1914-1929`）。稿 03 只画了可删态，**没有"本体只读"这一档** ⟹ 稿面缺档，见 §17.3（本轮按授权只改代码、没改稿）| 低 | 设计稿该改 S9 |
 
 ### 1.4 卸载确认面板（03）
 
@@ -98,25 +100,25 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 卡片仅在「已装应用」档且监听器报出到达时出现 | `trashRegion` `:574`（`pane == .apps && arrivals.isEmpty == false`） | ✅ | 与稿 03c（apps 档）一致；孤儿档不显示 | — | — |
-| 头部：`tray.and.arrow.down.fill` + 标题（单应用"刚拖进废纸篓：X" / 多应用 Picker + "有 N 个应用刚进废纸篓"）+ 徽标"本体已在废纸篓"(info) + 在访达中显示 + 忽略 | `trashNoticeCard` `MMUninstaller.swift:1120`〔**P46f 现读**：挂载点在 `:1103`；本文此前写 1093 与 1076（P43c 那一读），再早写 583-615；"多应用走 `Picker`"这一支至今没有照片，见 §5 第 6 行那格〕 | ✅ | 实现 `MMBadge("本体已在废纸篓", informational, "trash")`；多应用走 `Picker`；与稿一致 |
-| 头部路径行：`~/.Trash/Foo.app · com.example.Foo`（等宽、中段截断） | `:617-630` 用 `trashArrival?.path`（绝对路径） | ❌ | 实现给**绝对路径**（`/Users/lee/.Trash/Foo.app`），而卡片内残留行用 `~/` 缩写（`displayPath`）——同卡两种写法；稿头部用 `~/.Trash` 缩写 | 低 | 实现该改 I1 |
-| 扫描中档：ProgressView + "按包名与容器证据扫残留…" + 汇总"扫描中…" | `:632-636` + `trashNoticeSummary` `:695` | ✅ | 与 03c-2①一致 |
-| 尚未扫描档："还没扫残留…" + 汇总"尚未扫描" | `MMUninstaller.swift:1200` + `:1258`〔**P49 现读重指**：本文此前写 1193 与 1251（P46f 那一读）、再早 1166 与 1224（P43c）、再再早 637-640 与 696——P49 给 `confirmationTarget()` 补成对留痕注释净 +7 行，整段往下顶〕 | ✅ | 与 03c-2②一致；**不是**"0 项 · 0 字节"〔P43c：这一档**仍 0 张**，§5 第 4 行那格〕 |
-| 无匹配档："按当前敏感度没有匹配到残留文件。" + 汇总"已选 0 项 · 0 字节" | `MMUninstaller.swift:1197` + `:1251`〔**P46f 现读**：本文此前写 1170（P43c 那一读），再早写 641-644 与 696〕 | ✌ | 与 03c-2③一致；此档是"真扫过结论空"，写 0 正确〔P43c：**仍 0 张**，§5 第 5 行那格；p32b 交叉验证那张的「已选 0 项残留」是勾选为零，不是这一档〕 |
-| 正常档：残留行（safe 默认勾 / caution 默认不勾 / root 勾选框禁用）+ 汇总"已选 N · 字节 · 未勾选 M" + 全选可删项 + 清理勾选的残留 | `:646-684` + `:697` | ✅ | 实现 `trashResidualBinding` 仅 `risk.allowsDeletion` 时可勾；汇总模板与稿"已选 2 项 · 6.3 MB · 未勾选 2 项"一致；按钮 `borderedProminent`+`destructive` |
-| 卡片底色 info 8% | `:689` `MMColor.soft(informational, 0.08)` | ✅ | 与稿 `color-mix(info 8%)` 一致 |
+| 头部：`tray.and.arrow.down.fill` + 标题（单应用"刚拖进废纸篓：X" / 多应用 Picker + "有 N 个应用刚进废纸篓"）+ 徽标"本体已在废纸篓"(info) + 在访达中显示 + 忽略 | `trashNoticeCard` `MMUninstaller.swift:1130`〔**P46f 现读**：挂载点在 `:1113`；本文此前写 1093 与 1076（P43c 那一读），再早写 583-615；"多应用走 `Picker`"这一支至今没有照片，见 §5 第 6 行那格〕 | ✅ | 实现 `MMBadge("本体已在废纸篓", informational, "trash")`；多应用走 `Picker`；与稿一致 |
+| 头部路径行：`~/.Trash/Foo.app · com.example.Foo`（等宽、中段截断） | `:623-636` 用 `trashArrival?.path`（绝对路径） | ❌ | 实现给**绝对路径**（`/Users/lee/.Trash/Foo.app`），而卡片内残留行用 `~/` 缩写（`displayPath`）——同卡两种写法；稿头部用 `~/.Trash` 缩写 | 低 | 实现该改 I1 |
+| 扫描中档：ProgressView + "按包名与容器证据扫残留…" + 汇总"扫描中…" | `:638-642` + `trashNoticeSummary` `:701` | ✅ | 与 03c-2①一致 |
+| 尚未扫描档："还没扫残留…" + 汇总"尚未扫描" | `MMUninstaller.swift:1210` + `:1268`〔**P49 现读重指**：本文此前写 1193 与 1251（P46f 那一读）、再早 1166 与 1224（P43c）、再再早 637-640 与 696——P49 给 `confirmationTarget()` 补成对留痕注释净 +7 行，整段往下顶〕 | ✅ | 与 03c-2②一致；**不是**"0 项 · 0 字节"〔P43c：这一档**仍 0 张**，§5 第 4 行那格〕 |
+| 无匹配档："按当前敏感度没有匹配到残留文件。" + 汇总"已选 0 项 · 0 字节" | `MMUninstaller.swift:1207` + `:1261`〔**P46f 现读**：本文此前写 1170（P43c 那一读），再早写 641-644 与 696〕 | ✌ | 与 03c-2③一致；此档是"真扫过结论空"，写 0 正确〔P43c：**仍 0 张**，§5 第 5 行那格；p32b 交叉验证那张的「已选 0 项残留」是勾选为零，不是这一档〕 |
+| 正常档：残留行（safe 默认勾 / caution 默认不勾 / root 勾选框禁用）+ 汇总"已选 N · 字节 · 未勾选 M" + 全选可删项 + 清理勾选的残留 | `:652-690` + `:706` | ✅ | 实现 `trashResidualBinding` 仅 `risk.allowsDeletion` 时可勾；汇总模板与稿"已选 2 项 · 6.3 MB · 未勾选 2 项"一致；按钮 `borderedProminent`+`destructive` |
+| 卡片底色 info 8% | `:695` `MMColor.soft(informational, 0.08)` | ✅ | 与稿 `color-mix(info 8%)` 一致 |
 | 卡片内残留行高 | `MMItemRow` `rowRegular=44` | ⚠️ 稿 03c 未单列 | 稿 03c 卡片行 `.nrow` 高 46pt，实现 44pt；差 2pt〔P43c 现读：两头都还在原值上——`MMDesign.swift:112` `rowRegular: CGFloat = 44`，`03c-uninstaller-trash.html:35` `min-height:46px`。这一格挂着"⚠️待真机测量"已经名不副实：**它是一个改哪头的决定，不是一次测量**（改稿 44 / 改实现 46 / 再拍一张量尺，三条路都要人拍板），且 `rowRegular` 是共享令牌，动它会影响其它页的行高——与 §4 B1 同一类〕 | 低 | ⚠️待真机测量 |
 
 ### 1.7 无权限降级横幅（03c-3）+ 废纸篓清理确认面板
 
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
-| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `MMUninstaller.swift:1096-1112`（横幅构造 `:1105-1111`）→ `MMPermissionBanner`（`MMDesign.swift:483`，`lock.fill` `:496`）；深链那一档取 `MMSettingsPane.fullDiskAccess`（`SystemSettings.swift:18`），在 `settingsPane:` 参数上（`MMUninstaller.swift:1110`） | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
+| 横幅：`lock.fill` + 标题"读不到废纸篓" + 带错误码详情 + "打开系统设置"（深链 Privacy_AllFiles） | `trashRegion` `MMUninstaller.swift:1106-1122`（横幅构造 `:1115-1121`）→ `MMPermissionBanner`（`MMDesign.swift:483`，`lock.fill` `:496`）；深链那一档取 `MMSettingsPane.fullDiskAccess`（`SystemSettings.swift:18`），在 `settingsPane:` 参数上（`MMUninstaller.swift:1120`） | ✅ | 实现 `needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了"`；详情拼 `reason + " 在系统设置里授予…重启应用才会生效"`；`reason="无法打开废纸篓目录：Operation not permitted（错误码 1）。"` 与稿逐字一致（见 `trash-watch-fda.md` 本机实测） |
 | 目录不存在走另一文案且**不放授权按钮** | `TrashWatcher.start` `TrashWatcher.swift:140-148` `needsFullDiskAccess:false` → `MMPermissionBanner(settingsPane:nil)` | ✅ | 实现区分 ENOENT（目录不存在，无按钮）与 EPERM/EACCES（要授权），与 `trash-watch-fda.md` 红线 2 一致 |
 | 页面其余部分不受影响（列表/卸载动作不依赖读废纸篓） | `trashRegion` 仅替换卡片区，列表/详情照常 | ✅ | 与稿"页面其余部分不受影响"一致；`uninstaller-no-fda-banner.jpg` 已证 |
 | 横幅底色 warning 10% | `MMPermissionBanner` `soft(caution,0.10)` | ✅ | 与稿 `color-mix(warning 10%)` 一致 |
-| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `MMUninstaller.swift:1278` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（调用 `MMUninstaller.swift:1279`，定义 `ResidualScanner.swift:413`），与红线 3 一致 | 低 | 设计稿该改 S5 |
-| `MM_SHOW_TRASH_CONFIRM` 触发确认面板 | `trashConfirmHook` `MMUninstaller.swift:804-806`（需 `fixtureScanHome() != nil` 且环境变量=1） | ⚠️ 文档缺口 | 单设 `MM_SHOW_TRASH_CONFIRM=1` **不会**触发，必须同时设 `MM_TRASH_SCAN_HOME`（且限 /tmp）；稿/README 描述"自动开确认面板"未写此互锁 | **中** | 两边都改·提协调者 B2 |
+| 废纸篓清理确认面板（"清理 X 的 N 项残留？" + 逐路径 + 合计 + 取消/移入废纸篓） | `trashConfirmSheet` `MMUninstaller.swift:1288` | ⚠️ 稿缺 | 稿 03c **未画**此确认面板（孤儿确认 03b 有、废纸篓清理确认没有）；实现 `deletionRoots(for:)` 单点给路径、不含本体（调用 `MMUninstaller.swift:1289`，定义 `ResidualScanner.swift:413`），与红线 3 一致 | 低 | 设计稿该改 S5 |
+| `MM_SHOW_TRASH_CONFIRM` 触发确认面板 | `trashConfirmHook` `MMUninstaller.swift:814-816`（需 `fixtureScanHome() != nil` 且环境变量=1） | ⚠️ 文档缺口 | 单设 `MM_SHOW_TRASH_CONFIRM=1` **不会**触发，必须同时设 `MM_TRASH_SCAN_HOME`（且限 /tmp）；稿/README 描述"自动开确认面板"未写此互锁 | **中** | 两边都改·提协调者 B2 |
 
 ### 1.8 状态覆盖核对
 
@@ -145,18 +147,18 @@
 > "该不该改"的结论留着——这份清单当时判的都是低，落地没有改变判断，只是说明**它挂了一天多没被划掉**。
 > 与 `fidelity-monitor.md` §2、`fidelity-cleaner.md` §2 同一轮发现：清单里的"开放"是写下那天的状态。
 
-1. **【低】I1 · 提示卡头部路径用绝对路径，卡片内残留行用 `~/` 缩写**（`MMUninstaller.swift:644-657` 用 `trashArrival?.path`）
+1. **【低】I1 · 提示卡头部路径用绝对路径，卡片内残留行用 `~/` 缩写**（`MMUninstaller.swift:650-663` 用 `trashArrival?.path`）
    头部写 `/Users/lee/.Trash/Foo.app`，下方残留行写 `~/Library/...`，同卡两种写法。建议头部也走
    `displayPath`（或统一绝对），与稿 `~/.Trash/Foo.app` 对齐。
    **✅ 已落地（`71da937`）**：头部改为 `arrivalDisplayPath`，在 `trashNoticeCard` 里算一次
-   （`MMUninstaller.swift:1128`，`ResidualCollector.display(arrivalPath, home: NSHomeDirectory())`；**P46f 顺带修一处旧锚**：本文此前记的 1047 在 HEAD 就落在「应用根跳过」那一段上，这一句当时在 1101）、
-   渲染于 `:1095`。同卡两种写法已收口为一种，且与残留行（`:882`）、"不在这台机器上"回执（`:1000`）
+   （`MMUninstaller.swift:1138`，`ResidualCollector.display(arrivalPath, home: NSHomeDirectory())`；**P46f 顺带修一处旧锚**：本文此前记的 1047 在 HEAD 就落在「应用根跳过」那一段上，这一句当时在 1101）、
+   渲染于 `:1105`。同卡两种写法已收口为一种，且与残留行（`:892`）、"不在这台机器上"回执（`:1010`）
    共用同一个 `display` 函数——缩写口径不再各页自己拼。
-2. **【低】I2 · 详情注脚漏"或「最近操作」中"**（`AppDetailView.confirmationNote` `:999`）
+2. **【低】I2 · 详情注脚漏"或「最近操作」中"**（`AppDetailView.confirmationNote` `:1009`）
    写"可在 15 秒内撤回"，但同模块确认面板（`:502`）与 `trash-watch-fda.md` 的撤回语义都含"最近操作"。
    建议补成"可在 15 秒内或「最近操作」中撤回"，与自身确认面板口径一致。
-   **✅ 已落地（`71da937`）**：`confirmationNote`（现 `MMUninstaller.swift:1934-1936`）末句现为
-   「可在 15 秒内或「最近操作」中撤回。」，渲染点 `:1594`。注脚与确认面板、撤回实现三方口径一致。
+   **✅ 已落地（`71da937`）**：`confirmationNote`（现 `MMUninstaller.swift:1967-1969`）末句现为
+   「可在 15 秒内或「最近操作」中撤回。」，渲染点 `:1604`。注脚与确认面板、撤回实现三方口径一致。
 3. **【低】I3 · 操作栏 note 在 `unselectedCount>0` 时写"未勾选的 N 项不会被修改"**（`actionBar` `:316`）
    稿 03 写"未勾选项不会被修改"。实现更具体（带数字），但与稿面文案不一致；若要严格还原稿面，
    应改为不带 N 的版本，或反过来让稿面补数字——属文案注脚级，低。
@@ -188,7 +190,7 @@
    **提协调者决定**：要么设计改到 268/52 与令牌一致，要么为卸载页引入屏级覆盖宽度——不要模块私下改共享令牌。
 2. **【中】B2 · `MM_SHOW_TRASH_CONFIRM` 互锁未写清**：
    该钩子**单设不触发**，必须同时设 `MM_TRASH_SCAN_HOME`（且只认 /tmp）才会自动开确认面板
-   （`trashConfirmHook` `MMUninstaller.swift:804-806`〔**P46f 现读**：计算属性从 `MMUninstaller.swift:803` 起、互锁那句在 `:804`、`MMHookValue.flag` 在 `:806`；本文此前写 776 与 779〕）。
+   （`trashConfirmHook` `MMUninstaller.swift:814-816`〔**P46f 现读**：计算属性从 `MMUninstaller.swift:813` 起、互锁那句在 `:814`、`MMHookValue.flag` 在 `:816`；本文此前写 776 与 779〕）。
    这是"终点=删除按钮、绝不能指向真实用户目录"的有意互锁，但 README §2 与 03c cap 只写"自动开确认面板"。
    **提协调者**：在 README/稿面补一句"需配合 `MM_TRASH_SCAN_HOME`（限 /tmp）"，避免验证者单设钩子误以为失效。
 
@@ -212,7 +214,7 @@
 详情四卡与键值对、残留分组与"root 属主项勾选框禁用"、孤儿反向判定口径（minNameLength/applePrefixes/UUID 剥离/派生标识）、
 三类确认面板文案、废纸篓提示卡四档的**文案与汇总口径**（扫描中/尚未扫描/无匹配/正常）、
 无权限横幅的**错误码与授权深链**、"nil≠0 / 没看过≠没有"三条红线的实现落地。
-其中 **03c-3 无权限横幅**与 **03c 提示卡（夹具态）** 两档有实机图佐证（`uninstaller-no-fda-banner.jpg` / `uninstaller-trash-notice.jpg`）。〔P43c：上面这张表是 P1 那轮写的，此后 §8/§9/§12/§13/§14/§15 六轮各自出片、各自记账，**没有一轮回头改判这张表**——所以本表现读是 9 行里 **1 行已收口（第 8 行，浅色档）、8 行仍 0 张**。这一页的成因和监控页那种"有钩子没脚本"不同：**这里的 8 行缺的是钩子语义（HOLD / 零残留夹具 / 多 app 夹具 / 人工授权），不是缺脚本**，只有第 8 行那格属于"早就拍过、表没跟着改"。下一轮别照本表下结论，先按 §0 实机图那格的 63 张账对号〔P43c 复算：这句初稿写"54 张"，与 §0 两格同源，三处同轮已改为逐项枚举相加得到的 63〕。〕
+其中 **03c-3 无权限横幅**与 **03c 提示卡（夹具态）** 两档有实机图佐证（`uninstaller-no-fda-banner.jpg` / `uninstaller-trash-notice.jpg`）。〔P43c：上面这张表是 P1 那轮写的，此后 §8/§9/§12/§13/§14/§15 六轮各自出片、各自记账，**没有一轮回头改判这张表**——所以本表现读是 9 行里 **1 行已收口（第 8 行，浅色档）、8 行仍 0 张**。这一页的成因和监控页那种"有钩子没脚本"不同：**这里的 8 行缺的是钩子语义（HOLD / 零残留夹具 / 多 app 夹具 / 人工授权），不是缺脚本**，只有第 8 行那格属于"早就拍过、表没跟着改"。下一轮别照本表下结论，先按 §0 实机图那格的 63 张账对号〔P43c 复算：这句初稿写"54 张"，与 §0 两格同源，三处同轮已改为逐项枚举相加得到的 63；**P52b 现读：这一格与 §0 那两格是同一笔账，现已跟着走到 68 张**（新增 `p52-system-app` 5 张）。那一族拍的是"系统应用那一行详情面板与操作栏不给删除入口"，**不落在本表 9 行的任何一行里**——所以本表现读仍是 1 行收口、8 行仍 0 张，别把新增的 5 张算成某一行补上了〕。〕
 
 ## 6. 可注入档位映射（对照现有 5 个钩子）
 
@@ -223,6 +225,7 @@
 | 03c 提示卡（夹具态） | `MM_TRASH_FIXTURE_DIR=/tmp/...` `MM_TRASH_SCAN_HOME=/tmp/...` | 对应 `uninstaller-trash-notice.jpg`〔P43c：这张已有可重跑脚本的替代品 `docs/verification/p68-trash/01-trash-notice.png`＋同名 `.log`（旧图一字未动）〕 |
 | 03c 清理确认自动开 | 上组 + `MM_SHOW_TRASH_CONFIRM=1` | 需 `MM_TRASH_SCAN_HOME` 同时存在（B2 互锁） |
 | 03c 无权限横幅 | 钩子全关（默认无 FDA 态） | 对应 `uninstaller-no-fda-banner.jpg`〔P43c：同样有替代 `p68-trash/02-no-fda-banner.png`；这一档依赖本机 TCC 态，§12.4 已记它授权后不可重跑〕 |
+| 03 apps 本体只读（系统应用）＋可删态对照 | `MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/...` + `MM_UNINSTALL_SELECT=ApplePages\|PlainTool` +（`MM_UNINSTALL_CONFIRM_MODE` 未给 / `=none` 两档） | **P52b 新增的一档**，对应 `docs/verification/p52-system-app/` 那 5 张（§17.1）。钩子一枚没新增、互锁一条没改：这一档靠的是夹具里那个包标识（`com.apple.FixturePages`），不是新键 |
 
 > 所有 `/tmp` 钩子均按 `TrashWatcher.fixtureEnvironmentValue`（`TrashWatcher.swift:105`〔P43c 现读：该函数在 `TrashWatcher.swift:128`〕）口径：
 > 只认 `/tmp/` 或 `/private/tmp/` 之下，越界写 stderr 并忽略——本审计未新增任何夹具文件，如需补 B1/B2 之外的夹具，
@@ -338,9 +341,9 @@
 ## 10. P6.7 追加（2026-10-04）：取证脚本自己造了一条假凭据
 
 这一轮不拍新档，改的是**已有那条日志的可信度**。`MM_ORPHAN_FIXTURE_HOME` 那趟自动扫描
-（`runOrphanScan`，`MMUninstaller.swift:532`）过去在 `await model.scanOrphans(home:)` 之后
+（`runOrphanScan`，`MMUninstaller.swift:538`）过去在 `await model.scanOrphans(home:)` 之后
 **无条件**写一行「已用夹具目录 … 自动勾选并打开确认面板」。而 `scanOrphans` 在
-"应用清单还在枚举"或"清单为空"时是**静默 return** 的（`UninstallerModel.swift:618` 那道 guard）。
+"应用清单还在枚举"或"清单为空"时是**静默 return** 的（`UninstallerModel.swift:640` 那道 guard）。
 两件事叠起来的结果：扫描根本没跑，日志照样是绿的——取证脚本替夹具作伪证。
 
 改法两步（同一处，`Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift`）：
@@ -355,13 +358,13 @@
 `（1 条）`；指一棵空 home → `（0 条）`。两种都落到"打开了面板"，只有条数不同，
 正是这条日志要区分的东西。
 
-**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:237`）。
+**没改的**：`reloadListing()` 会把 `selectedAppID` 清成 nil（`UninstallerModel.swift:253`）。
 上一轮审计把它列为"`MM_APPS_WATCH_AUTO_SCAN` 会抹掉 `MM_UNINSTALL_SELECT` 的选中"，
 现读之后判定它**不是缺陷**：清单重新反映了磁盘，选中项可能已经不存在，留在旧 id 上是悬空引用；
-而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`MMUninstaller.swift:908`），
+而 `MM_APPS_WATCH_AUTO_SCAN` 那条链路的终点是 `pane = .orphans`（`MMUninstaller.swift:918`），
 拍的是后遗症页不是应用详情，两者不在同一屏。`runOrphanScan` 跑在
-`await model.reloadListing()` **之后**（`:877`→`:878`），`reloadListing` 落回时
-`apps` 已填（`UninstallerModel.swift:245`）、`isScanningApps=false`（`:265`），所以新加的那道前置判断不会在这条路上误报。
+`await model.reloadListing()` **之后**（`:887`→`:888`），`reloadListing` 落回时
+`apps` 已填（`UninstallerModel.swift:261`）、`isScanningApps=false`（`:281`），所以新加的那道前置判断不会在这条路上误报。
 
 ## 11. P6.7 追加：`MM_TRASH_FIXTURE_DIR` 被拒绝时现在会说清后果
 
@@ -550,7 +553,7 @@ regular 1）。注释是编译输入、进指纹，于是 `+e7579651` 变成 `+b
    出现 `head -1`；p31 自己不在其列，它已改走 `main_window_id`）。本轮只修了这一支。
 2. **07 交叉读出来的一句假话**：`runningBasis` 无论几档都在句尾拼「 两档都算『正在运行』」，
    而微信这一屏是**两个进程、同一档**（1276 是包内 wxplayer：包名报不出、位置报得出），
-   画面里没有任何"两档"可数。改成两档同时出现才拼这句（`MMUninstaller.swift:1505-1510`），
+   画面里没有任何"两档"可数。改成两档同时出现才拼这句（`MMUninstaller.swift:1515-1520`），
    合同 `03f-uninstaller-running.html` 三处同步，并补一条否证测试
    `RunningAppStatePresentationTests.testBothTiersSentenceOnlyWhenBothTiersArePresent`。
    这一句在旧照片上看不见——旧 07 拍的是磁盘分析页，而那一页根本没有这一行。
@@ -650,7 +653,7 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
    光路径 `~/Library/Application Support/Steam` 就有 **35 个字符**（`printf '%s' … | wc -c` 现读），
    接在"路径 · 证据"后面等于没写。改法是给 `ResidualItem` 加一个独立字段
    `caveat`（`ResidualScanner.swift:159`），由 `ResidualRow` 画在行下方
-   （`MMUninstaller.swift:1956-1991`，`.fixedSize(horizontal: false, vertical: true)`）。
+   （`MMUninstaller.swift:1989-2024`，`.fixedSize(horizontal: false, vertical: true)`）。
    **顺带把另一处截断分了性质**：1000 宽时身份头那行也是中间省略
    （`com.valvesoftware.Steam_re…/DnwjwO/Applications`），但它复述的包名与文件夹
    在下面各有一行完整的，所以那一处不藏判据——与 11a 不同性质，本轮不动它。
@@ -715,7 +718,7 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
 | 张 | 画面 | 它钉住的东西 |
 |---|---|---|
 | 01-fork-nested-downgraded | Fork / enhanced / 1400×1050 | 残留项 4，chip「2 项默认不勾选」，页脚「已选 2 项残留 · 3.1 MB」。**两条线索各占一行**：`Caches/IDEFoo/AssetsFork` 说「这一项本身归 AssetsFork（名称与包名对应）」，`Caches/IDEFoo/ts-go-fork-embedded` 说「上层目录归 IDEFoo」；同屏两条仍默认勾选的（`Caches/Fork` 硬证据、`Caches/ForkExtras` 包含匹配但两条线索都不成立）证明降级不是一刀切 |
-| 02-fork-narrow-window | 同一画面 / 1000×1050 | 提醒整句折成两行显示完，**一个省略号都没有**——这一条是"主人写 `caveat` 不写 `reason`"那个决定的实物（副标题是中间截断那一族，`MMUninstaller.swift:1965` + `MMDesign.swift:859-860`；提醒是 `fixedSize(vertical)`，`MMUninstaller.swift:1987`。**P46f 现读重指**：调用点此前本文写 1938、提醒写 1956——1938 是 P46e 那 27 行把它顶下去的旧值，而 1956 **在 HEAD 上就已经指偏**（那行是 `if let caveat`，`fixedSize` 在它下面第五行），这次一并改到 modifier 那一行） |
+| 02-fork-narrow-window | 同一画面 / 1000×1050 | 提醒整句折成两行显示完，**一个省略号都没有**——这一条是"主人写 `caveat` 不写 `reason`"那个决定的实物（副标题是中间截断那一族，`MMUninstaller.swift:1998` + `MMDesign.swift:859-860`；提醒是 `fixedSize(vertical)`，`MMUninstaller.swift:2020`。**P46f 现读重指**：调用点此前本文写 1938、提醒写 1956——1938 是 P46e 那 27 行把它顶下去的旧值，而 1956 **在 HEAD 上就已经指偏**（那行是 `if let caveat`，`fixedSize` 在它下面第五行），这次一并改到 modifier 那一行） |
 | 03-owner-app-unchanged | 选 IDEFoo | 主人自己名下两行一字不变：复核不许把别人的正确结论改坏 |
 | 04-assetsfork-hard-evidence | 选 AssetsFork | 那一条本来就走硬证据（「名称与包名对应（位于 IDEFoo 内）」），仍在安全组、仍默认勾选 |
 | 05-fork-strict-control | Fork / strict | 严格档只有 1 行：包含匹配按构造到不了这一档（单测 `testStrictTierHasNoContainmentHit` 是同一件事的另一侧） |
@@ -840,4 +843,83 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
   **而这一格写完之后再读一遍，三个数一字不动**（`docs/verification/p49-citations-final/audit.log`，
   `# repo: 530bda2-dirty`）：本节最后这几行只写文件名与"第 N 行"，不新增一条冒号形式的引用，
   所以它不该动分母——动了就是这格自己把数改错了。
+
+## 17. P52b 追加（2026-10-16）：系统应用那一行不再给删除入口，稿面欠一档
+
+本轮落的是 `uninstaller-app-body-risk.md` 的建议 1（判定 + 删除集合 + 三处入口 + 只读说明 + 9 条单测），
+开工前问定的口径是**代码先落地、稿账记在本文**：03 系设计稿这一轮一字未动。
+判定与实现侧的账在那份文档 §9，本文只管**稿面对照**这一侧：新增的证据族、人读到的画面、以及稿子欠的那一档。
+
+### 17.1 新增证据族 `docs/verification/p52-system-app/`：5 张 5 log
+
+脚本 `Scripts/p52-system-app-capture.sh`、夹具 `Scripts/p52-system-app-fixture.sh`（两行应用只差包标识前缀：
+`ApplePages` = `com.apple.FixturePages` / `PlainTool` = `com.example.PlainTool`，两边各放 8 B 名下残留）。
+钩子组合：`MM_UNINSTALL_CONFIRM_FIXTURE_HOME` + `MM_UNINSTALL_SELECT` + `MM_UNINSTALL_CONFIRM_MODE` +
+`MM_APPEARANCE=light` + `MM_WINDOW_SIZE`。五份 `.log` 头部同一个
+`# repo: d827d33-dirty` / `# digest: tree=d827d33+638fe6c9 app=d827d33+638fe6c9`——
+这一族是 P23b 那道当场拒拍门禁之后写的，所以"照片与二进制同源"这句话对它们**成立**
+（§0 实机图那格因此从四族变五族，见那里 P52b 那一笔）。
+
+| 档 | 点名 | `CONFIRM_MODE` | 画面（人读） | 钉住的东西 |
+|---|---|---|---|---|
+| 01 | ApplePages | 未给（默认 `appOnly`，会尝试自动开确认面板） | 详情面板：标题「残留 · 不会修改」、那句「系统自带应用不提供残留扫描：它的容器与偏好由系统管理，清掉也不会回收空间。」、一块「只读」徽标 + 「这是 Apple 提供的应用，仅供查看，MacMaster 不提供删除入口。」；**面板底部没有按钮、也没有「全选可删项」**；操作栏只剩「已选 0 项残留 · 0 字节 / 未勾选项不会被修改」，右侧两枚按钮整块不在 | 请求开面板也没开（与 03 那对像素一起钉，见 17.2）；三处入口一次收干净 |
+| 02 | PlainTool | 未给 | 确认面板弹出，键值六行 +「取消 / 仅卸载应用」 | 正向对照：同一份二进制、同一个钩子，非系统应用照旧走全流程 |
+| 03 | ApplePages | `none`（明确请求不开） | 与 01 同画面 | 01↔03 这一对是"缺席"的**对照组**：01 里"没有面板"不是因为脚本没生效 |
+| 04 | PlainTool | `none` | 「将一并移除的残留」+「全选可删项」+ 两枚按钮（破坏红 full-width + borderless）+ 操作栏「仅卸载应用」「移到废纸篓」 | 稿 03 画的那一屏在实现里仍然一字不差；只读态是它**缺**的一档，不是它画错了 |
+| 05 | ApplePages | `none`，`MM_WINDOW_SIZE=1000x1000` | 只读卡与那句"不扫"在窄档下换行、不截断、不溢出 | P26 那一族截断教训在新卡上没复发 |
+
+判据 **8 条全过**：5 ✓ 正向点名（每张 log 都要有 `已点名到 …/Applications/<app>.app` 那一行）
++ 3 ✓ 像素对。出片后脚本另追一句 `# post-shot: 两行应用仍在磁盘`——这一族没有任何删除动作。
+
+### 17.2 三对像素（口径 = 脚本自己那套，不是本文另起一尺）
+
+`ImageChops.difference` → 按通道取最大 → 直方图 → 数 `≥9/255` 的像素；内容区 = `x ≥ 218`（侧栏之外）。
+
+| 对照 | 判 | 全帧 | 内容区 | 最大幅度 |
+|---|---|---|---|---|
+| 01 ↔ 03 | `same` | 215 | **0** | 167 |
+| 02 ↔ 04 | `diff` | 1 295 221 | 1 078 429 | 217 |
+| 01 ↔ 04 | `diff` | 66 815 | 66 596 | 218 |
+
+**01↔03 内容区 0 个像素**是这一族的核心读数：01 让钩子去开确认面板、03 明确不开，两帧在页面里逐像素相同
+⟹ 那道 guard 一次也没让面板弹出来。那 215 个像素全在侧栏（`Macintosh HD` 那一格 4% vs 3%、
+系统清理行的体积数在两次跑之间自己补测变了），**不在这一屏的判定范围内**——
+这一格要写清，否则"内容区 0"会被读成"整帧 0"。
+02↔04 那 1 078 429 是"面板在不在"，它给 01↔03 那个零兜了底：钩子是活的。
+01↔04 那 66 596 是两帧都没有面板、只差详情面板与操作栏，也就是只读卡与两枚按钮的差。
+
+### 17.3 稿账：S9（本轮只提，没改稿）
+
+稿 `03-uninstaller.html` 的详情面板与操作栏只画了"本体可删"这一态。实现现在多出一态：
+选中行是 `com.apple.*` 时，两枚按钮（`MMUninstaller.swift:1903-1912`）与操作栏两枚（`:515` 那一格 `trailing`）
+一起收掉，换成一块只读卡（`:1914-1929`），残留那一节的标题也跟着分两话（`:1857`）。
+**要补的是这一档的稿面**，具体三问：① 只读卡的版式（现在复用 `MMColor.recessedSurface` + `MMBadge(risk: .readOnly)`，
+与残留层只读档同一套话）；② 操作栏在只读态要不要留一句占位、还是整块空着（实现现在是空着，只剩左侧 summary + note）；
+③ 列表行「系统应用」徽标（§1.2 那两格判 ✅ 的就是它）与只读卡同时出现时，稿面上要不要在列表行就给一句预告。
+
+编号只到 S9、**没有回填进 §3**：§3 标题那句「S · 7 条（S2–S8）」与抬头 blockquote 那句
+「12 项存在需归属的差异（高 0 / 中 2 / 低 10）」都是 P1 那一读的账，
+此后 §8/§9/§12/§13/§14/§15/§16 七轮各自追加也各自没动过这两个数（§5 表尾那格 P43c 已经把这件事点破过一次）。
+本轮照同一惯例：**只在 §1 那一行与本文这一节记，不重排 §1 表里 60 行的编号**。
+所以现读这份文档的口径是：§3 那 7 条 + §17.3 这 1 条 = 8 条待改稿，抬头那两格是历史快照。
+
+### 17.4 本轮顺带抓出的两处本文旧账
+
+- §1.3 那行「两个动作按钮」的锚 `:945-954` 早就不是那两枚按钮了（现读 `:1903-1912`），本格已按 P52b 改判并补锚。
+  同表相邻那行的 `confirmationNote` `:999` 同样漂着，**本轮没动它**：§2 第 2 条已经带着这条的活锚与落地记录，
+  而 §1 整张表在文档抬头就写明是"修复前的历史快照"——只补被本轮改判那一格，不做全表重指（那是独立的一轮，
+  同 `fidelity-optimizer.md` §1 那约 20 处的还法）。
+- §0 几何来源那格的证据族账（13 目录 / 63 张）与 §0 实机图那格、§5 表尾那格是同一笔数，本轮三处同轮改到 14 / 68：
+  新增的就是 `p52-system-app` 5 张。**这一族不落在 §5 那 9 行的任何一行里**，别把它算成某一行补上了。
+
+### 17.5 本轮三处归档的读数（写在这里是为了让本节能自己算账）
+
+- 测试结论行：`docs/verification/p52-tests/run-all-tests.log`（九包全绿，与 P50 那份逐格 `diff` 只差 MMUninstaller 一行；
+  总数与逐包分布的活数在 `release-readiness.md` §0/§1/§10 与 README，本文不抄）。
+- 引用门禁：`docs/verification/p52-citations/audit.log`，硬失败 0、条次 1490、唯一 1116、位置存疑 132，
+  与 P51a 尾跑（`docs/verification/p51-citations-tail/audit.log`，1472 / 1104 / 132）对差 +18 / +12 / **0**——
+  **存疑没涨**就是"本轮重指的那 24 对锚点对到了内容"的旁证，条次与唯一上涨是本轮新增实拍与判定层的引用带来的。
+- 照片归因：五份 `.log` 的 `# digest:` 全是 `d827d33+638fe6c9`，与跑测那棵树同一个数（后半截不是空流前缀，
+  两支源文件当时还没入库）；夹具与实拍脚本都入库（`Scripts/p52-system-app-fixture.sh`、`Scripts/p52-system-app-capture.sh`），
+  量尺另两支 `Scripts/p52-photo-diff.py`、`Scripts/p52-ref-verify.py` 同批。
 

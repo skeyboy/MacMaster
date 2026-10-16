@@ -783,7 +783,7 @@ P6.2c 留下的三处"仍未拍"（`scanerror`、活动卡 `empty`、§6.6.5）�
 逐行核过不成立——全仓 `removeItem`/`trashItem` 只有 `FileTrashService.swift:45,50` 两处（P47 现读重指，此前写 `:60,105`；那两个名字现在被挪进了 `eraseFromDisk`/`moveToFinderTrash` 两个静态方法，正是为了让复验能注入假动作），
 都是 `try` 并逐条回 `TrashFailure`；MMUninstaller / MMCleaner / UserFolderCleanView /
 SystemAnalysisView / MMDisk 五处界面都在渲染 `MMFailurePanel`。行号也是编的
-（`MMUninstaller.swift:1313` 不存在）。**0.1 三条判据均已满足**，不要据此立项。
+（`MMUninstaller.swift:1323` 不存在）。**0.1 三条判据均已满足**，不要据此立项。
 
 | # | 候选 | 外部证据（本地可读） | 现状 | 代价 | 红线 |
 |---|---|---|---|---|---|
@@ -1188,7 +1188,7 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
   `trashConfirmHook`、`reloadListing` 落回那两行——**门禁对它们一个字都没说**：
   它只匹配 `路径:行`，表里那些写裸 `:566-573` 的行它根本不去读。这一轮按"表既然动就整表现读"重指了，
   顺带纠正一处符号名：`fullDiskAccessPane` 从来不存在，真实取用的是 `MMSettingsPane.fullDiskAccess`
-  （定义 `SystemSettings.swift:18`，横幅取用 `MMUninstaller.swift:1110`，深链拼接 `MMDesign.swift:519`）。
+  （定义 `SystemSettings.swift:18`，横幅取用 `MMUninstaller.swift:1120`，深链拼接 `MMDesign.swift:519`）。
   **同一个符号名在别的文档面还有副本**：`trash-watch-fda.md` 第 52 行与 `fidelity-cleaner.md` 第 79 行
   （后者引 `MMDesign.swift:447-477` 指 `MMPermissionBanner`，现读那一段是 `MMEmptyState`，banner 在 `483-513`），
   两处同轮改掉；剩下 116 条"位置存疑"本轮没有逐条收，那是另一轮的活。
@@ -1295,7 +1295,7 @@ A 档呈现在磁盘页面包屑条那枚徽标（文案合同 `DiskVolumeBadgeC
 | ② 不塞进 `AppProvenance.Source` | 那个枚举**一个字未动**（仍五档）；界面上是 `MMKeyRow("启动器", …)` + 标题徽章 + 列表行 chip | `SteamLauncherPresentationTests` 5 条（含禁词表）；照片 01–05、09 |
 | ③ 措辞合同 | 依据两句：凭据 + "量的就是启动器本身"；收尾从"也说不出它们在哪"改成"只读了这份启动脚本、没按游戏逐个认" | 禁词表新增"说不出它们在哪"（本轮真实越界那一句）；照片 01 与 06 对读 |
 | ④ 反向那一条（**只取"改措辞"档**） | `ResidualItem.caveat` 独立字段 + `ResidualCollector.add` 唯一收口点判定 + `ResidualRow` 行下方独立一行 | `ResidualCollectorSteamTests` 5 条；照片 06（1400 宽）、08（同屏另一条候选不加字）、11（1000 宽整句）、**11a（修复前被省略号吃掉的判据档）** |
-| ⑤ 敏感度钩子 | `MM_UNINSTALL_SENSITIVITY`（`UninstallerModel.swift:184`），档位名与界面选择器同源；非法值回落 strict + stderr 留痕 | `ResidualSensitivityTests`；照片 07/08/09/10 |
+| ⑤ 敏感度钩子 | `MM_UNINSTALL_SENSITIVITY`（`UninstallerModel.swift:200`），档位名与界面选择器同源；非法值回落 strict + stderr 留痕 | `ResidualSensitivityTests`；照片 07/08/09/10 |
 | ⑥ `1.0 ()` 版本口径 | **未动**（与本族无关，另开一格） | 本轮**又在这族照片上看见它一次**：`03-plain-tool-control.png` 的 PlainTool 就是「版本 1.0 ()」，而同一张上五份 Steam 夹具是 `1.0 (1)`——同一缺陷两档并存，一个字没改 |
 
 **没做的那半条，是人还没拍板而不是漏了**：§5 第 4 条给了两档，本轮只走"改措辞"（呈现层）。
@@ -1468,7 +1468,7 @@ MMMonitor 57 → **85**，九包 **792 / 0 / 1**，结论行入库 `docs/verific
 
 **6. 默认分支与已发版本从这一轮起分家**：`RELEASE-NOTES.md` 里那两处 764 属于 `v1.0.1` 的范围、
 **不是漏改**；文档里的"当前值"从此是 792，两个口径都要写（判据与理由在 `release-readiness.md` §7.29）。
-**下一轮看到 792 与 764 并存时先按这一条判它是分家还是漏改，别直接改数字。**〔**P50 现读 2026-10-16**：这一条自己按"从此"写，所以它是活数、不在史账豁免里——"当前值"已经走到 **834**（P44 +7、P46 +28、P47 +7，逐格读数在 `docs/verification/p50-tests/run-all-tests.log`，对差账在 `release-readiness.md` §1 末尾的 P50 括注）。"两个口径"这件事仍然成立，只是今天读作 834 / 764；本轮按这条判据又去核了 `RELEASE-NOTES.md` 那两处 764，它们仍属 `v1.0.1` 的范围，**一字未动**。〕
+**下一轮看到 792 与 764 并存时先按这一条判它是分家还是漏改，别直接改数字。**〔**P50 现读 2026-10-16**：这一条自己按"从此"写，所以它是活数、不在史账豁免里——"当前值"已经走到 **834**（P44 +7、P46 +28、P47 +7，逐格读数在 `docs/verification/p50-tests/run-all-tests.log`，对差账在 `release-readiness.md` §1 末尾的 P50 括注）。"两个口径"这件事仍然成立，只是今天读作 834 / 764；本轮按这条判据又去核了 `RELEASE-NOTES.md` 那两处 764，它们仍属 `v1.0.1` 的范围，**一字未动**。〔**P52b 现读 2026-10-16**：它还是活数——当前值那一头又抬一轮，834 → **843**（+9 全在 MMUninstaller，P50 与 P52b 两份归档逐格 `diff` 只差那一格），今天读作 **843 / 764**；`RELEASE-NOTES.md` 那两处 764 照旧不动。〕
 
 **7. 本轮踩到的两条口径坑**（都改回来了，形状记在这里）：
 ① `git diff --stat` 中间那列是**增删之和**，`--numstat` 才是 +a/−b——拿 11 和 2 当净增会把 +304 算成 +312。

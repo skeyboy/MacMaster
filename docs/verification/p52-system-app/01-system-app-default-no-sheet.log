@@ -1,0 +1,11 @@
+# p52-system-app-capture.sh 01-system-app-default-no-sheet  2026-10-16 15:17:36 +0800  app=/tmp/mm-app-p52/MacMaster.app  fixture=/tmp/macmaster-p52-fixture.tyodTU
+# repo: d827d33-dirty   # app-repo: d827d33-dirty
+# digest: tree=d827d33+638fe6c9 app=d827d33+638fe6c9
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_WINDOW_SIZE=1400x1000 MM_UNINSTALL_SELECT=ApplePages MM_UNINSTALL_CONFIRM_MODE 未给（默认 appOnly，会尝试自动开确认面板）
+# 夹具残留：com.apple.FixturePages 名下 8 B，com.example.PlainTool 名下 8 B
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p52/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_UNINSTALL_SELECT=ApplePages 已点名到 /private/tmp/macmaster-p52-fixture.tyodTU/Applications/ApplePages.app
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# windows(pid=87660): windowid=13287 pid=87660 layer=0 title=MacMaster bounds=["Height": 1000, "Width": 1400, "Y": 43, "X": 284]
+# post-shot: 两行应用仍在磁盘（本族没有删除动作）
