@@ -156,8 +156,14 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
   裸写的第二处调用点、`fixedSize` 那一行（HEAD 上就指着 `if let caveat`，差五行）、以及 `AppScanner` 那笔锚点债
   （字面量清单 P46c 之后在 `Packages/MMUninstaller/Sources/MMUninstaller/AppScanner.swift:45-46`，此前本文记的那一格是它搬家前的位置）。
   **这一条就是上面那句「机械位移修不了引用起点」的实物**：门禁只兜得住"落到空行/越界"那两种，指偏的必须打开那一行重读。
+  三份报告都归档在 `docs/verification/p46-url/audit-first-red.log`、`audit-final.log`、`audit-postcommit.log`——
+  红的这一跑也留着，只留绿的那份等于把这一轮最难看的一步藏起来。
 - 候选产物 `/tmp/mm-app-p46/MacMaster.app`，`# digest` 两侧同 `0806189+440da29a`。
-  **提交号本轮不自报**：这一节写在提交之前，`0806189` 是本文分析时那一份 HEAD，下一轮按现读回填。
+- **提交号回填（同轮末尾，提交之后现读）**：本批落地在 `4b55495`。提交让 `mm_source_digest` 读成
+  `4b55495+e3b0c442`——后半截落到空流前缀是配方的既定行为（与 P25/P28/P30/P35b 那几份 `+e3b0c442` 同一支），
+  **不是照片失效**：`git diff 0806189 4b55495 --binary -- Sources Packages Resources Package.swift ':(exclude)Packages/*/Tests/**'`
+  现算仍是 `440da29a`，与那八张照片日志里 `# digest` 的后半截逐字相同，说的就是同一批编译输入。
+  下一轮取证前须先 `./Scripts/make-app.sh` 重建，否则同源门会当场拒拍。
 
 ### 1. §1 正向闸 —— 已落地（P46b）
 
