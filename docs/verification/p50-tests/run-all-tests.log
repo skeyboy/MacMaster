@@ -1,0 +1,35 @@
+# ./Scripts/run-all-tests.sh   2026-10-16 12:35:05 → 12:36:07 +0800（逐包原始日志的 mtime 区间；stdout 落盘 12:36:07）
+# repo: 530bda2（跑测那一刻的 HEAD，是 P49 那两个提交里的第一个；此后只提交过 docs/，编译输入一字未改）
+# digest: 归档时现算 tree=e3604ce+e3b0c442。后半截 e3b0c442 是空流前缀，意思是"P49 那笔源码改动已全部入库、
+#   工作树与 HEAD 在编译输入上没有差异"；跑测当时算也是同一个后半截（前缀那一段随 HEAD 走，内容这一段不动）。
+MMCore         XCTest=114  swift-testing=0   skipped=0  该包失败=no
+MMUI           XCTest=17   swift-testing=0   skipped=0  该包失败=no
+MMFileScanner  XCTest=117  swift-testing=0   skipped=0  该包失败=no
+MMCleaner      XCTest=25   swift-testing=0   skipped=0  该包失败=no
+MMUninstaller  XCTest=217  swift-testing=0   skipped=0  该包失败=no
+MMDisk         XCTest=85   swift-testing=0   skipped=1  该包失败=no
+MMMonitor      XCTest=92   swift-testing=0   skipped=0  该包失败=no
+MMGuardian     XCTest=96   swift-testing=0   skipped=0  该包失败=no
+MMOptimizer    XCTest=71   swift-testing=0   skipped=0  该包失败=no
+
+合计：834 个测试，0 个失败，1 个跳过
+逐包原始输出：/tmp/macmaster-tests/<pkg>.log
+# 上面这九行与合计那一行不是手敲的：拿 Scripts/run-all-tests.sh 里那段同一口径的取数
+#   （`grep -A1 "Test Suite 'All tests' (passed|failed)" | grep -m1 Executed` + 三条 sed + swift-testing 那一支），
+#   跑在 /tmp/macmaster-tests/<pkg>.log 那九份原始日志上重抽一遍，逐位对过才写的。
+#   规矩还是 P21 起那一条：结论行入库、逐包原始输出留 /tmp。
+# 本轮动机：§1 的抬头（测试总数）在 P47 已由 792 改成 834，但 §1 那段逐包分布还停在 P37c 那一读——
+#   求和 792，并且主张「与合计那一格一致」。这正是本文自己定义的"活数与史账分家"，只不过这次分在同一篇文档的两段里。
+#   §0 那一格、§6 壳层那一格、§10 第 1 步的期望值与 README 那三格同样停在 792。
+# 与 P37c 归档那份（docs/verification/p37-battery/run-all-tests.log）逐格对差：
+#   两侧九行都先剥行尾空格再 diff（脚本每行结论后面本来就带一个空格），**输出就是三行不同**：
+#   MMCore 96 → 114、MMUninstaller 200 → 217、MMMonitor 85 → 92；其余六格逐字相同。
+#   三笔相加 +42，与总数 792 → 834 逐位相等——这就是"没有第四个包被顺带改过测试"的自证。
+#   这三笔的成因按提交现查（`git show <c> -- Packages/<pkg>/Tests` 里数新增的 `func test`）：
+#   P44 969658f MMMonitor +7 → 799；P46 4b55495 MMCore +11 与 MMUninstaller +17 → 827
+#   （归档 docs/verification/p46-url/run-all-tests.log 那一读：八格与本轮逐字相同，只有 MMCore 107 → 本轮 114）；
+#   P47 95ca21a MMCore +7 → 834。三轮都往 */Tests/ 里插了判据，却没有一轮回 §1 这一段九格。
+# 一句话把病灶说准：**读数一直存在，缺的是正文**——P46、P47 那两份归档里九格本来就是齐的
+#   （P47 那份就是 114 / 17 / 117 / 25 / 217 / 85 / 92 / 96 / 71），所以这一轮不是"没人跑过"，
+#   是"跑过、入了库、没抄回正文那两段与 §0/§10/README"。上面那三笔对差因此是按两份归档比出来的，
+#   提交号只用来回答"哪一轮涨的"这一个问句。
