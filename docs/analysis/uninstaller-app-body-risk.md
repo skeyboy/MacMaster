@@ -472,6 +472,8 @@ P52b 之前没有任何一层拦住那三条，今天拦住它们的是上面那
 - `Scripts/p53-cross-volume-capture.sh`（477 行，五档：01/02 卸载页 + 03/04/05 概览同一张卡）：
   钩子组合 `MM_UNINSTALL_CONFIRM_FIXTURE_HOME` + `MM_UNINSTALL_SELECT` + `MM_UNINSTALL_CONFIRM_MODE=none` +
   `MM_UNINSTALL_SELF_ECHO=1`，`MM_APPEARANCE=light`，概览页 `MM_WINDOW_SIZE=1400x1100`。
+  （这一族收口时又补了一笔：脚本里"产物不同源时怎么重建"那句提示的 scratch 目录名是从 P52 那支抄来的，
+  照它跑会和上一族撞名——实跑用的是 `/tmp/mm-scratch-p53`。所以本批不止一个提交。）
 - **这一族会往用户真实的删除历史台账里写一条**，躲不掉：原本想用 `HOME=/tmp/…` 把进程隔到假 home，
   实测**无效**——Foundation 在 `.userDomainMask` 这一路不认 `HOME`（`env HOME=… swift` 探出来仍是
   `NSHomeDirectory=/Users/lee`）。代价压成两条：跑前 `pgrep -x MacMaster` 有别的实例就整族不跑
