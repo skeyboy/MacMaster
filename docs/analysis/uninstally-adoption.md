@@ -208,6 +208,11 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 理由是「本机没有第二块可挂载的非启动卷」。**P49 把这一条的理由推翻了**：`hdiutil create -fs APFS` 造出来的镜像卷
 就是第二块可挂载的非启动卷，`AppScanner` 那条枚举认它、卸载页列它、详情面板写着所在文件夹——七档实拍与判据在
 `docs/verification/p49-external-volume/`，验收那句今天算是跑成了；夹具档 `VolumeFixtureTier.two` 从此只是与实拍对账的一档。
+**P53 接着量了本文第 82 行那句括号里的"拔盘即失效"**（三条读数与照片见 `docs/analysis/uninstaller-app-body-risk.md` §10）：
+本体在第二块卷上时 `trashItem` 的落点就是那块卷自己的 `.Trashes/<uid>/`（台账 `trashPath` 与卷内 `du -sk` 双向对上，
+都不在用户的 `~/.Trash`），拔掉盘之后「最近操作」那一行的「撤回」按钮换成「废纸篓已清空」徽标、把盘重挂又变回按钮。
+所以"失效"这一半是真的，但那句徽标是假话——全程没人倒过垃圾；建议 2 的合同句要按这两条实测写，
+不是照抄"拔盘即失效"那四个字。
 
 ### 4. 落地顺序第 3 条 `noteFileSystemChanged` —— 改判：不采纳
 

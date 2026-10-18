@@ -823,6 +823,8 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
 - **仍然欠的**：`.component` 风险档、外接卷 `caution` 分档（`uninstally-adoption.md` §3 那两条决策门）
   本轮一条没做；01 那张里"残留 0 项"是那个 plist-only 应用的真实形状，不是"残留引擎在外接卷上失灵"的证据——
   那条要量得往卷里放真 bundle，另开一轮。
+  （P51a 之后这三句要分开读：那两条决策门被拆成三条建议、建议 1 已由 P52b 落地、建议 2 的前置实拍已由 P53 量掉，
+  逐条账在 `docs/analysis/uninstaller-app-body-risk.md` §4 与 §9–§10。这一句里今天还欠的只剩稿面与授权。）
 - **引用门禁四跑**：`./Scripts/p16-citation-audit.sh` 落到 `docs/verification/p49-citations{,-v2,-v3,-v4}/audit.log`，
   硬失败 **2 → 1 → 0 → 0**（前两跑那三条全是本轮自己造成的：注释改动净 +6/+7 行，把从前写在第 237/252 行与
   第 1193/1251 行那两处旧锚顶漂了，现读重指到第 243/258、第 1200/1258 行以后归零）；引用条次 **1 434**，四跑同一个数——本轮只挪号没增删引用。

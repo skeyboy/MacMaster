@@ -1,0 +1,13 @@
+# p53-cross-volume-capture.sh 02-uninstall-self-echo-delete  2026-10-18 11:14:52 +0800  app=/tmp/mm-app-p53/MacMaster.app
+# repo: f7bad50-dirty   # digest: tree=f7bad50+9a0d5ed8 app=f7bad50+9a0d5ed8
+# 卷：/private/tmp/mm-p53-mnt（/dev/disk13s1）｜主目录卷：/dev/disk3s1｜挂载行：/dev/disk13s1 on /private/tmp/mm-p53-mnt (apfs, local, nodev, nosuid, journaled, noowners, nobrowse, mounted by lee)
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_WINDOW_SIZE=1400x1000 MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/private/tmp/mm-p53-mnt MM_UNINSTALL_SELECT=AaaP53CrossVolume MM_UNINSTALL_CONFIRM_MODE=none MM_UNINSTALL_SELF_ECHO=1 WAIT_DELETE=1
+# 台账（拍前）：sha=32184eb08adce992 条目=13 字节=6991
+# 期望：self-echo 真删一次：那一行从列表消失、底部出现 15 秒「移入废纸篓」toast
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p53/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_UNINSTALL_SELECT=AaaP53CrossVolume 已点名到 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# 删除等待：2s（本体已从卷上消失 = 是）
+# windows(pid=25662): windowid=190 pid=25662 layer=0 title=MacMaster bounds=["X": 291, "Width": 1400, "Y": 43, "Height": 1000]
+# 台账（拍后）：sha=b0522251df767597 条目=14 字节=7307
