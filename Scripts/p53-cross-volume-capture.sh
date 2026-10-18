@@ -84,7 +84,7 @@ source "$(dirname "$0")/mm-provenance.sh"
 if ! mm_provenance_check "$PWD" "$APP"; then
   print -u2 -- "⚠ 产物与当前源码树不同源，这一族一张都不出："
   mm_provenance_line >&2
-  print -u2 -- "  先 ./Scripts/make-app.sh -o /tmp/mm-app-p53 -s /tmp/mm-scratch-p52 重新构建再取证。"
+  print -u2 -- "  先 ./Scripts/make-app.sh -o /tmp/mm-app-p53 -s /tmp/mm-scratch-p53 重新构建再取证。"
   exit 4
 fi
 
