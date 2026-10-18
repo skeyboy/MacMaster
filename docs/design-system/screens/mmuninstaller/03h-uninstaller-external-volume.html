@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:24px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px;align-items:center}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:var(--win-w)}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.win{height:auto}
+.split{flex:1;min-height:0;display:flex}
+.applist{width:268px;flex:0 0 268px;border-right:1px solid var(--c-separator);display:flex;flex-direction:column;background:var(--c-content-bg)}
+.applist .srch{padding:var(--sp-2) var(--sp-3);border-bottom:1px solid var(--c-separator);display:flex;gap:var(--sp-2)}
+.arow{display:flex;align-items:center;gap:var(--sp-3);min-height:56px;padding:0 var(--sp-3);
+      border-bottom:1px solid var(--c-separator);cursor:default}
+.arow.sel{background:var(--c-accent-soft)}
+.arow .ic{width:32px;height:32px;border-radius:8px;flex:0 0 32px;display:grid;place-items:center;
+          color:#fff;font-size:12px;font-weight:700;letter-spacing:-.3px}
+.arow .m{display:flex;flex-direction:column;gap:1px;min-width:0}
+.arow .m b{font-weight:500;font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arow .m span{font-size:var(--fs-caption);color:var(--c-label-secondary);font-family:var(--font-mono);
+              display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden}
+/* 两枚 chip 时那一行放不下"chip + 版本 + 大小"：稿面量（1100px 窗口，CSS px）——
+   .applist 列宽 268，第二行可用 138；两枚 chip 占 70~76，「· 大小」占 ~40，
+   留给版本号只剩 4.21 / 9.93px，而 "2.1" / "0.13" 要 18 / 24px。
+   所以实现那轮不是"截断"而是整段看不见。稿面决定见画板 1 说明：两枚 chip 时版本号不画。 */
+.arow .m span em{font-style:normal}
+.arow .m span .sz{flex:0 0 auto}
+.arow .z{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:var(--fs-callout);white-space:nowrap}
+.arow .z small{display:block;font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+/* 一枚 chip 三档色：brew 蓝（账本失真）、运行中橙（进程还活着）、外接卷中性（落点在别处）。
+   中性这一档是本轮的稿面决定，理由见画板 1 的说明——橙色是"这件事有代价"的专用色。 */
+.src{display:inline-flex;align-items:center;height:16px;padding:0 5px;border-radius:var(--r-xs);
+     font-size:10px;font-weight:700;font-family:var(--font-mono);letter-spacing:.2px;flex:0 0 auto}
+.src.brew{background:var(--c-accent-soft);color:var(--c-accent)}
+.src.run{background:var(--c-warning-soft);color:var(--c-warning)}
+.src.ext{background:var(--c-neutral-soft);color:var(--c-label-secondary)}
+.detail{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--c-content-bg)}
+.dsec{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3);overflow:hidden}
+.dsec+.dsec{border-top:1px solid var(--c-separator)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-2)}
+.cards .c{border:1px solid var(--c-separator);border-radius:var(--r-sm);padding:var(--sp-2) var(--sp-3);
+          display:flex;flex-direction:column;gap:2px;background:var(--c-card-bg-alt)}
+.cards .c i{font-style:normal;font-size:var(--fs-caption);color:var(--c-label-secondary)}
+.cards .c b{font-family:var(--font-mono);font-size:var(--fs-title3);font-weight:500}
+/* 详情面板本轮不加第三块色块（03f 那种 .runstate 形态）：位置事实「基本信息」已经给了，
+   缺的那句在确认面板说。只有「所在文件夹」那一行的值淡染一格，不引入新令牌。 */
+.kv dd.onvol{background:var(--c-neutral-soft);border-radius:var(--r-xs);padding:0 4px}
+.dialog{width:420px}
+.dialog .fine{font-size:var(--fs-caption);color:var(--c-label-secondary);margin:0;line-height:1.55}
+.dialog .callout{display:flex;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);
+                 background:var(--c-warning-soft);color:var(--c-warning);
+                 font-size:var(--fs-caption);line-height:1.55}
+.dialog .acts{align-items:center}
+/* 同一屏叠两块：版式同一（cautionNotice），中间只留 6pt，不合并成一块。 */
+.stack{display:flex;flex-direction:column;gap:6px}
+/* 概览页「最近操作」那一行的三态。宽度按实现那侧那张卡的量（MMCard ~330pt）。 */
+.ovcard{width:460px;background:var(--c-card-bg);border:1px solid var(--c-separator);border-radius:var(--r-md);
+        overflow:hidden;box-shadow:var(--shadow-pop)}
+.ovcard .hd{display:flex;align-items:center;padding:8px var(--sp-3);border-bottom:1px solid var(--c-separator);
+            background:var(--c-card-bg-alt);font-size:var(--fs-headline);font-weight:600}
+.ovcard .hd small{margin-left:auto;font-weight:400;color:var(--c-label-tertiary);font-size:10px}
+.ovrow{display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);height:44px}
+.ovrow+.ovrow{border-top:1px solid var(--c-separator)}
+.ovrow .tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ovrow .tx b{font-weight:500;font-size:var(--fs-callout)}
+.ovrow .tx span{font-size:var(--fs-caption);color:var(--c-label-tertiary)}
+/* 三档文案合同 */
+.matrix{display:grid;grid-template-columns:150px 1fr;gap:1px;background:var(--c-separator);
+        border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:920px}
+.matrix>div{background:var(--c-card-bg);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption)}
+.matrix .h{background:var(--c-card-bg-alt);font-weight:600;color:var(--c-label-secondary)}
+.matrix .k{font-family:var(--font-mono);color:var(--c-label-secondary)}
+.matrix .v{display:flex;flex-direction:column;gap:5px}
+.matrix .v .line{font-family:var(--font)}
+.matrix .v .mono{font-family:var(--font-mono)}
+.matrix .v .sub{color:var(--c-label-tertiary);line-height:1.55}
+/* 后端配合清单：同一把尺，左列是缺口，右列是"今天有什么 / 要什么" */
+.gaps{display:grid;grid-template-columns:150px 1fr;gap:1px;background:var(--c-separator);
+      border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:920px}
+.gaps>div{background:var(--c-card-bg);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption);line-height:1.55}
+.gaps .h{background:var(--c-card-bg-alt);font-weight:600;color:var(--c-label-secondary)}
+.gaps .k{color:var(--c-label-secondary);font-weight:600}
+.gaps .v{display:flex;flex-direction:column;gap:4px}
+.gaps .v .now{color:var(--c-label-tertiary)}
+.gaps .v code{font-family:var(--font-mono)}</style></head>
+<body>
+
+<!-- ───────────── 画板 1：列表行那枚「外接卷」+ 详情面板 ───────────── -->
+<div class="artboard">
+<div class="win mm-screen">
+  <div class="titlebar">
+    <div class="traffic"><i style="background:#FF5F57"></i><i style="background:#FEBC2E"></i><i style="background:#28C840"></i></div>
+    <div class="row-h" style="gap:6px;margin-left:6px">
+      <svg class="i i-18" style="color:var(--c-accent)"><use href="#i-sparkles"></use></svg><span class="t-headline">MacMaster</span></div>
+  </div>
+  <div class="body-row">
+    <aside class="sidebar">
+      <div style="padding:10px var(--sp-3) 6px;font-size:var(--fs-caption);color:var(--c-label-tertiary);letter-spacing:.4px">功能模块</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-gauge"></use></svg>概览</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-sparkles"></use></svg>系统清理</div>
+      <div class="nav-item active"><svg class="i ic"><use href="#i-app-x"></use></svg>应用卸载</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-treemap"></use></svg>磁盘分析</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-activity"></use></svg>系统监控</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-shield-check"></use></svg>隐私守护</div>
+      <div class="nav-item"><svg class="i ic"><use href="#i-speed"></use></svg>系统优化</div>
+      <div class="sidebar-footer" style="margin-top:auto">
+        <div class="vol-line">
+          <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-disk"></use></svg>
+          <span class="nm t-cap">Macintosh HD</span><span class="pct">6% 可用</span></div>
+        <div class="vol-bar low"><i style="width:94%"></i></div>
+        <button class="foot-btn"><svg class="i"><use href="#i-gear"></use></svg>设置</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <div class="title-block"><h1>应用卸载</h1><p>44 个应用 · 合计 62.4 GB · 大小已实测</p></div>
+        <div class="sp"></div>
+        <div class="seg"><span class="on">已装应用</span><span>卸载后遗症</span></div>
+        <div class="seg"><span class="on">严格</span><span>增强</span><span>深度</span></div>
+        <span class="btn sm"><svg class="i"><use href="#i-refresh"></use></svg>重新载入</span>
+      </div>
+
+      <div class="split">
+        <div class="applist">
+          <div class="srch"><span class="field" style="flex:1"><svg class="i"><use href="#i-search"></use></svg>搜索应用…</span></div>
+          <div style="flex:1;overflow:hidden">
+            <div class="arow sel"><span class="ic" style="background:#8E8E93">Aa</span>
+              <div class="m"><b>AaaP53CrossVolume</b><span><i class="src ext">外接卷</i>1.0 · 8 KB</span></div>
+              <div class="z">1 项残留<small>9 B</small></div></div>
+            <div class="arow"><span class="ic" style="background:#8E8E93">Bb</span>
+              <div class="m"><b>BbbExtVolume</b><span><i class="src ext">外接卷</i><i class="src run">运行中</i><em class="sz">12 MB</em></span></div>
+              <div class="z">0 项残留<small>—</small></div></div>
+            <div class="arow"><span class="ic" style="background:#5E5CE6">Hh</span>
+              <div class="m"><b>HhExtCask</b><span><i class="src ext">外接卷</i><i class="src brew">brew</i><em class="sz">38 MB</em></span></div>
+              <div class="z">2 项残留<small>1.8 MB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#07C160">Wx</span>
+              <div class="m"><b>WeChat</b><span><i class="src run">运行中</i>4.1.6 · 892 MB</span></div>
+              <div class="z">6 项残留<small>1.24 GB</small></div></div>
+            <div class="arow"><span class="ic" style="background:#3E8EF7">Ce</span>
+              <div class="m"><b>CodeEdit</b><span>0.3.6 · 46.8 MB</span></div>
+              <div class="z">5 项残留<small>3.9 MB</small></div></div>
+          </div>
+          <div style="padding:var(--sp-2) var(--sp-3);border-top:1px solid var(--c-separator)">
+            <span class="t-cap">44 个应用 · 已测 44</span></div>
+        </div>
+
+        <div class="detail">
+          <div class="dsec">
+            <div class="row-h" style="gap:var(--sp-3)">
+              <span class="ic" style="width:38px;height:38px;border-radius:9px;background:#8E8E93;display:grid;place-items:center;color:#fff;font-weight:700">Aa</span>
+              <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                <span class="row-h" style="gap:var(--sp-2)"><span class="t-title2">AaaP53CrossVolume</span>
+                  <span class="badge readonly">外接卷</span></span>
+                <span class="t-mono ter" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">local.mmvolume.aaap53crossvolume.p53 · 8 KB · /private/tmp/mm-p53-mnt/Applications</span></div>
+              <div style="margin-left:auto" class="row-h"><span class="btn sm"><svg class="i"><use href="#i-folder"></use></svg>打开所在文件夹</span></div>
+            </div>
+            <div class="cards">
+              <div class="c"><i>应用大小</i><b>8 KB</b></div>
+              <div class="c"><i>包含文件</i><b>3</b></div>
+              <div class="c"><i>残留大小</i><b>9 B</b></div>
+              <div class="c"><i>残留项</i><b>1</b></div>
+            </div>
+          </div>
+
+          <div class="dsec">
+            <span class="section-title">基本信息</span>
+            <dl class="kv" style="margin:0">
+              <dt>来源</dt><dd>无法判定</dd>
+              <dt>包名</dt><dd>local.mmvolume.aaap53crossvolume.p53</dd>
+              <dt>版本</dt><dd class="plain">1.0 (1)</dd>
+              <dt>可执行文件</dt><dd>AaaP53CrossVolume</dd>
+              <dt>所在文件夹</dt><dd class="onvol">/private/tmp/mm-p53-mnt/Applications</dd>
+            </dl>
+          </div>
+
+          <div class="dsec" style="flex:1;min-height:0">
+            <div class="row-h"><span class="section-title">将一并移除的残留</span>
+              <div style="margin-left:auto"></div><span class="t-cap">按包名与容器证据匹配 · 不含其他应用共享文件</span></div>
+            <div class="row-h" style="margin-top:auto;gap:var(--sp-2)">
+              <svg class="i" style="color:var(--c-label-tertiary)"><use href="#i-info"></use></svg>
+              <span class="note">卸载会把 AaaP53CrossVolume 移到废纸篓，可在 15 秒内或「最近操作」中撤回。</span></div>
+            <div class="row-h" style="gap:var(--sp-2)">
+              <span class="btn destructive lg" style="flex:1">卸载应用并移除勾选的残留</span>
+              <span class="btn borderless sm">仅卸载应用，保留所有残留</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actionbar" style="height:46px;flex-basis:46px">
+        <div class="sum" style="flex-direction:row;gap:6px;align-items:baseline">
+          <b style="font-size:var(--fs-body)">已选 0 项残留 · —</b>
+          <span>未勾选项不会被修改</span></div>
+        <div style="margin-left:auto"></div>
+        <span class="btn sm">仅卸载应用</span>
+        <span class="btn destructive lg">移到废纸篓</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="cap"><b>03h · 应用卸载 —— 应用装在另一块卷上（建议 2 的稿面，P54）。第一块：列表行 + 详情面板。</b>
+  这一稿<b>没有实机对应物</b>：建议 2 的代码一行未落地（落地要单独授权），所以画板就是本轮唯一的现状，
+  不做「稿 ↔ 实机」对照。画板里的<b>字面读数</b>只有三样来自 P53 实拍：那条应用的挂载点与
+  <code>/Applications</code> 路径、8 KB（台账 <code>size=8192</code> 与卷内 <code>du -sk</code> 双向对上那一个数）、
+  「1 项残留 · 9 B」（照片 01 那一行）；其余（44 个应用、62.4 GB、下面四行的名字与大小与残留数）是稿面填充，<b>不是读数</b>。
+  <b>chip 占这一格的理由</b>沿用 03f 那一条：它会改变你接下来要做的事——不是"先退出"，而是"删完别急着拔盘"。
+  <b>色用中性（<code>--c-neutral-soft</code> + 次级文字色，也就是 <code>.badge.readonly</code> 那一档），不用橙</b>：
+  橙色在这张列表里已经是"这件事有代价"的专用色（运行中、疑似 brew 都占它），
+  再来一枚橙会把那两条冲淡；而外接卷这条的真正代价要说在确认面板里，不靠颜色喊。
+  <b>两枚、三枚并存时谁让步</b>：这一行今天已经有四样东西抢宽度，chip 是 <code>fixedSize()</code> 不折不断，
+  大小有 <code>layoutPriority(1)</code>，能缩的只剩版本号（现状即尾截断）。
+  <b>稿面量（1100px 窗口、CSS px，不是实机量）</b>：<code>.applist</code> 那一列 268，第二行可用 <b>138</b>；
+  一枚 chip（41）+「版本 · 大小」放得下，就是画板第一行那个样子；两枚 chip 占掉 70~76，
+  「 · 大小」再占 ~40，留给版本号只剩 <b>4.21 / 9.93</b>px，而 <code>2.1</code> / <code>0.13</code> 要 18 / 24px——
+  <b>这不是"截断"，是整段看不见</b>。所以这一稿的决定是：<b>两枚 chip 并存时版本号直接不画</b>，
+  画板里那两行（外接卷 + 运行中 / 外接卷 + brew）就是按这条画的，一枚 chip 都不撤。
+  版本号没有丢：详情面板「基本信息 → 版本」那一行一直在，列表行这一格让给"会改变你接下来做什么"的那两枚。
+  <b>让步顺序：chip ＞ 大小 ＞ 版本号</b>；万一三枚 chip 自己就挤不下，撤 <b>brew</b> 那一枚、留外接卷——
+  取舍按"哪一条后果更不可补救"：brew 账本失真事后 <code>brew reinstall</code> 能纠，跨卷那份副本拔了盘就够不着。
+  <b>实现那轮不许"先加上再看会不会挤"</b>：上面那几个数已经量过一遍，挤不下是结论，不是待观察项。
+  <b>详情面板本轮不加第三块色块</b>（03f 那种 <code>.runstate</code> 形态）：位置事实「基本信息 → 所在文件夹」那行已经给了，
+  面板上缺的是"撤回条件"，而那是一件<b>只有按下删除才会撞上</b>的事，说在确认面板（画板 2）。
+  标题旁那枚 <code>外接卷</code> 徽章与来源徽章同住一排、各说一事（03f 画板 1 同规）。
+  侧栏那块容量条<b>不动</b>：它画的是启动卷，第二块卷不占这一格——位置信息由行的 chip 承担，页头副标题也<b>不</b>加"两块卷"
+  （磁盘分析页那句「还有 N 卷可切」是那一页自己的口径，别抄过来）。</div>
+</div>
+
+<!-- ───────────── 画板 2：确认面板——那块 notice，与两块叠起来 ───────────── -->
+<div class="artboard">
+<div class="sheet-wrap" style="width:920px;background:#DCDCDC;padding:26px 0;display:flex;flex-direction:column;align-items:center;gap:18px">
+  <div class="dialog">
+    <h3>确认卸载</h3>
+    <dl class="kv" style="margin:0">
+      <dt>应用</dt><dd class="plain">AaaP53CrossVolume</dd>
+      <dt>来源</dt><dd class="plain">无法判定</dd>
+      <dt>包名</dt><dd>local.mmvolume.aaap53crossvolume.p53</dd>
+      <dt>本体</dt><dd class="plain">8 KB</dd>
+      <dt>残留</dt><dd class="plain">保留，不修改</dd>
+      <dt>合计</dt><dd class="plain">8 KB</dd>
+    </dl>
+    <div class="callout">
+      <svg class="i" style="flex:0 0 auto"><use href="#i-warn"></use></svg>
+      <span>这条应用装在外接卷上（挂载点 /private/tmp/mm-p53-mnt），移到废纸篓后它落在那块卷自己的 .Trashes 里，不在你的废纸篓里；拔掉这块盘，「最近操作」里那一行就撤不回来，「撤回」按钮跟着消失，把盘重新挂上才回来。</span>
+    </div>
+    <p class="fine">仅把应用本体移到废纸篓，残留全部保留。此操作可在 15 秒内撤回。</p>
+    <div class="row-h acts">
+      <span class="btn borderless lg">取消</span>
+      <span class="btn destructive lg">移到废纸篓</span>
+    </div>
+  </div>
+
+  <div class="dialog">
+    <h3>确认卸载</h3>
+    <dl class="kv" style="margin:0">
+      <dt>应用</dt><dd class="plain">BbbExtVolume</dd>
+      <dt>来源</dt><dd class="plain">无法判定</dd>
+      <dt>包名</dt><dd>local.extvolume.bbbext.demo</dd>
+      <dt>本体</dt><dd class="plain">12 MB</dd>
+      <dt>残留</dt><dd class="plain">保留，不修改</dd>
+      <dt>合计</dt><dd class="plain">12 MB</dd>
+    </dl>
+    <div class="stack">
+      <div class="callout">
+        <svg class="i" style="flex:0 0 auto"><use href="#i-warn"></use></svg>
+        <span>这条应用装在外接卷上（挂载点 /private/tmp/mm-p53-mnt），移到废纸篓后它落在那块卷自己的 .Trashes 里，不在你的废纸篓里；拔掉这块盘，「最近操作」里那一行就撤不回来，「撤回」按钮跟着消失，把盘重新挂上才回来。</span>
+      </div>
+      <div class="callout">
+        <svg class="i" style="flex:0 0 auto"><use href="#i-warn"></use></svg>
+        <span>把它移到废纸篓不会让它退出——macOS 允许删掉正在运行的应用包，进程会继续用已经载入内存的代码跑下去。建议先自己退出它再卸载；MacMaster 不会代你退出或结束进程，所以这条提醒也不拦住卸载按钮。</span>
+      </div>
+    </div>
+    <p class="fine">仅把应用本体移到废纸篓，残留全部保留。此操作可在 15 秒内撤回。</p>
+    <div class="row-h acts">
+      <span class="btn borderless lg">取消</span>
+      <span class="btn destructive lg">移到废纸篓</span>
+    </div>
+  </div>
+</div>
+<div class="cap"><b>03h-2 · 第二块：确认面板里那句合同句，以及它排在谁上面。</b>
+  这一屏是删除前的最后一站，而<b>这一屏看不到路径</b>——键值六行讲的是"这条应用是什么"（应用 / 来源 / 包名 / 本体 / 残留 / 合计），
+  没有"所在文件夹"那一行。所以"它在另一块卷上"这件事在确认面板之前对用户是不存在的，这块 notice 是唯一把它说出来的地方；
+  <b>稿面决定：挂载点写在 notice 第一句的括号里，不给面板加第七行 kv</b>——kv 那一格的主语是"这条应用是什么"，
+  落点与撤回条件的主语是"删了之后会怎样"，后者跟着 notice 同住，面板才不会长出两半。
+  <b>三块叠起来时不合并</b>（下面那块是两枚提醒同屏的形状：外接卷 + 运行中）：三句说的对象各不相同——落点在哪块卷、进程还活着、brew 账本失真，
+  合成一块就要在同一句里换三个主语，那是把"哪一条在说什么"糊掉。<b>顺序按补救代价从重到轻</b>：外接卷 → 运行中 → brew；
+  现在代码里只叠两块（来源在前、运行在后，<code>MMUninstaller.swift:740-746</code>），这一版顺序是把"不可逆"顶到最上，
+  <b>与现状不同，实现那轮要一并改</b>。三块同时出现的形状真机上极罕见（brew 把 cask 装到第二块卷 + 正在运行），
+  本轮不画三块，只把顺序规则定死；<b>三块叠起来面板会不会顶到窗口下沿：没量</b>，落地那轮实拍核。
+  <b>合同句里不出现「残留」那半句</b>：勾选残留一起删时的落点 P53 没量（台账那条 <code>moved=1</code> 只有本体），
+  所以这句只敢讲本体——残留那一条等同卷推论，不是读数。
+  <b>「撤不回来」不写成「已永久删除」</b>：那一行字还在卷上，重挂盘按钮就回来（P53 三态实拍），
+  这句吓人是假话；反过来也不写"可以放心拔盘"。<b>提醒只说不拦</b>：按钮仍是红色、仍是默认动作，
+  与 03f 那条纪律同规——外接卷不改变"这个包可以安全移走"，只改变"移走之后能不能再拿回来"。</div>
+</div>
+
+<!-- ───────────── 画板 3：那一行的三态 + 文案合同 + 后端配合清单 ───────────── -->
+<div class="artboard">
+<div class="ovcard">
+  <div class="hd">最近操作<small>只有移入废纸篓的动作可以撤回</small></div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>刚刚 · 1 项</span></div>
+    <div style="margin-left:auto"><span class="btn borderless sm">撤回</span></div>
+  </div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>2 分钟前 · 1 项</span></div>
+    <div style="margin-left:auto"><span class="badge readonly">盘已取下</span></div>
+  </div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>6 分钟前 · 1 项</span></div>
+    <div style="margin-left:auto"><span class="badge readonly">废纸篓已清空</span></div>
+  </div>
+</div>
+<div class="cap"><b>03h-3 · 第三块：那一行在三种物理状态下的样子，含一枚要改判的旧徽标。</b>
+  上=挂载中（<b>撤回</b>按钮，现状如此）；中=<b>本轮建议的改判措辞「盘已取下」</b>；下=<b>现状那四个字「废纸篓已清空」</b>，画在稿面里只为把假话钉住。
+  P53 实测：全程没人倒过垃圾，翻面的原因是那块盘被拔掉——判据只看落点那个路径读不读得到
+  （<code>FileTrashService.swift:294-300</code>，其中 <code>:298</code> 是 <code>fileExists(trashPath)</code>），
+  路径读不到 ⟹ <code>MainWindow.swift:679</code> 的按钮换成 <code>:684</code> 的徽标。
+  所以那一格该说的是"<b>东西在，但卷不在</b>"，不是"垃圾被倒掉了"。
+  <b>这一枚徽标不在本模块</b>：它是概览页那张卡的三态之一（已撤回 / 可撤回 / 读不到），改判要连三态一起重定，属 <code>01-dashboard</code> 系与
+  <code>fidelity-shell.md</code> 那一族；<b>本稿只登记改判，不动那一屏的稿面</b>。
+  画板 2 那句合同句因此<b>不引用徽标字面</b>——它说"撤不回来"，不说"会显示成某某四个字"，
+  免得一句现在的话绑在一条待改的假话上（<code>uninstaller-app-body-risk.md</code> §4 建议 2 的合同句已同步）。</div>
+</div>
+
+<div class="artboard">
+<div class="cap" style="max-width:920px"><b>03h-4 · 三档的文案合同（实现里逐字照这张表；三档说的是同一条删除的三个阶段，不是三种判定）。</b>
+  判据只有一条：这条 <code>.app</code> 来自哪一组应用目录——扫描侧已经把"三条固定"和"每个候选卷一条"分开写了
+  （<code>AppScanner.swift:43-48</code>），UI 不许反向解析路径前缀。</div>
+<div class="matrix">
+  <div class="h">阶段</div><div class="h">列表 chip ／ 确认面板 notice ／ 概览页那一行 ／ 依据与边界</div>
+
+  <div class="k">卸载时<br>盘挂着</div>
+  <div class="v">
+    <div class="line">chip：<b>外接卷</b>（中性）· 详情徽章：外接卷</div>
+    <div class="line">notice：这条应用装在外接卷上（挂载点 /private/tmp/mm-p53-mnt），移到废纸篓后它落在那块卷自己的 .Trashes 里，不在你的废纸篓里；拔掉这块盘，「最近操作」里那一行就撤不回来，「撤回」按钮跟着消失，把盘重新挂上才回来。</div>
+    <div class="line">那一行：<b>撤回</b>按钮在，回声卡第二行印的就是卷内那个落点</div>
+    <div class="sub">toast「已卸载 1 项 8 KB ｜ 撤回 ｜ 打开废纸篓 ｜ 12s」——落点这一半界面已经在说了（P53 照片 02），缺的只有"拔掉盘会怎样"那一句，所以本条 notice 的新增信息量集中在后半句。</div>
+  </div>
+
+  <div class="k">卸载后<br>拔掉盘</div>
+  <div class="v">
+    <div class="line">chip：无（清单是载入时的快照，这一行的来源标记不随拔盘变）</div>
+    <div class="line">notice：不再出现（面板早就不在了）</div>
+    <div class="line">那一行：按钮消失，换成徽标——<b>现状写「废纸篓已清空」，本稿改判「盘已取下」</b></div>
+    <div class="sub"><b>这一档不新写任何话</b>，只改那一枚徽标：P53 量到的是"路径读不到"，不是"文件被倒掉"。真按一次撤回会拿到什么错误<b>没量</b>（本轮无合成点击），代码那侧是 <code>FileTrashService.swift:195-199</code> 那句「没有仍在废纸篓中、可以恢复的文件」，仍是代码依据。</div>
+  </div>
+
+  <div class="k">重新挂上</div>
+  <div class="v">
+    <div class="line">那一行：<b>撤回</b>按钮自己回来，不用重启应用</div>
+    <div class="line">依据：P53 照片 03→04→05 同一行三态，<code>test -e</code> 那一句在 <code>00-landing-reading.log</code> 里翻了两次面（真→假→真），与 <code>:298</code> 同口径</div>
+    <div class="sub">⟹ notice 里那句"把盘重新挂上才回来"是<b>有照片的</b>，不是安慰话；也不需要给台账加"这条属于哪块卷"的新字段——今天这个翻面恰好就是撤回条件本身。</div>
+  </div>
+</div>
+<div class="cap" style="max-width:920px"><b>这一页不该说的话</b>：不写「已永久删除」「无法恢复」（重挂能撤）；不写「可以放心拔盘」；
+  不写「这是外置盘，删除有风险」这类只报身份不报后果的话；合同句里不出现残留那半句（没量，见 §10 第 4 项）；
+  不写卷名（今天只有挂载点，见下面清单第 2 条）；不写「100% 可以安全删除」。</div>
+</div>
+
+<div class="artboard">
+<div class="cap" style="max-width:920px"><b>03h-5 · 后端配合清单（稿面先行，这几条是这稿要等实现的那一侧；缺一条，画上那句就得改口径）。</b></div>
+<div class="gaps">
+  <div class="h">缺口</div><div class="h">今天有什么 / 要什么</div>
+
+  <div class="k">1 · 来源标记在扫描时就丢了</div>
+  <div class="v">
+    <div class="now">现在：<code>DiscoveredApp</code>（<code>AppScanner.swift:10-20</code>）只有 <code>path</code>/<code>bundleName</code>/<code>bundleID</code>，"我来自哪一组目录"没带出来。</div>
+    <div>要：给它补一个来源标记（固定三条 vs 候选卷那条），判定复用已经分好组的 <code>:43-48</code>。<b>别在 UI 里反向解析 <code>/Volumes</code> 前缀</b>——字面量散进界面是另一种漏，而且 P53 那族夹具的挂载点根本不在 <code>/Volumes</code> 下（挂载点必须过 <code>/tmp</code> 那道钩子）。</div>
+  </div>
+
+  <div class="k">2 · 只有挂载点，没有卷名</div>
+  <div class="v">
+    <div class="now">现在：<code>VolumeRoot</code>（<code>VolumeRoots.swift:70-79</code>）带 <code>path</code> 与两个容量数，<code>nonBootVolumePaths</code>（<code>:167-168</code>）返回挂载点数组——没有卷的显示名。</div>
+    <div>要：notice 先只报挂载点。<b>不许用 <code>lastPathComponent</code> 凑卷名</b>：<code>/Volumes/SSD-EXT</code> 末段像名字，<code>/private/tmp/mm-p53-mnt</code> 末段就不是。真要写卷名得另读一次 URL resource properties，那一条单独量过再进文案。</div>
+  </div>
+
+  <div class="k">3 · chip 版式</div>
+  <div class="v">
+    <div class="now">现在：<code>SourceChip</code>（<code>MMUninstaller.swift:1614-1627</code>）16pt 高、10pt 等宽 semibold、<code>MMColor.soft(tint, 0.14)</code> 底；行内那一排三枚 + 版本 + 大小在 <code>:1657-1676</code>。</div>
+    <div>要：新增一枚 <code>外接卷</code>，tint 用 <code>MMColor.secondaryLabel</code>（中性那一档）。让步顺序见画板 1 的说明。</div>
+  </div>
+
+  <div class="k">4 · 第三块 notice 与顺序</div>
+  <div class="v">
+    <div class="now">现在：版式现成（<code>cautionNotice</code>，<code>:790-802</code>），但这一屏只接两块（<code>:740-746</code>：来源在前、运行在后）。</div>
+    <div>要：接第三块，并按补救代价重排（外接卷 → 运行中 → brew）。面板宽 420pt 不变（<code>:785</code>）。</div>
+  </div>
+
+  <div class="k">5 · 那枚徽标的措辞</div>
+  <div class="v">
+    <div class="now">现在：<code>MainWindow.swift:676-685</code> 三态（已撤回 / 可撤回 / <code>:684</code>「废纸篓已清空」）。</div>
+    <div>要：改判成"卷不在了"那一类话（本稿建议「盘已取下」），属 01 系稿面与 <code>fidelity-shell.md</code> 的账，<b>与本轮 notice 解绑</b>。改判那轮请顺手把 notice 那句对一眼：它已经刻意不引用徽标字面。</div>
+  </div>
+
+  <div class="k">6 · 实拍怎么拍</div>
+  <div class="v">
+    <div class="now">现在：钩子齐（<code>MM_UNINSTALL_CONFIRM_FIXTURE_HOME</code> / <code>MM_UNINSTALL_SELECT</code> / <code>MM_UNINSTALL_CONFIRM_MODE</code> / <code>MM_UNINSTALL_SELF_ECHO</code>），卷夹具入库（<code>Scripts/p53-cross-volume-fixture.sh</code>），两态照片也拍过。</div>
+    <div>要：落地那轮不必新造夹具，直接把 <code>Scripts/p53-cross-volume-capture.sh</code> 那五档扩成"chip 在列表里 + notice 在面板里"两档即可。<b>本轮没有照片可以对照</b>——代码没动，画面上还不存在这两样东西。</div>
+  </div>
+</div>
+</div>
+
+</body></html>

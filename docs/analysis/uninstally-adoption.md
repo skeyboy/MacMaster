@@ -212,7 +212,10 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 本体在第二块卷上时 `trashItem` 的落点就是那块卷自己的 `.Trashes/<uid>/`（台账 `trashPath` 与卷内 `du -sk` 双向对上，
 都不在用户的 `~/.Trash`），拔掉盘之后「最近操作」那一行的「撤回」按钮换成「废纸篓已清空」徽标、把盘重挂又变回按钮。
 所以"失效"这一半是真的，但那句徽标是假话——全程没人倒过垃圾；建议 2 的合同句要按这两条实测写，
-不是照抄"拔盘即失效"那四个字。
+不是照抄"拔盘即失效"那四个字。**P54 已按这一条出稿**（`docs/design-system/screens/mmuninstaller/03h-uninstaller-external-volume.html`，
+合同句与其三档文案表见 `uninstaller-app-body-risk.md` §4 建议 2，稿面那轮的账在 `fidelity-uninstaller.md` §18）：
+那句只说"撤不回来 / 按钮消失 / 挂回来才恢复"三件事实，**不引用徽标字面**——那一格怎么改判属 01 系与
+`fidelity-shell.md` 的账，钉进本屏的合同里会让两屏互相绑死。
 
 ### 4. 落地顺序第 3 条 `noteFileSystemChanged` —— 改判：不采纳
 

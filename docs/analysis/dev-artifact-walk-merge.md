@@ -1,6 +1,6 @@
 # 开发产物「两趟并一趟」调研（P6.3 · 吞吐）
 
-> 任务：`docs/analysis/feature-roadmap.md:776-780` 的 P6.3——把 `activityProbe` 与
+> 任务：`docs/analysis/feature-roadmap.md:781-785` 的 P6.3——把 `activityProbe` 与
 > `FileTreeWalker.stats` 两趟全遍历并成一趟，顺带作为 `fidelity-cleaner.md` §8.6
 > 「根报已扫完而组里挂着读不到」的修法窗口。
 > 前置：`dev-artifact-continuation.md`（P6.1a）§2 的实测与 §8 第一条「本轮不做」。
@@ -225,7 +225,7 @@ IO 读不进（`unreadableDirectories` 非空但 stopReason==nil）**算出了�
 - 单个 `node_modules` 子树（`Desktop/artisan_heir/node_modules`）40,396 条目，
   `find` 一趟 0.38 s。〔实测，但注意这是 **find 的进程**、非本应用一趟的成本〕
 - 两根内产物名目录（深度≤6、不 prune）9,321 个 / 10.4 s。〔实测〕
-- P6.1 夹具：首批 76.4 MB → 续扫后 162.8 MB（`feature-roadmap.md:737`）。〔实测，
+- P6.1 夹具：首批 76.4 MB → 续扫后 162.8 MB（`feature-roadmap.md:662`）。〔实测，
   证明截断吃在成案/测量阶段——并趟攻击的正是这个阶段的成本〕
 
 **推算**（明确标注依据，无应用内计时）：

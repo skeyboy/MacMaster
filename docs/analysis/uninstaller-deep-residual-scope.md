@@ -52,7 +52,7 @@
 
 ## 4. 夹具那一档才是机制的正面实物
 
-`docs/analysis/feature-roadmap.md:1369` 记的 P32b 现场是这一族的完整形态：
+`docs/analysis/feature-roadmap.md:1388` 记的 P32b 现场是这一族的完整形态：
 `~/Library/Caches/com.example.steamgame · 名称包含应用名` 被归到 **Steam** 名下、
 页脚「已选 1 项残留 · 524 KB」——**跨应用 + 默认勾选同时成立**。
 照片是 `docs/verification/p32b-steam/09-deep-steam-self-residuals.png`（选中 **Steam** 那一张）。
@@ -114,7 +114,7 @@ C 只有在"我们不想为归属复核付任何扫描成本"时才选，D 单�
 
 ## 7. 排期
 
-`feature-roadmap.md` v1.1 §2 只有四条，本项**不在其中**（`docs/analysis/feature-roadmap.md:1372` 已记），
+`feature-roadmap.md` v1.1 §2 只有四条，本项**不在其中**（`docs/analysis/feature-roadmap.md:1390` 已记），
 排在那四条之后。若采纳 §5 的 B 档，它是一次独立实现轮：判据 + 单测（含"祖先归别人 ⇒ 不许默认勾选"的正反两判据）
 + 夹具那一档照片。
 

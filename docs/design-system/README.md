@@ -16,7 +16,7 @@ docs/design-system/
     ├── shell/         01-dashboard · 09-settings
     ├── mmui/          components · 05-states
     ├── mmcleaner/     02-cleaner · 02b-cleaner-installers · 02c-cleaner-dev
-    ├── mmuninstaller/ 03-uninstaller · 03b-uninstaller-orphans · 03c-uninstaller-trash · 03d-uninstaller-provenance · 03e-uninstaller-watch
+    ├── mmuninstaller/ 03-uninstaller · 03b-uninstaller-orphans · 03c-uninstaller-trash · 03d-uninstaller-provenance · 03e-uninstaller-watch · 03f-uninstaller-running · 03g-uninstaller-steam-launcher · 03h-uninstaller-external-volume
     ├── mmdisk/        04-disk · 04b-disk-confirm · 04e-disk-rescan
     ├── mmguardian/    06-guardian
     ├── mmmonitor/     07-monitor

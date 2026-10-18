@@ -3354,7 +3354,7 @@ css 那 12 个不同目标本轮逐条现读对过 `docs/design-system/` 里的�
 
 **那 3 条漂移是量尺自己咬的**：为了改这条正则，脚本头部注释加了一行，
 于是尺子自己的旧第 43、45 行各漂一行（现在落在第 44、46 行——**这句按 §7 第 5 条写成散文，不做成对形态**），
-三处文档锚点（`uninstaller-deep-residual-scope.md`、`fidelity-uninstaller.md`、`feature-roadmap.md:1371`）跟着重指。
+三处文档锚点（`uninstaller-deep-residual-scope.md`、`fidelity-uninstaller.md`、`feature-roadmap.md:1376`）跟着重指。
 **改尺子会顶漂指向尺子的引用**，这条形状以前只在代码上见过。
 
 **入站的 4 处 html 引用这一轮全部人工重指**，而量尺报出来的只有其中 3 处（4 条 UNRESOLVED，覆盖三个不同目标行）：
