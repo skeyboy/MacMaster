@@ -473,7 +473,7 @@ P52b 之前没有任何一层拦住那三条，今天拦住它们的是上面那
    `MainWindow.swift:679` 那枚「撤回」按钮换成 `:684` 的 `MMBadge("废纸篓已清空")`。
    照片 03（挂载中，按钮在）→ 04（拔盘，徽标）→ 05（重挂，按钮回来）三态同一行，`test -e` 那一句在
    `00-landing-reading.log` 里跟着翻两次面（真 → 假 → 真），与 `:298` 同口径。
-   **徽标那四个字是假话**：它断言的是"垃圾被倒掉了"，实测发生的是"盘被拔掉了"。〔**P55 收口**：这一条的改判已经落成两面——判据由 `Scripts/p55-undo-badge-criterion.sh` 在同一支夹具的挂载／拔盘两档各跑一遍同一支探针量出来（`docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`：挂上时枚举 15 条含落点那块卷、拔掉后 14 条且那条路径 `resourceValues` 直接抛错），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`；源码 `MainWindow.swift:684` 那四个字**本轮没动**，记为 I16 等单独授权，账在 `fidelity-shell.md` §1.4 与 §6。〕
+   **徽标那四个字是假话**：它断言的是"垃圾被倒掉了"，实测发生的是"盘被拔掉了"。〔**P55 收口**：这一条的改判已经落成两面——判据由 `Scripts/p55-undo-badge-criterion.sh` 在同一支夹具的挂载／拔盘两档各跑一遍同一支探针量出来（`docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`：挂上时枚举 15 条含落点那块卷、拔掉后 14 条且那条路径 `resourceValues` 直接抛错），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`；源码 `MainWindow.swift:684` 那四个字**本轮没动**，记为 I16 等单独授权，账在 `fidelity-shell.md` §1.4 与 §6。〔**P56a 已落地，上面这三个坐标随之作废**：授权来自"执行下一步"那一句对 I16 的点名。判据现在是 `Packages/MMCore/Sources/MMCore/UndoAvailability.swift` 的纯函数（五档），`canUndo` 现读 `FileTrashService.swift:310-315`（那句 `fileExists` 在 `:314`，本行旧引的 294-300/298 是 P53 那一读，同文件上方进了落点卷身份的注入点，整块顶漂 16 行），呈现层五支在 `MainWindow.swift:730-745`；**「盘已取下」那一档已用真拔盘实拍取证**（`docs/verification/p56-cross-volume-detached-badge/` 04 那张，同一支夹具、同一条判据链），账在 `fidelity-shell.md` §7。本行 473 那两个旧行号（撤回按钮与徽标）同理作废，五支的现读坐标看前面那句。〕〕
 3. **卸载页自己会把那个落点印给用户看**。照片 02 的回声卡第二行是
    `/private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app · local.mmvolume.aaap53crossvolume.p53`，
    底部 toast「已卸载 1 项 8 KB ｜ 撤回 ｜ 打开废纸篓 ｜ 12s」——也就是说建议 2 那句警告要说的信息，

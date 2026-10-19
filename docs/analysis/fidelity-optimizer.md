@@ -184,8 +184,9 @@
    `MMFailurePanel`（当时记作 `MMDesign` 第 631-680 行，旧树坐标）的 `body` 只做 `padding`、未显式设置 `warning-soft` 背景；设计 08d / `05-states.html` 的失败回执均为橙 10% 底。MMCleaner 的 `MM_FAILURE_FIXTURE=protected` 实机图（deletion-guard.md §6）显示"琥珀色盾牌"面板，其橙底可能来自 `05-states` 的容器而非组件自身。
    → 待真机核对：若 optimizer 直接放置 `MMFailurePanel` 缺橙底，则改 `MMFailurePanel` 补 `.background(MMColor.warningSoft)` 或在 `MMOptimizer` 两处调用外加橙底容器。**归实现该改 / 两边都改待核**，不擅自改共享组件（违反红线 3）。
    **核对结果（不用截图也能定，因为它是个读漏）**：`MMFailurePanel` 的 body 一直自带橙底——
-   `.background(MMColor.soft(MMColor.caution, 0.10))` 在 **`MMDesign.swift:783`**（**P35b 现读重指**：组件结构体 `MMDesign.swift:672`，body `:716-785`，
-   下一个结构体 `MMItemRow` 从 `:807` 起；本行此前记 670/714-783/801，是 2026-10-04 那一次的读，之后被后续轮次顶漂）。`git log -S'soft(MMColor.caution, 0.10)' -- MMDesign.swift` 的最早一条是
+   `.background(MMColor.soft(MMColor.caution, 0.10))` 在 **`MMDesign.swift:790`**（**P56 现读重指**：组件结构体 `MMDesign.swift:679`，body `:723-792`，
+   下一个结构体 `MMItemRow` 从 `:814` 起。这一轮为什么又漂 7 行：`MMFormat` 那一段（`:150`-`:221`）接进了 `format.*` 多语言文案，
+   净 +7 行，把 `MMFailurePanel` 整块往下顶；P35b 那一读记的是 672/716-785/783/807，再此前记 670/714-783/801，是 2026-10-04 那一次的读，之后被后续轮次顶漂）。`git log -S'soft(MMColor.caution, 0.10)' -- MMDesign.swift` 的最早一条是
    **`e5634d3`（2026-09-29，`feat(cleaner): 清理页改为风险分组表…`）——即创建这个组件的那一个提交**，
    所以它不是"后来补上的"，是**生下来就有**。本条之所以立案，是因为对照时把 body 的行范围截在 `:674`
    （组件当时的真实末尾在 :678 之后），`.background`  modifier 正好落在截断处外面。**教训写进 §0 的方法栏**：

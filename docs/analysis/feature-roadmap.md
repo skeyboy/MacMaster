@@ -190,10 +190,10 @@ UI 侧新增「已装应用 / 卸载后遗症」分段切换，切过去自动�
 - `TrashOperation.canUndo`：记录还在、但废纸篓里那个文件已经不在了（用户倒过垃圾），
   这不是失败而是事实。撤回按钮据此消失，换成"废纸篓已清空"，而不是等用户按下去才拿到错误。
   〔**P54 注（2026-10-18）**：上面那句括号里的成因**比判据窄**——`canUndo` 读的是 `fileExists(trashPath)`
-  （`FileTrashService.swift:294-300`，其中 `:298` 那一句），P53 实测到第二条成因：**本体在第二块卷上时
+  （**P56 现读重指** `FileTrashService.swift:310-315`，其中 `:314` 那一句；旧引 `:294-300`/`:298` 是 P54 那一读，I16 落地时同文件上面进了卷身份的注入点，整块往下顶 16 行），P53 实测到第二条成因：**本体在第二块卷上时
   落点是那块卷自己的 `.Trashes`，拔掉盘同样让这个路径读不到，而谁也没倒过垃圾**
   （三条读数与照片见 `uninstaller-app-body-risk.md` §10 第 2 项）。所以"换成废纸篓已清空"这一格在跨卷那一条上是假话，
-  改判成"盘已取下"属 01 系与 `fidelity-shell.md` 的账；卸载页那句警告（建议 2，稿面 03h）不引用这格字面，两屏不互相绑死。**P55 那一账已付（稿面，就地补这一句不新增行——本文第 276 行往后有十六处别的文档按行号引它）**：判据不是猜的，同一支探针在挂载／拔盘两档各问一遍（读数 `docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`，对照格改判在 `fidelity-shell.md` §1.4；**源码那四个字没动**，记为 I16 等单独授权。〕
+  改判成"盘已取下"属 01 系与 `fidelity-shell.md` 的账；卸载页那句警告（建议 2，稿面 03h）不引用这格字面，两屏不互相绑死。**P55 那一账已付（稿面，就地补这一句不新增行——本文第 276 行往后有十六处别的文档按行号引它）**：判据不是猜的，同一支探针在挂载／拔盘两档各问一遍（读数 `docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`，对照格改判在 `fidelity-shell.md` §1.4；**源码那四个字没动**，记为 I16 等单独授权。〔**P56a 那一半也已付（源码）**：授权来自"执行下一步"那一句对 I16 的点名。判据落成 `Packages/MMCore/Sources/MMCore/UndoAvailability.swift` 的纯函数（五档 `UndoTier`，`:50-75`），删除时把落点卷身份写进台账（`FileTrashService.swift:123`），呈现层在 `MainWindow.swift:730-745` 拆成五支：**盘已取下** `:738`、废纸篓已清空 `:741`、无法撤回 `:743`。实拍：真拔盘那一档在 `docs/verification/p56-cross-volume-detached-badge/`，双语五档合成档在 `docs/verification/p56-undo-tier-bilingual/`；账见 `fidelity-shell.md` §7。〕〕
 - 台账不做过滤：不可撤回的那条照样列出来，抹掉它等于宣称"这次清理没发生过"。
 
 **只有真渲染才暴露的问题**：「最近操作」卡片只有 ~330pt 宽，副标题

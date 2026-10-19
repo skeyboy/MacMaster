@@ -1318,7 +1318,7 @@ HARDENED=1 ./Scripts/make-app.sh -o /tmp/mm-app-p11-hr   -s /tmp/mm-scratch-p11 
 | 位置 | 之前 | 现在 | 证据 |
 | --- | --- | --- | --- |
 | 设置 › 关于 › 许可 | 写 `MIT License`，仓库无 LICENSE | 「尚未选择许可」 | `p7-release-build/02-about.png` |
-| 设置 › 通用 › 语言 | 可用 Picker，切换什么都不改 | `.disabled(true)` + 明说"界面文案尚未接入多语言，切换不会改变界面" | `p7-settings-lang/` |
+| 设置 › 通用 › 语言 | 可用 Picker，切换什么都不改 | `.disabled(true)` + 明说"界面文案尚未接入多语言，切换不会改变界面"〔**P56 改判**：这一格两句里只剩后半句成立——选择器仍禁用（`SettingsView.swift:79`），但壳层与共享组件已接进两语（现读 95 行），切换会改掉概览页文案；那句脚注与它上面三行注释由外来那一族（正在改这份文件）收口，本轮登记不改，账在 `fidelity-shell.md` §7 与下面 §8 那条〕 | `p7-settings-lang/` |
 | 概览 › 内存「交换」一行 | 默认窗宽下截成「2.1…」，像数据读坏了 | `MainWindow.swift` `gaugeRow` 的 note 加 `minimumScaleFactor(0.8)` | `p7-release-build/03-dashboard-min.png`（1000×600 下限窗口，显示完整「交换 688.6 MB / 2.15 GB」） |
 | 清理页 四开关全关 | 副标题仍报一个数 | 三档分开：`scopeEmpty` / `isPartial` / 扫描真失败 | `p7-empty-scope/`，`fidelity-cleaner.md` I4 |
 | 落地页 `docs/website/index.html` | 「一键清理和安全撤回」「让 Mac 运行更快更流畅」+ 两枚 `href="#"` 的下载按钮 + 四个灰底占位框、全页 `<img>` 为 0 | 三处"说不到"换成界面上真实存在的动作，末屏改成「现在还没有能下载的安装包」+ 两条真跑得通的构建命令，四张夹具档实拍进 `assets/`，并在页面上明写哪些是夹具、哪些是拍摄那台机器的真实状态 | `docs/analysis/website-audit.md`（16 行判定表）、`Scripts/p17-website-capture.sh`、`docs/verification/p17-website/capture.log`，见 §7.8 |
@@ -3643,6 +3643,16 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
   本轮不代选。**发版说明里不要写"支持中英双语"**。
   **这一条是"界面上有、后端没有"这一族里目前唯一没收口的一处——但只在设置页这个范围内成立**：
   P29 把设置页每一行都对过后端，其余各屏从没做过同类逐行审计，所以别把这一句当成全站结论。
+  〔**P56 改判（2026-10-19，这一格分成两半了）**：上面那句"零调用点"从今天起只适用于模块页。
+  授权来自"执行国际化处理"那一句，范围按当时选的"整个壳层一起接"：`L(_:)`/`LF(_:)` 现读**已接 95 行**
+  （壳层 `MainWindow.swift` 66、`Packages/MMUI/Sources/MMUI/MMDesign.swift` 14、`DashboardMetrics.swift` 15），
+  两语各 184 键，切换**会**改掉概览页与共享组件的文案——所以"切换不改变任何文案"这一句作废，
+  **发版说明那句"不要写支持中英双语"仍然成立**，因为选择器那半没动。
+  没接的是：模块页九面（缺口 1521 行，逐面账在 `localization-coverage.md` §2）、菜单栏那 18 行（没有采集通路）、
+  以及设置页选择器本身——`.disabled(true)` 还在（`SettingsView.swift:79`），它那句脚注的前半句
+  "界面文案尚未接入多语言"从今天起是**假话**，但这一格属外来那一族（QuickLook + 设置页）正在改的文件，
+  **登记不改**，由那一族收口时一起重指；`MM_LANGUAGE` 是启动钩子，双语取证脚本收尾必须 `defaults delete`
+  （它会写回 `UserDefaults`，踩坑记录见 `fidelity-shell.md` §7 与 `localization-coverage.md` §8）。〕
 
 - **一条真机判据把没量过的前提当成了合同**（P28 记，本轮已改判据，账没全还）：
   `DashboardMetricsTests.swift:33` 那条 CPU 判据的原版只取两帧、中间睡 0.25 s，
@@ -3840,7 +3850,7 @@ optimizer 第 69、202、263、285、288 行＝5；本文 §6 那一格＝第 13
 本文自己这段话里就含一次"需标注"）、§4 的写盘三项。（§8 那条"概览口径"已于 P8 收口，
 不再需要标注——现在概览与清理页是同一个数。）
 **不发**：Mac App Store（§3 那张表里**已测的七行全部会被沙盒砍掉**，§3 结论 2）；
-多语言（语言开关本轮已禁用，没有 UI 消费点）；
+多语言（语言开关本轮已禁用，没有 UI 消费点）〔**P56 注**：括号里那半句从今天起不成立——壳层与共享组件已接两语、有消费点了；**开关仍禁用、且模块页九面一字未接**，所以"多语言不进发版"这一条**结论不变、理由换了**：不再是"没有消费点"，而是"覆盖面还不完整到能对外说"。这一行属 v1.0.0 那一版的正文，历史部分不改〕；
 自动更新（没有更新服务器）；helper/widget 两个空壳（§8）。
 
 **版本号建议**：`CFBundleShortVersionString=1.0.0`、`CFBundleVersion=1`。
