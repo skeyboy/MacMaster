@@ -172,7 +172,7 @@ I16（撤回五档）那 17 条在 `UndoTierTests.swift`，与语言无关，归
 
 **九包门禁**：`876 条 / 0 失败 / 1 跳过`（逐包：MMCore **146**、MMUI 17、MMFileScanner 117、MMCleaner 25、
 MMUninstaller 226、MMDisk **85**（含那 1 跳过）、MMMonitor 92、MMGuardian 96、MMOptimizer **72**；逐包求和 = 876）。
-比 `README.md:190` 那一读（843，逐包 114/17/117/25/226/85/92/96/71）**涨 33，且 33 全部来自本轮**：
+比仓库根那一格 README 的旧读（843，逐包 114/17/117/25/226/85/92/96/71）**涨 33，且 33 全部来自本轮**：
 MMCore +32 = `UndoTierTests` 17 + `LocalizationTests` 15，MMOptimizer +1 =
 `DashboardMetricsTests.testLoadVerdictWordingIsResolvedSeparatelyFromTheTier`（钉"措辞按语言解、档位按数值解"两件事不许互相顶）。
 **README 那一格本轮没改**——它属外来那一族（QuickLook + 设置页）正在改的文件，一行不进；
@@ -198,7 +198,7 @@ MMCore +32 = `UndoTierTests` 17 + `LocalizationTests` 15，MMOptimizer +1 =
 ./Scripts/p53-cross-volume-fixture.sh clean
 ```
 
-**引用门禁这一轮跑五回、归档四份**（`docs/verification/p56-citations/`：`audit-pre.log` / `audit-postdocs.log` / `audit-final.log` / `audit-recheck.log`，中间那回纠错读数没归档），硬失败 **4 → 6 → 4 → 4**，定稿后那一跑与定稿逐字只差日期。四条的构成与其中两条"把旧坐标写进引号就等于把它重新请进门"的自伤，记在 `fidelity-shell.md` §7 门禁那一格；本轮新增的判定层文件在提交之前会被门禁判成"两头都不到"（它的索引只数 `git ls-files`），提交后自清。
+**引用门禁这一轮跑八回、归档七份**（`docs/verification/p56-citations/`：`audit-pre.log` / `audit-postdocs.log` / `audit-final.log` / `audit-recheck.log` / 提交后的 `audit-postcommit-ambig.log`、`audit-postcommit.log` 与 `audit-postcommit-recheck.log`，改稿阶段中间那回纠错读数没归档），硬失败 **4 → 6 → 4 → 4 → 3 → 2**，定稿后那一跑与定稿逐字只差日期。四条的构成与其中两条"把旧坐标写进引号就等于把它重新请进门"的自伤，记在 `fidelity-shell.md` §7 门禁那一格；本轮新增的判定层文件在提交之前被门禁判成"两头都不到"（它的索引只数 `git ls-files`），**这一条已在提交后复跑验证：那 2 条如期归零**。同一次复跑又抓到本文件自己的一条：验证账那一格原先用「文件名加行数」引仓库根 README，仓里五份同名文件判不出哪一篇，已改成不带形状的说法——终稿硬失败 2，两条都是外来那一族设置页源码上的整段空白，本文件不动它们。
 
 ## 10. 复现
 
