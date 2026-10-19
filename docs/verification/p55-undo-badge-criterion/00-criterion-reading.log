@@ -1,0 +1,97 @@
+# p55-undo-badge-criterion.sh  2026-10-19 09:38:59 +0800
+# repo: cad52a1-dirty   # digest: cad52a1+9a0d5ed8
+# 编译器: Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+# 探针源文件：105 行  Scripts/p55-detach-criterion-probe.swift（单文件编译，不链任何生产源文件）
+# 落点用 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app 冒充（canUndo 问的是「这个路径读不读得到」，与它是不是真 trashPath 无关）
+# 开局：挂载=0  盘=0
+
+==================== 档 A：挂载中 ====================
+✅ /tmp/mm-p53-volume/MMVolumeP53.dmg（卷内带 Applications/AaaP53CrossVolume.app 与 Library/Caches/<bundleid>）
+MP_REAL=/private/tmp/mm-p53-mnt
+挂载点：/tmp/mm-p53-mnt  inode 属卷：/dev/disk13s1
+卷内 Applications：AaaP53CrossVolume.app 
+
+---- ① `volumeUUIDStringKey` 在不在 SDK 里（在才有下面这些读数）----
+成员存在：是（编译期就核实了——编不过就不会有这一行）
+
+---- ② 落点路径能不能自己报出卷身份（这就是台账里 `trashPath` 那一格）----
+fileExists(落点)=true
+  落点路径：uuid=B991079F-EC2D-4C3F-A950-95DA599D04DA  name=MMVolumeP53  removable=真
+
+---- ③ 挂载点目录本身（detach 之后它还在不在）----
+fileExists(挂载点)=true
+挂载点目录内容=2 项：Applications Library
+  挂载点目录：uuid=B991079F-EC2D-4C3F-A950-95DA599D04DA  name=MMVolumeP53  removable=真
+
+---- ④ 现在挂着哪些卷：Foundation 默认档的 path / volumeUUIDString / name ----
+  条数=15
+    /  uuid=9491EF3B-450A-45D1-AEE2-02D641958E75  name=Macintosh HD  browsable=真
+    /Library/Developer/CoreSimulator/Volumes/watchOS_23T570  uuid=5EB9D265-E987-4EE2-A22D-69D412957642  name=WatchOS 26.5 Simulator  browsable=假
+    /System/Volumes/Data/home  uuid=nil  name=home  browsable=假
+    /System/Volumes/Hardware  uuid=C352A320-8BD4-4F12-BD9F-2B792225D412  name=Hardware  browsable=假
+    /System/Volumes/Preboot  uuid=C10A35EB-2ED7-4BE8-956C-C05A6D9F8BF1  name=Preboot  browsable=假
+    /System/Volumes/Update  uuid=AEC20837-F5B2-43E6-BDEB-6CAA4B36B27D  name=Update  browsable=假
+    /System/Volumes/VM  uuid=81FCB2CB-9A7C-4834-8A6B-066A89239DFE  name=VM  browsable=假
+    /System/Volumes/iSCPreboot  uuid=A35C6FD7-3AB2-45CE-95CF-C64C2A0A2787  name=iSCPreboot  browsable=假
+    /System/Volumes/xarts  uuid=F47AB17F-47D2-48ED-8F53-7AF6F6DEF92D  name=xART  browsable=假
+    /Users/lee/Library/Developer/CoreDevice/DeviceFS  uuid=8C57AE8D-9A72-496F-888C-7EA8FD8136B1  name=Devices  browsable=假
+    /private/tmp/mm-p53-mnt  uuid=B991079F-EC2D-4C3F-A950-95DA599D04DA  name=MMVolumeP53  browsable=假
+    /private/var/folders/11/szm4hq2d6wz73phg6ggrk3780000gn/T/AppTranslocation/3E9BF09B-DD61-41CE-93CD-2E97FCEF5EED  uuid=nil  name=3E9BF09B-DD61-41CE-93CD-2E97FCEF5EED  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.iAlJoY  uuid=86407289-9566-4573-A2EA-C76D91F3BA43  name=MetalToolchainCryptex  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.iTZmXH  uuid=C0B81AA8-8A69-4A06-AE40-431F3203E52F  name=iOS 27.0 Simulator  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.mIWFSa  uuid=CCC9E60A-9848-4AC1-840C-D58D287D3D0E  name=iOS 27.1 Simulator  browsable=假
+
+---- ⑤ 对照：主目录所在那卷（用户真倒了垃圾那一档，判据这里该说废纸篓已清空）----
+fileExists(主目录)=true
+  主目录 /Users/lee：uuid=9491EF3B-450A-45D1-AEE2-02D641958E75  name=Macintosh HD  removable=假
+
+---- ⑥ st_dev 交叉对读（同一条问句：这块存储设备还是不是那块卷）----
+  落点路径 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app：st_dev=16777255
+  挂载点目录 /private/tmp/mm-p53-mnt：st_dev=16777255
+  / /：st_dev=16777230
+  主目录 /Users/lee：st_dev=16777230
+  注：st_dev 与 UUID 回答的是同一个问题，但设备号在重挂之后不保证还是同一个，UUID 才跨挂/卸稳定——所以判据取 UUID，设备号只在这里当交叉验证。
+
+==================== 档 B：已拔盘 ====================
+（已卸载 /tmp/mm-p53-mnt）
+
+---- ① `volumeUUIDStringKey` 在不在 SDK 里（在才有下面这些读数）----
+成员存在：是（编译期就核实了——编不过就不会有这一行）
+
+---- ② 落点路径能不能自己报出卷身份（这就是台账里 `trashPath` 那一格）----
+fileExists(落点)=false
+  落点路径：resourceValues 直接抛错（读不到任何卷身份）
+
+---- ③ 挂载点目录本身（detach 之后它还在不在）----
+fileExists(挂载点)=true
+挂载点目录内容=空目录
+  挂载点目录：uuid=9491EF3B-450A-45D1-AEE2-02D641958E75  name=Macintosh HD  removable=假
+
+---- ④ 现在挂着哪些卷：Foundation 默认档的 path / volumeUUIDString / name ----
+  条数=14
+    /  uuid=9491EF3B-450A-45D1-AEE2-02D641958E75  name=Macintosh HD  browsable=真
+    /Library/Developer/CoreSimulator/Volumes/watchOS_23T570  uuid=5EB9D265-E987-4EE2-A22D-69D412957642  name=WatchOS 26.5 Simulator  browsable=假
+    /System/Volumes/Data/home  uuid=nil  name=home  browsable=假
+    /System/Volumes/Hardware  uuid=C352A320-8BD4-4F12-BD9F-2B792225D412  name=Hardware  browsable=假
+    /System/Volumes/Preboot  uuid=C10A35EB-2ED7-4BE8-956C-C05A6D9F8BF1  name=Preboot  browsable=假
+    /System/Volumes/Update  uuid=AEC20837-F5B2-43E6-BDEB-6CAA4B36B27D  name=Update  browsable=假
+    /System/Volumes/VM  uuid=81FCB2CB-9A7C-4834-8A6B-066A89239DFE  name=VM  browsable=假
+    /System/Volumes/iSCPreboot  uuid=A35C6FD7-3AB2-45CE-95CF-C64C2A0A2787  name=iSCPreboot  browsable=假
+    /System/Volumes/xarts  uuid=F47AB17F-47D2-48ED-8F53-7AF6F6DEF92D  name=xART  browsable=假
+    /Users/lee/Library/Developer/CoreDevice/DeviceFS  uuid=8C57AE8D-9A72-496F-888C-7EA8FD8136B1  name=Devices  browsable=假
+    /private/var/folders/11/szm4hq2d6wz73phg6ggrk3780000gn/T/AppTranslocation/3E9BF09B-DD61-41CE-93CD-2E97FCEF5EED  uuid=nil  name=3E9BF09B-DD61-41CE-93CD-2E97FCEF5EED  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.MobileAsset.MetalToolchain-v27.1.266.1.iAlJoY  uuid=86407289-9566-4573-A2EA-C76D91F3BA43  name=MetalToolchainCryptex  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.iTZmXH  uuid=C0B81AA8-8A69-4A06-AE40-431F3203E52F  name=iOS 27.0 Simulator  browsable=假
+    /private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.94232.0.mIWFSa  uuid=CCC9E60A-9848-4AC1-840C-D58D287D3D0E  name=iOS 27.1 Simulator  browsable=假
+
+---- ⑤ 对照：主目录所在那卷（用户真倒了垃圾那一档，判据这里该说废纸篓已清空）----
+fileExists(主目录)=true
+  主目录 /Users/lee：uuid=9491EF3B-450A-45D1-AEE2-02D641958E75  name=Macintosh HD  removable=假
+
+---- ⑥ st_dev 交叉对读（同一条问句：这块存储设备还是不是那块卷）----
+  落点路径 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app：st_dev=读不到（路径不存在）
+  挂载点目录 /private/tmp/mm-p53-mnt：st_dev=16777230
+  / /：st_dev=16777230
+  主目录 /Users/lee：st_dev=16777230
+  注：st_dev 与 UUID 回答的是同一个问题，但设备号在重挂之后不保证还是同一个，UUID 才跨挂/卸稳定——所以判据取 UUID，设备号只在这里当交叉验证。
+✅ 已删 /tmp/mm-p53-volume

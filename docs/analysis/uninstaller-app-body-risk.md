@@ -170,7 +170,7 @@ P52b 也没动这一层：上面那几个行号只是随同文件插入偏移，
   拔掉这块盘，「最近操作」里那一行就撤不回来，「撤回」按钮跟着消失，把盘重新挂上才回来」。
   **P54 改判（稿面那轮）**：这一句原来在"撤不回来"后面钉着徽章字面「会显示成「废纸篓已清空」」，
   那是把**另一屏的措辞**写进了本屏的合同——那一格属 01 系与 `fidelity-shell.md` 的账，
-  本轮建议把它改判成「盘已取下」（§10 第 2 项那四个字是假话那条），照原写法那条一改这句就得跟着改。
+  本轮建议把它改判成「盘已取下」（§10 第 2 项那四个字是假话那条），照原写法那条一改这句就得跟着改。**P55 补**：那一格已在稿面改判落地，而且判据是实测的（同一支探针在挂载／拔盘两档各问一遍，读数 `docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`）；本屏这句合同句仍不引用徽标字面，所以两屏各自独立，改判不回头动这一句。
   现在这句只说事实（撤不回来、按钮消失、挂回来才恢复），不引用字面；稿面已按这一版落在
   `docs/design-system/screens/mmuninstaller/03h-uninstaller-external-volume.html`（画板 2 与画板 4 的三档文案表）。
   **这一句里不许出现的东西**：残留那一半。本轮台账那条 `moved=1` 只有本体一项，残留压根没进删除集合。
@@ -473,7 +473,7 @@ P52b 之前没有任何一层拦住那三条，今天拦住它们的是上面那
    `MainWindow.swift:679` 那枚「撤回」按钮换成 `:684` 的 `MMBadge("废纸篓已清空")`。
    照片 03（挂载中，按钮在）→ 04（拔盘，徽标）→ 05（重挂，按钮回来）三态同一行，`test -e` 那一句在
    `00-landing-reading.log` 里跟着翻两次面（真 → 假 → 真），与 `:298` 同口径。
-   **徽标那四个字是假话**：它断言的是"垃圾被倒掉了"，实测发生的是"盘被拔掉了"。
+   **徽标那四个字是假话**：它断言的是"垃圾被倒掉了"，实测发生的是"盘被拔掉了"。〔**P55 收口**：这一条的改判已经落成两面——判据由 `Scripts/p55-undo-badge-criterion.sh` 在同一支夹具的挂载／拔盘两档各跑一遍同一支探针量出来（`docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`：挂上时枚举 15 条含落点那块卷、拔掉后 14 条且那条路径 `resourceValues` 直接抛错），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`；源码 `MainWindow.swift:684` 那四个字**本轮没动**，记为 I16 等单独授权，账在 `fidelity-shell.md` §1.4 与 §6。〕
 3. **卸载页自己会把那个落点印给用户看**。照片 02 的回声卡第二行是
    `/private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app · local.mmvolume.aaap53crossvolume.p53`，
    底部 toast「已卸载 1 项 8 KB ｜ 撤回 ｜ 打开废纸篓 ｜ 12s」——也就是说建议 2 那句警告要说的信息，

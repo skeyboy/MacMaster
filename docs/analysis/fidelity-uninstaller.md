@@ -1005,8 +1005,8 @@ ONLY=06 ./Scripts/p32b-steam-launcher-capture.sh …        # 只重拍 06
   **把字面钉进合同句的那一处**：risk §4 建议 2，本轮已去掉并就地记了 P54 改判理由；
   **成因写窄了的那一处**：`feature-roadmap.md` P1.6 落地记录里那句括号"（用户倒过垃圾）"——
   `canUndo` 读的是 `fileExists(trashPath)`（`FileTrashService.swift:294-300`，其中 `:298`），拔掉盘同样让它为假，
-  本轮在那一段就地加了 P54 注。**改判本体（"盘已取下"）落点**：`fidelity-shell.md` 那一行与 01 系稿面，属另一轮，
-  本文只登记指针。
+  本轮在那一段就地加了 P54 注。**改判本体（"盘已取下"）落点**：`fidelity-shell.md` 那一行与 01 系稿面——**P55 已落地（稿面这一半）**：新稿
+  `docs/design-system/screens/shell/01b-dashboard-undo-states.html` 四块画板 + `fidelity-shell.md` §1.4 那一格改判、§3 新增 **I16**，本文这条指针就此收口；改那四个字的源码仍等单独授权。
 - 第五个面是这一节写的时候才显形的：路线文档那五行增量把**别的文档里引它的行号**一起顶漂了，
   涉及七份文档十六处——这一族不在本轮改动的那四份文档里，不看一眼就会漏。账与判据在 §18.6。
 

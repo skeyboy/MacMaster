@@ -215,7 +215,7 @@ Uninstally 的三块招牌里，**只有"残留删除"这一块和我们的差�
 不是照抄"拔盘即失效"那四个字。**P54 已按这一条出稿**（`docs/design-system/screens/mmuninstaller/03h-uninstaller-external-volume.html`，
 合同句与其三档文案表见 `uninstaller-app-body-risk.md` §4 建议 2，稿面那轮的账在 `fidelity-uninstaller.md` §18）：
 那句只说"撤不回来 / 按钮消失 / 挂回来才恢复"三件事实，**不引用徽标字面**——那一格怎么改判属 01 系与
-`fidelity-shell.md` 的账，钉进本屏的合同里会让两屏互相绑死。
+`fidelity-shell.md` 的账，钉进本屏的合同里会让两屏互相绑死。〔**P55 这一账已付**：改后的判据是实测的（`docs/verification/p55-undo-badge-criterion/00-criterion-reading.log`），稿面新起 `docs/design-system/screens/shell/01b-dashboard-undo-states.html`，对照格与整笔账在 `fidelity-shell.md` §1.4 与 §6；源码那四个字记为 **I16**，仍等单独授权——本屏合同句一个字没动。〕
 
 ### 4. 落地顺序第 3 条 `noteFileSystemChanged` —— 改判：不采纳
 

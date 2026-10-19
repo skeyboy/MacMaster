@@ -13,7 +13,7 @@ docs/design-system/
 ├── icons.js          图标 sprite（#i-<name>）—— 共享层
 ├── render.sh         渲染：HTML → 2x PNG。`./render.sh screens/<模块>/<稿>.html W H`
 └── screens/
-    ├── shell/         01-dashboard · 09-settings
+    ├── shell/         01-dashboard · 01b-dashboard-undo-states · 09-settings
     ├── mmui/          components · 05-states
     ├── mmcleaner/     02-cleaner · 02b-cleaner-installers · 02c-cleaner-dev
     ├── mmuninstaller/ 03-uninstaller · 03b-uninstaller-orphans · 03c-uninstaller-trash · 03d-uninstaller-provenance · 03e-uninstaller-watch · 03f-uninstaller-running · 03g-uninstaller-steam-launcher · 03h-uninstaller-external-volume

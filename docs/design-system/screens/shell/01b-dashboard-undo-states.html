@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../tokens.css">
+<link rel="stylesheet" href="../../screen.css">
+<script src="../../icons.js"></script>
+<style>body{margin:0;background:#DCDCDC;padding:28px;display:flex;flex-direction:column;align-items:center;gap:24px;
+          font-family:var(--font);color:var(--c-label)}
+.artboard{display:flex;flex-direction:column;gap:6px;align-items:center}
+.cap{font-size:var(--fs-caption);color:var(--c-label-tertiary);line-height:1.6;max-width:820px}
+.cap b{color:var(--c-label-secondary);font-weight:600}
+.cap code{font-family:var(--font-mono);color:var(--c-label-secondary)}
+/* 卡的宽度不是目测：本轮在 01-dashboard.html 的 DOM 上量到「最近操作」这张卡
+   clientWidth=352、scrollWidth=352（不溢出）。实现那侧的注释写的是 ~330pt
+   （MainWindow.swift:692，人眼的数）。两档都量过：见画板 3 下面那组数。 */
+.ovcard{width:352px;background:var(--c-card-bg);border:1px solid var(--c-separator);border-radius:var(--r-md);
+        overflow:hidden;box-shadow:var(--shadow-pop)}
+.ovcard.w330{width:330px}
+.ovcard .hd{display:flex;align-items:center;padding:8px var(--sp-3);border-bottom:1px solid var(--c-separator);
+            background:var(--c-card-bg-alt);font-size:var(--fs-headline);font-weight:600}
+.ovcard .hd small{margin-left:auto;font-weight:400;color:var(--c-label-tertiary);font-size:10px}
+.ovrow{display:flex;align-items:center;gap:var(--sp-2);padding:0 var(--sp-3);height:44px}
+.ovrow+.ovrow{border-top:1px solid var(--c-separator)}
+.ovrow .tx{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.ovrow .tx b{font-weight:500;font-size:var(--fs-callout);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovrow .tx span{font-size:var(--fs-caption);color:var(--c-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovrow .z{margin-left:auto;flex:0 0 auto}
+.pair{display:flex;gap:20px;align-items:flex-start}
+.tag{font-size:10px;color:var(--c-label-tertiary);font-family:var(--font-mono)}
+.matrix{display:grid;grid-template-columns:118px 1fr 210px 150px;gap:1px;background:var(--c-separator);
+        border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:820px}
+.matrix>div{background:var(--c-card-bg);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption);line-height:1.55}
+.matrix .h{background:var(--c-card-bg-alt);font-weight:600;color:var(--c-label-secondary)}
+.matrix .k{font-family:var(--font-mono);color:var(--c-label-secondary)}
+.matrix .word{font-weight:600;color:var(--c-label)}
+.matrix .lie{color:var(--c-danger)}
+.gaps{display:grid;grid-template-columns:150px 1fr;gap:1px;background:var(--c-separator);
+      border:1px solid var(--c-separator);border-radius:var(--r-md);overflow:hidden;width:820px}
+.gaps>div{background:var(--c-card-bg);padding:var(--sp-2) var(--sp-3);font-size:var(--fs-caption);line-height:1.55}
+.gaps .h{background:var(--c-card-bg-alt);font-weight:600;color:var(--c-label-secondary)}
+.gaps .n{font-family:var(--font-mono);color:var(--c-label-secondary)}
+.gaps .now{color:var(--c-label-tertiary)}
+.gaps code{font-family:var(--font-mono);color:var(--c-label-secondary)}</style></head>
+<body>
+
+<!-- ══════════════ 画板 1：今天这一行长什么样（照代码分支逐字画） ══════════════ -->
+<div class="artboard">
+<div class="pair">
+  <div>
+    <div class="ovcard">
+      <div class="hd">最近操作<small>只有移入废纸篓的动作可以撤回</small></div>
+      <div class="ovrow">
+        <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+        <div class="tx"><b>移入废纸篓 2.3 GB</b><span>刚刚 · 412 项</span></div>
+        <div class="z"><span class="btn borderless sm">撤回</span></div>
+      </div>
+      <div class="ovrow">
+        <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+        <div class="tx"><b>移入废纸篓 8 KB</b><span>2 分钟前 · 1 项</span></div>
+        <div class="z"><span class="badge readonly">已撤回</span></div>
+      </div>
+      <div class="ovrow">
+        <svg class="i" style="color:var(--c-warning)"><use href="#i-warn"></use></svg>
+        <div class="tx"><b>移入废纸篓 386 MB</b><span>6 分钟前 · 10 项 · 1 项失败</span></div>
+        <div class="z"><span class="badge readonly">废纸篓已清空</span></div>
+      </div>
+    </div>
+    <div class="tag">卡宽 352（DOM 量自 01-dashboard.html）</div>
+  </div>
+  <div>
+    <div class="ovcard w330">
+      <div class="hd">最近操作<small>只有移入废纸篓的动作可以撤回</small></div>
+      <div class="ovrow">
+        <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+        <div class="tx"><b>移入废纸篓 2.3 GB</b><span>刚刚 · 412 项</span></div>
+        <div class="z"><span class="btn borderless sm">撤回</span></div>
+      </div>
+      <div class="ovrow">
+        <svg class="i" style="color:var(--c-warning)"><use href="#i-warn"></use></svg>
+        <div class="tx"><b>移入废纸篓 386 MB</b><span>6 分钟前 · 10 项 · 1 项失败</span></div>
+        <div class="z"><span class="badge readonly">废纸篓已清空</span></div>
+      </div>
+    </div>
+    <div class="tag">同一屏按 ~330 重画一遍（那一档也放得下）</div>
+  </div>
+</div>
+<div class="cap"><b>01b-1 · 现状：那一行今天只有三个分支，逐字照代码画。</b>
+  <code>MainWindow.swift:676-685</code>——<code>:677</code> 已撤回、<code>:679</code> 撤回按钮、<code>:684</code> 读不到落点时那枚「废纸篓已清空」。
+  行名与副标题这一族也照实现画（<code>:670</code> 的「移入废纸篓 N」与 <code>:691-699</code> 的「相对时间 · N 项〔 · M 项失败〕」），
+  <b>而不是照 <code>01-dashboard.html:162-170</code> 那三行画</b>——那三行的行名（「清理系统缓存 2.3 GB」「卸载 OldApp 386 MB」「3 项跳过：文件被占用」）
+  是稿内虚构，实机永远不这么印；这一条差异记在 <code>fidelity-shell.md</code> §1.4，本轮没动那张稿（动它要重渲染 <code>01-dashboard.png</code>，
+  按"一次只作废一批基线"另排）。
+  两枚徽标在实现里 tint 不同（<code>:677</code> secondaryLabel / <code>:684</code> tertiaryLabel），令牌层只有 <code>.badge.readonly</code> 一档，
+  所以稿面这两格同形——缺的是令牌不是画板，属 S4 那一族，本轮登记不当判据。</div>
+</div>
+
+<!-- ══════════════ 画板 2：改判后那一列该有哪几档 ══════════════ -->
+<div class="artboard">
+<div class="ovcard">
+  <div class="hd">最近操作<small>只有移入废纸篓的动作可以撤回</small></div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>刚刚 · 1 项</span></div>
+    <div class="z"><span class="btn borderless sm">撤回</span></div>
+  </div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>2 分钟前 · 1 项</span></div>
+    <div class="z"><span class="badge readonly">已撤回</span></div>
+  </div>
+  <div class="ovrow" style="background:var(--c-accent-soft)">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 8 KB</b><span>4 分钟前 · 1 项</span></div>
+    <div class="z"><span class="badge readonly">盘已取下</span></div>
+  </div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 1.1 GB</b><span>6 分钟前 · 3 项</span></div>
+    <div class="z"><span class="badge readonly">废纸篓已清空</span></div>
+  </div>
+  <div class="ovrow">
+    <svg class="i" style="color:var(--c-success)"><use href="#i-ok-c"></use></svg>
+    <div class="tx"><b>移入废纸篓 640 MB</b><span>昨天 21:04 · 12 项</span></div>
+    <div class="z"><span class="badge readonly">无法撤回</span></div>
+  </div>
+</div>
+<div class="cap"><b>01b-2 · 改判后：那一列从三档变四档，另加一档给"说不出成因"的老记录。</b>
+  高亮那一行是本轮建议的新档「盘已取下」；「废纸篓已清空」<b>留着</b>——它在"用户真倒了垃圾"那一档仍是实话，
+  本轮改判的是<b>把两种成因拆开</b>，不是把那四个字删掉。最后一行「无法撤回」是台账里没有卷身份的老记录（P1.6 之前写的）
+  落进来的那一档：它<b>不指认成因</b>，所以不需要新证据就能说出口。
+  稿面量（DOM，13px/10px 两档字号、44px 行高、<code>--sp-3</code>=12px）：右列那枚徽标「废纸篓已清空」占 <b>74px</b>、
+  「盘已取下」与「无法撤回」各 <b>54px</b>、「已撤回」44px、「撤回」按钮 42px；
+  卡宽 352 时标签列拿到 <b>239 → 259</b>（改判反而多 20px），卡宽 330 时 <b>217 → 237</b>。
+  这两档里"移入废纸篓 N"与最长那条副标题（"6 分钟前 · 10 项 · 1 项失败"）的 <code>scrollWidth</code> 都等于 <code>clientWidth</code>，
+  <b>不截断</b>——所以这一族的改判<b>不需要任何让步顺序</b>，它只是把一句话说短了。</div>
+</div>
+
+<!-- ══════════════ 画板 3：四档的文案合同（成因 → 判据 → 措辞） ══════════════ -->
+<div class="artboard">
+<div class="matrix">
+  <div class="h">档</div><div class="h">判据（现测，不是推的）</div><div class="h">措辞</div><div class="h">现状</div>
+
+  <div class="k">A 卷挂着、落点还在</div>
+  <div><code>isUndone==false</code> 且 <code>fileExists(trashPath)</code> 为真（<code>FileTrashService.swift:294-300</code>，其中 <code>:298</code>）</div>
+  <div class="word">「撤回」按钮（点了就放回原位）</div><div>已对，不动</div>
+
+  <div class="k">B 已经撤回过</div>
+  <div><code>isUndone==true</code>（<code>:676</code> 那一支，先看它）</div>
+  <div class="word">「已撤回」</div><div>已对，不动</div>
+
+  <div class="k">C 落点所在的那块卷不在了</div>
+  <div>删除时记下的<b>卷 UUID</b> ∉ 当前 <code>mountedVolumeURLs(options: [])</code> 的 UUID 集合。
+    本轮实测：挂上时枚举 15 条、里面有 <code>B991079F-…</code>（name=MMVolumeP53）；拔掉后 14 条、那一条消失，
+    而落点路径 <code>fileExists</code>=假、<code>resourceValues</code> 直接抛错</div>
+  <div class="word lie">「盘已取下」</div>
+  <div><b>本轮改判</b>：今天这一档印的是「废纸篓已清空」，而全程没人倒过垃圾（P53 照片 03→04→05）</div>
+
+  <div class="k">D 卷还在、落点被清掉了</div>
+  <div>记下的卷 UUID <b>∈</b> 当前挂载集合（对照档实测：主目录那卷 <code>9491EF3B-…</code> = 枚举里 <code>/</code> 那条，恒在），
+    而落点 <code>fileExists</code>=假</div>
+  <div class="word">「废纸篓已清空」</div><div>这一档里它是实话，保留</div>
+
+  <div class="k">E 老记录没有卷身份</div>
+  <div>台账里那个字段缺失（新增字段的必然降级档）。<b>不许拿路径前缀反推</b>：拔盘后那个挂载点目录还在，
+    只是变成主卷上的一个空目录（实测 <code>fileExists(挂载点)</code>=真、它的 UUID 报 <code>9491EF3B-…</code>=Macintosh HD）</div>
+  <div class="word">「无法撤回」</div><div>新增；这一档不指认成因，所以不需要证据</div>
+</div>
+<div class="cap"><b>01b-3 · 四档 + 一个降级档。</b>C 与 D 用的是<b>同一个问句的两种答案</b>（落点读不到），
+  分开它们靠的不是路径而是<b>卷身份在不在当前挂载集合里</b>；这条判据是本轮新量的，
+  证据在 <code>docs/verification/p55-undo-badge-criterion/00-criterion-reading.log</code>（档 A／档 B 两次跑同一支探针、同一个路径）。
+  <b>C 与 E 谁先谁后</b>：E 只看"字段在不在"，C/D 只看"UUID 匹不匹配"——字段缺失时不许落到 C 也不许落到 D，
+  这就是"不知道成因就不指认成因"那一档存在的理由。</div>
+</div>
+
+<!-- ══════════════ 画板 4：后端配合清单 ══════════════ -->
+<div class="artboard">
+<div class="gaps">
+  <div class="h">缺口</div><div class="h">今天有什么 ／ 要什么</div>
+
+  <div class="n">1 落点的卷身份没人记</div>
+  <div><div class="now">现在：<code>TrashRecord</code> 只有 <code>originalPath</code>/<code>trashPath</code>/<code>size</code> 三格
+    （<code>FileTrashService.swift:265-277</code>）。落点是 <code>FileManager.trashItem</code> 定的，我们只把
+    <code>resultingItemURL</code> 抄进台账（<code>:45</code>）。</div>
+    <div>要：删除时顺手取 <code>volumeUUIDString</code>（本轮现读编译核实这个成员在 SDK 里）写进台账。
+    <b>必须在删除时取</b>——拔盘之后再问那个路径，<code>resourceValues</code> 直接抛错（档 B 实测）。</div></div>
+
+  <div class="n">2 新字段只能可选</div>
+  <div><div class="now">现在：台账读不出来时把坏文件改名成 <code>*.corrupt-&lt;时间戳&gt;</code> 留档，而不是静默覆盖（P1.6 落地记录）。</div>
+    <div>要：新字段必须可选。<b>写成必填会让用户已有的整份台账解码失败</b>，然后被改名——"撤回"入口连同记录一起没了，
+    代价比那句假话大得多。缺字段那一档走 E，不猜。</div></div>
+
+  <div class="n">3 不能用"挂载点目录在不在"</div>
+  <div><div class="now">现在：谁都没这么判，但这是最容易被写成判据的那一句。</div>
+    <div>要：不要用。档 B 实测 <code>fileExists(挂载点)</code>=真、目录是空的、它的卷身份已经变成主卷 ⟹
+    这一句会把"盘已取下"判成"盘还在"，<b>正好判反</b>。</div></div>
+
+  <div class="n">4 不能复用候选根那一档过滤</div>
+  <div><div class="now">现在：<code>VolumeRootProbe.snapshot()</code> 走默认档全量枚举，但它给的行<b>没有 UUID 这一格</b>；
+    <code>VolumeRoots.passesFilter</code>（<code>VolumeRoots.swift:99-104</code>）还要 <code>browsable</code>。</div>
+    <div>要：这一族直接吃 <code>mountedVolumeURLs(includingResourceValuesForKeys: [.volumeUUIDStringKey], options: [])</code>
+    的 UUID 集合，<b>不要过 browsable</b>。本轮实测：夹具卷以 <code>-nobrowse</code> 挂上时枚举里就在，
+    但 <code>browsable=假</code>（档 A 第 11 条），过了那道滤就漏。</div></div>
+
+  <div class="n">5 界面这一行的分支</div>
+  <div><div class="now">现在：<code>MainWindow.swift:676-685</code> 三支，<code>:684</code> 那四个字写死。</div>
+    <div>要：读不到落点那一支再分一次——按画板 3 的 C／D／E 出三枚徽标。判定建议写成纯函数
+    （进去：记录里的 UUID、当前挂载 UUID 集合、<code>fileExists</code> 的结果；出来：档），
+    单测因此不必真造一块卷；真机那一档再借 P53 那支夹具拍。</div></div>
+
+  <div class="n">6 取证怎么补</div>
+  <div><div class="now">现在：改判前的三档已经拍过——<code>docs/verification/p53-cross-volume-trash/</code> 03（按钮在）／04（那枚假徽标）／05（重挂按钮回来）。</div>
+    <div>要：落地那一轮在同一夹具上重拍 04 那一档（徽标该是「盘已取下」），并把 03↔04 的像素判据按
+    <code>uninstaller-app-body-risk.md</code> §10 第 2 项那条"不要求只有那一行变了"沿用（概览页是活数页）。
+    <b>本轮不拍</b>：画面上今天还没有这一档，稿面就是唯一现状。</div></div>
+</div>
+<div class="cap"><b>01b-4 · 后端配合清单六条。</b>本轮<b>零代码改动</b>：改的是稿面与 <code>fidelity-shell.md</code> §1.4 那一格，
+  <code>MainWindow.swift:684</code> 那四个字仍按老铁律等单独授权。
+  六条里没有新权限、没有新子进程——第 1、4 两条要的那一次 <code>mountedVolumeURLs</code> 调用与
+  <code>VolumeRootProbe</code> 今天用的是同一个 Foundation 出口，P35a §1 那条"不 spawn <code>mount</code>"的纪律不变。</div>
+</div>
+
+</body></html>
