@@ -166,4 +166,23 @@ public enum MMLaunchHook {
               width >= minWidth, height >= minHeight else { return nil }
         return MMWindowSizeRequest(width: width, height: height)
     }
+
+    public struct LanguageResolution: Sendable, Equatable {
+        /// nil = env 没给值，按当前档位（UserDefaults）处理。
+        public let selected: Localization.Language?
+        public let rejected: String?
+    }
+
+    /// `MM_LANGUAGE`：`zh|zh-hans` → 中文，`en` → 英文；其余视为非法，交回调用方留痕。
+    /// `zh-CN`/`zh-Hans-CN` 这类带地区的写法不吃：双语取证脚本只有两档，
+    /// 吃下别名等于允许同一张照片有两种读法，核对的人无法从日志判断实际落在哪。
+    public static func resolveLanguage(raw: String?) -> LanguageResolution {
+        let token = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch token {
+        case "": return LanguageResolution(selected: nil, rejected: nil)
+        case "zh", "zh-hans": return LanguageResolution(selected: .chinese, rejected: nil)
+        case "en": return LanguageResolution(selected: .english, rejected: nil)
+        default: return LanguageResolution(selected: nil, rejected: raw ?? "")
+        }
+    }
 }

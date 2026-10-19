@@ -1,0 +1,33 @@
+# 落点读数 2026-10-19 11:42:46 +0800
+# repo: 6e45085-dirty   # digest: tree=6e45085+995bdbf7 app=6e45085+995bdbf7
+台账（本轮开始前）：sha=32184eb08adce992 条目=13
+台账（现在）：sha=01879f071bc11e90 条目=14 字节=7364
+台账头一条：
+  id=7955ADB1-BCB1-414C-91D6-0D1621AD30DC isUndone=False moved=1 failures=0
+    originalPath=/private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app
+    trashPath=/private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app
+    size=8192
+主目录卷=/dev/disk3s1  挂载卷=/dev/disk13s1  ⟹ 跨卷成立=是
+--- .Trashes（挂载中）---
+  权限位：d-wx--x--t  3 501  20  96 Oct 19 11:42 /private/tmp/mm-p53-mnt/.Trashes
+  501：AaaP53CrossVolume.app 
+  点名落点：drwxr-xr-x@ 3 501  20  96 Oct 19 11:41 /private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app 
+  落点实占：8 KB
+卷内 Applications：
+# 落点判定：卷内的 .Trashes
+# 落点在不在这一问的复现（test -e 与 FileTrashService.swift:310-315、UndoAvailability.swift:114 同一条问句）：挂载中=真
+--- 拔盘 11:42:56 ---
+（已卸载 /tmp/mm-p53-mnt）
+拔盘后：挂载行=
+拔盘后 test -e 落点=假  ⟹ 档位该是 「盘已取下」徽标（台账那条带卷身份，见 FileTrashService.swift:123）
+--- 重新挂上 11:43:07 ---
+（EXPECT_APP=0：不查 Applications/AaaP53CrossVolume.app——删除之后再挂一次时它本就该不在）
+MP_REAL=/private/tmp/mm-p53-mnt
+挂载点：/tmp/mm-p53-mnt  inode 属卷：/dev/disk13s1
+卷内 Applications：
+--- .Trashes（重新挂上后）---
+  权限位：d-wx--x--t  3 501  20  96 Oct 19 11:42 /private/tmp/mm-p53-mnt/.Trashes
+  501：AaaP53CrossVolume.app 
+  点名落点：drwxr-xr-x@ 3 501  20  96 Oct 19 11:41 /private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app 
+  落点实占：8 KB
+重挂后 test -e 落点=真

@@ -1,0 +1,11 @@
+# p56-undo-tier-capture.sh 01-zh-wide  2026-10-19 11:36:15 +0800  app=/tmp/mm-app-p56/MacMaster.app
+# repo: 6e45085-dirty   # digest: tree=6e45085+995bdbf7 app=6e45085+995bdbf7
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=dashboard MM_WINDOW_SIZE=1400x1100 MM_LANGUAGE=zh
+# 台账：sha=6d95c40b99b0d39d 条目=5（本轮为合成五档，见脚本头）
+# 启动卷 UUID=              2FCF768C-10E3-4E29-A066-59C7A9E6E1FD｜合成'已取下的那块卷' UUID=P56-FAKE-DETACHED-000000000000
+# 期望：整页中文：这张卡五行自上而下＝「撤回」按钮 / 已撤回 / 盘已取下 / 废纸篓已清空 / 无法撤回
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p56/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+MM_WINDOW_SIZE=1400x1100 请求 1400x1100pt，窗口实际 1400x1050pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）
+# windows(pid=99434): windowid=1057 pid=99434 layer=0 title=MacMaster bounds=["X": 286, "Y": 30, "Width": 1400, "Height": 1050]

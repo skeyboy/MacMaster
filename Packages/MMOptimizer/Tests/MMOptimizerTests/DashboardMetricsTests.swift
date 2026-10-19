@@ -268,13 +268,24 @@ final class DashboardMetricsTests: XCTestCase {
         XCTAssertNil(MemoryComposition.parts(bogus))
     }
 
-    // MARK: 结论文案
+    // MARK: 结论档位
 
     func testLoadVerdictNeedsBothNumbers() {
-        XCTAssertNil(LoadVerdict.text(cpu: nil, memoryPressure: 0.2), "没量到就不下“运行平稳”的结论")
-        XCTAssertEqual(LoadVerdict.text(cpu: 0.3, memoryPressure: 0.5), "运行平稳")
-        XCTAssertEqual(LoadVerdict.text(cpu: 0.8, memoryPressure: 0.1), "负载偏高")
-        XCTAssertEqual(LoadVerdict.text(cpu: 0.1, memoryPressure: 0.9), "负载偏高")
+        XCTAssertNil(LoadVerdict.kind(cpu: nil, memoryPressure: 0.2), "没量到就不下“运行平稳”的结论")
+        XCTAssertEqual(LoadVerdict.kind(cpu: 0.3, memoryPressure: 0.5), .calm)
+        XCTAssertEqual(LoadVerdict.kind(cpu: 0.8, memoryPressure: 0.1), .busy)
+        XCTAssertEqual(LoadVerdict.kind(cpu: 0.1, memoryPressure: 0.9), .busy)
+    }
+
+    /// P56 之前调用处是按中文字符串决定徽章颜色的（`verdict == "运行平稳"`），
+    /// 文案一改就分错档。现在档位是枚举、措辞在文案表里，所以这里钉的是
+    /// "两档各自都能取到非空且互不相同的文案"——至于那句写什么，是表的自由。
+    func testLoadVerdictWordingIsResolvedSeparatelyFromTheTier() {
+        let calm = LoadVerdict.Kind.calm.title
+        let busy = LoadVerdict.Kind.busy.title
+        XCTAssertFalse(calm.isEmpty)
+        XCTAssertFalse(busy.isEmpty)
+        XCTAssertNotEqual(calm, busy)
     }
 
     func testCoreNoteFallsBackToCaliberWhenSplitMissing() {

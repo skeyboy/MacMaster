@@ -122,7 +122,7 @@ public enum DashboardReclaim {
 
     public static func state(from categories: [CacheCategory]?) -> ReclaimMeasureState {
         guard let categories, !categories.isEmpty else {
-            return .failed(reason: "扫描没有返回结果")
+            return .failed(reason: L("dashboard.reclaim.scanNoResult"))
         }
         let deletable = deletableCategories(categories)
         guard deletable.isEmpty == false else {
@@ -206,11 +206,23 @@ public enum MemoryComposition {
 // MARK: 负载结论
 
 public enum LoadVerdict {
-    /// 一句话结论。阈值：CPU 70%、内存压力 80%，任一越线即"负载偏高"。
+    /// 结论只有两档；措辞进表，阈值留在这里。
+    /// 为什么不再是"返回一句中文"：调用处以前靠比对字符串决定徽章颜色，
+    /// 文案一切语言（甚至只是改一个字）就分错了档——判定和措辞必须分手。
+    public enum Kind: Equatable, Sendable {
+        case calm
+        case busy
+
+        public var title: String {
+            L(self == .calm ? "dashboard.load.verdictCalm" : "dashboard.load.verdictBusy")
+        }
+    }
+
+    /// 阈值：CPU 70%、内存压力 80%，任一越线即"负载偏高"。
     /// 两者都没量到时不给结论——"运行平稳"是一句承诺，不能靠猜。
-    public static func text(cpu: Double?, memoryPressure: Double?) -> String? {
+    public static func kind(cpu: Double?, memoryPressure: Double?) -> Kind? {
         guard let cpu, let memoryPressure else { return nil }
-        return (cpu >= 0.70 || memoryPressure >= 0.80) ? "负载偏高" : "运行平稳"
+        return (cpu >= 0.70 || memoryPressure >= 0.80) ? .busy : .calm
     }
 }
 
@@ -242,32 +254,32 @@ public enum DashboardText {
     /// swap 单独一行：没量到显示 "—"；量到且为 0 才可以说"未使用"。
     public static func swapText(_ reading: DashboardMemory.Reading?) -> String {
         guard let reading, let used = reading.swapUsed, let total = reading.swapTotal else {
-            return "交换空间 \(placeholder)"
+            return LF("dashboard.load.swapUnknown", placeholder)
         }
-        if used == 0 { return "交换空间 0 字节" }
-        return "交换 \(MMFormat.bytes(used)) / \(MMFormat.bytes(total))"
+        if used == 0 { return L("dashboard.load.swapZero") }
+        return LF("dashboard.load.swap", MMFormat.bytes(used), MMFormat.bytes(total))
     }
 
     /// CPU 口径声明：总占用（跨所有核），不是每核。
     public static func cpuCaliberNote(coreCount: Int) -> String {
-        "总占用 · \(coreCount) 核"
+        LF("dashboard.load.cpuCaliber", MMFormat.count(coreCount))
     }
 
     /// P/E 核拆分来自 sysctl，读不到就说口径而不是编一个"6 性能 + 4 能效"。
     public static func cpuCoreNote(total: Int, performance: Int?, efficiency: Int?) -> String {
         if let performance, let efficiency, performance > 0, efficiency > 0,
            performance + efficiency == total {
-            return "\(performance) 性能 + \(efficiency) 能效"
+            return LF("dashboard.load.cpuCores", MMFormat.count(performance), MMFormat.count(efficiency))
         }
-        return "跨所有核总占用"
+        return L("dashboard.load.cpuCoresUnknown")
     }
 
     public static func reclaimableText(_ state: ReclaimMeasureState) -> String {
         switch state {
-        case .notMeasured: "未扫描 · 去清理"
-        case .measuring: "扫描中…"
-        case .noCategorySelected: "未勾选类别"
-        case .failed(let reason): "测量失败（\(reason)）"
+        case .notMeasured: L("dashboard.reclaim.notMeasured")
+        case .measuring: L("dashboard.reclaim.measuring")
+        case .noCategorySelected: L("dashboard.reclaim.noCategorySelected")
+        case .failed(let reason): LF("dashboard.reclaim.failed", reason)
         case .measured(let total, _): MMFormat.bytes(total)
         }
     }
@@ -275,11 +287,11 @@ public enum DashboardText {
     /// 悬浮/副标题说明：这个数字从哪来、为什么现在没有。
     public static func reclaimDetailText(_ state: ReclaimMeasureState) -> String {
         switch state {
-        case .notMeasured: "数字来自真实扫描，扫描前不预估。"
-        case .measuring: "正在统计各类缓存、日志与临时文件…"
-        case .noCategorySelected: "清理页四个类别都关着，这一轮没东西可扫；勾上任一个再点「重新测量」。"
+        case .notMeasured: L("dashboard.reclaim.detailNotMeasured")
+        case .measuring: L("dashboard.reclaim.detailMeasuring")
+        case .noCategorySelected: L("dashboard.reclaim.detailNoCategory")
         case .failed(let reason): reason
-        case .measured(_, let count): "来自 \(count) 个分类的真实扫描求和"
+        case .measured(_, let count): LF("dashboard.reclaim.detailMeasured", MMFormat.count(count))
         }
     }
 }

@@ -147,14 +147,14 @@ public enum MMFormat {
     /// 真量到 0 也要说清：ByteCountFormatter 会把它写成 "Zero KB"，
     /// 中文界面里读起来像坏了。
     public static func bytes(_ value: UInt64?) -> String {
-        guard let value else { return "测量中" }
-        guard value >= 1000 else { return "\(value) 字节" }
+        guard let value else { return L("format.measuring") }
+        guard value >= 1000 else { return LF("format.bytes", String(value)) }
         return byte.string(fromByteCount: Int64(value))
     }
 
     public static func bytes(_ value: Int64?) -> String {
-        guard let value else { return "测量中" }
-        guard value >= 1000 else { return "\(value) 字节" }
+        guard let value else { return L("format.measuring") }
+        guard value >= 1000 else { return LF("format.bytes", String(value)) }
         return byte.string(fromByteCount: value)
     }
 
@@ -198,18 +198,25 @@ public enum MMFormat {
         return dateTime.string(from: date)
     }
 
-    private static let relative: RelativeDateTimeFormatter = {
+    /// `RelativeDateTimeFormatter` 的 locale 在取用时才生效，而这里是个共享的静态实例，
+    /// 所以两档各留一个、按当前语言挑：改共享实例的 locale 会跟视图重画抢顺序。
+    private static func makeRelative(_ locale: Locale) -> RelativeDateTimeFormatter {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
+        f.locale = locale
         return f
-    }()
+    }
+
+    private static let relativeChinese = makeRelative(Locale(identifier: "zh_CN"))
+    private static let relativeEnglish = makeRelative(Locale(identifier: "en_US"))
 
     public static func relative(_ date: Date?) -> String {
         guard let date else { return "—" }
         let seconds = Date().timeIntervalSince(date)
         // RelativeDateTimeFormatter 会把刚刚发生的事说成"0 秒后"，读起来像 bug。
-        if abs(seconds) < 5 { return "刚刚" }
-        return relative.localizedString(for: date, relativeTo: Date())
+        if abs(seconds) < 5 { return L("format.justNow") }
+        let formatter = Localization.shared.currentLanguage == .english ? relativeEnglish : relativeChinese
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     public static func duration(_ seconds: TimeInterval) -> String {
@@ -721,10 +728,10 @@ public struct MMFailurePanel: View {
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(MMColor.safe)
                 }
-                MMBadge("\(failures.count) 项失败", tint: MMColor.caution)
+                MMBadge(LF("panel.failuresCount", MMFormat.count(failures.count)), tint: MMColor.caution)
                 Spacer()
                 if let onDismiss {
-                    Button("忽略", action: onDismiss)
+                    Button(L("panel.dismiss"), action: onDismiss)
                         .buttonStyle(.borderless)
                         .controlSize(.small)
                 }
@@ -758,7 +765,7 @@ public struct MMFailurePanel: View {
                 }
             }
             if failures.count > 4 {
-                Text("另有 \(failures.count - 4) 项失败")
+                Text(LF("panel.moreFailures", MMFormat.count(failures.count - 4)))
                     .font(.caption2)
                     .foregroundStyle(MMColor.tertiaryLabel)
             }
@@ -767,11 +774,11 @@ public struct MMFailurePanel: View {
                 HStack(spacing: MMGap.md) {
                     Spacer()
                     if let onCopyDiagnostics {
-                        Button("复制诊断信息", action: onCopyDiagnostics)
+                        Button(L("panel.copyDiagnostics"), action: onCopyDiagnostics)
                             .buttonStyle(.borderless).controlSize(.small)
                     }
                     if let onRetry {
-                        Button("重试失败项", action: onRetry)
+                        Button(L("panel.retryFailed"), action: onRetry)
                             .buttonStyle(.bordered).controlSize(.small)
                     }
                 }
@@ -786,10 +793,10 @@ public struct MMFailurePanel: View {
 
     private func statsRow(_ stats: Stats) -> some View {
         HStack(spacing: MMGap.lg) {
-            statCell("计划", stats.planned, tint: MMColor.secondaryLabel)
-            statCell("成功", stats.succeeded, tint: MMColor.safe)
-            statCell("失败", failures.count, tint: MMColor.destructive)
-            statCell("跳过", stats.skipped, tint: MMColor.caution)
+            statCell(L("panel.statPlanned"), stats.planned, tint: MMColor.secondaryLabel)
+            statCell(L("panel.statSucceeded"), stats.succeeded, tint: MMColor.safe)
+            statCell(L("panel.statFailed"), failures.count, tint: MMColor.destructive)
+            statCell(L("panel.statSkipped"), stats.skipped, tint: MMColor.caution)
         }
         .padding(.vertical, MMGap.xs)
     }

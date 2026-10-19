@@ -1,0 +1,11 @@
+# p53-cross-volume-capture.sh 04-dashboard-after-detach  2026-10-19 11:42:57 +0800  app=/tmp/mm-app-p56/MacMaster.app
+# repo: 6e45085-dirty   # digest: tree=6e45085+995bdbf7 app=6e45085+995bdbf7
+# 卷：/private/tmp/mm-p53-mnt（/dev/disk3s1）｜主目录卷：/dev/disk3s1｜挂载行：未挂载
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=dashboard MM_WINDOW_SIZE=1400x1100 
+# 台账（拍前）：sha=01879f071bc11e90 条目=14 字节=7364
+# 期望：同一张卡、同一行：预期「撤回」按钮换成「盘已取下」徽标（I16 改判后），而谁也没倒过垃圾
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p56/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_WINDOW_SIZE=1400x1100 请求 1400x1100pt，窗口实际 1400x1050pt（被 .frame(minWidth:minHeight:) 夹住，见 MacMasterApp）
+# windows(pid=7627): windowid=1143 pid=7627 layer=0 title=MacMaster bounds=["Y": 30, "X": 287, "Width": 1400, "Height": 1050]
+# 台账（拍后）：sha=01879f071bc11e90 条目=14 字节=7364

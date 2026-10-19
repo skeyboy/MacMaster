@@ -62,6 +62,9 @@ struct SidebarView: View {
     @EnvironmentObject var moduleRegistry: ModuleRegistry
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var dashboard: DashboardModel
+    /// 语言开关的观察点：`L()` 是自由函数，SwiftUI 看不见它的依赖，
+    /// 不观察就出现"切了语言但侧边栏不重画"。
+    @ObservedObject private var l10n = Localization.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -89,7 +92,7 @@ struct SidebarView: View {
             List(selection: $appState.selectedModuleID) {
                 Section {
                     NavigationLink(value: MMDestination.dashboard.rawValue) {
-                        Label("概览", systemImage: "gauge")
+                        Label(L("nav.dashboard"), systemImage: "gauge")
                             .font(.body)
                     }
                     .tag(MMDestination.dashboard.rawValue)
@@ -97,7 +100,7 @@ struct SidebarView: View {
                     ForEach(moduleRegistry.modules) { module in
                         NavigationLink(value: module.id) {
                             HStack(spacing: MMGap.xs) {
-                                Label(module.name, systemImage: module.iconName)
+                                Label(L("module.\(module.id)", or: module.name), systemImage: module.iconName)
                                     .font(.body)
                                 Spacer(minLength: MMGap.sm)
                                 // 尾巴上的数字来自概览页那次真实扫描，所以没扫过时这一格是空的，
@@ -113,7 +116,7 @@ struct SidebarView: View {
                         .tag(module.id)
                     }
                 } header: {
-                    Text("功能模块")
+                    Text(L("sidebar.modules"))
                         .font(.caption)
                         .foregroundStyle(MMColor.tertiaryLabel)
                 }
@@ -128,7 +131,7 @@ struct SidebarView: View {
             Button {
                 appState.requestSettings()
             } label: {
-                Label("设置", systemImage: "gear")
+                Label(L("sidebar.settings"), systemImage: "gear")
                     .font(.body)
             }
             .padding(.horizontal, MMGap.lg)
@@ -151,14 +154,14 @@ struct SidebarView: View {
                         .foregroundStyle(MMColor.tertiaryLabel)
                 }
                 MMStackedBar(segments: [
-                    MMBarSegment(id: "used", label: "已用", value: Double(volume.used),
+                    MMBarSegment(id: "used", label: L("storage.used"), value: Double(volume.used),
                                  color: StorageBreakdown.isLowSpace(total: volume.total, available: volume.available)
                                      ? MMColor.destructive : MMColor.accent),
-                    MMBarSegment(id: "available", label: "可用", value: Double(volume.available),
+                    MMBarSegment(id: "available", label: L("storage.available"), value: Double(volume.available),
                                  color: MMColor.fillActive),
                 ], height: 4)
             } else {
-                Text("未能读取启动卷容量").font(.caption).foregroundStyle(MMColor.tertiaryLabel)
+                Text(L("sidebar.volume.unavailable")).font(.caption).foregroundStyle(MMColor.tertiaryLabel)
             }
         }
         .padding(.horizontal, MMGap.lg)
@@ -225,6 +228,8 @@ struct DashboardView: View {
     /// 清理历史存在 FileTrashService 里（模型只是转发），所以视图必须观察它，
     /// 否则撤回完页面还是旧列表。
     @ObservedObject private var trashService = FileTrashService.shared
+    /// 同侧边栏：切语言要让整页重画。
+    @ObservedObject private var l10n = Localization.shared
 
     var body: some View {
         ScrollView {
@@ -239,7 +244,7 @@ struct DashboardView: View {
                     .frame(width: 300)
                 }
                 if !model.undoFailures.isEmpty {
-                    MMFailurePanel(summary: "撤回未完成，文件仍在废纸篓", model.undoFailures) {
+                    MMFailurePanel(summary: L("dashboard.undo.panelSummary"), model.undoFailures) {
                         model.undoFailures = []
                     }
                 }
@@ -253,11 +258,11 @@ struct DashboardView: View {
     }
 
     private var header: some View {
-        MMPageHeader("概览", subtitle: headerSubtitle) {
+        MMPageHeader(L("nav.dashboard"), subtitle: headerSubtitle) {
             Button {
                 Task { await model.measureReclaimable() }
             } label: {
-                Label("重新测量", systemImage: "arrow.clockwise")
+                Label(L("dashboard.header.remeasure"), systemImage: "arrow.clockwise")
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
@@ -266,9 +271,8 @@ struct DashboardView: View {
     }
 
     private var headerSubtitle: String {
-        guard let sampledAt = model.sampledAt else { return "正在读取系统状态…" }
-        return "上次采样 " + MMFormat.relative(sampledAt)
-            + " · CPU/内存/磁盘均为本机实时读数"
+        guard let sampledAt = model.sampledAt else { return L("dashboard.header.sampling") }
+        return LF("dashboard.header.subtitle", MMFormat.relative(sampledAt))
     }
 
     /// 底部状态条：设计稿放在内容区最下方。只报量得到的事实，
@@ -277,20 +281,21 @@ struct DashboardView: View {
     private var statusBar: some View {
         HStack(spacing: MMGap.sm) {
             if let volumeCount = model.volumeCount {
-                Text("\(volumeCount) 个卷")
+                Text(LF("dashboard.status.volumes", MMFormat.count(volumeCount)))
             } else {
                 // 读不到就报读不到：0 会被读成"这台机器没有卷"，而那句不是我们量出来的。
-                Text(DashboardText.placeholder + " 个卷")
-                    .help("未能读取卷列表，这里不猜数字")
+                Text(LF("dashboard.status.volumesUnknown", DashboardText.placeholder))
+                    .help(L("dashboard.status.volumesHelp"))
             }
             if let filesystem = model.filesystemName {
                 Text("·")
-                Text("文件系统 \(filesystem)")
+                Text(LF("dashboard.status.filesystem", filesystem))
             }
             Text("·")
-            Text(model.lastCleanupAt.map { "上次清理 " + MMFormat.relative($0) } ?? "尚无清理记录")
+            Text(model.lastCleanupAt.map { LF("dashboard.status.lastCleanup", MMFormat.relative($0)) }
+                     ?? L("dashboard.status.noCleanup"))
             Spacer()
-            Text("数据更新于 \(MMFormat.dateTime(model.sampledAt))")
+            Text(LF("dashboard.status.updatedAt", MMFormat.dateTime(model.sampledAt)))
         }
         .font(.caption).monospacedDigit().foregroundStyle(MMColor.tertiaryLabel)
         .padding(.horizontal, MMGap.lg)
@@ -306,17 +311,18 @@ struct DashboardView: View {
         MMCard {
             VStack(alignment: .leading, spacing: MMGap.sm) {
                 HStack(spacing: MMGap.sm) {
-                    Text("存储").font(.headline)
+                    Text(L("dashboard.card.storage")).font(.headline)
                     if let volume = model.volume,
                        StorageBreakdown.isLowSpace(total: volume.total, available: volume.available) {
-                        MMBadge("可用空间偏低", tint: MMColor.destructive)
+                        MMBadge(L("dashboard.storage.lowSpace"), tint: MMColor.destructive)
                     }
                     Spacer()
                     if let volume = model.volume {
-                        Text("\(MMFormat.bytes(volume.available)) 可用 · 共 \(MMFormat.bytes(volume.total))")
+                        Text(LF("dashboard.storage.availableOf",
+                                MMFormat.bytes(volume.available), MMFormat.bytes(volume.total)))
                             .font(.caption).monospacedDigit().foregroundStyle(MMColor.secondaryLabel)
                     } else {
-                        Text(DashboardText.placeholder + " 可用")
+                        Text(LF("dashboard.storage.availableUnknown", DashboardText.placeholder))
                             .font(.caption).monospacedDigit().foregroundStyle(MMColor.secondaryLabel)
                     }
                 }
@@ -324,10 +330,11 @@ struct DashboardView: View {
                 if let volume = model.volume {
                     MMStackedBar(segments: storageSegments, height: 8)
                     MMLegend(storageLegend)
-                    Text("\(volume.name) · 已用 \(MMFormat.percent(volume.usedRatio))")
+                    Text(LF("dashboard.storage.usedPercent",
+                            volume.name, MMFormat.percent(volume.usedRatio)))
                         .font(.caption2).monospacedDigit().foregroundStyle(MMColor.tertiaryLabel)
                 } else {
-                    Text("未能读取启动卷容量（volumeTotalCapacity / 重要用途可用容量均未返回），这里不猜数字。")
+                    Text(L("dashboard.storage.noVolume"))
                         .font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 }
 
@@ -336,7 +343,7 @@ struct DashboardView: View {
                 HStack(spacing: MMGap.sm) {
                     releaseText
                     Spacer(minLength: MMGap.md)
-                    Button("查看占用排行") { MMNavigation.go(.disk) }
+                    Button(L("dashboard.storage.diskRank")) { MMNavigation.go(.disk) }
                         .buttonStyle(.bordered).controlSize(.small)
                     Button(releaseButtonTitle) { MMNavigation.go(.cleaner) }
                         .buttonStyle(.borderedProminent).controlSize(.small)
@@ -349,9 +356,31 @@ struct DashboardView: View {
     /// 其他已用=主色、可用=极淡的填充色（可用本来就该"看起来没有"）。
     private var storageSegments: [MMBarSegment] {
         model.storageSegments.map { segment in
-            MMBarSegment(id: segment.id, label: segment.label,
+            MMBarSegment(id: segment.id, label: segmentLabel(segment.id, segment.label),
                          value: Double(segment.bytes), color: storageColor(segment.id))
         }
+    }
+
+    /// 堆叠条与图例上的段名。数据层（`StorageBreakdown` / `MemoryComposition`）带来的
+    /// 还是中文——模块页共用同一份，本轮没接——所以在这道呈现边界按稳定的 `id` 现取，
+    /// 表里没有就退回原话，绝不把 key 印到屏幕上。
+    ///
+    /// 侧边栏那根条的 `used` 是"已用"，这里的 `used` 是"其他已用"：同一个 id 两种说法，
+    /// 所以这个映射只服务概览页这两条堆叠条，别处要用得另开一档。
+    private func segmentLabel(_ id: String, _ fallback: String) -> String {
+        let key: String
+        switch id {
+        case "reclaimable": key = "storage.reclaimable"
+        case "trash": key = "storage.trash"
+        case "used": key = "storage.otherUsed"
+        case "available": key = "storage.available"
+        case "active": key = "memory.active"
+        case "wired": key = "memory.wired"
+        case "compressed": key = "memory.compressed"
+        case "free": key = "memory.free"
+        default: return fallback
+        }
+        return L(key, or: fallback)
     }
 
     private func storageColor(_ id: String) -> Color {
@@ -365,7 +394,7 @@ struct DashboardView: View {
 
     private var storageLegend: [MMLegend.Item] {
         model.storageSegments.map {
-            MMLegend.Item(id: $0.id, text: "\($0.label) \(MMFormat.bytes($0.bytes))",
+            MMLegend.Item(id: $0.id, text: "\(segmentLabel($0.id, $0.label)) \(MMFormat.bytes($0.bytes))",
                           color: storageColor($0.id))
         }
     }
@@ -379,7 +408,7 @@ struct DashboardView: View {
 
     private var releaseText: some View {
         HStack(spacing: MMGap.xs) {
-            Text("可立即释放").font(.callout)
+            Text(L("dashboard.storage.releasable")).font(.callout)
             if let releasableBytes {
                 Text(MMFormat.bytes(releasableBytes))
                     .font(.callout.weight(.semibold)).monospacedDigit()
@@ -396,13 +425,16 @@ struct DashboardView: View {
 
     private var releaseDetail: String {
         guard case .measured(let total, _) = model.reclaimState else { return "" }
-        guard let trash = model.trashBytes else { return "（可清理 \(MMFormat.bytes(total)) · 废纸篓未读到）" }
-        return "（可清理 \(MMFormat.bytes(total)) + 废纸篓 \(MMFormat.bytes(trash))）"
+        guard let trash = model.trashBytes else {
+            return LF("dashboard.storage.releasableTrashUnknown", MMFormat.bytes(total))
+        }
+        return LF("dashboard.storage.releasableDetail",
+                  MMFormat.bytes(total), MMFormat.bytes(trash))
     }
 
     private var releaseButtonTitle: String {
-        guard let releasableBytes else { return "去扫描" }
-        return "清理 \(MMFormat.bytes(releasableBytes))"
+        guard let releasableBytes else { return L("dashboard.storage.goScan") }
+        return LF("dashboard.storage.cleanNow", MMFormat.bytes(releasableBytes))
     }
 
     // MARK: 负载
@@ -410,11 +442,11 @@ struct DashboardView: View {
     private var loadCard: some View {
         MMCard(padding: 0) {
             VStack(spacing: 0) {
-                cardHeader("系统负载", trailing: AnyView(
+                cardHeader(L("dashboard.card.load"), trailing: AnyView(
                     Group {
-                        if let verdict = LoadVerdict.text(cpu: model.cpuLoad,
+                        if let verdict = LoadVerdict.kind(cpu: model.cpuLoad,
                                                           memoryPressure: model.memory?.pressure) {
-                            MMBadge(verdict, tint: verdict == "运行平稳" ? MMColor.safe : MMColor.caution)
+                            MMBadge(verdict.title, tint: verdict == .calm ? MMColor.safe : MMColor.caution)
                         }
                     }
                 ))
@@ -426,12 +458,12 @@ struct DashboardView: View {
                              note: DashboardText.cpuCoreNote(total: model.coreCount,
                                                              performance: model.performanceCoreCount,
                                                              efficiency: model.efficiencyCoreCount))
-                        .help("口径：host_statistics 两次采样差分，跨所有核的总占用率（非每核）；首次差分出结果前显示 —。")
-                    gaugeRow(title: "内存",
+                        .help(L("dashboard.load.cpuHelp"))
+                    gaugeRow(title: L("dashboard.load.memory"),
                              ratio: model.memory?.pressure,
                              value: DashboardText.memoryUsedText(model.memory),
                              note: DashboardText.swapText(model.memory))
-                        .help("口径：(active + wired + compressed) × pageSize，不含可即时回收的 inactive。")
+                        .help(L("dashboard.load.memoryHelp"))
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, MMGap.lg)
@@ -444,18 +476,20 @@ struct DashboardView: View {
                 Divider()
 
                 HStack(spacing: MMGap.lg) {
-                    metricMini(title: "网络",
+                    metricMini(title: L("dashboard.load.network"),
                                value: model.netRate.map { MMFormat.rate(Double($0.received), up: false) }
                                    ?? DashboardText.placeholder,
                                history: model.netHistory,
-                               note: model.netRate.map { MMFormat.rate(Double($0.sent), up: true) + " · 全部物理接口" }
-                                   ?? "上传 \(DashboardText.placeholder)")
-                    metricMini(title: "磁盘 I/O",
-                               value: model.diskRead.map { "读 " + MMFormat.compactBytes(UInt64(max(0, $0))) + "/s" }
+                               note: model.netRate.map {
+                                   LF("dashboard.load.allPhysical",
+                                      MMFormat.rate(Double($0.sent), up: true))
+                               } ?? LF("dashboard.load.upload", DashboardText.placeholder))
+                    metricMini(title: L("dashboard.load.diskIO"),
+                               value: model.diskRead.map { LF("dashboard.load.read", MMFormat.compactBytes(UInt64(max(0, $0)))) }
                                    ?? DashboardText.placeholder,
                                history: model.diskHistory,
                                note: diskIONote)
-                        .help(model.diskIOFailure ?? "口径：IOKit IOBlockStorageDriver 累计字节两次采样差分，含全部磁盘驱动。")
+                        .help(model.diskIOFailure ?? L("dashboard.load.diskIOHelp"))
                 }
                 .padding(.horizontal, MMGap.lg)
                 .padding(.vertical, MMGap.md)
@@ -465,9 +499,13 @@ struct DashboardView: View {
 
     private var diskIONote: String {
         if let write = model.diskWrite {
-            return "写 " + MMFormat.compactBytes(UInt64(max(0, write))) + "/s · 全部磁盘驱动"
+            return LF("dashboard.load.allDiskDrivers",
+                      LF("dashboard.load.write", MMFormat.compactBytes(UInt64(max(0, write)))))
         }
-        return "写 \(DashboardText.placeholder) · \(model.diskIOFailure == nil ? "等待差分" : "IOKit 未返回统计")"
+        // 整句进表，不在这里用 " · " 拼：英语的次序和中文不一样，拼出来的那句两头不靠。
+        return LF(model.diskIOFailure == nil ? "dashboard.load.writeAwaitingDiff"
+                                             : "dashboard.load.writeNoStats",
+                  DashboardText.placeholder)
     }
 
     private func cardHeader(_ title: String, trailing: AnyView?) -> some View {
@@ -500,20 +538,22 @@ struct DashboardView: View {
     private var memoryComposition: some View {
         VStack(alignment: .leading, spacing: MMGap.xs) {
             HStack(spacing: MMGap.sm) {
-                Text("内存构成").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                Text(L("dashboard.load.memoryComposition")).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 Spacer()
                 if let parts = model.memoryParts {
-                    Text(parts.map { "\($0.label) \(MMFormat.bytes($0.bytes))" }.joined(separator: " · "))
+                    Text(parts.map { "\(segmentLabel($0.id, $0.label)) \(MMFormat.bytes($0.bytes))" }
+                             .joined(separator: " · "))
                         .font(.caption2).monospacedDigit().foregroundStyle(MMColor.tertiaryLabel)
                         .lineLimit(1).truncationMode(.middle)
                 }
             }
             if let parts = model.memoryParts {
                 MMStackedBar(segments: parts.map {
-                    MMBarSegment(id: $0.id, label: $0.label, value: Double($0.bytes), color: memoryColor($0.id))
+                    MMBarSegment(id: $0.id, label: segmentLabel($0.id, $0.label),
+                                 value: Double($0.bytes), color: memoryColor($0.id))
                 }, height: 8)
             } else {
-                Text("三项没读全就不画构成：缺的那段并进“未占用”会画出一条骗人的绿条。")
+                Text(L("dashboard.load.memoryCompositionHidden"))
                     .font(.caption2).foregroundStyle(MMColor.tertiaryLabel)
             }
         }
@@ -565,15 +605,18 @@ struct DashboardView: View {
             .prefix(3)
             .map { category in
                 ReclaimRow(id: category.id,
-                           name: category.name,
-                           subtitle: "\(MMFormat.count(category.scannedFiles)) 项 · \(category.risk.label)",
+                           name: L("category.\(category.id)", or: category.name),
+                           subtitle: LF("dashboard.reclaim.itemsRisk",
+                                         MMFormat.count(category.scannedFiles),
+                                         L("risk.\(category.risk.rawValue)", or: category.risk.label)),
                            bytes: category.scannedSize,
                            systemImage: category.risk.allowsDeletion ? category.iconName : "lock",
                            isDeletable: category.risk.allowsDeletion)
             }
         var rows = Array(top)
         if let trash = model.trashBytes, trash > 0 {
-            rows.append(ReclaimRow(id: "trash", name: "废纸篓", subtitle: "移入后可撤回",
+            rows.append(ReclaimRow(id: "trash", name: L("dashboard.reclaim.trash"),
+                                   subtitle: L("dashboard.reclaim.trashSubtitle"),
                                    bytes: trash, systemImage: "trash", isDeletable: true))
         }
         return rows
@@ -582,12 +625,12 @@ struct DashboardView: View {
     private var reclaimableCard: some View {
         MMCard(padding: 0) {
             VStack(spacing: 0) {
-                cardHeader("可释放空间", trailing: AnyView(
+                cardHeader(L("dashboard.card.reclaimable"), trailing: AnyView(
                     Button { MMNavigation.go(.cleaner) } label: {
                         // 稿 01 的「全部」是 `全部 + chevron-right`：那半枚箭头是"点了会离开这一页"
                         // 的唯一提示，光一个蓝色词读起来像个筛选开关。
                         HStack(spacing: MMGap.xxs) {
-                            Text("全部")
+                            Text(L("dashboard.reclaim.all"))
                             Image(systemName: "chevron.right").font(.caption2)
                         }
                     }
@@ -638,15 +681,15 @@ struct DashboardView: View {
     private var recentCard: some View {
         MMCard(padding: 0) {
             VStack(spacing: 0) {
-                cardHeader("最近操作", trailing: AnyView(
-                    Text("只有移入废纸篓的动作可以撤回")
+                cardHeader(L("dashboard.card.recent"), trailing: AnyView(
+                    Text(L("dashboard.recent.hint"))
                         .font(.caption).foregroundStyle(MMColor.tertiaryLabel)
                 ))
                 if model.trashHistory.isEmpty {
                     HStack(spacing: MMGap.sm) {
-                        Text("还没有清理记录。").font(.callout).foregroundStyle(MMColor.secondaryLabel)
+                        Text(L("dashboard.recent.empty")).font(.callout).foregroundStyle(MMColor.secondaryLabel)
                         Spacer(minLength: MMGap.sm)
-                        Button("开始清理") { MMNavigation.go(.cleaner) }
+                        Button(L("dashboard.recent.startCleaning")) { MMNavigation.go(.cleaner) }
                             .buttonStyle(.bordered).controlSize(.small)
                     }
                     .padding(MMGap.lg)
@@ -661,40 +704,59 @@ struct DashboardView: View {
     }
 
     private func recentRowView(_ operation: TrashOperation) -> some View {
-        HStack(spacing: MMGap.md) {
+        let tier = operation.tier(mountedVolumeUUIDs: model.mountedVolumeUUIDs)
+        return HStack(spacing: MMGap.md) {
             Image(systemName: operation.failures.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: MMMetric.iconSmall))
                 .foregroundStyle(operation.failures.isEmpty ? MMColor.safe : MMColor.caution)
                 .frame(width: MMMetric.iconSmall)
             VStack(alignment: .leading, spacing: MMGap.xxs) {
-                Text("移入废纸篓 \(MMFormat.bytes(operation.totalSize))")
+                Text(LF("dashboard.recent.rowTitle", MMFormat.bytes(operation.totalSize)))
                     .font(.callout).lineLimit(1)
                 Text(recentSubtitle(operation))
                     .font(.caption).foregroundStyle(MMColor.tertiaryLabel).lineLimit(1)
             }
             Spacer(minLength: MMGap.sm)
-            if operation.isUndone {
-                MMBadge("已撤回", tint: MMColor.secondaryLabel)
-            } else if operation.canUndo {
-                Button("撤回") { Task { await model.undo(operation) } }
-                    .buttonStyle(.borderless).controlSize(.small)
-            } else {
-                // 记录还在，但废纸篓里的那个文件已经不在了。按钮该在这里消失，
-                // 而不是等用户按下去才拿到一个错误。
-                MMBadge("废纸篓已清空", tint: MMColor.tertiaryLabel)
-            }
+            undoTrailing(tier, operation)
         }
         .padding(.horizontal, MMGap.lg)
         .frame(height: MMMetric.rowRegular)
     }
 
+    /// 右侧那一格按五档措辞。旧实现只有两句：「已撤回」和「废纸篓已清空」，
+    /// 后者把"落点读不到"一律说成有人倒了垃圾——而拔盘也是同一句，界面就在替我们
+    /// 说一件没发生过的事。档位的判据见 `UndoTierResolver`（MMCore）。
+    @ViewBuilder
+    private func undoTrailing(_ tier: UndoTier, _ operation: TrashOperation) -> some View {
+        switch tier {
+        case .restorable:
+            Button(L("dashboard.recent.undo")) { Task { await model.undo(operation) } }
+                .buttonStyle(.borderless).controlSize(.small)
+        case .undone:
+            MMBadge(L("dashboard.recent.badge.undone"), tint: MMColor.secondaryLabel)
+        case .volumeDetached:
+            MMBadge(L("dashboard.recent.badge.volumeDetached"), tint: MMColor.tertiaryLabel)
+                .help(L("dashboard.recent.badge.volumeDetachedHelp"))
+        case .trashEmptied:
+            MMBadge(L("dashboard.recent.badge.trashEmptied"), tint: MMColor.tertiaryLabel)
+        case .unknown:
+            MMBadge(L("dashboard.recent.badge.unknown"), tint: MMColor.tertiaryLabel)
+        }
+    }
+
     private func recentSubtitle(_ operation: TrashOperation) -> String {
         // 卡片只有 ~330pt 宽，"N 个文件"加上失败数就会被截掉尾巴，
         // 而失败数恰恰是最不该看不见的一段。统一用"项"。
-        var text = MMFormat.relative(operation.timestamp) + " · \(MMFormat.count(operation.fileCount)) 项"
-        if operation.failures.isEmpty == false {
-            text += " · \(operation.failures.count) 项失败"
+        // 整句进表：中文是「· N 项失败」，英文的 "· N failed" 语序也一样，
+        // 但在视图里用 " · " 拼两段的话，换语言就没人保证那两段的顺序。
+        if operation.failures.isEmpty {
+            return LF("dashboard.recent.subtitle",
+                      MMFormat.relative(operation.timestamp),
+                      MMFormat.count(operation.fileCount))
         }
-        return text
+        return LF("dashboard.recent.subtitleWithFailures",
+                  MMFormat.relative(operation.timestamp),
+                  MMFormat.count(operation.fileCount),
+                  MMFormat.count(operation.failures.count))
     }
 }

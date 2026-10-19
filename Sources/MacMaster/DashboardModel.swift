@@ -35,6 +35,13 @@ final class DashboardModel: ObservableObject {
     @Published var volumeCount: Int?
     @Published var filesystemName: String?
 
+    /// 当前挂载卷的 UUID 集合，给「最近操作」那一格判"那块卷还在不在"（I16）。
+    /// nil = 这一趟一个都没读到。它不能代入空集：空集会指着每一条记录说
+    /// "那块盘被取走了"，而我们其实只是没量到挂载表——措辞退回「无法撤回」。
+    /// 跟着 2 秒采样走：本机实测这一趟 0~3 ms（`Scripts/p56-mount-uuid-cost.swift`，
+    /// 5 趟取最大值 3 ms），而拔盘之后必须不点任何东西就能看到「盘已取下」。
+    @Published var mountedVolumeUUIDs: Set<String>?
+
     let coreCount = ProcessInfo.processInfo.activeProcessorCount
     let performanceCoreCount = DashboardModel.sysctlInt("hw.perflevel0.physicalcpu")
     let efficiencyCoreCount = DashboardModel.sysctlInt("hw.perflevel1.physicalcpu")
@@ -79,6 +86,10 @@ final class DashboardModel: ObservableObject {
         // 卷名单**不在**这条 2 秒一跳的循环里读：一趟枚举本机 73 ms（P35a §8），
         // 而"插了块盘没重扫"这点新鲜度不值这些时间。它的两个刷新时点在 measureReclaimable 里。
         filesystemName = DashboardModel.filesystemName(ofPath: volume?.path ?? "/")
+
+        // I16：挂载卷身份。空集当成"没读到"，不许代入空集去指认"那块盘被取走了"。
+        let mounted = VolumeIdentities.mountedUUIDs()
+        mountedVolumeUUIDs = mounted.isEmpty ? nil : mounted
 
         if let ticks = SystemSampler.cpuTicks() {
             if let load = SystemSampler.load(from: lastTicks, to: ticks) {

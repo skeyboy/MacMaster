@@ -1,0 +1,29 @@
+# 台账（本轮开始前）：sha=32184eb08adce992 条目=13 字节=6991 路径=/Users/lee/Library/Application Support/MacMaster/trash-history.json
+# 备份：/tmp/mm-p53-ledger-backup.json（含用户删过的绝对路径，只留 /tmp，不入库）
+✅ 01-uninstall-list-before windowid=1130
+✅ 02-uninstall-self-echo-delete windowid=1137
+✅ 03-dashboard-undo-button windowid=1140
+✅ 04-dashboard-after-detach windowid=1143
+✅ 05-dashboard-remounted windowid=1147
+
+# 点名留痕（P49 那一条：正向断言，不看缺席）
+  ✓ 01-uninstall-list-before：MM_UNINSTALL_SELECT=AaaP53CrossVolume 已点名到 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app
+  ✓ 02-uninstall-self-echo-delete：MM_UNINSTALL_SELECT=AaaP53CrossVolume 已点名到 /private/tmp/mm-p53-mnt/Applications/AaaP53CrossVolume.app
+  ✓ 拔盘后落点读不到 ⟹ 档位走 notReadable 那一支，而落点那块卷的身份不在挂载集合 ⟹ 画面上是「盘已取下」徽标
+  ✓ 重新挂上后落点又读得到 ⟹ 从头到尾没人倒过废纸篓（I16 之前这一格印「废纸篓已清空」，正是这一条把它改判掉的）
+
+# 画面交叉核对
+  md5 e00102993b510c9b0804b715a7816447  01-uninstall-list-before.png
+  md5 ad1bfd6d7a9a409988fc5c3464f4c47e  02-uninstall-self-echo-delete.png
+  md5 1f9b3eb1b7a7582dd122ae6d12cbe073  03-dashboard-undo-button.png
+  md5 721b36366da865ebfc937d8bc8e9b88c  04-dashboard-after-detach.png
+  md5 b3bdedca531194c3810643518a2e9c0a  05-dashboard-remounted.png
+  · 01-uninstall-list-before ↔ 02-uninstall-self-echo-delete：内容区 286564 个可辨像素｜侧栏条（不参与判据）0 个｜全帧 286564 个｜最大幅度 251
+  ✓ 01-uninstall-list-before ↔ 02-uninstall-self-echo-delete：内容区有可辨差异 286564 个像素
+  · 03-dashboard-undo-button ↔ 04-dashboard-after-detach：内容区 5999 个可辨像素｜侧栏条（不参与判据）0 个｜全帧 5999 个｜最大幅度 216
+  ✓ 03-dashboard-undo-button ↔ 04-dashboard-after-detach：内容区有可辨差异 5999 个像素
+→ docs/verification/p56-cross-volume-detached-badge（light）｜落点=卷内的 .Trashes（/private/tmp/mm-p53-mnt/.Trashes/501/AaaP53CrossVolume.app）
+卷还挂着（/private/tmp/mm-p53-mnt），落点那个 bundle 仍在卷内 .Trashes 里；核对完照片就收尾：
+  ./Scripts/p53-cross-volume-fixture.sh clean
+台账由 EXIT trap 恢复到本轮开始前的字节（sha=32184eb08adce992），备份仍在 /tmp/mm-p53-ledger-backup.json
+✅ 台账已恢复：sha=32184eb08adce992 与本轮开始前逐字相同（字节=6991，条目=13）

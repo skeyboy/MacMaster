@@ -6,18 +6,21 @@
 # 判据来自代码（现读）：
 #   · `Packages/MMCore/Sources/MMCore/FileTrashService.swift:45` 落点由 `FileManager.trashItem`
 #     自己决定并把 `resultingItemURL` 写进台账；
-#   · `:294-300` `canUndo = isUndone == false ∧ 任一 fileExists(trashPath)`——它对"撤回"能不能按
-#     的判定**只看那个路径在不在**，不看废纸篓有没有被倒空；
-#   · 界面那一侧 `Sources/MacMaster/MainWindow.swift:679` 有按钮、`:684` 换成「废纸篓已清空」徽标。
-#   所以"拔盘"这一刀下去，那一行大概率会说"废纸篓已清空"，而谁也没倒过垃圾。
-#   这一族要的就是把这一句从推测变成照片。
+#   · `:123` 移走那一刻就把落点所在卷的 `volumeUUIDString` 记进台账（`volumeUUIDStep` 在 `:45`）；
+#   · 界面那一侧（**I16 已落地，P56 现读重指**）：`Sources/MacMaster/MainWindow.swift:707` 按
+#   `tier(mountedVolumeUUIDs:)` 分五档，`:730` 起是 `undoTrailing`——有按钮、已撤回、
+#   **盘已取下**、废纸篓已清空、无法撤回各一支。
+#   I16 之前这里只有一句「废纸篓已清空」，所以本族当年（P53）拍到的正是那句假话；
+#   现在这一族重拍的是**改判之后**：拔盘那一档应当印「盘已取下」，而 05 重挂后按钮回来。
+#   台账里那条记录有没有卷身份，决定它落 `volumeDetached` 还是 `unknown`——所以 04 这一档
+#   同时是"删除当时取到的 UUID 活到了拔盘之后"的证。
 #
 # 五档（顺序不能打乱，卷的挂/卸就在中间）：
 #   01 卸载页列表（挂载中，删除**前**）：外接卷那一行进得来、详情面板给删除按钮
 #   02 卸载页 self-echo（真删一次，`MM_UNINSTALL_SELF_ECHO=1`）：拍到那条 15 秒 toast
 #   —— 读落点：台账头一条的 `trashPath` + 卷内 `.Trashes` 目录 ——
 #   03 概览「最近操作」（挂载中）：这一行该有「撤回」按钮
-#   04 概览同一张卡（**已拔盘**）：预期按钮消失、换成「废纸篓已清空」
+#   04 概览同一张卡（**已拔盘**）：预期按钮消失、换成「盘已取下」（I16 之前的措辞是「废纸篓已清空」）
 #   05 概览同一张卡（**重新挂上**）：预期按钮回来 ⟹ 从头到尾没人倒过废纸篓
 #
 # 机械判据在哪一侧：03/04/05 这一族**不拿像素当判据的主体**。
@@ -195,7 +198,7 @@ shot() {
 # 实测这一族的第一个坑就在这里：`.Trashes` 的权限是 `d-wx--x--t`（属主 501，**没有 r 位**），
 # 所以 `ls -1R .Trashes` 直接 "Permission denied"，而 `test -e .Trashes/501/<名>.app` 是真的——
 # 缺 r 挡的是"列目录"，x 位留着"按名字走进去"。`canUndo` 问的正是后者
-# （`FileTrashService.swift:294-300` 用 `fileExists(atPath:)`），所以那一格照样判"可撤回"。
+# （`FileTrashService.swift:310-315` 用 `fileExists(atPath:)`），所以那一格照样判"可撤回"。
 # 因此这里两个都要印：整目录的权限位（解释为什么列不出来）+ 按 uid 子目录点名（证东西真在里面）。
 volume_trash_listing() {
   local label=$1 trashpath=${2:-}
@@ -324,7 +327,7 @@ else
   LANDS="别处（$TRASH_PATH）"
 fi
 print -r -- "# 落点判定：$LANDS" >>"$OUT/00-landing-reading.log"
-print -r -- "# canUndo 口径的复现（test -e 与 FileTrashService.swift:294-300 同一条问句）：挂载中=$([[ -e $TRASH_PATH ]] && echo 真 || echo 假)" >>"$OUT/00-landing-reading.log"
+print -r -- "# 落点在不在这一问的复现（test -e 与 FileTrashService.swift:310-315、UndoAvailability.swift:114 同一条问句）：挂载中=$([[ -e $TRASH_PATH ]] && echo 真 || echo 假)" >>"$OUT/00-landing-reading.log"
 [[ $ORIGINAL_PATH == "$MP_REAL/Applications/$SEED.app" ]] || PROBLEMS+=("台账头一条的 originalPath=$ORIGINAL_PATH 不是本轮那个夹具应用（$MP_REAL/Applications/$SEED.app）——那一行不是我们这一笔写的，03/04/05 拍的是用户别的历史")
 [[ -e $TRASH_PATH ]] || PROBLEMS+=("落点 $TRASH_PATH 当场就读不到：03 那一档拍出来会是徽标而不是按钮，后面 04 的「变了」就没有对照")
 
@@ -336,9 +339,9 @@ shot 03-dashboard-undo-button dashboard "这一行右侧是「撤回」按钮（
 print -r -- "--- 拔盘 $(date '+%H:%M:%S') ---" >>"$OUT/00-landing-reading.log"
 $FIXTURE detach >>"$OUT/00-landing-reading.log" 2>&1 || PROBLEMS+=("detach 失败（有进程占着这一卷？脚本不 -force）")
 print -r -- "拔盘后：挂载行=$(mount | grep -F " on $MP_REAL (" | head -1 || echo 已无)" >>"$OUT/00-landing-reading.log"
-print -r -- "拔盘后 test -e 落点=$([[ -e $TRASH_PATH ]] && echo 真 || echo 假)  ⟹ canUndo 该是 $([[ -e $TRASH_PATH ]] && echo 可撤回（按钮） || echo 不可撤回（「废纸篓已清空」徽标）)" >>"$OUT/00-landing-reading.log"
+print -r -- "拔盘后 test -e 落点=$([[ -e $TRASH_PATH ]] && echo 真 || echo 假)  ⟹ 档位该是 $([[ -e $TRASH_PATH ]] && echo 可撤回（按钮） || echo 「盘已取下」徽标（台账那条带卷身份，见 FileTrashService.swift:123）)" >>"$OUT/00-landing-reading.log"
 
-shot 04-dashboard-after-detach dashboard "同一张卡、同一行：预期「撤回」按钮换成「废纸篓已清空」徽标，而谁也没倒过垃圾" \
+shot 04-dashboard-after-detach dashboard "同一张卡、同一行：预期「撤回」按钮换成「盘已取下」徽标（I16 改判后），而谁也没倒过垃圾" \
   || FAILED+=(04-dashboard-after-detach)
 
 # ── 重新挂上 ──
@@ -371,12 +374,12 @@ if [[ $LANDS == 卷内* ]]; then
   else
     # 这里不能用反引号包 `canUndo`：双引号里的反引号是命令代换，实测打印时直接
     # `command not found: canUndo`，句子里那个词被吃掉（照片与 log 会少一个主语）。
-    print -r -- "  ✓ 拔盘后落点读不到 ⟹ canUndo 走 false 分支 ⟹ 画面上是「废纸篓已清空」徽标"
+    print -r -- "  ✓ 拔盘后落点读不到 ⟹ 档位走 notReadable 那一支，而落点那块卷的身份不在挂载集合 ⟹ 画面上是「盘已取下」徽标"
   fi
   if grep -q "^重挂后 test -e 落点=假" "$OUT/00-landing-reading.log"; then
     PROBLEMS+=("重新挂上后落点反而读不到（$TRASH_PATH）：那 05 就不是「按钮回来」那一档，落点可能被谁清掉了")
   else
-    print -r -- "  ✓ 重新挂上后落点又读得到 ⟹ 从头到尾没人倒过废纸篓，「废纸篓已清空」那句是假话"
+    print -r -- "  ✓ 重新挂上后落点又读得到 ⟹ 从头到尾没人倒过废纸篓（I16 之前这一格印「废纸篓已清空」，正是这一条把它改判掉的）"
   fi
 else
   print -r -- "  · 落点判为「$LANDS」：拔盘不会让那一行消失，03/04/05 三档在本族只是记录，不作翻面判据"

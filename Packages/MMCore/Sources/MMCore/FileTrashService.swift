@@ -27,8 +27,9 @@ public final class FileTrashService: ObservableObject {
     init(store: TrashHistoryStore?) {
         self.store = store
         if let store {
-            // 一条都不删：「最近操作」是台账，不是待办清单。废纸篓已经被倒空的
-            // 那条照样列出来，由界面用"废纸篓已清空"说明它为什么没有撤回按钮。
+            // 一条都不删：「最近操作」是台账，不是待办清单。落点已经读不到的那条照样列出来，
+            // 由界面按 `UndoTier` 说明它为什么没有撤回按钮——是垃圾倒了、还是盘被取走了、
+            // 还是这条记录本来就没留下卷身份。
             trashHistory = store.load()
         }
     }
@@ -39,6 +40,9 @@ public final class FileTrashService: ObservableObject {
     /// 返回值 = 废纸篓里的落点；永久删除没有落点。
     var trashStep: (String) throws -> String? = FileTrashService.moveToFinderTrash
     var eraseStep: (String) throws -> Void = FileTrashService.eraseFromDisk
+    /// 落点卷身份。跟 `trashStep` 一样留成可注入：单测里落点是临时目录冒充的，
+    /// 而那一句要钉的是"身份必须在删除那一刻取"，不是"这台机器上有几块卷"。
+    var volumeUUIDStep: (String) -> String? = VolumeIdentities.volumeUUID(ofPath:)
 
     private static func moveToFinderTrash(atPath path: String) throws -> String? {
         var resultingURL: NSURL?
@@ -115,7 +119,8 @@ public final class FileTrashService: ObservableObject {
                     ))
                     continue
                 }
-                movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath, size: size))
+                movedFiles.append(TrashRecord(originalPath: path, trashPath: trashPath, size: size,
+                                              trashVolumeUUID: trashPath.flatMap(volumeUUIDStep)))
             } catch {
                 failures.append(TrashFailure(path: path, error: error))
             }
@@ -268,11 +273,20 @@ public struct TrashRecord: Codable {
     /// 移走**当时**量到的占用字节数。事后再读原路径只会得到 0，
     /// 那样"释放了多少"就变成了编数字。
     public let size: UInt64
+    /// 落点（`trashPath`）所在那块卷的 UUID，同样是**删除那一刻**取的。
+    /// 为什么不等到要用的时候再问：本体在第二块卷上时落点就在那块卷的 `.Trashes` 里，
+    /// 盘一拔，路径读不到、`resourceValues` 直接抛错，那时候已经问不出它是哪块卷了
+    /// （P53 实拍 + P55 两档探针，读数在 `docs/verification/p55-undo-badge-criterion/`）。
+    /// `nil` = 这条记录是新增字段之前落盘的，或者是当时就没取到身份——界面据此只说"撤不回来"，
+    /// 不替用户猜成因。
+    public var trashVolumeUUID: String?
 
-    public init(originalPath: String, trashPath: String? = nil, size: UInt64 = 0) {
+    public init(originalPath: String, trashPath: String? = nil, size: UInt64 = 0,
+                trashVolumeUUID: String? = nil) {
         self.originalPath = originalPath
         self.trashPath = trashPath
         self.size = size
+        self.trashVolumeUUID = trashVolumeUUID
     }
 }
 
@@ -289,8 +303,10 @@ public struct TrashOperation: Identifiable, Codable {
 
     public var fileCount: Int { files.count }
 
-    /// 记录还在，但废纸篓里的那个文件已经不在了（用户倒过垃圾，或自己移回去过）。
-    /// 这不是失败，是事实：撤回按钮该消失，而不是等用户按下去才拿到一个错误。
+    /// 记录还在，但废纸篓里的那个文件已经不在了。这不是失败，是事实：撤回按钮该消失，
+    /// 而不是等用户按下去才拿到一个错误。
+    /// **这一句只回答"能不能撤"，不回答"为什么不能"**——后者有三种成因（倒过垃圾、
+    /// 落点所在那块卷被取走、老记录读不到身份），措辞一律走 `UndoTier`，别在这里指认成因。
     public var canUndo: Bool {
         guard isUndone == false else { return false }
         return files.contains { file in
