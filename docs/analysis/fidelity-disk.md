@@ -45,7 +45,7 @@
 
 - 页头 46pt：`MMPageHeader` `MMMetric.toolbar = 46`（`MMDesign.swift:114,307`），与 `screen.css` `.toolbar { height: 46px }`、04 稿 `.toolbar` 一致 ✓。
 - 详情栏 268pt：`MMMetric.inspector = 268`（`MMDesign.swift:89`），与 `screen.css` `.inspector { width: 268px }`、04 稿 `.inspector` 一致 ✓。
-- treemap 圆角 3pt：`TreemapView.swift:464` `roundedRect: rect, cornerRadius: 3`，与 04 稿 `.blk { border-radius: 3px }` 一致 ✓。
+- treemap 圆角 3pt：`TreemapView.swift:472` `Path(roundedRect: rect, cornerRadius: 3)`（P57a 改过这一支文件，坐标往下漂了 8 行，本轮重指），与 04 稿 `.blk { border-radius: 3px }` 一致 ✓。
 - 7 类色值：04 稿 `<div class="cap">` 配色与 `DiskClassify.color`（`DiskClassify.swift:28-37`）逐字相同 ✓。
 - 徽章高 18pt：`MMBadge` `.frame(height: 18)`（`MMDesign.swift:268`），与 `tokens.css` `.badge { height: 18px }` 一致 ✓。
 
