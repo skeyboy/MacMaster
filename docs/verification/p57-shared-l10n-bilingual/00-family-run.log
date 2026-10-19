@@ -1,0 +1,40 @@
+✅ 01-zh-cap windowid=1543 settle=10s
+✅ 02-en-cap windowid=1550 settle=10s
+✅ 03-zh-window windowid=1553 settle=10s
+✅ 04-en-window windowid=1556 settle=10s
+✅ 05-zh-toast windowid=1559 settle=5s
+✅ 06-en-toast windowid=1562 settle=5s
+✅ 07-en-toast-narrow windowid=1565 settle=5s
+# 语言档落在 UserDefaults：域=com.macmaster.app key=app.language（跑完会 delete）
+# 复位后 defaults read：Error: Could not find key 'app.language' in domain 'com.macmaster.app'. 
+✅ 08-zh-after-reset windowid=1568 settle=10s
+
+# 留痕（正向断言）：每一张都要自己说出用的是哪一档
+  ✓ 01-zh-cap：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 02-en-cap：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 03-zh-window：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 04-en-window：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 05-zh-toast：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 06-en-toast：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 07-en-toast-narrow：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 05-zh-toast 回执条凭据：MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · 4 KB），没有移动任何东西
+  ✓ 06-en-toast 回执条凭据：MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · 4 KB），没有移动任何东西
+  ✓ 07-en-toast-narrow 回执条凭据：MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · 4 KB），没有移动任何东西
+
+# 画面交叉核对（同屏双语必须不同，否则语言档在画面上没起作用）
+  md5 a9a8fc6b2d79af2e304da3942d2cd1b0  01-zh-cap.png
+  md5 dbf5f31313cf02a2f184bac1849dc0bc  02-en-cap.png
+  md5 6530a406c9ab2960bf452ecb083d2d64  03-zh-window.png
+  md5 cfd68ddf0d0dde361300a532f34f96e2  04-en-window.png
+  md5 798340849b240ada1d5d5f3c67f66f29  05-zh-toast.png
+  md5 e48abcfadd409a26bd073c08afb161f9  06-en-toast.png
+  md5 08c528cfbb49f1b8b45dcedf984dcbd0  07-en-toast-narrow.png
+  md5 761b27513e49fd15f89a66dda5795169  08-zh-after-reset.png
+  · 01-zh-cap ↔ 02-en-cap：内容区 1328 个可辨像素｜侧栏条（不参与判据）5542 个｜全帧 6870 个｜最大幅度 217
+  ✓ 01-zh-cap ↔ 02-en-cap：内容区有可辨差异 1328 个像素
+  · 03-zh-window ↔ 04-en-window：内容区 537 个可辨像素｜侧栏条（不参与判据）5542 个｜全帧 6079 个｜最大幅度 217
+  ✓ 03-zh-window ↔ 04-en-window：内容区有可辨差异 537 个像素
+  · 05-zh-toast ↔ 06-en-toast：内容区 3299 个可辨像素｜侧栏条（不参与判据）5542 个｜全帧 8841 个｜最大幅度 227
+  ✓ 05-zh-toast ↔ 06-en-toast：内容区有可辨差异 3299 个像素
+→ docs/verification/p57-shared-l10n-bilingual（light）｜合并块两块 × 双语 + 回执条 × 双语 + 窄窗 + 复位
+夹具：/tmp/macmaster-p57-treemap-fixture（留 /tmp，不入库）

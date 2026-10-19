@@ -303,6 +303,31 @@ public final class Localization: ObservableObject {
         "panel.statSucceeded": "成功",
         "panel.statFailed": "失败",
         "panel.statSkipped": "跳过",
+
+        // P57：MMUI 共享组件 + 壳层剩余的用户可见句（分类图例、行内动作、进度、撤回提示、
+        // 登录项状态、应用菜单「设置…」）。键名一律小写下划线：`LocalizationTests` 那条
+        // "消费者引用的键都在表里"用的正则只认小写段，驼峰键（`dashboard.storage.lowSpace` 那一族）
+        // 从这条检查里是漏网的——新键写成蛇形才有人把关。
+        // 同一批源码里那些写进 stderr 的钩子留痕（`MMHookValue.emit`）**不进这张表**：
+        // 那几行由取证脚本逐字 grep，翻成英文就破取证，分派见 docs/analysis/localization-coverage.md §6。
+        "ui.category.developer": "开发者",
+        "ui.category.app_data": "应用数据",
+        "ui.category.media": "媒体",
+        "ui.category.documents": "文档",
+        "ui.category.cache": "缓存",
+        "ui.category.log": "日志",
+        "ui.category.other": "其他",
+        "ui.action.reveal_folder": "打开所在文件夹",
+        "ui.action.open_system_settings": "打开系统设置",
+        "ui.action.reveal_trash": "打开废纸篓",
+        "ui.progress.remaining": "剩余约 %@",
+        "ui.progress.processed": "已处理 %@ 项",
+        "ui.treemap.others": "其余 %@ 项",
+        "ui.treemap.a11y": "磁盘占用方块图",
+        "ui.menu.settings": "设置…",
+        "ui.login_item.requires_approval": "已注册，但 macOS 要你在「系统设置 → 登录项与扩展」里再允许一次；在那之前开机不会自动启动。",
+        "ui.login_item.not_found": "macOS 没把当前构建认成可注册的 App bundle（从 .build 目录直接跑就是这样）。用 Scripts/make-app.sh 产出的 .app 启动时这一项才有意义。",
+        "ui.login_item.register_failed": "登录项操作失败：%@。当前为 ad-hoc 签名的手工打包构建（无 Developer ID / 未公证），macOS 可能拒绝注册登录项；正式签名打包后此功能方可稳定生效。",
     ]
 
     // MARK: 英文
@@ -526,6 +551,26 @@ public final class Localization: ObservableObject {
         "panel.statSucceeded": "Succeeded",
         "panel.statFailed": "Failed",
         "panel.statSkipped": "Skipped",
+
+        // P57：与中文表同一批键，逐条对齐（对等性由 `testBothTablesHoldExactlyTheSameKeys` 把关）。
+        "ui.category.developer": "Developer",
+        "ui.category.app_data": "App Data",
+        "ui.category.media": "Media",
+        "ui.category.documents": "Documents",
+        "ui.category.cache": "Cache",
+        "ui.category.log": "Logs",
+        "ui.category.other": "Other",
+        "ui.action.reveal_folder": "Show in Folder",
+        "ui.action.open_system_settings": "Open System Settings",
+        "ui.action.reveal_trash": "Open Trash",
+        "ui.progress.remaining": "About %@ left",
+        "ui.progress.processed": "%@ items processed",
+        "ui.treemap.others": "%@ more items",
+        "ui.treemap.a11y": "Disk usage treemap",
+        "ui.menu.settings": "Settings…",
+        "ui.login_item.requires_approval": "Registered, but macOS asks you to allow it once in System Settings → Login Items & Extensions. Until then it won't launch at login.",
+        "ui.login_item.not_found": "macOS doesn't recognize this build as a registrable app bundle (that's what running straight from .build looks like). This item only means something for a .app produced by Scripts/make-app.sh.",
+        "ui.login_item.register_failed": "Login item operation failed: %@. This is an ad-hoc signed, hand-assembled build (no Developer ID / not notarized), so macOS may refuse to register a login item; it becomes reliable once the app is signed and packaged properly.",
     ]
 }
 

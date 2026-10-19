@@ -1,0 +1,8 @@
+# p57-shared-l10n-capture.sh 03-zh-window  2026-10-19 14:13:38 +0800  app=/tmp/mm-app-p57/MacMaster.app
+# repo: f77fa79-dirty   # digest: tree=f77fa79+1e73110b app=f77fa79+1e73110b
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=disk MM_LANGUAGE=zh MM_DISK_SCAN=/tmp/macmaster-p57-treemap-fixture/wide-250
+# 夹具：/tmp/macmaster-p57-treemap-fixture/wide-150 子项=150｜/tmp/macmaster-p57-treemap-fixture/wide-250 子项=250（cap=96、renderWindow=200）
+# 期望：两块合并同框：模块页那块读中文「其余 50 项」，布局层那块读中文
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p57/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）

@@ -78,13 +78,13 @@ public enum MMCategory: String, CaseIterable, Sendable {
     public var color: Color { MMColor.categoryPalette[self] ?? MMColor.categoryPalette[.other]! }
     public var displayName: String {
         switch self {
-        case .developer: "开发者"
-        case .appData: "应用数据"
-        case .media: "媒体"
-        case .documents: "文档"
-        case .cache: "缓存"
-        case .log: "日志"
-        case .other: "其他"
+        case .developer: L("ui.category.developer")
+        case .appData: L("ui.category.app_data")
+        case .media: L("ui.category.media")
+        case .documents: L("ui.category.documents")
+        case .cache: L("ui.category.cache")
+        case .log: L("ui.category.log")
+        case .other: L("ui.category.other")
         }
     }
 }
@@ -419,9 +419,9 @@ public struct MMStatItem: View {
 /// 在访达中显示。此前 8 个页面各写了一遍，统一到这里。
 public struct MMRevealButton: View {
     let path: String
-    var title: String = "打开所在文件夹"
+    var title: String = L("ui.action.reveal_folder")
 
-    public init(path: String, title: String = "打开所在文件夹") {
+    public init(path: String, title: String = L("ui.action.reveal_folder")) {
         self.path = path
         self.title = title
     }
@@ -507,7 +507,7 @@ public struct MMPermissionBanner: View {
             }
             Spacer(minLength: MMGap.sm)
             if let settingsPane {
-                Button("打开系统设置") { MMReveal.openSystemSettings(pane: settingsPane) }
+                Button(L("ui.action.open_system_settings")) { MMReveal.openSystemSettings(pane: settingsPane) }
                     .controlSize(.small)
             }
         }
@@ -583,7 +583,7 @@ public struct MMScanProgress: View {
                 Text(action).font(.callout)
                 Spacer(minLength: MMGap.sm)
                 if let estimatedRemaining {
-                    Text("剩余约 \(MMFormat.duration(estimatedRemaining))")
+                    Text(LF("ui.progress.remaining", MMFormat.duration(estimatedRemaining)))
                         .font(.caption).foregroundStyle(MMColor.secondaryLabel).monospacedDigit()
                 }
             }
@@ -593,7 +593,7 @@ public struct MMScanProgress: View {
                 ProgressView().controlSize(.small)
             }
             HStack(spacing: MMGap.sm) {
-                Text("已处理 \(MMFormat.count(processedCount)) 项")
+                Text(LF("ui.progress.processed", MMFormat.count(processedCount)))
                     .font(.caption).foregroundStyle(MMColor.secondaryLabel).monospacedDigit()
                 if let currentPath {
                     Text("·").foregroundStyle(MMColor.tertiaryLabel)
@@ -650,11 +650,11 @@ public struct MMUndoToast: View {
             }
             Spacer(minLength: MMGap.md)
             if let onUndo {
-                Button("撤回", action: onUndo).buttonStyle(.plain).foregroundStyle(.white)
+                Button(L("action.undo"), action: onUndo).buttonStyle(.plain).foregroundStyle(.white)
             }
             if let onRevealTrash {
                 Text("|").opacity(0.35)
-                Button("打开废纸篓", action: onRevealTrash).buttonStyle(.plain).foregroundStyle(.white)
+                Button(L("ui.action.reveal_trash"), action: onRevealTrash).buttonStyle(.plain).foregroundStyle(.white)
             }
             if let secondsRemaining {
                 Text("\(secondsRemaining)s").font(.caption.monospacedDigit()).opacity(0.5)

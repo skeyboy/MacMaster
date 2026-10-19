@@ -904,7 +904,10 @@ public struct DiskAnalyzerView: View {
             color: TreemapPalette.shade(node.category.color, depth: depth),
             children: rawChildItems(of: node, depth: depth),
             isDirectory: node.isDirectory,
-            reclaimable: node.reclaim != nil
+            reclaimable: node.reclaim != nil,
+            // 合并块的下钻与否由这个 id 判定，不看"其余"二字：
+            // 那块的名字文案在模块页里仍是中文，而 MMUI 侧的判据已经换成显式标志。
+            isOthers: node.id == "__remaining__"
         )
     }
 
@@ -932,7 +935,8 @@ public struct DiskAnalyzerView: View {
             children: children,
             isDirectory: filtered.node.isDirectory,
             reclaimable: filtered.node.reclaim != nil,
-            matchTier: filtered.tier == .matched ? .matched : .containsMatch
+            matchTier: filtered.tier == .matched ? .matched : .containsMatch,
+            isOthers: filtered.node.id == "__remaining__"
         )
     }
 
@@ -1078,7 +1082,8 @@ public struct DiskAnalyzerView: View {
     /// 这样详情面板能在没有任何人工点击的情况下被拍到。
     /// 叠加开关：MM_SHOW_CONFIRM 把选中的几项标记进确认面板；MM_SHOW_PERMANENT=acked
     /// 再往前一步，把镜头对准永久删除那块面板（只换面板，不删任何东西）；
-    /// MM_SHOW_TOAST=permanent 只画"已永久删除"回执条。
+    /// MM_SHOW_TOAST=permanent 只画"已永久删除"回执条，写其它值画"移入废纸篓"那条（带撤回按钮）。
+    /// 两支都在开面板那道 guard 之前生效：只画回执条时不需要、也不该带上确认面板。
     /// 验证时请指向 /tmp 下的夹具文件，别指向真实数据。
     private func applySelectionHook() {
         guard !selectionHookApplied else { return }
@@ -1130,6 +1135,17 @@ public struct DiskAnalyzerView: View {
                     .data(using: .utf8)!)
             return
         }
+        // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
+        // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
+        // 不设 return：`MM_SHOW_TOAST=1` 配 `MM_SHOW_CONFIRM=1` 时仍照旧把面板开起来。
+        if env["MM_SHOW_TOAST"] != nil, let node = selected, node.size > 0 {
+            trashedCount = 1
+            trashedSize = node.size
+            undoSeconds = 15
+            FileHandle.standardError.write(
+                "MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · \(MMFormat.bytes(node.size))），没有移动任何东西\n"
+                    .data(using: .utf8)!)
+        }
         guard env["MM_SHOW_CONFIRM"] != nil else { return }
         for path in targets {
             // 这里刻意不走 toggleMark 的风险闸门：截图要拍的就是裁决面板，
@@ -1161,16 +1177,6 @@ public struct DiskAnalyzerView: View {
             let ackState = permanentAcknowledged ? "已打" : "未打"
             FileHandle.standardError.write(
                 "MM_SHOW_PERMANENT=\(ack) 已把镜头换到永久删除面板（勾选项 \(ackState)），没有改动任何文件\n"
-                    .data(using: .utf8)!)
-        }
-        // 撤回回执只借用选中项的数字摆一拍，不真的移动任何东西；
-        // 即便被误点，"撤回"走的是恢复路径而不是删除路径。
-        if env["MM_SHOW_TOAST"] != nil, let node = selected, node.size > 0 {
-            trashedCount = 1
-            trashedSize = node.size
-            undoSeconds = 15
-            FileHandle.standardError.write(
-                "MM_SHOW_TOAST 已画出「移入废纸篓」回执条（1 项 · \(MMFormat.bytes(node.size))），没有移动任何东西\n"
                     .data(using: .utf8)!)
         }
     }

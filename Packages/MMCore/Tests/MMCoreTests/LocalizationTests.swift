@@ -16,8 +16,11 @@ import XCTest
 
 final class LocalizationTests: XCTestCase {
 
+    /// `ui` 是 P57 给共享层（MMUI）和壳层留的那一档：前缀小写下划线，
+    /// 正因为写成 `ui.action.reveal_folder` 而不是 `ui.action.revealFolder`，
+    /// 下面那条键校验正则才抓得到——camelCase 会整批漏网。
     private static let prefixes = ["nav", "sidebar", "module", "storage", "memory",
-                                   "risk", "category", "dashboard", "format", "panel"]
+                                   "risk", "category", "dashboard", "format", "panel", "ui"]
 
     // MARK: - 两语对等
 
@@ -177,7 +180,12 @@ final class LocalizationTests: XCTestCase {
         let consumers = ["Sources/MacMaster/MainWindow.swift",
                          "Sources/MacMaster/DashboardModel.swift",
                          "Packages/MMOptimizer/Sources/MMOptimizer/DashboardMetrics.swift",
-                         "Packages/MMUI/Sources/MMUI/MMDesign.swift"]
+                         "Packages/MMUI/Sources/MMUI/MMDesign.swift",
+                         // P57：共享层另两面 + 壳层另两处。设置页那一族不在这里——
+                         // 它整页还没接，把它的字面量纳进来只会让这条测试先响一轮无关的。
+                         "Packages/MMUI/Sources/MMUI/TreemapView.swift",
+                         "Sources/MacMaster/LaunchBehavior.swift",
+                         "Sources/MacMaster/MacMasterApp.swift"]
         var checked = 0
         for relative in consumers {
             let text = try String(contentsOf: root.appendingPathComponent(relative), encoding: .utf8)

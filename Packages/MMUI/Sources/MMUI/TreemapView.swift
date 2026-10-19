@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import MMCore
 
 /// 全树名称过滤的两级表态（对齐 disktree 的"匹配保色、祖先退色"）：
 /// 命中块保留原始分类色，含命中的祖先退色。色相回答"这是什么"，
@@ -22,10 +23,15 @@ public struct TreemapItem: Identifiable {
     public let reclaimable: Bool
     /// nil = 名称过滤未启用，按常规画法；非 nil = 过滤布局里的两级之一。
     public let matchTier: TreemapMatchTier?
+    /// 合并出来的"其余"块：面积守恒但不下钻。判据必须是这个标志，
+    /// 不能看名字——名字现在跟着界面语言走，切英文后前缀判断会静默失效，
+    /// 那块变成可下钻的空目录。
+    public let isOthers: Bool
 
     public init(id: String, name: String, value: Double, color: Color = .blue,
                 children: [TreemapItem] = [], isDirectory: Bool = false,
-                reclaimable: Bool = false, matchTier: TreemapMatchTier? = nil) {
+                reclaimable: Bool = false, matchTier: TreemapMatchTier? = nil,
+                isOthers: Bool = false) {
         self.id = id
         self.name = name
         self.value = value
@@ -34,6 +40,7 @@ public struct TreemapItem: Identifiable {
         self.isDirectory = isDirectory
         self.reclaimable = reclaimable
         self.matchTier = matchTier
+        self.isOthers = isOthers
     }
 }
 
@@ -153,10 +160,11 @@ public enum TreemapLayout {
             let restValue = overflow.reduce(0) { $0 + $1.value }
             tiles.append(TreemapItem(
                 id: "others:\(depth):\(rect.minX):\(rect.minY)",
-                name: "其余 \(overflow.count) 项",
+                name: LF("ui.treemap.others", MMFormat.count(overflow.count)),
                 value: restValue,
                 color: MMColor.tertiaryLabel,
-                isDirectory: true
+                isDirectory: true,
+                isOthers: true
             ))
         }
 
@@ -180,7 +188,7 @@ public enum TreemapLayout {
 
             out.append(TreemapRect(
                 item: item, rect: cell.rect, header: header, depth: depth,
-                isOthers: item.name.hasPrefix("其余 ")
+                isOthers: item.isOthers
             ))
             if canSubdivide {
                 place(items: item.children, in: body, depth: depth + 1, options: options, into: &out)
@@ -358,7 +366,7 @@ public struct TreemapView: View {
                 return .handled
             }
         }
-        .accessibilityLabel("磁盘占用方块图")
+        .accessibilityLabel(L("ui.treemap.a11y"))
     }
 
     enum TreemapDirection { case up, down, left, right }

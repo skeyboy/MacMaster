@@ -57,7 +57,7 @@ struct MacMasterApp: App {
         // 设置只能从主窗口侧栏底部那一枚按钮进，窗口一收进菜单栏就无处可去。
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("设置…") { appState.requestSettings() }
+                Button(L("ui.menu.settings")) { appState.requestSettings() }
                     .keyboardShortcut(",", modifiers: .command)
             }
         }

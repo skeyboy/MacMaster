@@ -37,9 +37,9 @@ final class LoginItemManager: ObservableObject {
     var statusCaption: String? {
         switch status {
         case .requiresApproval:
-            return "已注册，但 macOS 要你在「系统设置 → 登录项与扩展」里再允许一次；在那之前开机不会自动启动。"
+            return L("ui.login_item.requires_approval")
         case .notFound:
-            return "macOS 没把当前构建认成可注册的 App bundle（从 .build 目录直接跑就是这样）。用 Scripts/make-app.sh 产出的 .app 启动时这一项才有意义。"
+            return L("ui.login_item.not_found")
         default:
             return nil
         }
@@ -63,7 +63,7 @@ final class LoginItemManager: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            lastError = "登录项操作失败：\(error.localizedDescription)。当前为 ad-hoc 签名的手工打包构建（无 Developer ID / 未公证），macOS 可能拒绝注册登录项；正式签名打包后此功能方可稳定生效。"
+            lastError = LF("ui.login_item.register_failed", error.localizedDescription)
         }
         // 一切以系统真实状态收尾，不假装成功
         status = SMAppService.mainApp.status

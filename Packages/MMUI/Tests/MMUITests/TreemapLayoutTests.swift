@@ -93,6 +93,28 @@ final class TreemapLayoutTests: XCTestCase {
         }
         XCTAssertNotNil(rects.first { $0.depth == 0 && $0.header != nil })
     }
+
+    /// "其余"块不许下钻，判据必须是 `TreemapItem.isOthers` 这个显式标志。
+    /// P57 之前读的是名字前缀"其余 "，而合并块的名字现在跟着界面语言走——
+    /// 切英文变成 "3 more items"，前缀判断静默失效，一块没有真实路径的虚拟块
+    /// 就会让用户钻进去看个空。反过来，真叫「其余 3 项」的目录必须照旧能钻。
+    func testOthersFlagIsNotDerivedFromTheItemName() {
+        let realDirectory = TreemapItem(
+            id: "d/others", name: "其余 3 项", value: 900_000,
+            children: [TreemapItem(id: "d/others/a", name: "a", value: 900_000)],
+            isDirectory: true
+        )
+        let synthesized = TreemapItem(id: "others:0:0:0", name: "3 more items", value: 100_000,
+                                      isDirectory: true, isOthers: true)
+        guard let rects = computeWithTimeout([realDirectory, synthesized],
+                                             in: CGRect(x: 0, y: 0, width: 800, height: 600)) else {
+            return XCTFail("布局未在限时内返回")
+        }
+        XCTAssertTrue(rects.contains { $0.item.id == "d/others" && !$0.isOthers },
+                      "真实目录只是名字碰巧像\"其余\"，不该被当成合并块")
+        XCTAssertTrue(rects.contains { $0.item.id == "others:0:0:0" && $0.isOthers },
+                      "合并块的标志要透传到布局输出，不能只看中文前缀")
+    }
 }
 
 private final class ResultBox {
