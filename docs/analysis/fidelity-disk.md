@@ -1049,7 +1049,7 @@ awk -f 同一份脚本 docs/analysis/*.md       # 现读 753（第二多的是 d
 九包 `合计：764 个测试，0 个失败，1 个跳过`（`docs/verification/p35b-volumes/run-all-tests.log`，
 逐包 MMCore 96 · MMUI 17 · MMFileScanner 117 · MMCleaner 25 · MMUninstaller 200 · MMDisk 85 ·
 MMMonitor 57 · MMGuardian 96 · MMOptimizer 71；比 P34b 的 737 多 27 = 本轮那两个新文件）。
-**那一串是 P35b 归档的快照，不是当前值**：MMMonitor 自 P44 起是 **92**、全套 **843**（P52b 现跑，结论行 `docs/verification/p52-tests/run-all-tests.log`；口径判据在 `release-readiness.md` §7.29）——从这一串到"现在"隔着五轮（P37 +28、P44 +7、P46 +28、P47 +7、P52b +9，最后一笔全在 MMUninstaller 217 → 226），抄它当"现在"会漏掉这五轮。
+**那一串是 P35b 归档的快照，不是当前值**：MMMonitor 自 P44 起是 **92**、全套 **879**（**P58d 现读 2026-10-20**，结论行 `docs/verification/p58-tests/run-all-tests.log`；口径判据在 `release-readiness.md` §7.29）——从这一串到"现在"隔着十轮（P37 +28、P44 +7、P46 +28、P47 +7、P52b +9，其后 P56 +33、P57 +1、P58 +2），抄它当"现在"会漏掉这十轮。
 它钉得住措辞与判据，钉不住"这台机器有几块盘"——**合成值只证明界面会写这句话，
 不证明这台机器有两块盘**，所以 caveat 与每一档日志里那行"这是合成快照"都不许删。
 

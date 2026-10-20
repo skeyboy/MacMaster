@@ -65,7 +65,7 @@
 | 稿内条目 | 实现出处 | 一致? | 量到的差异 | 严重度 | 归属 |
 | --- | --- | --- | --- | --- | --- |
 | 身份头：38pt 图标 + 名称 + `包名 · 大小 · /Applications` | `AppDetailView.identityHeader` `MMUninstaller.swift:1735-1753` | ✅ | 实现 `deletingLastPathComponent` 取父目录，与稿一致（P16 现读：本文此前只写裸行号 853，是写作当时的位置） | — | — |
-| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1767` → `MMStatItem` | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:390`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:407`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
+| 四张统计卡：应用大小/包含文件/残留大小/残留项 | `statsCards` `MMUninstaller.swift:1775` → `MMStatItem`（**P58d 现读**：本轮卸载页接两语把这一行顶漂了 8 行，旧档 `1767` 现在落在空行上） | ⚠️ 几何 | 实现用共享 `MMStatItem`（`MMDesign.swift:390`）：圆角 `MMRadius.control`＝**6**（`:104`）、底 `MMColor.underPageSurface`（用在 `:407`，值在 `:47`）；稿 `.cards .c` 圆角 6、底 `--c-card-bg-alt`。**P16 更正两处**：本文此前把 `MMStatItem` 记在 `MMDesign.swift` 的第 350 行（漂了 36 行）、并把令牌写成 `cardBackground` 与 `control=8`——`cardBackground` 这个符号**已不存在**（改名见 `:41` 注释），`control` 也不是 8。圆角这一维现在两边都是 6，只剩底色一档之差（#E4E4E4 vs #F7F7F7） | 低 | 设计稿该改 S4 |
 | 键值对：包名/版本/开发者/最低系统/可执行文件/修改时间/所在文件夹 | `infoSection` `MMUninstaller.swift:1806` → `MMKeyRow` | ✅ | 实现 `MMKeyRow("版本", "\(version) (\(build))")` 与稿"26.2 (17C4011)"一致；空值填空字符串；`MMKeyRow` 在 `MMDesign.swift:366` | — | — |
 | 「将一并移除的残留」+ 徽标"N 项默认不勾选" + "按包名…匹配·不含共享文件" + 全选可删项 | `residualSection` `:902-918` | ✅ | 实现徽标 `unselectedCount` 项、文案"按包名与容器证据匹配 · 不含其他应用的共享文件"，与稿一致 | — | — |
 | 残留按风险分组，每行：图标 + 路径 + 原因 + 徽标 + 勾选框 | `residualGroups` `:958` → `ResidualRow`/`MMItemRow` | ✅ | 实现 `MMItemRow`（`MMDesign.swift:807`）逐行：risk 徽标、`risk.allowsDeletion` 为假时勾选框禁用（root 属主项不可选），与稿"root 属主项勾选框直接禁用"一致 |
@@ -151,7 +151,7 @@
    头部写 `/Users/lee/.Trash/Foo.app`，下方残留行写 `~/Library/...`，同卡两种写法。建议头部也走
    `displayPath`（或统一绝对），与稿 `~/.Trash/Foo.app` 对齐。
    **✅ 已落地（`71da937`）**：头部改为 `arrivalDisplayPath`，在 `trashNoticeCard` 里算一次
-   （`MMUninstaller.swift:1138`，`ResidualCollector.display(arrivalPath, home: NSHomeDirectory())`；**P46f 顺带修一处旧锚**：本文此前记的 1047 在 HEAD 就落在「应用根跳过」那一段上，这一句当时在 1101）、
+   （`MMUninstaller.swift:1152`，`ResidualCollector.display(arrivalPath, home: NSHomeDirectory())`；**P46f 顺带修一处旧锚**：本文此前记的 1047 在 HEAD 就落在「应用根跳过」那一段上，这一句当时在 1101；**P58d 再顶漂一档**：本轮那一族接两语把它推到 1152，旧档 1138 现在是空行）、
    渲染于 `:1105`。同卡两种写法已收口为一种，且与残留行（`:892`）、"不在这台机器上"回执（`:1010`）
    共用同一个 `display` 函数——缩写口径不再各页自己拼。
 2. **【低】I2 · 详情注脚漏"或「最近操作」中"**（`AppDetailView.confirmationNote` `:1009`）

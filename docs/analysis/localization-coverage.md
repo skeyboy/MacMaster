@@ -1,17 +1,19 @@
-# 界面文案多语言覆盖率（P56b 建档，P57d 现读更新，2026-10-19）
+# 界面文案多语言覆盖率（P56b 建档，P58d 现读更新，2026-10-20）
 
 **范围**：P56 把国际化从"表是死的"接到"壳层整面可切"——`Sources/MacMaster/MainWindow.swift`
 （侧栏 + 概览页所有卡片）与它消费的 `DashboardMetrics` / `MMDesign` / `MMFormat` 文案全部走
-`L` / `LF`。P57 按这份文档 §6 的顺序接下一档：**共享层 MMUI 两支文件接满**（`MMDesign.swift`
-14 行 + `TreemapView.swift` 2 行），**壳层除设置页外接满**（`LaunchBehavior.swift` 3 行 +
-`MacMasterApp.swift` 1 行），两语各 202 键。模块页（清理、卸载、磁盘、监控、守护、优化）
-和设置页那 81 行**仍是一行未动**。
-**这一份文档只登记缺口与推进顺序，不含改动**；改动在 P56a/P57a（代码）与 P56c/P57c（双语实拍）。
+`L` / `LF`。P57 接下一档：**共享层 MMUI 两支文件接满**（`MMDesign.swift` 14 行 + `TreemapView.swift` 2 行），
+**壳层除设置页外接满**（`LaunchBehavior.swift` 3 行 + `MacMasterApp.swift` 1 行）。P58 接第三档：
+**卸载页整页接进两语**——那一族 16 支文件里有界面字面量的九支全部动过，缺口从 275 降到 33，
+其中八支进了 §9 那条键校验。两语各 **410 键**。
+清理、磁盘、监控、守护、优化、文件扫描六面和设置页那 81 行**仍是一行未动**。
+**这一份文档只登记缺口与推进顺序，不含改动**；改动在 P56a/P57a/P58a（代码）与 P56c/P57c/P58c（双语实拍）。
 
-一句话结论：**壳层与共享层翻完了（这两面各 0 行未接），全站还剩 1519 行含汉字的界面字面量**。
-这 1519 不能直接当待办清单读。第一块要扣的是表自己：MMCore 的 230 行里 201 行就是那张双语表的
+一句话结论：**全站还剩 1481 行含汉字的界面字面量，但卸载页这一面已经翻到底了——它剩的 33 行里没有一行是"某个还没翻的页面"**（9 行是钩子留痕，24 行是没有任何消费点在读的数据层原话，见 §6）。
+这 1481 不能直接当待办清单读。第一块要扣的是表自己：MMCore 的 434 行里 405 行就是那张双语表的
 中文一侧（§5）；第二块是**故意留成中文**的数据层原话与机器可读输出（§6 逐类分派，含夹具档位）；
-剩下的才是"某个页面还没翻"。这份文档的主要作用就是把这三块分开。
+剩下的 1043 行（= 1481 − 405 − 33）才轮到"某个页面还没翻"，而那一千行里还要按 §6 那三类继续扣。
+这份文档的主要作用就是把这三块分开。
 
 ---
 
@@ -32,33 +34,38 @@
 已知偏差：三引号跨行字面量按行独立扫描（脚本第 88 行），这一类在本仓的界面文件里几乎没有。
 这组数用来定"先翻哪一面"的排序，不用来对外主张任何覆盖率。
 
-## 2. 十面的账（P57d 现读于 2026-10-19，命令见文末）
+## 2. 十面的账（P58d 现读于 2026-10-20，命令见文末）
 
 | 面 | 文件 | 缺口行 | 已接行 |
 |---|---|---|---|
 | 壳层 `Sources/MacMaster` | 6 | 91 | 70 |
 | MMUI | 2 | **0** | 30 |
-| MMCore | 15 | 230 | 0 |
+| MMCore | 15 | **434** | 0 |
 | MMCleaner | 8 | 271 | 0 |
-| MMUninstaller | 16 | 275 | 0 |
+| MMUninstaller | 16 | **33** | **209** |
 | MMDisk | 7 | 147 | 0 |
 | MMMonitor | 11 | 102 | 0 |
 | MMGuardian | 9 | 134 | 0 |
 | MMOptimizer | 7 | 148 | 15 |
 | MMFileScanner | 9 | 121 | 0 |
-| **合计** | **90** | **1519** | **115** |
+| **合计** | **90** | **1481** | **324** |
 
-对 P56 那一档的账（缺口 1521 → 1519、已接 95 → 115，两列都要逐面核，别按总数读）：
+对 P57d 那一档的账（缺口 1519 → 1481、已接 115 → 324，两列都要逐面核，别按总数读）：
+**本轮只动了三面，其余七面两列逐字相同**。
 
-- 壳层 95 → 91：4 行从缺口搬进已接（`LaunchBehavior` 3 + `MacMasterApp` 1），设置页那 81 行没动；
-- MMUI 17 → 0：`MMDesign` 的 14 行接进表，`TreemapView` 的 3 行里 2 行走表、
-  **1 行是随解耦一起消失的**——"这块能不能下钻"从前靠 `name.hasPrefix("其余 ")` 判断，
-  名字一本地化那条判据就静默失效，所以它换成了显式标志（§4），中文名字不再被读；
-  于是这一面缺口减 17 而只接 16 行；
-- MMCore 211 → 230：**涨 19，且涨的全是表自己**（新 18 键的中文一侧 + `appliedNote` 那一行——
-  它是 P56c 才进的文件，§5 那档 182 没算它，所以 P56 收尾时这一面其实已经是 183）。
+- MMUninstaller 275 → 33、已接 0 → 209：本轮那一面，剩的 33 行逐行点名在 §6；
+- MMCore 230 → **434**：**涨 204，且涨的全是表自己**（表外那 29 行一字未动，见 §5）。
+  这一笔和键数是闭合的：两语各 202 键 → **410 键**（+208），其中新键有 4 条的值本来就不含汉字
+  （`ui.watch.skip_line`、`ui.watch.skip_separator`、`ui.format.list_join`、`ui.provenance.value_cask_tap`），
+  所以带汉字的中文字面量行正好 +204；
+- 合计 −38 = +204（表自己）− 242（卸载页离开缺口列的行）。
 
-所以**缺口列不能当"还剩多少要翻"读**：它把表自己也算进去了，§5 与 §6 各扣一块。
+**这两列的差额不是"搬家账"，这一轮起把它写成方法**（也是对 P57d 那一档措辞的更正）：上一档把
+壳层那 4 行写成"4 行从缺口搬进已接"，读起来像同一批行在两列之间移动。实际不是——已接列数的
+是**当前树里带表调用的行**，改写时一行拆两行、两句中文合成一次 `LF(...)`，都会让"缺口列的
+减少量"与"已接列的增加量"不相等。本轮实测正是这个形状：卸载页缺口 **−242**、已接 **+209**，
+差的 33 行是行结构变化，不是漏接。漏接那种形状本来也不靠这两列对账，由 §9 那条"消费者引用的
+键必须在表里"兜着（它绿着），加上 §6 把剩的 33 行逐行点名。
 
 ## 3. 壳层：只剩设置页没翻
 
@@ -111,25 +118,33 @@ mainMenu 时打进那份 dump 的一行——那份输出本身就是机器读�
   数据层留中文原话、呈现层查表是本轮定的边界。
   同文件里的 `placeholder = "—"`、`↑`/`↓` 一类符号不进表（汉字判据本来也不会算它们）。
 
-## 5. MMCore 的 230 行里，201 行是表自己
+## 5. MMCore 的 434 行里，405 行是表自己
 
-`Packages/MMCore/Sources/MMCore/Localization.swift` 单独占了 201 行缺口。对账：
-中文表 202 条键值，其中 3 条的值不含汉字（`app.name` = MacMaster、`disk.treemap` = Treemap、
-`monitor.cpu` = CPU），剩下 199 条被量尺算作缺口；再加上表外那两行留痕——
-:39 的 `MMHookValue.emit("MM_LANGUAGE 含非法取值（…")` 与 :53 的 `appliedNote` 那句「已生效」——
-**199 + 2 = 201**。这两行都不该进表（改了破取证，见 §6 第二类）。
-P56b 那档读的是 182（181 + 1），差的那一行是 `appliedNote`：它是 P56c 才加进这个文件的，
-§5 的旧读数没跟着改，所以 P56 收尾时这一面已经是 183。
+`Packages/MMCore/Sources/MMCore/Localization.swift` 单独占了 405 行缺口——这一面从上一档的 201 涨到 405，
+涨的全是本轮新键的中文一侧。对账：
+中文表 **410 条键值**，其中 **7 条的值不含汉字**（老三条 `app.name` = MacMaster、`disk.treemap` = Treemap、
+`monitor.cpu` = CPU，加本轮四条 `ui.watch.skip_line` = `%1$@：%2$@`、`ui.watch.skip_separator` = `；`、
+`ui.format.list_join` = `、`、`ui.provenance.value_cask_tap` = `（tap %@）`——这四条走的是 §3 那句
+"分隔符是符号不是词"的同一口径：**符号进表是为了让它跟着语言档换字形，不因为它含汉字**），
+剩下 403 条被量尺算作缺口；再加上表外那两行留痕——:39 的 `MMHookValue.emit("MM_LANGUAGE 含非法取值（…")`
+与 :53 的 `appliedNote` 那句「已生效」——**403 + 2 = 405**。这两行都不该进表（改了破取证，见 §6 第二类）。
+英文侧同样 410 键、**0 条含汉字**（这条由 §9 的单测钉着），两段键集合逐项相等由 python 侧独立核过：
+各 410、去重后仍各 410、两个集合相等。
 
-MMCore 剩下的 29 行才是这个面的真实缺口，且分三种性质，处置不一样：
+MMCore 剩下的 29 行才是这个面的真实缺口（434 − 405），且分三种性质，处置不一样：
 
 - **拒绝/失败原因字符串**：`DeletionGuard.swift` 10（闸门拒绝语，:86-152）、
   `FileTrashService.swift` 5（:118、:171「移入废纸篓后该项仍在原地」等，好消息是这两条已经带
   `code: "STILL_PRESENT"`，按码查表是可行的）、`TrashHistoryStore.swift` 1（落盘失败的 stderr 行）。
   前两支要译就得定"原因码 → 键"的合同，是结构改动不是文案改动。
-- **已经有键、只是数据层留了原话**：`Risk.swift` 9 行里的 :16-18 三档短标签，表里就是
-  `risk.safe/caution/readOnly`（中文侧 :182-184、英文侧 :434-436），呈现层按 id 重贴；
-  :24-26 与 :32-34 那六行详细说明还没进表，属于"接的时候顺手补键"。
+- **已经有键、但全仓只有一处消费点去查**：`Risk.swift` 9 行里的 :16-18 三档短标签，表里有
+  `risk.safe/caution/readOnly`（中文侧 :182-184、**英文侧 :650-652**；上一档这一格写的是 :434-436，
+  那个坐标在 P58 加键之前就对不上了，本轮现读改指）。**这一格原来的说法"呈现层按 id 重贴"是过度主张，本轮更正**：
+  重贴只有一处——`MainWindow.swift:611` 的 `L("risk.\(category.risk.rawValue)", or: category.risk.label)`。
+  另有**五处** `MMBadge(risk:)`（共享层自己一处 + 优化页两处 + 卸载页两处）走的是 `MMDesign.swift:263`
+  那句 `self.init(risk.label, …)`——**读 Swift 属性、不查表**，所以英文档画面上那几枚徽标印的是
+  「安全」「谨慎」，实物见 §13 的照片判据。:24-26 的 `groupTitle` 与 :32-34 的 `groupNote` 那六行
+  **连键都还没有**，卸载页分组头就在读它们。
 - **机器可读留痕**：`HookValues.swift` 3（:31、:71、:96 的非法取值提示，脚本按行匹配）、
   `VolumeRoots.swift` 1（:204 夹具快照声明）。这两行**不该进表**，改了破取证。
 
@@ -143,20 +158,51 @@ MMCore 剩下的 29 行才是这个面的真实缺口，且分三种性质，处
 | 机器可读输出 | `TrashHistoryStore` 写 stderr 的落盘失败行、`HookValues`/`VolumeRoots` 的钩子留痕 | 不接。这些行是脚本读的，改英文会破取证 |
 | 夹具档位文案 | `*FixtureHooks.swift`、`MonitorFixtureHooks` 等 | 本轮不动，实拍时才看得到 |
 
-扣掉之后，真正"模块页用户可见"的大头是页面文件自己：`MMUninstaller.swift` 207、
-`MMDisk.swift` 115、`MMCleaner` 四支页面文件（DevArtifactView 92 + MMCleaner 69 +
-UserFolderCleanView 53 + SystemAnalysisView 28）、`MMOptimizer.swift` 69、
-`MMGuardian.swift` 44、`MMMonitor.swift` 54 + 菜单栏 18。
+**卸载页剩的 33 行逐行点名**（`--lines=MMUninstaller` 现读，量尺能把原文打出来，不必靠行号猜），
+它们一行都不属于"某个还没翻的页面"：
+
+- **9 行钩子留痕**：`MMUninstaller.swift` :47、:59、:119、:121、:143、:561、:571 与
+  `TrashWatcher.swift` :113、:133——全是取证脚本按行匹配的 `MM_*` 声明（§13 那一族的"就位凭据"
+  正是从 :571 那一行读出来的），上表第二类，**不进表**；
+- **24 行没有任何消费点在读**：`ResidualScanner.swift` :79-91 的十二个 `ResidualCategory.title`
+  与 :110-121 的十二条 `.note`。现读：卸载页只渲染 `item.category.icon`（同包那支文件的 :668、
+  :2013、:2055 三处），`.title` / `.note` **零消费点**，连承载它们的 `groupedByCategory`
+  （同文件 :459）也是零消费者——`grep -rn groupedByCategory --include='*.swift' Packages Sources`
+  只命中定义那一行。所以这 24 行不是"待翻译"，是**死字面量**：处置方式是删掉或改数据结构，
+  而不是给它们补 24 个键——补了等于把一批没人读的字搬进表，表更长、界面一个字都不变。
+  这一条登记成代码清理候选，不占多语言那条线的工时。
+
+扣掉这两族之后，真正"模块页用户可见"的大头还在剩下六面：`MMDisk.swift` 115、
+`MMCleaner` 四支页面文件（DevArtifactView 92 + MMCleaner 69 + UserFolderCleanView 53 +
+SystemAnalysisView 28）、`MMOptimizer.swift` 69、`MMGuardian.swift` 44、
+`MMMonitor.swift` 54 + 菜单栏 18。
 菜单栏（`MenuBarManager.swift` 18 行）单独一提：它不在窗口里，双语实拍拍不到，
 得用 `MM_LANGUAGE` 起进程再看 `screenshot` 之外的路径，成本比页面高一档。
 
-**建议顺序（P57 收口后重排）**：头两档做完了——MMUI 那 14 行、壳层除设置页外能接的 4 行，
-逐处见 §3 与 §4。剩下的按同一份账排：
-**卸载页 → 清理页四支 → 磁盘 → 守护 → 监控 → 优化 → 菜单栏 → 设置页**。
+**建议顺序（P58 收口后重排）**：头三档做完了——MMUI 那 14 行、壳层除设置页外能接的 4 行、
+卸载页整面，逐处见 §3、§4 与 §13。剩下的按同一份账排：
+**清理页四支 → 磁盘 → 守护 → 监控 → 优化 → 菜单栏 → 设置页**。
 设置页排最后不是它工作量小（81 行），而是它属外来那一族未提交改动（§7），
 且解禁那个 Picker 需要一次真机点击验证。
 还有一条给下一轮的规矩：**每接完一面都要重拍双语**——接表只是把字搬进表，
 照片才是"这一面真的跟着语言档变"的凭据（§8 的复位坑每个脚本都要带）。
+
+**本轮照片新登记的三类账：接进表 ≠ 翻完**（都在下一轮还，不是本轮的活，但顺序别弄反）：
+
+1. **风险标签**：见 §5 第二条——`MMBadge(risk:)` 那五处与分组头读的是 `MMRisk` 的 Swift 属性，
+   而 `MMUI` 那一面在量尺上已经是"0 行未接"。**量尺对这一类是瞎的**：字在 `MMCore` 的
+   `Risk.swift` 里，接的活却在共享层的构造方法上。
+2. **单复数**：五条键把量词写死在值里，英文一侧照搬成复数名词，于是「1 个」也印成复数——
+   中英坐标成对：`ui.uninstall.app_count`（:386 / :843）、`list_footer`（:397 / :854）、
+   `group_count`（:421 / :878）、`selected_residuals`（:401 / :858）、`ui.trash.summary_selected`
+   （:505 / :962）；另有四条英文侧天生带复数名词的键（:757、:784、:841、:943）。
+   **判据不是"看着别扭"**：`MMFormat.count`（共享层那个语言中立的 `NumberFormatter`，
+   `groupingSeparator = ","`）本来就不产单复数，所以这是**键设计缺陷**，不是格式化工具缺陷——
+   要么上复数档位（Swift `PluralRule`/按数分键），要么把量词从值里拆出来由调用方给数。
+   现在开关禁用、用户到不了（§7），但解禁那一轮必须先还这一笔。
+3. **截断换了触发条件**：英文串普遍比中文长，卸载页页头副标题与列表尾注在 1000 pt 硬最小宽度下
+   中间截断，其中一处截掉的正是总大小（§13 照片 13 读数）。这与 P25/P26 修过的那两族同形，
+   **只是从"中文太宽"换成"英文太宽"**——所以那两轮立的判据要按语言档各跑一遍才算闭合。
 
 ## 7. 一条现在已经是半谎的话（本轮不改，登记）
 
@@ -164,8 +210,8 @@ UserFolderCleanView 53 + SystemAnalysisView 28）、`MMOptimizer.swift` 69、
 
 > 界面文案尚未接入多语言，切换不会改变界面
 
-前半句从 P56 起**不成立**（壳层 70 行、共享层 30 行已接，`MM_LANGUAGE=en` 起进程后侧栏、概览页
-和 MMUI 那几处共用组件都跟着变——P57c 的八张照片就是这一句的凭据）。
+前半句从 P56 起**不成立**（壳层 70 行、共享层 30 行、卸载页 209 行已接，`MM_LANGUAGE=en` 起进程后
+侧栏、概览页、MMUI 那几处共用组件和卸载页整面都跟着变——P57c 的八张与 P58c 的十四张照片就是这一句的凭据）。
 后半句仍然成立，因为 :79 那个 `.disabled(true)` 还在——用户从界面里切不动。
 所以这一格现在的准确说法是：**开关仍然禁用，但界面已经不是"切了也不变"的死表**。
 
@@ -173,12 +219,37 @@ UserFolderCleanView 53 + SystemAnalysisView 28）、`MMOptimizer.swift` 69、
 `README.md`、`Scripts/make-app.sh` 同一批），一条都不能混进本轮提交。
 解禁那个 Picker 需要一次真机点击验证，而 §6 的顺序里设置页排在壳层之后——两件事一起在那一轮做。
 
-**同一句话的其他副本面（本轮一并登记，一处没改）**：①`Sources/MacMaster/SettingsView.swift:76-78` 的代码注释——逐字写着"`L(_:)` 在界面上零调用点（现读 2026-10-05）"，本轮之后是假的，它跟 `:80` 那份脚注在同一次改动里；②`Packages/MMCore/Sources/MMCore/AppSettings.swift:11-12` 的文档注释——"持久化是好的，**生效不是**：`L(_:)` 在界面上零调用点，切换语言目前不改变任何文案"；③设计稿 `docs/design-system/screens/shell/09-settings.html:96`（"便捷函数 `L(_:)` 在界面代码里**零调用点**"）与 `:111` 那条脚注文案——改稿要重渲染 09 那一族的像素基线，按 §6 那条约定排到集成批次；④`RELEASE-NOTES.md:115` 那句"多语言（语言开关是禁用的，切换不会改变界面）"——**这句对已经发出去的 v1.0.1 是实话**（那一版确实零调用点），所以不改历史，但**下一版的正文不能照抄这一句**，准确的写法是"设置里的语言开关仍禁用；壳层与共享组件已接两语，模块页未接"。
+**同一句话的其他副本面（本轮一并登记，一处没改）**：①`Sources/MacMaster/SettingsView.swift:76-78` 的代码注释——逐字写着"`L(_:)` 在界面上零调用点（现读 2026-10-05）"，本轮之后是假的，它跟 `:80` 那份脚注在同一次改动里；②`Packages/MMCore/Sources/MMCore/AppSettings.swift:10-11` 的文档注释——"持久化是好的，**生效不是**：`L(_:)` 在界面上零调用点，切换语言目前不改变任何文案"，而且它前半句说的"由 `Localization` 自身通过 @AppStorage 持久化"**也是假的**：同一篇文件里 `Localization.swift:18` 那条注释明写「P56 起不再用 `@AppStorage`」，现在走的是 :21 那把 `storageKey` 加 :28 的 `set`（这两处本轮现读；一个文件里的两段注释互相矛盾，本轮只登记）；③设计稿 `docs/design-system/screens/shell/09-settings.html:96`（"便捷函数 `L(_:)` 在界面代码里**零调用点**"）与 `:111` 那条脚注文案——改稿要重渲染 09 那一族的像素基线，按 §6 那条约定排到集成批次；④`RELEASE-NOTES.md:115` 那句"多语言（语言开关是禁用的，切换不会改变界面）"——**这句对已经发出去的 v1.0.1 是实话**（那一版确实零调用点），所以不改历史，但**下一版的正文不能照抄这一句**，准确的写法是"设置里的语言开关仍禁用；壳层、共享组件与卸载页已接两语，其余模块页未接"。
 判据分两把尺，别混着引：`grep -rnE '(^|[^A-Za-z0-9_])LF?\(' --include='*.swift' Packages Sources`
-现读 129 行，但它把函数定义、注释里的 `L(` 一起数了，只能回答"界面上到底有没有调用点"；
-**行数的账以 §2 那把量尺为准**（P57d 现读 115 行已接、1519 行缺口）。
+现读 342 行（上一档 129），但它把函数定义、注释里的 `L(` 一起数了，只能回答"界面上到底有没有调用点"；
+**行数的账以 §2 那把量尺为准**（P58d 现读 324 行已接、1481 行缺口）。两把尺怎么对上，见 §7b。
 P56b 那一档在这句里把两把尺的数并成了一句（"现读 95 行接表"既像 grep 又像 §2 的已接列），
 本轮顺手分家。
+
+## 7b. 两把尺的差额逐行分解（P58d 现读）
+
+342 那把 grep 尺的构成，按文件族拆：**Localization.swift 5**（两条注释 + :1007 的 `L(_:)`、
+:1012 的 `LF`、:1017 的 `L(_:or:)` 三个定义本身）+ **Tests 里 5**（测试断言中文原话不算缺口，§1 第一条）
++ **别处注释 3** + **代码行 329**。最后那一格和 §2 的已接列只差 5，逐条点名（这五条都是
+"表调用在、但键不挨着 `L(`"的形状，量尺按 §1 第 4 条那四种形态匹配，所以不计它们）：
+
+```
+Packages/MMOptimizer/Sources/MMOptimizer/DashboardMetrics.swift:217
+    L(self == .calm ? "dashboard.load.verdictCalm" : "dashboard.load.verdictBusy")
+Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift:364
+    message: LF(model.lastOperationTrashedApps ? "ui.uninstall.toast_uninstalled"
+Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift:70
+    LF(ResidualEvidenceKind.launchFileName.localizationKey, inner.text)
+Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift:51
+    String(format: L(localizationKey), arguments: arguments)
+Sources/MacMaster/MainWindow.swift:506
+    LF(model.diskIOFailure == nil ? "dashboard.load.writeAwaitingDiff"
+```
+
+**注意这条不是两边都错的账**：329 − 5 = 324 完全闭合，所以两把尺说的是同一批代码，
+只是"三元的某个分支才是键"这种形状只有一把尺认。反过来说，**量尺的已接列对这种形状是漏数的**——
+它漏的方向是"少报进度"，不是"把没接的报成接了"，所以用来排优先级不会出错。
+`MainWindow.swift:383` 的 `L(key, or: fallback)` 那种写法则两边都认（量尺的第四种形态 `L(key`）。
 
 ## 8. 双语实拍的前置（P56c 立的规矩，P57c 照做）
 
@@ -202,14 +273,24 @@ P57c 照这条做了，并把判据**反过来用**：第八张不带 `MM_LANGUA
 - `L(key, or:)` 在键缺失时回落原话而不是把 key 印到屏幕上；
 - 启动钩子 `MMLaunchHook.resolveLanguage` 的四档行为：中文写法（`zh` / `zh-hans`，吃空白与大小写）、
   `en`、缺省时沿用当前档且不留痕、非法写法交回调用方留痕而不是静默按中文跑；
-- **壳层与共享层引用的每个键都在表里**：扫 `MainWindow.swift` / `DashboardModel.swift` /
-  `DashboardMetrics.swift` / `MMDesign.swift` 里的 `L("…")` 与 `key = "…"` 两种写法，
+- **消费者引用的每个键都在表里**：扫 15 支文件里的 `L("…")` 与 `key = "…"` 两种写法——
+  `MainWindow.swift` / `DashboardModel.swift` / `DashboardMetrics.swift` / `MMDesign.swift` /
+  `TreemapView.swift` / `LaunchBehavior.swift` / `MacMasterApp.swift`（P56、P57 那两批）
+  加 P58 新纳的**卸载页八支**（`MMUninstaller.swift`、`ResidualScanner.swift`、
+  `ResidualNameMatcher.swift`、`ResidualCollector.swift`、`AppFolderWatcher.swift`、
+  `LaunchServiceScanner.swift`、`SteamLauncherProbe.swift`、`TrashWatcher.swift`），
   并断言扫到的条数 > 40——这条是防止正则本身过期：扫不到任何键时它应该红，
   而不是绿着宣布"没有缺口"。
   P57 把消费者名单加上了 `TreemapView.swift`、`LaunchBehavior.swift`、`MacMasterApp.swift`
   （**`SettingsView.swift` 刻意不在名单里**：那一面一行没接，加进来等于让键校验对着一片空地打靶），
   合法前缀加了 `ui`。新键一律写成 `ui.category.app_data` 这种 snake_case 而不是
   `ui.category.appData`：键名校验那条正则只认小写字母与点号，camelCase 会整条躲过检查。
+  **本轮把这条限制的代价量出来了**：表里 410 键**有 65 条本身就是 camelCase**（老键，
+  如 `disk.largeFiles`、`dashboard.status.volumesUnknown`），那条正则对它们**一条都引不到**——
+  所以"引用了表里没有的键"这一判据实际只覆盖 snake_case 那一族，对老键是空转。
+  本轮自己就先踩了一次：按 `"[a-z]` 起头抽键数得到 345，与表里的 410 差 65，
+  **差的就是这一批**（§10 那条 `awk` 只锚第一个字母，所以它给的是对的 410；
+  换成"整个键名只许小写"的写法就少 65）。
 
 I16（撤回五档）那 17 条在 `UndoTierTests.swift`，与语言无关，归 P56a。
 P57 在 **MMUI** 那边加了第 18 条（`TreemapLayoutTests.testOthersFlagIsNotDerivedFromTheItemName`）：
@@ -221,18 +302,36 @@ P57 在 **MMUI** 那边加了第 18 条（`TreemapLayoutTests.testOthersFlagIsNo
 它不是装饰：双语取证的机械判据就是照片旁边那一行日志，"这张到底是哪一档"不许只靠人眼读像素；
 措辞一改脚本的 `grep -F` 就断，所以两边由这一条测试绑在一起。
 
+**P58 在 MMUninstaller 那边加了第 19、20 条**（不占 LocalizationTests 那 15 条的分母）：
+`ResidualNameMatcherTests.testEvidenceTextKeepsTheChineseWording` 与
+`ResidualOwnershipReviewTests.testReviewDecisionDoesNotDependOnTheWording`。
+第二条钉的是 §6 那一族最危险的可疑形状——**归属复核的判据会不会跟着措辞走**：
+它断言命中项的 `risk == .caution`、`defaultSelectableCount == 0`，并且证据句以
+`L("ui.evidence.name_contains")` 的值开头。这一条存在的理由是 P33 那轮定的规矩：
+「名称包含应用名」这类线索默认不勾选，而它当初是拿中文原话做前缀匹配的——
+文案一旦进了表，那种匹配就会在英文档下静默失效，而**失效的方向是"少一层保护"**。
+两条都要先把 `app.language` 那把 key 钉成一档、再在 `defer` 里还原：
+§8 说过 `MM_LANGUAGE` 会写回 UserDefaults，不还原就会污染同一棵树上后续所有断言。
+
 ## 10. 复现
 
 ```
 swift Scripts/p56-l10n-gap.swift            # 十面小计（§2 那三列）
 swift Scripts/p56-l10n-gap.swift --by-file  # 逐文件（§3–§5 的数从这里来）
+swift Scripts/p56-l10n-gap.swift --lines=MMUninstaller   # 把某一面的缺口行原文打出来（§6 那 33 行从这里来）
 cd Packages/MMCore && swift test --filter LocalizationTests
 ./Scripts/p57-treemap-fixture.sh            # 双语那一族的两棵夹具（150 / 250 个子项）
 ./Scripts/p57-shared-l10n-capture.sh /tmp/mm-app-p57/MacMaster.app docs/verification/p57-shared-l10n-bilingual
+./Scripts/p58-uninstaller-l10n-capture.sh /tmp/mm-app-p58/MacMaster.app docs/verification/p58-uninstaller-l10n-bilingual
 ```
 
-表键数（§5 的 202）来自 `awk` 过 `static let chinese` / `static let english` 两段后按
+`--lines` 只认 `--lines=子串` 这一种写法：写成 `--lines 子串` 时参数不吃进去，脚本会把"子串"
+当位置参数忽略，输出的是全表——本轮就在这上面白读了一次「No matches found」。
+
+表键数（§5 的 410）来自 `awk` 过 `static let chinese` / `static let english` 两段后按
 `^\s*"[a-z]` 计数，两侧同数由单测保证；这里重复一遍是为了下次不必猜量法。
+**这条命令的口径值得多看一眼**：它锚的是键名**第一个字母**，不是整个键名——
+所以它照样数得到那 65 条 camelCase 老键（代价见 §9 最后一段）。
 
 ## 11. 上一轮的验证账（P56c，2026-10-19 实跑）
 
@@ -324,3 +423,94 @@ P57c 把撤回这一支也挪到 guard 之上（不设 `return`，`MM_SHOW_TOAST
 与 `# vocab:` 的源码 token 数（9872 → 9882，MMDisk 那一处修改带来的）。`-dirty` 仍在：外来那一族的
 未提交改动还挂在 `git status --porcelain -uno` 看得见的跟踪文件上，与本批无关。
 **这一格里唯一会漂的就是它自己数的东西**——写完这一跑之后没有再改这四张归档，所以它停在定点。
+
+## 13. 这一轮的验证账（P58c，2026-10-20 实跑）
+
+**九包门禁**：`879 条 / 0 失败 / 1 跳过`（逐包：MMCore 146、MMUI 18、MMFileScanner 117、MMCleaner 25、
+MMUninstaller **228**、MMDisk 85（含那 1 跳过）、MMMonitor 92、MMGuardian 96、MMOptimizer 72；
+**逐包求和 = 879**，这条自 P11c 起每轮用来自证"合计不是抄来的"）。
+比 §12 那一档涨 2 条，全在 MMUninstaller（226 → 228），就是 §9 末尾那两条新判据。
+仓库根 README 那两格仍是 843——**它属外来那一族（QuickLook + 设置页）正在改的文件，一行不进**，
+与本轮差 36，登记在这里；等那一族收口时按 P50 的写法一并回写。
+
+**十四张照片**：`docs/verification/p58-uninstaller-l10n-bilingual/`，全在卸载页
+（`MM_OPEN_MODULE=uninstaller`），零合成点击，产物与源码同源由 `mm_provenance_check` 当场把关
+（`# repo: 5a0dfcd-dirty`、`# digest: tree=5a0dfcd+2b395748 app=5a0dfcd+2b395748`，
+两份 digest 逐字相同；十四份 `.log` 的这两行 `sort -u` 只有一读，即**同一棵树、同一个二进制**）。
+族面是六个屏 × 中英两档 + 一张英文窄窗 + 一张复位：残留清单 / 确认面板 / 孤儿后遗症 / Steam 启动器 /
+废纸篓回声 / 装卸监听，浅色档。
+
+| 档 | 拍什么 | 机械判据（脚本自己算的，不靠人眼） |
+| --- | --- | --- |
+| 01–13 十三张 | 六屏 × 双语（+ 13 是英文 1000 pt 窄窗） | 每张 `.log` 里各一行 `MM_LANGUAGE=<档> 已生效`，**逐字包含 key 名 `app.language`**（§9 第 15 条钉的就是这句措辞） |
+| 03/04/07/08/13 | `MM_UNINSTALL_SELECT` 点名 | 五张各带一行「已点名到」的凭据，快门之前等到，**等待时长 0s**（不是超时放行） |
+| 05/06 孤儿后遗症 | `MM_ORPHAN_FIXTURE_HOME=/tmp/mmapps` | 「已用夹具目录 /tmp/mmapps 自动勾选并打开确认面板（**2 条**）」，等到用时 **1s**；这一行同时是 §6 那 33 行里 :571 那条留痕的实物 |
+| 09/10 废纸篓回声 | `MM_TRASH_FIXTURE_DIR` + 脚本自己 `mv` 一个假 app 进去 | 凭据是「本张日志里 mv 执行过且没报错（`/tmp/mmtrash/Foo.app` 由这一次产生）」 |
+| 11/12 装卸监听 | `MM_APPS_WATCH_FIXTURE_DIR=/tmp/mmapps` + `MM_APPS_WATCH_AUTO_SCAN` | 凭据是「depart 执行过且没报错（当前目录态：Highball 已消失）」 |
+| 14 复位 | 不带 `MM_LANGUAGE` | 日志里**没有**那行留痕 ⟹ §8 那条反向判据成立；`defaults read` 当场报 `Could not find key 'app.language'`，这一行也落在族日志里 |
+
+09–12 那四张的 `.log` 各自带一行**「这一张没有应用侧凭据可等（判据弱一级，必须人眼读）」**——
+它们的"应用侧"凭据（回声卡、监听提示）不是启动即位的钩子，而是中途动作，所以脚本改用动作凭据那两行
+（mv / depart）顶上。这一格的诚实说法是：**这一族里四张的机械判据比另外十张弱一级**，弱在哪、
+靠什么补，都写在表里而不是抹平。
+
+六对中英同屏的内容区像素差：**102791 / 97625 / 52201 / 112840 / 59338 / 108098**
+（侧栏条 4793–5605 那一列不参与判据，它本来就该两档相同）。最小的一对是 05↔06 那 52201——
+孤儿那一屏被确认面板盖住了一大块，所以画面差天然偏小，仍然过"必须有可辨差异"那道闸。
+
+**这一轮两条方法上的账，都是判据自己会咬人的形状**：
+
+1. **凭据闸会匹配到自己写进日志的那句声明**。脚本先在 `.log` 里写一行注释声明"这一张要等哪一行"，
+   然后拿同一份 `.log` 做 `grep`——于是注释本身成了凭据，**闸永远绿**。本轮改成先 `grep -v '^#'`
+   把注释剥掉再匹配。同一次修正在 `p57` 那一族没有先例可循，因为它那族的注释形状不同；
+   **这条从此是每一支双语脚本的标配**，写进了脚本里。
+2. **命名凭据那条判据锚定整行**。原先只匹配「没有对应的应用」这一串，而 `MM_UNINSTALL_SELECT`
+   命中时会打「已点名到 …」，两种都算就位——于是"点名点空"和"点名点到"在闸眼里是同一件事。
+   本轮把它锚成 `^MM_UNINSTALL_SELECT=[^ ]+ 没有对应的应用` 那种整行形状，并把"已点名到"单独算一档。
+
+**一处对上一格（§12 式"未拍清单"）的更正**：本轮初稿曾把 `ui.orphan.row_subtitle` 登记成
+"接了表但画面上没有路径"（理由是孤儿那一屏被确认面板盖住）。**照片推翻了它**——06 那张在面板后面
+读得到 `~/Library/Caches/com.example.Highball · no installed app matches com.example.Highball`，
+正是那条键的英文值。所以这一格不留"未拍清单"条目，只留这条更正；
+教训是**"拍不到"要拿照片证，不能拿布局推断**，推断出来的未拍清单会把已经闭合的东西一直挂在欠账里。
+
+**照片读出来的四类缺陷**（判据与去处都在 §6 最后那三条，这里只挂凭据）：
+① 英文档的徽标与分组头仍是中文——02/06/08/12 四张里都能读到「安全 删除后可由应用或系统重建」
+与「谨慎 可能包含登录态或未同步数据，默认不勾选」，实物对应 §5 更正的那条（五处 `MMBadge(risk:)`
+不查表）；② 单复数——08「1 leftovers selected · 524 KB」、08/12「1 items / 2 items」、
+12「1 new entries in the apps folder」；③ 截断——12 那张列表尾注截断后留下一个孤零零的行首「·」，
+13 那张（1000 pt）页头副标题「3 apps · 6.…es measured」**把总大小整段截掉了**；
+④ 同一张 08 上英文行丢了版本号并截断尺寸（「Launcher 581…」对中文「启动器 1.0 581 字节」）。
+**同屏的正面读数也记一条**：`MMKeyRow` 那一格 80 pt 的键名列在英文 1000 pt 下没截
+（13 那张），所以这一处不需要改宽，P26 那族判据在这一格上是过的。
+
+**这一族的破坏性副作用，如实记**：跑 03/04 那一对（确认面板）时有一记多余的 Return 落到了夹具自己的
+`.defaultAction`「移到废纸篓」上，于是**用户真实的 `~/.Trash` 里多了 `com.example.Highball` 与它的
+`.plist`**。这两个是本族的合成夹具，不是用户数据；但本 agent 没有完全磁盘访问权限，
+**既看不到也不能替用户删**，已请用户自己清掉。这一条写在这里是因为它是这一族的产物形状——
+"零合成点击"守的是**界面上的点击**（点击会逃逸到用户的其他应用），而夹具面板的默认动作
+被键盘事件触发这一路，判据没覆盖到，下一轮带确认面板的拍摄脚本要把它算进风险。
+
+**引用门禁这一轮跑到定点**（`docs/verification/p58-citations/`：`audit-pre13.log` 是本轮文档全部重指完、
+这一格还没写进本文时那一跑，`audit.log` 是把这一格写进本文之后的终跑；两份的汇总那一块 `diff` 为空，
+所以这一格停在定点——代价是这一格里不写任何带行段的坐标）。**硬失败 2**，但这本账要分三笔写：
+
+1. **改完源码、文档还没重指那一跑报硬失败 10**，其中 4 条「两头都不到」是本文 §7 那段代码块里用省略号
+   缩写的路径（量尺不认省略号，本轮已全部换成完整路径）；另外 4 条「整段空白」是**本轮自己顶漂的锚点**——
+   卸载页那一族接两语把 `MMUninstaller.swift` 往下推了 8 行、`TrashWatcher.swift` 推了 1–2 行，
+   卸载页还原度文档两格、废纸篓采纳文档那一格、官网文案审计那一格点名的坐标正落在漂出来的空行上，
+   本轮逐个重指，新旧对照写在那四行里。**这一跑的日志没有单独入库**：这支脚本每次只往 outdir 写
+   一个同名文件，重跑就地覆盖（上一轮那两份是手工改名留下的，本轮漏了），所以"10"这个数字在本仓库里
+   没有可复核的证据、只有本轮会话里的读数——如实登记这个缺口。
+2. **终跑剩下的 2 条不是仓库的账，是工作区的账**：两条都落在外来那一族（QuickLook + 设置页）正在改的
+   那份设置页源码上。那份文件在 HEAD 是 385 行、工作区 413 行（+28 行、0 删除），文档点名的那两个符号
+   在 HEAD 上各自还在自己那一行——也就是说这一对硬失败是**未提交改动造成的工作区形状**，本轮一行不碰，
+   等那一族提交时一起重指。§10 第 1–3 步从干净克隆跑，只含已提交状态，所以这一条不会带上发版核验。
+3. **终跑读数**：条次 1565、唯一「路径+行段」1162、命本仓库 1024、命参考仓库 137、命苹果 SDK 头 1、
+   两头都不到 0、同一条路径命中两份文件 0、行号越界 0、死符号 0、整段空白 2、位置存疑 170
+   （提示级，上一轮终跑 167，涨的 3 条就是本轮新写进去的那几处坐标）；行号判据实际跑过 1162 条，
+   一条没漏。48 份入库 .md 全部真抽到（48/48）。`# index:` 跟踪文件 1633 个、`# vocab:` 源码 token 10269 个。
+
+本文与那四份被重指的文档里，凡引旧坐标的地方一律用裸写法（只说形状不写坐标），
+否则等于把上一轮的错坐标重新请进门——这一课 P56 踩过，见 `fidelity-shell.md` §7 门禁那一格。
+
