@@ -1,5 +1,6 @@
 import XCTest
 import Foundation
+import MMCore
 @testable import MMUninstaller
 
 /// P33b B 档「归属复核」的正反判据。
@@ -73,6 +74,34 @@ final class ResidualOwnershipReviewTests: XCTestCase {
         XCTAssertTrue(caveat.contains("上层目录归 IDEFoo"), caveat)
         XCTAssertTrue(caveat.contains("~/Library/Caches/IDEFoo"), caveat)
         XCTAssertTrue(caveat.contains("可能不是 \(scannedApp) 的数据"), caveat)
+    }
+
+    /// 降级这件事不能建立在"中文句子长得像"上：把语言钉成英文跑同一族夹具，
+    /// `risk`、默认勾选数与提醒的有无必须一个都不变。这一条是 P58 接两语时补的判据——
+    /// 复核的输入是 `evidenceKind`，不是证据文本，所以它翻档以后照样降。
+    func testReviewDecisionDoesNotDependOnTheWording() throws {
+        let key = "app.language"   // `Localization.storageKey`，那边是 private
+        let saved = UserDefaults.standard.string(forKey: key)
+        UserDefaults.standard.set(Localization.Language.english.rawValue, forKey: key)
+        defer {
+            if let saved { UserDefaults.standard.set(saved, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+
+        try fixture.folderWithFile("\(fixture.homePath)/Library/Caches/IDEFoo/AssetsFork")
+        let report = try scan(.enhanced, foreign: [Self.ideFoo])
+        let hit = try item(report, suffix: "Caches/IDEFoo/AssetsFork")
+
+        XCTAssertEqual(hit.risk, .caution)
+        XCTAssertFalse(hit.risk.isDefaultSelected)
+        XCTAssertEqual(report.defaultSelectableCount, 0)
+        XCTAssertEqual(report.defaultSelectableSize, 0)
+        // 证据取自表，不是硬编码：英文档必须以英文表里那一条开头。全等不行——
+        // 下探厂商目录的那一路会在同一句后面补「位于哪一层里」（`ui.evidence.inside`）。
+        XCTAssertTrue(hit.reason.hasPrefix(L("ui.evidence.name_contains")), hit.reason)
+        let caveat = try XCTUnwrap(hit.caveat)
+        XCTAssertTrue(caveat.contains("IDEFoo"), caveat)
+        XCTAssertTrue(caveat.contains("~/Library/Caches/IDEFoo"), caveat)
     }
 
     /// 复核对档位不偏心：深度档同样降。

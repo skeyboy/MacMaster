@@ -1,0 +1,15 @@
+# p58-uninstaller-l10n-capture.sh 06-en-orphans  2026-10-20 12:46:52 +0800  app=/tmp/mm-app-p58/MacMaster.app
+# repo: 5a0dfcd-dirty   # digest: tree=5a0dfcd+2b395748 app=5a0dfcd+2b395748
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_LANGUAGE=en MM_UNINSTALL_PANE=apps MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/mmapps MM_UNINSTALL_CONFIRM_MODE=none MM_APPS_WATCH_FIXTURE_DIR=/tmp/mmapps/Applications MM_APPS_WATCH_AUTO_SCAN=1 MM_ORPHAN_FIXTURE_HOME=/tmp/mmapps MM_WINDOW_SIZE=1400x1000
+# 夹具：P33b=/tmp/macmaster-p33b-nesting.CY0kPx｜Steam=/tmp/macmaster-steam-fixture.v6xLWw｜废纸篓=/tmp/mmtrash（假 home=/tmp/mmhome）｜监听=/tmp/mmapps
+# 期望：同一棵树的英文档：面板句子换英文，路径与主人名（Highball / com.example.Highball）照原样
+# 中间动作：./Scripts/apps-watch-fixture.sh depart（窗口出现后 3s 执行，再等 10s）
+# 就位凭据：等到日志出现 /已用夹具目录 /tmp/mmapps/ 才按快门（上限 90s）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p58/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# 执行中间动作：./Scripts/apps-watch-fixture.sh depart
+已改动 /tmp/mmapps/Applications：删掉 Highball.app，新增 Notion.app
+已用夹具目录 /tmp/mmapps 自动勾选并打开确认面板（2 条）
+# 就位凭据：等了 1s 后日志里出现 /已用夹具目录 /tmp/mmapps/

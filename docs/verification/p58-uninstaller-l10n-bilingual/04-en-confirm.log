@@ -1,0 +1,12 @@
+# p58-uninstaller-l10n-capture.sh 04-en-confirm  2026-10-20 12:46:27 +0800  app=/tmp/mm-app-p58/MacMaster.app
+# repo: 5a0dfcd-dirty   # digest: tree=5a0dfcd+2b395748 app=5a0dfcd+2b395748
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_LANGUAGE=en MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/macmaster-p33b-nesting.CY0kPx MM_UNINSTALL_CONFIRM_MODE=withResiduals MM_UNINSTALL_SENSITIVITY=enhanced MM_UNINSTALL_SELECT=Fork MM_WINDOW_SIZE=1400x1000
+# 夹具：P33b=/tmp/macmaster-p33b-nesting.CY0kPx｜Steam=/tmp/macmaster-steam-fixture.v6xLWw｜废纸篓=/tmp/mmtrash（假 home=/tmp/mmhome）｜监听=/tmp/mmapps
+# 期望：同一档面板：标题应是「Remove N leftovers of X?」那一种语序，按钮 Uninstall only / Move to Trash / Cancel
+# 就位凭据：等到日志出现 /已点名到|没有对应的应用/ 才按快门（上限 90s）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p58/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+MM_UNINSTALL_SELECT=Fork 已点名到 /private/tmp/macmaster-p33b-nesting.CY0kPx/Applications/Fork.app
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/

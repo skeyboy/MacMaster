@@ -49,9 +49,9 @@ final class ResidualCollectorSteamTests: XCTestCase {
     func testCaveatRidesTheApplicationSupportRow() throws {
         let steam = try makeSupportFolder("Steam", children: ["config", "steamapps"])
         var collector = collector()
-        collector.add(path: steam, category: .applicationSupport, reason: "名称与包名对应")
+        collector.add(path: steam, category: .applicationSupport, evidence: ResidualEvidence(.nameExact))
         let item = try XCTUnwrap(collector.items().first)
-        XCTAssertEqual(item.reason, "名称与包名对应")
+        XCTAssertEqual(item.reason, ResidualEvidence(.nameExact).text)
         XCTAssertEqual(item.caveat, SteamGameLibraryCaveat.note(children: ["config", "steamapps"]))
     }
 
@@ -59,9 +59,9 @@ final class ResidualCollectorSteamTests: XCTestCase {
     func testNoCaveatWithoutSteamApps() throws {
         let other = try makeSupportFolder("Notion", children: ["Cache", "Local Storage"])
         var collector = collector()
-        collector.add(path: other, category: .applicationSupport, reason: "名称与包名对应")
+        collector.add(path: other, category: .applicationSupport, evidence: ResidualEvidence(.nameExact))
         let item = try XCTUnwrap(collector.items().first)
-        XCTAssertEqual(item.reason, "名称与包名对应")
+        XCTAssertEqual(item.reason, ResidualEvidence(.nameExact).text)
         XCTAssertNil(item.caveat)
     }
 
@@ -69,9 +69,9 @@ final class ResidualCollectorSteamTests: XCTestCase {
     func testOtherCategoriesGetNoCaveat() throws {
         let cache = try makeSupportFolder("SteamCache", children: ["steamapps"])
         var collector = collector()
-        collector.add(path: cache, category: .cache, reason: "包名同名的缓存目录")
+        collector.add(path: cache, category: .cache, evidence: ResidualEvidence(.identifierExact))
         let item = try XCTUnwrap(collector.items().first)
-        XCTAssertEqual(item.reason, "包名同名的缓存目录")
+        XCTAssertEqual(item.reason, ResidualEvidence(.identifierExact).text)
         XCTAssertNil(item.caveat)
     }
 
@@ -80,11 +80,11 @@ final class ResidualCollectorSteamTests: XCTestCase {
     func testCaveatAppearsOncePerPath() throws {
         let steam = try makeSupportFolder("Steam", children: ["steamapps"])
         var collector = collector()
-        collector.add(path: steam, category: .applicationSupport, reason: "名称与包名对应")
-        collector.add(path: steam, category: .applicationSupport, reason: "第二次命中的证据")
+        collector.add(path: steam, category: .applicationSupport, evidence: ResidualEvidence(.nameExact))
+        collector.add(path: steam, category: .applicationSupport, evidence: ResidualEvidence(.identifierExact))
         let items = collector.items()
         XCTAssertEqual(items.count, 1)
-        XCTAssertEqual(items.first?.reason, "名称与包名对应")
+        XCTAssertEqual(items.first?.reason, ResidualEvidence(.nameExact).text)
         XCTAssertNotNil(items.first?.caveat)
     }
 
@@ -92,9 +92,9 @@ final class ResidualCollectorSteamTests: XCTestCase {
     func testMissingDirectoryKeepsOriginalReason() throws {
         var collector = collector()
         collector.add(path: "\(home!)/Library/Application Support/Gone",
-                      category: .applicationSupport, reason: "名称与包名对应")
+                      category: .applicationSupport, evidence: ResidualEvidence(.nameExact))
         let item = try XCTUnwrap(collector.items().first)
-        XCTAssertEqual(item.reason, "名称与包名对应")
+        XCTAssertEqual(item.reason, ResidualEvidence(.nameExact).text)
         XCTAssertNil(item.caveat)
     }
 }

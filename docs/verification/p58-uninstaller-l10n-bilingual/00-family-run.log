@@ -1,0 +1,84 @@
+✅ 01-zh-residuals windowid=671 settle=12s
+✅ 02-en-residuals windowid=796 settle=12s
+✅ 03-zh-confirm windowid=800 settle=12s
+✅ 04-en-confirm windowid=804 settle=12s
+✅ 05-zh-orphans windowid=807 settle=8s
+✅ 06-en-orphans windowid=811 settle=8s
+✅ 07-zh-launcher windowid=815 settle=12s
+✅ 08-en-launcher windowid=818 settle=12s
+✅ 09-zh-trash windowid=821 settle=8s
+✅ 10-en-trash windowid=825 settle=8s
+✅ 11-zh-watch windowid=829 settle=8s
+✅ 12-en-watch windowid=832 settle=8s
+✅ 13-en-narrow windowid=835 settle=12s
+# 语言档落在 UserDefaults：域=com.macmaster.app key=app.language（跑完会 delete）
+# 复位后 defaults read：Error: Could not find key 'app.language' in domain 'com.macmaster.app'. 
+✅ 14-zh-after-reset windowid=838 settle=12s
+
+# 留痕：每一张都要自己说出用的是哪一档
+  ✓ 01-zh-residuals：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 02-en-residuals：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 03-zh-confirm：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 04-en-confirm：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 05-zh-orphans：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 06-en-orphans：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 07-zh-launcher：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 08-en-launcher：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 09-zh-trash：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 10-en-trash：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 11-zh-watch：MM_LANGUAGE=zh-Hans 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 12-en-watch：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 13-en-narrow：MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+  ✓ 14-zh-after-reset：无 MM_LANGUAGE 留痕（复位成立）
+
+# 就位闸：每一张带凭据的照片都要在快门之前等到那一行
+  ✓ 01-zh-residuals：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  – 02-en-residuals：这一张没有应用侧凭据可等（09–12 那一族，判据弱一级，必须人眼读）
+  ✓ 03-zh-confirm：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  ✓ 04-en-confirm：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  ✓ 05-zh-orphans：# 就位凭据：等了 1s 后日志里出现 /已用夹具目录 /tmp/mmapps/
+  ✓ 06-en-orphans：# 就位凭据：等了 1s 后日志里出现 /已用夹具目录 /tmp/mmapps/
+  ✓ 07-zh-launcher：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  ✓ 08-en-launcher：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  – 09-zh-trash：这一张没有应用侧凭据可等（09–12 那一族，判据弱一级，必须人眼读）
+  – 10-en-trash：这一张没有应用侧凭据可等（09–12 那一族，判据弱一级，必须人眼读）
+  – 11-zh-watch：这一张没有应用侧凭据可等（09–12 那一族，判据弱一级，必须人眼读）
+  – 12-en-watch：这一张没有应用侧凭据可等（09–12 那一族，判据弱一级，必须人眼读）
+  ✓ 13-en-narrow：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  ✓ 14-zh-after-reset：# 就位凭据：等了 0s 后日志里出现 /已点名到|没有对应的应用/
+  ✓ 09-zh-trash 拖入凭据：本张日志里 mv 执行过且没报错（/tmp/mmtrash/Foo.app 由这一次产生）
+  ✓ 10-en-trash 拖入凭据：本张日志里 mv 执行过且没报错（/tmp/mmtrash/Foo.app 由这一次产生）
+  ✓ 11-zh-watch 装卸凭据：本张日志里 depart 执行过且没报错（当前目录态：Highball 已消失）
+  ✓ 12-en-watch 装卸凭据：本张日志里 depart 执行过且没报错（当前目录态：Highball 已消失）
+  ✓ 05-zh-orphans 后遗症凭据：已用夹具目录 /tmp/mmapps 自动勾选并打开确认面板（2 条）
+  ✓ 06-en-orphans 后遗症凭据：已用夹具目录 /tmp/mmapps 自动勾选并打开确认面板（2 条）
+
+# 画面交叉核对（同屏双语必须不同，否则语言档在画面上没起作用）
+  md5 acf38f61d9c8ca1bd59964699a3c9c8d  01-zh-residuals.png
+  md5 74fe1fbde94bdab58340e91cf0baeb98  02-en-residuals.png
+  md5 eb90e80363f117f654e270f50368ec84  03-zh-confirm.png
+  md5 89ea818fba795f893c54bc8a40407748  04-en-confirm.png
+  md5 e6afd5b4bd96ae36584d3d6ed97443db  05-zh-orphans.png
+  md5 ba456aa6da21d094597ef10643ab5468  06-en-orphans.png
+  md5 dc068354f9f8dd21790d7fd48ab10d9f  07-zh-launcher.png
+  md5 a8fee8b98e7c8d986443bebe7cd9a6a2  08-en-launcher.png
+  md5 5b3f8a766f3517f32a74264877bdbe55  09-zh-trash.png
+  md5 817bd040a92f0367e0ebb72807d8b634  10-en-trash.png
+  md5 d8c5d0e649fe300da17d5cf976ab2c2c  11-zh-watch.png
+  md5 f54e30143abf94d2149abeeee606158c  12-en-watch.png
+  md5 d9a34e5503346e7fd32307e5924d7a07  13-en-narrow.png
+  md5 0a4c5567f9e1d1767cce073f297b162b  14-zh-after-reset.png
+  · 01-zh-residuals ↔ 02-en-residuals：内容区 102791 个可辨像素｜侧栏条（不参与判据）5570 个｜全帧 108361 个｜最大幅度 219
+  ✓ 01-zh-residuals ↔ 02-en-residuals：内容区有可辨差异 102791 个像素
+  · 03-zh-confirm ↔ 04-en-confirm：内容区 97625 个可辨像素｜侧栏条（不参与判据）4793 个｜全帧 102418 个｜最大幅度 217
+  ✓ 03-zh-confirm ↔ 04-en-confirm：内容区有可辨差异 97625 个像素
+  · 05-zh-orphans ↔ 06-en-orphans：内容区 52201 个可辨像素｜侧栏条（不参与判据）4818 个｜全帧 57019 个｜最大幅度 217
+  ✓ 05-zh-orphans ↔ 06-en-orphans：内容区有可辨差异 52201 个像素
+  · 07-zh-launcher ↔ 08-en-launcher：内容区 112840 个可辨像素｜侧栏条（不参与判据）5605 个｜全帧 118445 个｜最大幅度 219
+  ✓ 07-zh-launcher ↔ 08-en-launcher：内容区有可辨差异 112840 个像素
+  · 09-zh-trash ↔ 10-en-trash：内容区 59338 个可辨像素｜侧栏条（不参与判据）4793 个｜全帧 64131 个｜最大幅度 217
+  ✓ 09-zh-trash ↔ 10-en-trash：内容区有可辨差异 59338 个像素
+  · 11-zh-watch ↔ 12-en-watch：内容区 108098 个可辨像素｜侧栏条（不参与判据）5570 个｜全帧 113668 个｜最大幅度 219
+  ✓ 11-zh-watch ↔ 12-en-watch：内容区有可辨差异 108098 个像素
+→ docs/verification/p58-uninstaller-l10n-bilingual（light）｜残留清单 / 确认面板 / 后遗症 / 启动器 / 废纸篓 / 监听 × 双语 + 英文窄窗 + 复位
+夹具：/tmp/macmaster-p33b-nesting.CY0kPx · /tmp/macmaster-steam-fixture.v6xLWw · /tmp/mmtrash//tmp/mmhome · /tmp/mmapps（留 /tmp，不入库）

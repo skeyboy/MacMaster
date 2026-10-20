@@ -1,4 +1,5 @@
 import Foundation
+import MMCore
 
 // MARK: - 判定规则（纯函数）
 //
@@ -143,11 +144,11 @@ public final class TrashWatcher: ObservableObject {
         guard FileManager.default.fileExists(atPath: trashDirectory, isDirectory: &isDirectory) else {
             // 全新用户从没删过东西，`~/.Trash` 就是还不存在。
             // 这不能报成"要授权"：那是把两种原因说成一种。
-            status = .unreadable(reason: "废纸篓目录还不存在：\(trashDirectory)", needsFullDiskAccess: false)
+            status = .unreadable(reason: LF("ui.trash.not_exists", trashDirectory), needsFullDiskAccess: false)
             return
         }
         guard isDirectory.boolValue else {
-            status = .unreadable(reason: "\(trashDirectory) 不是目录。", needsFullDiskAccess: false)
+            status = .unreadable(reason: LF("ui.trash.not_a_directory", trashDirectory), needsFullDiskAccess: false)
             return
         }
 
@@ -155,7 +156,8 @@ public final class TrashWatcher: ObservableObject {
         // 所以真实机型上第一次进来就落在这个分支，而不是"读到空目录"。
         let descriptor = Darwin.open(trashDirectory, O_RDONLY)
         guard descriptor >= 0 else {
-            status = .unreadable(reason: Self.failureText(action: "打开废纸篓目录", errnoValue: errno),
+            let reason = Self.failureText(action: L("ui.trash.action.open_directory"), errnoValue: errno)
+            status = .unreadable(reason: reason,
                                  needsFullDiskAccess: Self.isPermissionFailure(errno))
             return
         }
@@ -164,7 +166,7 @@ public final class TrashWatcher: ObservableObject {
         // 不能让它冒充"废纸篓是空的"。
         guard let entries = Self.listing(of: trashDirectory) else {
             Darwin.close(descriptor)
-            let reason = Self.failureText(action: "读取废纸篓内容", errnoValue: errno)
+            let reason = Self.failureText(action: L("ui.trash.action.read_contents"), errnoValue: errno)
             status = .unreadable(reason: reason, needsFullDiskAccess: Self.isPermissionFailure(errno))
             return
         }
@@ -244,8 +246,8 @@ public final class TrashWatcher: ObservableObject {
         guard let entries = Self.listing(of: trashDirectory) else {
             // 事件已经证明目录刚改动，现在却读不到内容：按读不到处理。
             stop()
-            status = .unreadable(reason: Self.failureText(action: "读取废纸篓内容", errnoValue: errno),
-                                 needsFullDiskAccess: Self.isPermissionFailure(errno))
+            let reason = Self.failureText(action: L("ui.trash.action.read_contents"), errnoValue: errno)
+            status = .unreadable(reason: reason, needsFullDiskAccess: Self.isPermissionFailure(errno))
             return
         }
         let present = Set(entries)
@@ -280,8 +282,10 @@ public final class TrashWatcher: ObservableObject {
         value == EPERM || value == EACCES
     }
 
+    /// `action` 是本地化后的动词短语（"打开废纸篓目录" / "open the Trash folder"），
+    /// 句子框架由表里的两条格式串给出——中英的"无法…/Could not…"接法不一样。
     static func failureText(action: String, errnoValue: Int32) -> String {
-        guard errnoValue != 0 else { return "无法\(action)。" }
-        return "无法\(action)：\(String(cString: strerror(errnoValue)))（错误码 \(errnoValue)）。"
+        guard errnoValue != 0 else { return LF("ui.failure.simple", action) }
+        return LF("ui.failure.with_errno", action, String(cString: strerror(errnoValue)), String(errnoValue))
     }
 }

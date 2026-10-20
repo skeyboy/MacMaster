@@ -1,5 +1,6 @@
 import Foundation
 import Dispatch
+import MMCore
 
 // MARK: - 判定规则（纯函数）
 //
@@ -131,17 +132,18 @@ public final class AppFolderWatcher: ObservableObject {
         for directory in directories {
             var isDirectory: ObjCBool = false
             guard FileManager.default.fileExists(atPath: directory, isDirectory: &isDirectory) else {
-                skips[directory] = "这台机器没有这个目录"
+                skips[directory] = L("ui.folder.missing")
                 continue
             }
             guard isDirectory.boolValue else {
-                skips[directory] = "不是目录"
+                skips[directory] = L("ui.folder.not_a_directory")
                 continue
             }
             let descriptor = Darwin.open(directory, O_RDONLY)
             guard descriptor >= 0 else {
                 let code = errno
-                skips[directory] = TrashWatcher.failureText(action: "打开目录", errnoValue: code)
+                skips[directory] = TrashWatcher.failureText(action: L("ui.folder.action.open_directory"),
+                                                            errnoValue: code)
                 permissionDenied = permissionDenied || TrashWatcher.isPermissionFailure(code)
                 continue
             }
@@ -149,7 +151,8 @@ public final class AppFolderWatcher: ObservableObject {
             guard let entries = Self.listing(of: directory) else {
                 let code = errno
                 Darwin.close(descriptor)
-                skips[directory] = TrashWatcher.failureText(action: "读取目录内容", errnoValue: code)
+                skips[directory] = TrashWatcher.failureText(action: L("ui.folder.action.read_contents"),
+                                                            errnoValue: code)
                 permissionDenied = permissionDenied || TrashWatcher.isPermissionFailure(code)
                 continue
             }
@@ -253,7 +256,9 @@ public final class AppFolderWatcher: ObservableObject {
                 // 事件已经证明目录刚改动，现在却读不到内容：按读不到处理。
                 stop()
                 let code = errno
-                status = .unreadable(reason: TrashWatcher.failureText(action: "读取目录内容", errnoValue: code),
+                let reason = TrashWatcher.failureText(action: L("ui.folder.action.read_contents"),
+                                                      errnoValue: code)
+                status = .unreadable(reason: reason,
                                      needsFullDiskAccess: TrashWatcher.isPermissionFailure(code))
                 return
             }
@@ -317,6 +322,8 @@ public final class AppFolderWatcher: ObservableObject {
     /// 一个都没打开时的说明。逐目录把原因列出来 ——
     /// "读不到应用目录"而不说哪一个、为什么，用户就没法判断这是不是故障。
     static func aggregateText(_ skips: [String: String]) -> String {
-        skips.keys.sorted().map { "\($0)：\(skips[$0] ?? "读不到")" }.joined(separator: "；")
+        skips.keys.sorted()
+            .map { LF("ui.watch.skip_line", $0, skips[$0] ?? L("ui.watch.unreadable")) }
+            .joined(separator: L("ui.watch.skip_separator"))
     }
 }

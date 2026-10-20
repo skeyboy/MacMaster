@@ -34,10 +34,10 @@ struct ResidualOwnershipReview {
     /// 另一个已装应用是否用**硬证据**（包名或精确名称）主张这一项本身。
     /// `allowContains: false` 是这一条的整个分量所在：这里要的是"别人给了证据"，
     /// 不是"别人的猜测和我的猜测同名"。
-    func hardClaim(on path: String) -> (name: String, evidence: String)? {
+    func hardClaim(on path: String) -> (name: String, evidence: ResidualEvidence)? {
         let url = URL(fileURLWithPath: path, isDirectory: true)
         for other in foreign {
-            if let evidence = other.matcher.reason(for: url, bundleID: "", allowContains: false) {
+            if let evidence = other.matcher.evidence(for: url, bundleID: "", allowContains: false) {
                 return (other.name, evidence)
             }
         }
@@ -51,7 +51,7 @@ struct ResidualOwnershipReview {
         while parent.count > 1, parent != home {
             for other in foreign {
                 let url = URL(fileURLWithPath: parent, isDirectory: true)
-                if other.matcher.reason(for: url, bundleID: "", allowContains: true) != nil {
+                if other.matcher.evidence(for: url, bundleID: "", allowContains: true) != nil {
                     return (other.name, parent)
                 }
             }
@@ -71,7 +71,10 @@ struct ResidualCollector {
         let name: String
         let category: ResidualCategory
         let risk: MMRisk
+        /// 给用户看的那一句，随语言。
         let reason: String
+        /// 判据只看这个：`reason` 会跟着界面变，拿它当前缀判就是给自己埋雷。
+        let evidenceKind: ResidualEvidenceKind
         let caveat: String?
         let size: UInt64?
     }
@@ -95,11 +98,11 @@ struct ResidualCollector {
 
     /// 同一个路径只保留第一次命中的证据；风险取更保守（更宽）的那一档，
     /// 于是"清单认为安全、容器认为谨慎"不会变成"界面显示安全"。
-    mutating func add(url: URL, category: ResidualCategory, reason: String, riskOverride: MMRisk? = nil) {
-        add(path: url.path, category: category, reason: reason, riskOverride: riskOverride)
+    mutating func add(url: URL, category: ResidualCategory, evidence: ResidualEvidence, riskOverride: MMRisk? = nil) {
+        add(path: url.path, category: category, evidence: evidence, riskOverride: riskOverride)
     }
 
-    mutating func add(path: String, category: ResidualCategory, reason: String, riskOverride: MMRisk? = nil) {
+    mutating func add(path: String, category: ResidualCategory, evidence: ResidualEvidence, riskOverride: MMRisk? = nil) {
         let id = Self.canonicalPath(path)
         let risk = riskOverride ?? resolvedRisk(for: path, category: category)
         guard candidates[id] == nil else {
@@ -107,6 +110,7 @@ struct ResidualCollector {
                 candidates[id] = Candidate(path: existing.path, displayPath: existing.displayPath,
                                            name: existing.name, category: existing.category,
                                            risk: risk, reason: existing.reason,
+                                           evidenceKind: existing.evidenceKind,
                                            caveat: existing.caveat, size: existing.size)
             }
             return
@@ -117,7 +121,8 @@ struct ResidualCollector {
             name: URL(fileURLWithPath: path).lastPathComponent,
             category: category,
             risk: risk,
-            reason: reason,
+            reason: evidence.text,
+            evidenceKind: evidence.kind,
             caveat: Self.steamGameLibraryCaveat(path: path, category: category),
             size: measure(path)
         )
@@ -155,39 +160,34 @@ struct ResidualCollector {
 
     // MARK: 归属复核
 
-    /// 包含匹配的证据串前缀。真源在 `ResidualNameMatcher`，这里只认前缀：
-    /// `descend` 会往后追加「（位于 X 内）」，A 档也在后面补了「（非包名对应）」。
-    static let containmentEvidence = "名称包含应用名"
-    static let ownerMarker = "上层目录归 "
-    static let selfClaimMarker = "这一项本身归 "
-
     /// 「包含匹配 + 别人有更硬的归属主张」这一族在这里定档：默认勾选由 `MMRisk.isDefaultSelected`
     /// 决定，而降级必须发生在建 item 之前（`ResidualItem.risk/caveat` 都是 `let`），
     /// 否则徽章、勾选集、合计三者会各说一套。复核只在出清单时做一次：
     /// 每个唯一路径只看一次，也不看子项。
     private func reviewed(_ candidate: Candidate) -> Candidate {
         guard candidate.risk == .safe,
-              candidate.reason.hasPrefix(Self.containmentEvidence),
+              candidate.evidenceKind == .nameContains,
               let ownership else { return candidate }
         // 两条线索按"离这一项更近"的顺序问，第一条成立就不问第二条：同一件事不用说两遍。
-        let claim: String
+        // 整句（含"可能不是 X 的数据"）进文案表，不在这里拼接：中英的语序不一样。
+        let note: String
         if let hard = ownership.hardClaim(on: candidate.path) {
-            claim = "\(Self.selfClaimMarker)\(hard.name)（\(hard.evidence)）。"
+            note = LF("ui.ownership.self_claim", hard.name, hard.evidence.text, ownership.appName)
         } else if let owner = ownership.foreignOwner(of: candidate.path) {
-            claim = "\(Self.ownerMarker)\(owner.name)（\(Self.display(owner.ancestor, home: home))）。"
+            note = LF("ui.ownership.ancestor_claim", owner.name,
+                      Self.display(owner.ancestor, home: home), ownership.appName)
         } else {
             return candidate
         }
         // 主人的名字进下方那句提醒，不进副标题：副标题只有一行且中间省略，
         // 路径已经占满它（判据 `docs/verification/p32b-steam/11a-narrow-window-truncation-before-fix.png`）。
-        let note = claim + "这一项只按「名称包含应用名」收进来，可能不是 \(ownership.appName) 的数据，"
-            + "已默认取消勾选，确认后再勾。"
         // 证据串不动：`Candidate` 的字段是 `let`，重建一条比就地改更直白，
         // 也钉住"复核只动风险档与提醒这两样"。
         // 已经挂着别句提醒的行（Steam 游戏库那一族）不覆盖，两句都留在行下方。
         return Candidate(path: candidate.path, displayPath: candidate.displayPath,
                          name: candidate.name, category: candidate.category,
                          risk: .caution, reason: candidate.reason,
+                         evidenceKind: candidate.evidenceKind,
                          caveat: candidate.caveat.map { note + " " + $0 } ?? note,
                          size: candidate.size)
     }

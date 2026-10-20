@@ -185,7 +185,18 @@ final class LocalizationTests: XCTestCase {
                          // 它整页还没接，把它的字面量纳进来只会让这条测试先响一轮无关的。
                          "Packages/MMUI/Sources/MMUI/TreemapView.swift",
                          "Sources/MacMaster/LaunchBehavior.swift",
-                         "Sources/MacMaster/MacMasterApp.swift"]
+                         "Sources/MacMaster/MacMasterApp.swift",
+                         // P58：卸载页整页接进两语，这一族的八个文件全部纳入键校验。
+                         // 证据那一路（`ResidualNameMatcher` / `ResidualScanner`）也在这儿：
+                         // 命中证据的文案是数据层吐的，键写错不会有编译错误，只会把键印到屏幕上。
+                         "Packages/MMUninstaller/Sources/MMUninstaller/AppFolderWatcher.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/LaunchServiceScanner.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/MMUninstaller.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/ResidualCollector.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/ResidualNameMatcher.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/ResidualScanner.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/SteamLauncherProbe.swift",
+                         "Packages/MMUninstaller/Sources/MMUninstaller/TrashWatcher.swift"]
         var checked = 0
         for relative in consumers {
             let text = try String(contentsOf: root.appendingPathComponent(relative), encoding: .utf8)

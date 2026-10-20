@@ -1,4 +1,5 @@
 import Foundation
+import MMCore
 
 // MARK: - 启动项（LaunchAgent / LaunchDaemon）
 
@@ -35,16 +36,16 @@ enum LaunchServiceScanner {
 
             for child in children where child.pathExtension.lowercased() == "plist" {
                 // 第一轮：文件名与包名对应。
-                if let reason = context.matcher.reason(for: child, bundleID: context.bundleID,
-                                                      allowContains: context.sensitivity.rank > 0) {
-                    record(child, reason: "启动项文件名：\(reason)",
+                if let evidence = context.matcher.evidence(for: child, bundleID: context.bundleID,
+                                                           allowContains: context.sensitivity.rank > 0) {
+                    record(child, evidence: launchFileNameEvidence(evidence),
                            resolvedAppPath: resolvedAppPath, collector: &collector)
                     continue
                 }
                 // 第二轮：plist 里的 Program / ProgramArguments 指向这个 app。
-                if let reason = executableReason(for: child, resolvedAppPath: resolvedAppPath,
-                                                 bundleID: context.bundleID) {
-                    record(child, reason: reason, resolvedAppPath: resolvedAppPath, collector: &collector)
+                if let evidence = executableEvidence(for: child, resolvedAppPath: resolvedAppPath,
+                                                     bundleID: context.bundleID) {
+                    record(child, evidence: evidence, resolvedAppPath: resolvedAppPath, collector: &collector)
                 }
             }
         }
@@ -63,23 +64,30 @@ enum LaunchServiceScanner {
         ]
     }
 
+    /// 文件名那一轮的证据前面要写清"是文件名对上的"，kind 换成启动项自己的：
+    /// 归属复核只认 `.nameContains`，而启动项本来就不在它的射程里（类别默认谨慎、不默认勾选）。
+    private static func launchFileNameEvidence(_ inner: ResidualEvidence) -> ResidualEvidence {
+        ResidualEvidence(text: LF(ResidualEvidenceKind.launchFileName.localizationKey, inner.text),
+                         kind: .launchFileName)
+    }
+
     private static func record(_ url: URL,
-                               reason: String,
+                               evidence: ResidualEvidence,
                                resolvedAppPath: String,
                                collector: inout ResidualCollector) {
-        var note = reason
+        var note = evidence.text
         // 路径比较必须先解析符号链接，否则 /var 与 /private/var 会静默不等。
-        if url.path.contains(resolvedAppPath) { note += "（指向 app 本体路径）" }
+        if url.path.contains(resolvedAppPath) { note += L("ui.evidence.launch_targets_body") }
         if ResidualCollector.isDeletableByCurrentUser(url.path) == false {
-            note += " · root 属主或不可写，仅供查看"
+            note += L("ui.evidence.launch_root_only")
         }
-        collector.add(url: url, category: .launchService, reason: note)
+        collector.add(url: url, category: .launchService, evidence: ResidualEvidence(text: note, kind: evidence.kind))
     }
 
     /// 读 plist 内容判断它是否为本 app 的启动项。用 PropertyListSerialization，不做字符串硬解析。
-    private static func executableReason(for url: URL,
-                                         resolvedAppPath: String,
-                                         bundleID: String) -> String? {
+    private static func executableEvidence(for url: URL,
+                                           resolvedAppPath: String,
+                                           bundleID: String) -> ResidualEvidence? {
         guard let data = FileManager.default.contents(atPath: url.path),
               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
         else { return nil }
@@ -89,7 +97,7 @@ enum LaunchServiceScanner {
             let lowered = label.lowercased()
             let owner = bundleID.lowercased()
             if lowered == owner || lowered.hasPrefix(owner + ".") || owner.hasPrefix(lowered + ".") {
-                return "启动项 Label 对应包名 \(label)"
+                return ResidualEvidence(.launchLabel, label)
             }
         }
 
@@ -106,7 +114,7 @@ enum LaunchServiceScanner {
             let resolved = ResidualCollector.physicalPath(candidate)
             guard resolved.isEmpty == false else { continue }
             if resolved == resolvedAppPath || resolved.hasPrefix(resolvedAppPath + "/") {
-                return "启动项指向 app 内可执行文件 \(candidate)"
+                return ResidualEvidence(.launchExecutable, candidate)
             }
         }
         return nil

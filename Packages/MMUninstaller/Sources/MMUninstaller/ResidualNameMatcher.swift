@@ -1,4 +1,80 @@
 import Foundation
+import MMCore
+
+// MARK: - 命中证据
+
+/// 一条命中证据的两个面：`kind` 给判定用，`text` 给用户看。
+///
+/// 分成两样是 P58 接双语时必须的：`ResidualOwnershipReview` 的降级判据原本是
+/// `reason.hasPrefix("名称包含应用名")`——拿展示字符串的前缀当判据。文案进表之后
+/// 英文档拿到的是 "Name contains the app name"，那句中文前缀再也不会匹配，
+/// 于是降级静默失效、跨应用收进来的弱匹配项重新默认勾选，而画面上一个字都没变。
+/// 判据从此只认 `kind`。
+public enum ResidualEvidenceKind: String, Sendable {
+    case plistOwner
+    case identifierExact
+    case identifierPrefix
+    case nameExact
+    case nameContains
+    case identifierSuffix
+    case identifierSuffixDerived
+    case containerMetadata
+    case containerName
+    case containerCache
+    case containerWebKit
+    case launchFileName
+    case launchLabel
+    case launchExecutable
+
+    var localizationKey: String {
+        switch self {
+        case .plistOwner: "ui.evidence.plist_owner"
+        case .identifierExact: "ui.evidence.identifier_exact"
+        case .identifierPrefix: "ui.evidence.identifier_prefix"
+        case .nameExact: "ui.evidence.name_exact"
+        case .nameContains: "ui.evidence.name_contains"
+        case .identifierSuffix: "ui.evidence.identifier_suffix"
+        case .identifierSuffixDerived: "ui.evidence.identifier_suffix_derived"
+        case .containerMetadata: "ui.evidence.container_metadata"
+        case .containerName: "ui.evidence.container_name"
+        case .containerCache: "ui.evidence.container_cache"
+        case .containerWebKit: "ui.evidence.container_webkit"
+        case .launchFileName: "ui.evidence.launch_file_name"
+        case .launchLabel: "ui.evidence.launch_label"
+        case .launchExecutable: "ui.evidence.launch_executable"
+        }
+    }
+
+    func text(_ arguments: [String]) -> String {
+        // 必须走带 `arguments:` 标签的那一条：位置形式命中的是变长重载，整个数组被当成**一个** `%@`，
+        // 带参的那几句会印成 NSArray 字面量、第二个占位符直接是 `(null)`（判据见 `testEvidenceTextKeepsTheChineseWording`）。
+        String(format: L(localizationKey), arguments: arguments)
+    }
+}
+
+/// 证据本体：`kind` 是不可翻的判定，`text` 是随语言的那一句。
+public struct ResidualEvidence: Sendable {
+    public let kind: ResidualEvidenceKind
+    public let text: String
+
+    init(_ kind: ResidualEvidenceKind, _ arguments: String...) {
+        self.kind = kind
+        self.text = kind.text(arguments)
+    }
+
+    /// 只由「名称包含应用名」这种弱匹配认领——归属复核降级的整个判据。
+    var isContainmentOnly: Bool { kind == .nameContains }
+
+    /// 下探厂商目录时给证据补一句"它是在哪一层里找到的"。`kind` 原样带走。
+    func found(inside directoryName: String) -> ResidualEvidence {
+        ResidualEvidence(text: LF("ui.evidence.inside", text, directoryName), kind: kind)
+    }
+
+    init(text: String, kind: ResidualEvidenceKind) {
+        self.text = text
+        self.kind = kind
+    }
+}
 
 // MARK: - 归一化名称匹配
 
@@ -40,15 +116,16 @@ public struct ResidualNameMatcher: Sendable {
 
     /// 严格档判定：包名对应或名称完全对应。
     public func matches(fileURL url: URL, bundleID: String) -> Bool {
-        reason(for: url, bundleID: bundleID, allowContains: false) != nil
+        evidence(for: url, bundleID: bundleID, allowContains: false) != nil
     }
 
-    /// 返回命中证据（nil 表示不命中）。证据要印在行上，所以是中文短句而不是枚举名。
-    public func reason(for url: URL, bundleID: String, allowContains: Bool) -> String? {
+    /// 返回命中证据（nil 表示不命中）。证据要印在行上，所以 `text` 是短句而不是枚举名；
+    /// 判定方（归属复核）读 `kind`，不读那句话——理由见 `ResidualEvidence`。
+    public func evidence(for url: URL, bundleID: String, allowContains: Bool) -> ResidualEvidence? {
         if url.pathExtension.lowercased() == "plist",
            let owner = Self.ownerIdentifier(in: url, matcher: self),
            matchesIdentifier(owner) {
-            return "偏好文件，内容标识 \(owner)"
+            return ResidualEvidence(.plistOwner, owner)
         }
 
         // `.app` / `.plist` 这类真扩展名要剥掉再比；但 `com.example.MyApp` 的最后一段
@@ -58,14 +135,14 @@ public struct ResidualNameMatcher: Sendable {
         let last = url.lastPathComponent
         let stripped = url.deletingPathExtension().lastPathComponent
         for form in stripped == last ? [last] : [stripped, last] {
-            if let reason = reason(forFileName: form, allowContains: allowContains) {
-                return reason
+            if let evidence = evidence(forFileName: form, allowContains: allowContains) {
+                return evidence
             }
         }
         return nil
     }
 
-    private func reason(forFileName fileName: String, allowContains: Bool) -> String? {
+    private func evidence(forFileName fileName: String, allowContains: Bool) -> ResidualEvidence? {
         let normalizedFile = Self.normalize(fileName)
         guard normalizedFile.isEmpty == false else { return nil }
         let compressedFile = Self.compress(normalizedFile)
@@ -74,20 +151,20 @@ public struct ResidualNameMatcher: Sendable {
         if identifier.isEmpty == false {
             // 标识比较保留分隔符边界：`com.example.MyAppSuite` 不能因为压缩后
             // 以 `comexamplemyapp` 开头就被当成本包的派生标识。
-            if normalizedFile == identifier { return "包名完全对应" }
+            if normalizedFile == identifier { return ResidualEvidence(.identifierExact) }
             // com.example.MyApp.plugin / -Helper 都是这个 bundle 的派生标识。
-            if normalizedFile.hasPrefix(identifier + "-") { return "包名前缀匹配" }
-            if let suffix = identifierSuffixReason(for: normalizedFile) { return suffix }
+            if normalizedFile.hasPrefix(identifier + "-") { return ResidualEvidence(.identifierPrefix) }
+            if let suffix = identifierSuffixEvidence(for: normalizedFile) { return suffix }
         }
 
         for candidate in nameCandidates {
-            if candidate.compressed == compressedFile { return "名称与包名对应" }
-            if candidate.segments == fileSegments, candidate.segments.isEmpty == false { return "名称与包名对应" }
+            if candidate.compressed == compressedFile { return ResidualEvidence(.nameExact) }
+            if candidate.segments == fileSegments, candidate.segments.isEmpty == false { return ResidualEvidence(.nameExact) }
             // 包含匹配只在 enhanced/deep 开放，并且要求应用名本身不太短，
             // 否则 "App" 这种名字会把半个 Library 收进来。
             if allowContains, candidate.compressed.count >= 4,
                compressedFile.contains(candidate.compressed) {
-                return "名称包含应用名（非包名对应）"
+                return ResidualEvidence(.nameContains)
             }
         }
         return nil
@@ -103,13 +180,13 @@ public struct ResidualNameMatcher: Sendable {
 
     /// 启动项与插件常省略首段域（`com.example.MyApp.xpc` → `example.my.app.xpc`），
     /// 用包名末段再对一次；只接受至少两段构成的末段，避免单个词到处命中。
-    private func identifierSuffixReason(for normalizedFile: String) -> String? {
+    private func identifierSuffixEvidence(for normalizedFile: String) -> ResidualEvidence? {
         guard identifierSegments.count >= 3 else { return nil }
         for start in 1..<(identifierSegments.count - 1) {
             let suffix = identifierSegments[start...].joined(separator: "-")
             guard suffix.count >= 4 else { continue }
-            if normalizedFile == suffix { return "包名末段对应" }
-            if normalizedFile.hasPrefix(suffix + "-") { return "包名末段的派生标识" }
+            if normalizedFile == suffix { return ResidualEvidence(.identifierSuffix) }
+            if normalizedFile.hasPrefix(suffix + "-") { return ResidualEvidence(.identifierSuffixDerived) }
         }
         return nil
     }

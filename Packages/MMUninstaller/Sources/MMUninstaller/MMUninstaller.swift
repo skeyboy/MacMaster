@@ -6,7 +6,7 @@ import MMUI
 
 public struct UninstallerModule: ModuleRegistrable {
     public var moduleID: String { "uninstaller" }
-    public var moduleName: String { "应用卸载" }
+    public var moduleName: String { L("module.uninstaller") }
     public var moduleIcon: String { "xmark.circle" }
     public var modulePriority: Int { 2 }
 
@@ -32,7 +32,7 @@ public struct UninstallerView: View {
     /// 「已装应用」问"这个应用的文件在哪"，「卸载后遗症」问"这些文件是谁的"。
     private enum Pane: String, CaseIterable, MMHookKeyed {
         case apps, orphans
-        var title: String { self == .apps ? "已装应用" : "卸载后遗症" }
+        var title: String { self == .apps ? L("ui.uninstall.pane_apps") : L("ui.uninstall.pane_orphans") }
         var hookKey: String { rawValue }
     }
 
@@ -181,8 +181,8 @@ public struct UninstallerView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            MMPageHeader("应用卸载", subtitle: headerSubtitle) {
-                Picker("视图", selection: $pane) {
+            MMPageHeader(L("module.uninstaller"), subtitle: headerSubtitle) {
+                Picker(L("ui.uninstall.view"), selection: $pane) {
                     ForEach(Pane.allCases, id: \.self) { level in
                         Text(level.title).tag(level)
                     }
@@ -190,9 +190,9 @@ public struct UninstallerView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                .help("已装应用：选一个应用清理它的残留。卸载后遗症：找已经没有主人的残留。")
+                .help(L("ui.uninstall.pane_help"))
 
-                Picker("敏感度", selection: $model.sensitivity) {
+                Picker(L("ui.uninstall.sensitivity"), selection: $model.sensitivity) {
                     ForEach(ResidualSensitivity.allCases, id: \.self) { level in
                         Text(level.label).tag(level)
                     }
@@ -200,12 +200,12 @@ public struct UninstallerView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                .help("残留扫描的匹配宽度：\(model.sensitivity.note)")
+                .help(LF("ui.uninstall.sensitivity_help", model.sensitivity.note))
 
                 Button {
                     Task { await model.loadApps() }
                 } label: {
-                    Label("重新载入", systemImage: "arrow.clockwise")
+                    Label(L("ui.action.reload"), systemImage: "arrow.clockwise")
                 }
                 .disabled(model.isScanningApps)
             }
@@ -361,8 +361,9 @@ public struct UninstallerView: View {
         .overlay(alignment: .bottom) {
             if let result = model.lastResult, result.successCount > 0, toastSeconds > 0 {
                 MMUndoToast(
-                    message: (model.lastOperationTrashedApps ? "已卸载 " : "已移入废纸篓 ")
-                        + "\(result.successCount) 项",
+                    message: LF(model.lastOperationTrashedApps ? "ui.uninstall.toast_uninstalled"
+                                                               : "ui.uninstall.toast_trashed",
+                                MMFormat.count(result.successCount)),
                     detail: MMFormat.bytes(result.totalSize),
                     secondsRemaining: toastSeconds,
                     onUndo: { Task { await model.undoLast() } },
@@ -376,18 +377,20 @@ public struct UninstallerView: View {
     }
 
     private var headerSubtitle: String {
-        var line = "\(model.apps.count) 个应用"
+        var line = LF("ui.uninstall.app_count", MMFormat.count(model.apps.count))
         if model.isMeasuring || model.measuredCount < model.apps.count {
-            line += " · 已测 \(model.measuredCount) · \(model.apps.count - model.measuredCount) 个测量中"
+            line += LF("ui.uninstall.subtitle_measuring",
+                       MMFormat.count(model.measuredCount),
+                       MMFormat.count(model.apps.count - model.measuredCount))
         } else if model.apps.isEmpty == false {
-            line += " · 合计 \(MMFormat.bytes(model.totalSize)) · 大小已实测"
+            line += LF("ui.uninstall.subtitle_measured", MMFormat.bytes(model.totalSize))
         }
         return line
     }
 
     private var failureSummary: String? {
         let freed = model.lastResult?.totalSize ?? 0
-        return freed > 0 ? "已回收 \(MMFormat.bytes(freed))" : nil
+        return freed > 0 ? LF("ui.uninstall.recovered", MMFormat.bytes(freed)) : nil
     }
 
     // MARK: 左侧应用列表
@@ -396,7 +399,7 @@ public struct UninstallerView: View {
         VStack(spacing: 0) {
             HStack(spacing: MMGap.sm) {
                 Image(systemName: "magnifyingglass").foregroundStyle(MMColor.secondaryLabel)
-                TextField("搜索应用…", text: $searchText)
+                TextField(L("ui.uninstall.search_placeholder"), text: $searchText)
                     .textFieldStyle(.plain)
             }
             .padding(.horizontal, MMGap.md)
@@ -408,13 +411,15 @@ public struct UninstallerView: View {
             if model.isScanningApps {
                 VStack(spacing: MMGap.md) {
                     ProgressView().controlSize(.small)
-                    Text("扫描应用…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                    Text(L("ui.uninstall.scanning_apps")).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filteredApps.isEmpty {
                 MMEmptyState(systemImage: "app.dashed",
-                             title: searchText.isEmpty ? "没有应用" : "没有匹配的应用",
-                             detail: searchText.isEmpty ? "重新载入以刷新应用列表。" : "换一个名称或包名再试试。")
+                             title: searchText.isEmpty ? L("ui.uninstall.empty_title")
+                                                       : L("ui.uninstall.empty_filtered_title"),
+                             detail: searchText.isEmpty ? L("ui.uninstall.empty_detail")
+                                                        : L("ui.uninstall.empty_filtered_detail"))
             } else {
                 List(selection: Binding(
                     get: { model.selectedAppID },
@@ -429,7 +434,7 @@ public struct UninstallerView: View {
                                 Button {
                                     MMReveal.open(app.path)
                                 } label: {
-                                    Label("打开所在文件夹", systemImage: "folder")
+                                    Label(L("ui.action.reveal_folder"), systemImage: "folder")
                                 }
                             }
                     }
@@ -445,7 +450,7 @@ public struct UninstallerView: View {
                 // 不自动刷新是有意的：这张表是用户正在看的，悄悄换行会把他选中的那个换掉。
                 // 但"没刷新"必须说出来，否则旧快照看着就像实时视图。
                 if isListingStale {
-                    Text("· 清单是载入时的快照，未自动刷新")
+                    Text(L("ui.uninstall.listing_stale"))
                         .font(.caption)
                         .foregroundStyle(MMColor.caution)
                         .lineLimit(1)
@@ -463,8 +468,9 @@ public struct UninstallerView: View {
     private var listFooter: String {
         let measured = model.measuredCount
         let pending = model.apps.count - measured
-        var line = "\(model.apps.count) 个应用 · 已测 \(measured)"
-        if pending > 0 { line += " · \(pending) 个测量中" }
+        var line = LF("ui.uninstall.list_footer",
+                      MMFormat.count(model.apps.count), MMFormat.count(measured))
+        if pending > 0 { line += LF("ui.uninstall.pending_suffix", MMFormat.count(pending)) }
         return line
     }
 
@@ -493,8 +499,8 @@ public struct UninstallerView: View {
         } else {
             MMEmptyState(
                 systemImage: "app.dashed",
-                title: "未选择应用",
-                detail: "从左侧列表选择一个应用，查看它的信息与将被一并移除的残留文件。"
+                title: L("ui.uninstall.no_app_selected"),
+                detail: L("ui.uninstall.no_app_selected_detail")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(MMColor.contentBackground)
@@ -505,15 +511,17 @@ public struct UninstallerView: View {
 
     private var actionBar: some View {
         MMActionBar(
-            summary: "已选 \(model.selectedResidualCount) 项残留 · \(MMFormat.bytes(model.selectedResidualSize))",
-            note: "未勾选项不会被修改",
+            summary: LF("ui.uninstall.selected_residuals",
+                        MMFormat.count(model.selectedResidualCount),
+                        MMFormat.bytes(model.selectedResidualSize)),
+            note: L("ui.uninstall.unselected_untouched"),
             trailing: {
                 // 本体只读时这两个按钮一起收掉，和详情面板同一口径：只读档说的是"不提供删除入口"，
                 // 留两个点了没反应的按钮就是死控件（`requestConfirmation` 那道 guard 只是兜底，
                 // 不是给用户按的）。`selectedApp == nil` 仍然走 `.disabled`，那一档按钮要留着，
                 // 否则选中一个应用之前这一格是空的。
                 if model.selectedApp?.bodyDeletable != false {
-                    Button("仅卸载应用") {
+                    Button(L("ui.uninstall.app_only_button")) {
                         requestConfirmation(.appOnly)
                     }
                     .disabled(model.selectedApp == nil)
@@ -521,7 +529,7 @@ public struct UninstallerView: View {
                     Button(role: .destructive) {
                         requestConfirmation(.withResiduals)
                     } label: {
-                        Label("移到废纸篓", systemImage: "trash")
+                        Label(L("ui.action.move_to_trash"), systemImage: "trash")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(MMColor.destructive)
@@ -568,7 +576,7 @@ public struct UninstallerView: View {
             if model.isScanningOrphans {
                 VStack(spacing: MMGap.md) {
                     ProgressView().controlSize(.small)
-                    Text("正在反查残留归属…")
+                    Text(L("ui.orphan.scanning"))
                         .font(.caption)
                         .foregroundStyle(MMColor.secondaryLabel)
                 }
@@ -576,10 +584,10 @@ public struct UninstallerView: View {
             } else if model.orphans.isEmpty {
                 MMEmptyState(
                     systemImage: "questionmark.folder",
-                    title: model.hasScannedOrphans ? "没有发现没有主人的残留" : "还没有反查过",
+                    title: model.hasScannedOrphans ? L("ui.orphan.empty_title") : L("ui.orphan.none_title"),
                     detail: model.hasScannedOrphans
-                        ? "残留目录里的每一项都能对应到本机已安装的应用。"
-                        : "扫一遍 ~/Library 的残留目录，列出对不上任何已装应用的条目。判断口径偏保守：宁可漏报，不可错报。"
+                        ? L("ui.orphan.empty_detail")
+                        : L("ui.orphan.none_detail")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -614,30 +622,29 @@ public struct UninstallerView: View {
 
     /// 没扫过就不能写"0 项"：那读起来等于"这里干净"，而真相是还没看过。
     private var orphanSummary: String {
-        if model.isScanningOrphans { return "正在反查残留归属…" }
-        guard model.hasScannedOrphans else { return "尚未反查 · 点右侧「反查残留」扫一遍 ~/Library" }
-        return "可疑残留 \(model.orphans.count) 项 · 已选 \(model.selectedOrphanIDs.count) 项 · "
-            + MMFormat.bytes(model.selectedOrphanSize)
+        if model.isScanningOrphans { return L("ui.orphan.scanning") }
+        guard model.hasScannedOrphans else { return L("ui.orphan.none_summary") }
+        return LF("ui.orphan.summary", MMFormat.count(model.orphans.count),
+                  MMFormat.count(model.selectedOrphanIDs.count), MMFormat.bytes(model.selectedOrphanSize))
     }
 
     private var orphanActionBar: some View {
         MMActionBar(
             summary: orphanSummary,
-            note: model.hasScannedOrphans
-                ? "反向判断只认反向域名形态的归属线索，全部默认不勾选"
-                : "先扫一次，结果永远默认不勾选",
+            note: model.hasScannedOrphans ? L("ui.orphan.note_scanned") : L("ui.orphan.note_unscanned"),
             trailing: {
                 Button {
                     Task { await model.scanOrphans() }
                 } label: {
-                    Label(model.hasScannedOrphans ? "重新反查" : "反查残留", systemImage: "arrow.clockwise")
+                    Label(model.hasScannedOrphans ? L("ui.orphan.rescan") : L("ui.orphan.scan"),
+                          systemImage: "arrow.clockwise")
                 }
                 .disabled(model.isScanningOrphans)
 
                 Button(role: .destructive) {
                     showOrphanConfirm = true
                 } label: {
-                    Label("移到废纸篓", systemImage: "trash")
+                    Label(L("ui.action.move_to_trash"), systemImage: "trash")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
@@ -649,10 +656,9 @@ public struct UninstallerView: View {
     private var orphanConfirmSheet: some View {
         let picked = model.selectedOrphans
         return VStack(alignment: .leading, spacing: MMGap.md) {
-            Text("把 \(picked.count) 项可疑残留移入废纸篓？")
+            Text(LF("ui.orphan.confirm_title", MMFormat.count(picked.count)))
                 .font(.title3.weight(.semibold))
-            Text("这些条目在本机已安装的应用里找不到对应包名，但「找不到」不等于「没在用」——"
-                 + "装在别的卷、或包名与磁盘名不同形的应用也会被判成可疑。请逐条核对路径。")
+            Text(L("ui.orphan.confirm_body"))
                 .font(.callout)
                 .foregroundStyle(MMColor.secondaryLabel)
 
@@ -682,9 +688,9 @@ public struct UninstallerView: View {
 
             HStack {
                 Spacer()
-                Button("取消") { showOrphanConfirm = false }
+                Button(L("ui.action.cancel")) { showOrphanConfirm = false }
                     .keyboardShortcut(.cancelAction)
-                Button("移入废纸篓") {
+                Button(L("ui.action.put_in_trash")) {
                     showOrphanConfirm = false
                     Task { await model.trashSelectedOrphans() }
                 }
@@ -712,7 +718,7 @@ public struct UninstallerView: View {
 
     private var confirmSheet: some View {
         VStack(alignment: .leading, spacing: MMGap.md) {
-            Text("确认卸载")
+            Text(L("ui.uninstall.confirm_title"))
                 .font(.title3.weight(.semibold))
 
             if let app = model.selectedApp {
@@ -724,14 +730,15 @@ public struct UninstallerView: View {
                     : [app.path]
                 let residualSize = includeResiduals ? model.selectedResidualSize : 0
                 VStack(alignment: .leading, spacing: MMGap.xs) {
-                    MMKeyRow("应用", app.name)
-                    MMKeyRow("来源", app.sourceValue)
-                    MMKeyRow("包名", app.bundleID, monospaced: true)
-                    MMKeyRow("本体", MMFormat.bytes(app.size))
-                    MMKeyRow("残留", includeResiduals
-                        ? "\(paths.count - 1) 项 · \(MMFormat.bytes(residualSize))"
-                        : "保留，不修改")
-                    MMKeyRow("合计", MMFormat.bytes(UninstallSelection.confirmationSize(
+                    MMKeyRow(L("ui.field.app"), app.name)
+                    MMKeyRow(L("ui.field.source"), app.sourceValue)
+                    MMKeyRow(L("ui.field.bundle_id"), app.bundleID, monospaced: true)
+                    MMKeyRow(L("ui.field.body"), MMFormat.bytes(app.size))
+                    MMKeyRow(L("ui.field.residuals"), includeResiduals
+                        ? LF("ui.uninstall.confirm_residual_row",
+                             MMFormat.count(paths.count - 1), MMFormat.bytes(residualSize))
+                        : L("ui.uninstall.confirm_kept"))
+                    MMKeyRow(L("ui.field.total"), MMFormat.bytes(UninstallSelection.confirmationSize(
                         appSize: app.size, residualSize: residualSize, includeResiduals: includeResiduals)))
                 }
 
@@ -760,16 +767,18 @@ public struct UninstallerView: View {
                 .frame(height: min(CGFloat(paths.count) * 24, 168))
 
                 Text(includeResiduals
-                     ? "列出的路径将移入废纸篓；未勾选与只读项不修改，谨慎项仅在主动勾选时移除。可在「最近操作」中撤回。"
-                     : "只移动应用本体，残留文件不会被修改。可在「最近操作」中撤回。")
+                     ? L("ui.uninstall.confirm_note_with_residuals")
+                     : L("ui.uninstall.confirm_note_app_only"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }
 
             HStack(spacing: MMGap.sm) {
                 Spacer()
-                Button("取消") { showConfirm = false }
-                Button(confirmationMode == .appOnly ? "仅卸载应用" : "卸载", role: .destructive) {
+                Button(L("ui.action.cancel")) { showConfirm = false }
+                Button(confirmationMode == .appOnly ? L("ui.uninstall.app_only_button")
+                                                    : L("ui.uninstall.uninstall_button"),
+                       role: .destructive) {
                     showConfirm = false
                     if confirmationMode == .appOnly {
                         Task { await model.uninstallAppOnly() }
@@ -947,11 +956,11 @@ public struct UninstallerView: View {
             appsSkippedNote
             if case .unreadable(let reason, let needsFullDiskAccess) = appWatcher.status {
                 MMPermissionBanner(
-                    title: needsFullDiskAccess ? "读不到应用目录" : "应用目录现在读不了",
-                    detail: (needsFullDiskAccess
-                        ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页才会重试。"
-                        : reason + " 这和权限无关，所以这里不放授权按钮；重新进入这一页会重试。")
-                    + " 在恢复监听之前，这里不会给出任何残留判定。",
+                    title: needsFullDiskAccess ? L("ui.watch.banner_unreadable") : L("ui.watch.banner_busy"),
+                    detail: reason + " " + (needsFullDiskAccess
+                        ? L("ui.watch.banner_clause_fdsa")
+                        : L("ui.watch.banner_clause_other"))
+                    + " " + L("ui.watch.banner_tail"),
                     settingsPane: needsFullDiskAccess ? .fullDiskAccess : nil
                 )
             }
@@ -962,13 +971,13 @@ public struct UninstallerView: View {
         VStack(alignment: .leading, spacing: MMGap.sm) {
             HStack(spacing: MMGap.sm) {
                 Image(systemName: "xmark.app").foregroundStyle(MMColor.accent)
-                Text("刚从应用目录消失：\(departure.name)")
+                Text(LF("ui.watch.departure_title", departure.name))
                     .font(.callout.weight(.semibold))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                MMBadge("本体已不在应用目录", tint: MMColor.informational, systemImage: "xmark.app")
+                MMBadge(L("ui.watch.departure_badge"), tint: MMColor.informational, systemImage: "xmark.app")
                 Spacer(minLength: MMGap.sm)
-                Button("忽略") { dismissDeparture(departure) }
+                Button(L("ui.action.dismiss")) { dismissDeparture(departure) }
                     .controlSize(.small)
                     .buttonStyle(.borderless)
             }
@@ -980,13 +989,13 @@ public struct UninstallerView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text("·").foregroundStyle(MMColor.tertiaryLabel)
-                Text(departure.bundleID.isEmpty ? "无包标识" : departure.bundleID)
+                Text(departure.bundleID.isEmpty ? L("ui.watch.no_bundle_id") : departure.bundleID)
                     .font(.caption.monospaced())
                     .foregroundStyle(MMColor.secondaryLabel)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text("·").foregroundStyle(MMColor.tertiaryLabel)
-                Text("最后已知位置")
+                Text(L("ui.watch.last_known_location"))
                     .font(.caption)
                     .foregroundStyle(MMColor.tertiaryLabel)
                     .fixedSize()
@@ -995,25 +1004,24 @@ public struct UninstallerView: View {
             if isRunningDepartureScan {
                 HStack(spacing: MMGap.sm) {
                     ProgressView().controlSize(.small)
-                    Text("正在刷新归属清单…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                    Text(L("ui.watch.relisting")).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 }
             } else {
-                Text("我们只看见它离开了应用目录：不知道是谁删的，也不知道它去了哪里。"
-                     + "左侧清单里它还挂着，所以扫描会先重新载入清单——"
-                     + "否则它会把自己散在 ~/Library 的文件当成「有主人」漏掉。")
+                Text(L("ui.watch.departure_explain"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             }
 
             HStack(spacing: MMGap.sm) {
-                Text(isRunningDepartureScan ? "扫描中 · 这一步不提前给数字" : "未扫描 · 扫描会先重新载入清单")
+                Text(isRunningDepartureScan ? L("ui.watch.departure_scanning")
+                                            : L("ui.watch.departure_unscanned"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                 Spacer(minLength: MMGap.sm)
                 Button {
                     reloadListingOnly()
                 } label: {
-                    Label("只重新载入清单", systemImage: "arrow.clockwise")
+                    Label(L("ui.watch.reload_listing_only"), systemImage: "arrow.clockwise")
                 }
                 .controlSize(.small)
                 .disabled(isRunningDepartureScan || model.isScanningApps)
@@ -1021,7 +1029,7 @@ public struct UninstallerView: View {
                 Button {
                     reloadListingAndScan()
                 } label: {
-                    Label("重新载入并扫描残留", systemImage: "list.bullet.below.rectangle")
+                    Label(L("ui.watch.reload_and_scan"), systemImage: "list.bullet.below.rectangle")
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
@@ -1042,10 +1050,10 @@ public struct UninstallerView: View {
         return VStack(alignment: .leading, spacing: MMGap.xs) {
             HStack(spacing: MMGap.sm) {
                 Image(systemName: "plus.circle").foregroundStyle(MMColor.informational)
-                Text("应用目录里有 \(appearances.count) 个新条目")
+                Text(LF("ui.watch.arrival_title", MMFormat.count(appearances.count)))
                     .font(.callout.weight(.semibold))
                     .lineLimit(1)
-                MMBadge("当前清单是旧快照", tint: MMColor.informational, systemImage: "arrow.clockwise")
+                MMBadge(L("ui.watch.stale_badge"), tint: MMColor.informational, systemImage: "arrow.clockwise")
                 Spacer(minLength: MMGap.sm)
                 Button {
                     Task {
@@ -1053,12 +1061,12 @@ public struct UninstallerView: View {
                         appWatcher.dismissAppearances()
                     }
                 } label: {
-                    Label("重新载入", systemImage: "arrow.clockwise")
+                    Label(L("ui.action.reload"), systemImage: "arrow.clockwise")
                 }
                 .controlSize(.small)
                 .disabled(model.isScanningApps || isRunningDepartureScan)
 
-                Button("忽略") { appWatcher.dismissAppearances() }
+                Button(L("ui.action.dismiss")) { appWatcher.dismissAppearances() }
                     .controlSize(.small)
                     .buttonStyle(.borderless)
             }
@@ -1069,8 +1077,7 @@ public struct UninstallerView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            Text("只列出目录名；不会自动改动左侧清单。装在别处的应用我们看不见——"
-                 + "监听范围与列举范围一致，只覆盖应用目录第一层的 .app。")
+            Text(L("ui.watch.arrival_note"))
                 .font(.caption)
                 .foregroundStyle(MMColor.tertiaryLabel)
         }
@@ -1092,10 +1099,10 @@ public struct UninstallerView: View {
             HStack(alignment: .top, spacing: MMGap.sm) {
                 Image(systemName: "info.circle").foregroundStyle(MMColor.informational).padding(.top, 1)
                 VStack(alignment: .leading, spacing: MMGap.xxs) {
-                    Text("\(ResidualCollector.display(first.key, home: NSHomeDirectory())) 不在这台机器上")
+                    Text(LF("ui.watch.skip_title",
+                            ResidualCollector.display(first.key, home: NSHomeDirectory())))
                         .font(.callout.weight(.semibold))
-                    Text("不是故障：这台机器没有这个应用目录，所以监听只覆盖已经打开的那些。"
-                         + "目录不存在与读不到是两种原因，这里不混为一谈，也不放授权按钮。")
+                    Text(L("ui.watch.skip_note"))
                         .font(.caption)
                         .foregroundStyle(MMColor.secondaryLabel)
                 }
@@ -1120,10 +1127,10 @@ public struct UninstallerView: View {
             trashNoticeCard
         } else if case .unreadable(let reason, let needsFullDiskAccess) = trashWatcher.status {
             MMPermissionBanner(
-                title: needsFullDiskAccess ? "读不到废纸篓" : "废纸篓现在读不了",
-                detail: needsFullDiskAccess
-                    ? reason + " 在系统设置里授予「完全磁盘访问」后，重新进入这一页或重启应用才会生效。"
-                    : reason + " 这和权限无关，所以这里不放授权按钮。",
+                title: needsFullDiskAccess ? L("ui.trash.banner_unreadable") : L("ui.trash.banner_busy"),
+                detail: reason + " " + (needsFullDiskAccess
+                    ? L("ui.trash.banner_clause_fdsa")
+                    : L("ui.trash.banner_clause_other")),
                 settingsPane: needsFullDiskAccess ? .fullDiskAccess : nil
             )
         }
@@ -1148,7 +1155,7 @@ public struct UninstallerView: View {
                 Image(systemName: "tray.and.arrow.down.fill").foregroundStyle(MMColor.accent)
 
                 if arrivals.count > 1 {
-                    Picker("废纸篓中的应用", selection: trashArrivalSelection) {
+                    Picker(L("ui.trash.arrival_picker"), selection: trashArrivalSelection) {
                         ForEach(arrivals) { arrival in
                             Text(arrival.name).tag(Optional(arrival.id))
                         }
@@ -1156,15 +1163,18 @@ public struct UninstallerView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                     .fixedSize()
-                    Text("有 \(arrivals.count) 个应用刚进废纸篓").font(.callout.weight(.semibold))
+                    Text(LF("ui.trash.multiple_arrivals", MMFormat.count(arrivals.count)))
+                        .font(.callout.weight(.semibold))
                 } else if selfEcho {
                     // 第二人称才是实话：用户没拖，是我们自己的按钮把它移走的。
-                    Text("你刚卸载了 \(subject?.name ?? "")，残留还在").font(.callout.weight(.semibold))
+                    Text(LF("ui.trash.self_echo_title", subject?.name ?? ""))
+                        .font(.callout.weight(.semibold))
                 } else {
-                    Text("刚拖进废纸篓：\(subject?.name ?? "")").font(.callout.weight(.semibold))
+                    Text(LF("ui.trash.dragged_in", subject?.name ?? ""))
+                        .font(.callout.weight(.semibold))
                 }
 
-                MMBadge(selfEcho ? "由 MacMaster 移入" : "本体已在废纸篓",
+                MMBadge(selfEcho ? L("ui.trash.badge_self") : L("ui.trash.badge_in_trash"),
                         tint: MMColor.informational,
                         systemImage: selfEcho ? "tag" : "trash")
 
@@ -1173,12 +1183,12 @@ public struct UninstallerView: View {
                 Button {
                     MMReveal.open(subject?.path ?? "")
                 } label: {
-                    Label("在访达中显示", systemImage: "folder")
+                    Label(L("ui.action.reveal_in_finder"), systemImage: "folder")
                 }
                 .controlSize(.small)
                 .buttonStyle(.borderless)
 
-                Button("忽略") {
+                Button(L("panel.dismiss")) {
                     trashWatcher.dismiss()
                     model.dismissSelfEchoArrival()
                 }
@@ -1204,14 +1214,14 @@ public struct UninstallerView: View {
             if model.isScanningTrashResiduals {
                 HStack(spacing: MMGap.sm) {
                     ProgressView().controlSize(.small)
-                    Text("按包名与容器证据扫残留…").font(.caption).foregroundStyle(MMColor.secondaryLabel)
+                    Text(L("ui.trash.residual_scanning")).font(.caption).foregroundStyle(MMColor.secondaryLabel)
                 }
             } else if model.hasScannedTrashResiduals == false {
-                Text("还没扫残留。本体已经在废纸篓里，这里只列出它散在 ~/Library 的文件。")
+                Text(L("ui.trash.residual_none_scanned"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             } else if items.isEmpty {
-                Text("按当前敏感度没有匹配到残留文件。")
+                Text(L("ui.trash.residual_no_match"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
             } else {
@@ -1237,7 +1247,7 @@ public struct UninstallerView: View {
                     .monospacedDigit()
                 Spacer(minLength: MMGap.sm)
                 if items.isEmpty == false {
-                    Button("全选可删项") { model.toggleAllTrashResiduals() }
+                    Button(L("ui.action.select_deletable")) { model.toggleAllTrashResiduals() }
                         .controlSize(.small)
                         .buttonStyle(.borderless)
                 }
@@ -1248,7 +1258,7 @@ public struct UninstallerView: View {
                         Task { await model.trashSelectedTrashResiduals() }
                     }
                 } label: {
-                    Label("清理勾选的残留", systemImage: "trash")
+                    Label(L("ui.trash.clean_selected"), systemImage: "trash")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
@@ -1264,12 +1274,13 @@ public struct UninstallerView: View {
 
     /// 勾选数与合计。没扫过时不能说"0 项"—— 那读起来等于"这里干净"，真相是还没看过。
     private var trashNoticeSummary: String {
-        if model.isScanningTrashResiduals { return "扫描中…" }
-        guard model.hasScannedTrashResiduals else { return "尚未扫描" }
-        var line = "已选 \(model.selectedTrashResidualCount) 项 · "
-            + MMFormat.bytes(model.selectedTrashResidualSize)
+        if model.isScanningTrashResiduals { return L("ui.progress.scanning") }
+        guard model.hasScannedTrashResiduals else { return L("ui.progress.not_scanned") }
+        var line = LF("ui.trash.summary_selected",
+                      MMFormat.count(model.selectedTrashResidualCount),
+                      MMFormat.bytes(model.selectedTrashResidualSize))
         if model.unselectedTrashResidualCount > 0 {
-            line += " · 未勾选 \(model.unselectedTrashResidualCount) 项"
+            line += LF("ui.trash.summary_unselected", MMFormat.count(model.unselectedTrashResidualCount))
         }
         return line
     }
@@ -1295,10 +1306,11 @@ public struct UninstallerView: View {
     private var trashConfirmSheet: some View {
         let roots = model.trashResidualReport?.deletionRoots(for: model.selectedTrashResidualIDs) ?? []
         return VStack(alignment: .leading, spacing: MMGap.md) {
-            Text("清理 \(model.trashArrival?.name ?? "") 的 \(roots.count) 项残留？")
+            Text(LF("ui.trash.confirm_title",
+                    model.trashArrival?.name ?? "",
+                    MMFormat.count(roots.count)))
                 .font(.title3.weight(.semibold))
-            Text("只移除勾选的残留，\(model.trashArrival?.name ?? "这个应用") 的本体留在废纸篓里不动。"
-                 + "标记为谨慎与只读的项不会进入这份列表。")
+            Text(LF("ui.trash.confirm_body", model.trashArrival?.name ?? L("ui.trash.this_app")))
                 .font(.callout)
                 .foregroundStyle(MMColor.secondaryLabel)
 
@@ -1323,15 +1335,15 @@ public struct UninstallerView: View {
             .clipShape(RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: MMRadius.control).stroke(MMColor.separator))
 
-            Text("合计 \(MMFormat.bytes(model.selectedTrashResidualSize))，可在 15 秒内或「最近操作」中撤回。")
+            Text(LF("ui.trash.confirm_total", MMFormat.bytes(model.selectedTrashResidualSize)))
                 .font(.caption)
                 .foregroundStyle(MMColor.secondaryLabel)
 
             HStack {
                 Spacer()
-                Button("取消") { showTrashConfirm = false }
+                Button(L("ui.action.cancel")) { showTrashConfirm = false }
                     .keyboardShortcut(.cancelAction)
-                Button("移入废纸篓") {
+                Button(L("ui.action.put_in_trash")) {
                     showTrashConfirm = false
                     Task { await model.trashSelectedTrashResiduals() }
                 }
@@ -1359,7 +1371,7 @@ extension UninstallCandidate {
     var sourceChip: (text: String, tint: Color)? {
         switch provenance.source {
         case .homebrewCask: ("brew", MMColor.accent)
-        case .homebrewCaskNameOnly: ("疑似 brew", MMColor.caution)
+        case .homebrewCaskNameOnly: (L("ui.provenance.chip_name_only"), MMColor.caution)
         default: nil
         }
     }
@@ -1370,11 +1382,11 @@ extension UninstallCandidate {
         case .homebrewCask:
             ("Homebrew cask · \(provenance.cask?.token ?? "")", MMColor.informational, "shippingbox")
         case .homebrewCaskNameOnly:
-            ("疑似 Homebrew cask", MMColor.caution, "questionmark.circle")
+            (L("ui.provenance.badge_name_only"), MMColor.caution, "questionmark.circle")
         case .appStore:
             ("App Store", MMColor.secondaryLabel, "app.badge")
         case .installerPackage:
-            ("安装包", MMColor.secondaryLabel, "square.and.arrow.down")
+            (L("ui.provenance.badge_installer"), MMColor.secondaryLabel, "square.and.arrow.down")
         case .unknown:
             nil
         }
@@ -1385,25 +1397,27 @@ extension UninstallCandidate {
         guard let cask = provenance.cask else {
             switch provenance.source {
             case .appStore: return "Mac App Store"
-            case .installerPackage: return "安装包 · \(provenance.packageIdentifier ?? "")"
+            case .installerPackage: return LF("ui.provenance.value_installer",
+                                              provenance.packageIdentifier ?? "")
             case .unknown:
                 let tokens = provenance.ambiguousCaskTokens
-                if tokens.isEmpty { return "无法判定" }
+                if tokens.isEmpty { return L("ui.provenance.unknown") }
+                let joined = tokens.joined(separator: L("ui.format.list_join"))
                 return provenance.ambiguousByDeviceIdentity
-                    ? "无法判定（\(tokens.joined(separator: "、")) 两份账本把同一个 .app 摆到了这里）"
-                    : "无法判定（两个 cask 都声明了这个名字：\(tokens.joined(separator: "、"))）"
-            default: return "无法判定"
+                    ? LF("ui.provenance.unknown_device_ambiguous", joined)
+                    : LF("ui.provenance.unknown_name_ambiguous", joined)
+            default: return L("ui.provenance.unknown")
             }
         }
         switch provenance.source {
         case .homebrewCask:
             var line = "Homebrew cask · \(cask.token)"
             if let version = cask.version { line += " \(version)" }
-            if let tap = cask.tap { line += "（tap \(tap)）" }
+            if let tap = cask.tap { line += LF("ui.provenance.value_cask_tap", tap) }
             return line
         case .homebrewCaskNameOnly:
-            return "可能是 Homebrew cask · \(cask.token)（只有名字对上）"
-        default: return "无法判定"
+            return LF("ui.provenance.value_name_only", cask.token)
+        default: return L("ui.provenance.unknown")
         }
     }
 
@@ -1423,26 +1437,21 @@ extension UninstallCandidate {
     var sourceBasis: String {
         switch provenance.source {
         case .homebrewCask:
-            "判定依据：Caskroom 里 staged 的 \(bundleName).app 链接解析后与本 bundle 是同一个文件"
-                + "（设备号 + inode 相同）。这里只读账本，不执行 brew；把 bundle 移进废纸篓不会让 brew 的账本同步。"
+            LF("ui.provenance.basis_cask", bundleName)
         case .homebrewCaskNameOnly:
-            "判定依据：账本声明了 \(bundleName).app，但那一份 staged 链接指向别处或已经失效，"
-                + "没验证到与本 bundle 是同一个文件。这一档不给 brew 命令。"
+            LF("ui.provenance.basis_name_only", bundleName)
         case .appStore:
-            "判定依据：bundle 内有 Contents/_MASReceipt/receipt。收据跟着 bundle 走，拷贝一份也带着，"
-                + "所以排在设备号证据之后。"
+            L("ui.provenance.basis_app_store")
         case .installerPackage:
-            "判定依据：包名出现在 /var/db/receipts 的已装包清单里。收据可能在卸载后仍然留着，"
-                + "所以它只用来标来源，不参与任何删除判断。"
+            L("ui.provenance.basis_installer")
         case .unknown:
             provenance.ambiguousCaskTokens.isEmpty
-                ? "判定依据：没有 brew 账本、App Store 收据或安装包凭据对得上。"
-                    + "「无法判定」不等于「手动安装」——装在别的卷、换了名字、用了别的安装器都会落在这里。"
+                ? L("ui.provenance.basis_unknown")
                 : (provenance.ambiguousByDeviceIdentity
-                    ? "判定依据：\(provenance.ambiguousCaskTokens.joined(separator: " 与 ")) 的 Caskroom staged 链接"
-                        + "解析后都是本 bundle（设备号 + inode 相同）——两份账本在抢同一份文件，不替用户挑一个。"
-                    : "判定依据：\(provenance.ambiguousCaskTokens.joined(separator: " 与 ")) 两份账本都声明了同一个 "
-                        + ".app 名字，不替用户挑第一个。")
+                    ? LF("ui.provenance.basis_ambiguous_device",
+                         provenance.ambiguousCaskTokens.joined(separator: L("ui.format.list_join_words")))
+                    : LF("ui.provenance.basis_ambiguous_name",
+                         provenance.ambiguousCaskTokens.joined(separator: L("ui.format.list_join_words"))))
         }
     }
 
@@ -1452,13 +1461,10 @@ extension UninstallCandidate {
         switch provenance.source {
         case .homebrewCask:
             guard let token = provenance.cask?.token else { return nil }
-            return "这个应用由 Homebrew cask 安装。移到废纸篓只会动 \(path)，"
-                + "brew 的账本不会跟着更新；要连账本一起清，请自己执行 brew uninstall --cask \(token)。"
-                + "MacMaster 不会代你运行 brew。"
+            return LF("ui.provenance.warning_cask", path, token)
         case .homebrewCaskNameOnly:
             guard let token = provenance.cask?.token else { return nil }
-            return "来源只是名字对上（token：\(token)），没有按设备号验证。"
-                + "若是 brew 装的，删除后 brew 的账本可能与实际不符。"
+            return LF("ui.provenance.warning_name_only", token)
         default: return nil
         }
     }
@@ -1481,20 +1487,20 @@ extension UninstallCandidate {
     /// "没检测到"与"无法判定"都没有这种后果，与 `sourceChip` 同一取舍。
     func runningChip(_ state: AppRunningState) -> (text: String, tint: Color)? {
         guard state.isRunning else { return nil }
-        return ("运行中", MMColor.caution)
+        return (L("ui.running.chip"), MMColor.caution)
     }
 
     /// 详情页「运行状态」那一行的值。
     func runningValue(_ state: AppRunningState) -> String {
         switch state {
         case .notRunning:
-            "未检测到运行中的进程"
+            L("ui.running.value_not_running")
         case .undetermined(let count):
-            "无法判定（进程快照里有 \(count) 条报不出包名也报不出位置）"
+            LF("ui.running.value_undetermined", String(count))
         case .running(let matches):
             matches.count == 1
-                ? "正在运行 · 进程 \(pidList(matches))"
-                : "正在运行 · \(matches.count) 个进程（\(pidList(matches))）"
+                ? LF("ui.running.value_single", pidList(matches))
+                : LF("ui.running.value_multiple", String(matches.count), pidList(matches))
         }
     }
 
@@ -1502,28 +1508,24 @@ extension UninstallCandidate {
     func runningBasis(_ state: AppRunningState) -> String {
         switch state {
         case .notRunning:
-            return "判定依据：读了一次进程快照（只读，不启动也不结束任何进程），"
-                + "没有任何一条的 bundle 位置或包名与本 bundle 对上。"
+            return L("ui.running.basis_not_running")
         case .undetermined(let count):
-            return "判定依据：快照里有 \(count) 条既报不出包名也报不出 bundle 位置的进程，无法归因到某个应用，"
-                + "所以这里不写「未运行」——那是把「我没看到」说成「没有」。"
+            return LF("ui.running.basis_undetermined", String(count))
         case .running(let matches):
-            var line = "判定依据：按 bundle 位置与包名比对进程快照（只读）。"
+            var line = L("ui.running.basis_prefix")
             let here = matches.filter { $0.evidence == .sameBundle }
             let elsewhere = matches.filter { $0.evidence == .bundleIdentifierOnly }
             if here.isEmpty == false {
-                line += "进程 \(pidList(here)) 报出的位置就是 \(path)。"
+                line += LF("ui.running.basis_here", pidList(here), path)
             }
             if elsewhere.isEmpty == false {
-                line += "进程 \(pidList(elsewhere)) 只有包名对上，位置是 "
-                    + elsewhere.map { $0.bundlePath ?? "（报不出位置）" }.joined(separator: "、")
-                    + "，与这里这一份的写法不同（只比路径字符串，没解析符号链接）。"
+                line += LF("ui.running.basis_elsewhere", pidList(elsewhere), locationList(elsewhere))
             }
             // 这句只在两档**同时**出现时才说：它是回答"包名对上、位置对不上的那一份算不算在跑"的。
             // 只有一档的时候它是假话——真机照片上 WeChat 是「2 个进程（1094、1276）」，
             // 两条都是按位置对上的，画面里没有任何"两档"可数。
             if here.isEmpty == false && elsewhere.isEmpty == false {
-                line += " 两档都算「正在运行」。"
+                line += " " + L("ui.running.basis_both")
             }
             return line
         }
@@ -1552,18 +1554,19 @@ extension UninstallCandidate {
         guard case .running(let matches) = state else { return nil }
         var line = ""
         if matches.allSatisfy({ $0.evidence == .bundleIdentifierOnly }) {
-            line += "对上的只是包名：那一份进程报出的位置是 "
-                + matches.map { $0.bundlePath ?? "（报不出位置）" }.joined(separator: "、")
-                + "，与这里这一份的写法不同——可能是别处那一份真的在跑"
-                + "（换过安装目录、或经 App Translocation 跑在临时副本里），也可能只是同一条路径的另一种写法。"
+            line += LF("ui.running.warning_identifier_only", locationList(matches))
         }
-        return line + "把它移到废纸篓不会让它退出——macOS 允许删掉正在运行的应用包，"
-            + "进程会继续用已经载入内存的代码跑下去。建议先自己退出它再卸载；"
-            + "MacMaster 不会代你退出或结束进程，所以这条提醒也不拦住卸载按钮。"
+        return line + L("ui.running.warning_tail")
     }
 
     private func pidList(_ matches: [RunningAppMatch]) -> String {
-        matches.map { String($0.pid) }.joined(separator: "、")
+        matches.map { String($0.pid) }.joined(separator: L("ui.format.list_join"))
+    }
+
+    /// 进程报出的位置列表：报不出位置的那一条要说出来，不能空着。
+    private func locationList(_ matches: [RunningAppMatch]) -> String {
+        matches.map { $0.bundlePath ?? L("ui.running.no_path") }
+            .joined(separator: L("ui.format.list_join"))
     }
 }
 
@@ -1582,30 +1585,28 @@ extension UninstallCandidate {
     /// 列表行的小标记。占这一格的理由与 `sourceChip` 同一取舍：它会改变你怎么读右边那个数——
     /// 那一格是 bundle 的大小，而这类 bundle 里装的是启动脚本。
     var steamLauncherChip: (text: String, tint: Color)? {
-        steamLauncher == nil ? nil : ("启动器", MMColor.informational)
+        steamLauncher == nil ? nil : (L("ui.launcher.name"), MMColor.informational)
     }
 
     /// 详情标题旁的徽章。识别不成立时一个都不出现，与 `sourceBadge` 不给 `unknown` 编造属性同一规矩。
     /// 这里只放四个字：appid 已经写在「启动器」那一行里，标题栏同时挂两枚徽章时长度不可控。
     var steamLauncherBadge: (text: String, tint: Color, symbol: String)? {
         guard steamLauncher != nil else { return nil }
-        return ("Steam 启动器", MMColor.informational, "gamecontroller")
+        return (L("ui.launcher.badge"), MMColor.informational, "gamecontroller")
     }
 
     /// 「启动器」键值行的值。
     var steamLauncherValue: String? {
         guard let launcher = steamLauncher else { return nil }
-        return "Steam 生成的启动脚本 · \(launcher.scriptName)（appid \(launcher.appID)）"
+        return LF("ui.launcher.value", launcher.scriptName, launcher.appID)
     }
 
     /// 「启动器」的判定依据。两句：凭据是什么，以及那个数字量的是谁。
     var steamLauncherBasis: String? {
         guard let launcher = steamLauncher else { return nil }
-        return "判定依据：Contents/MacOS/\(launcher.scriptName) 是可执行脚本（≤ "
-            + "\(SteamLauncherProbe.maxScriptBytes) 字节），正文只有一行 "
-            + "open steam://\(launcher.verb.rawValue)/\(launcher.appID)。"
-            + "这类 bundle 的「应用大小」量的就是启动器本身，不是已装游戏；"
-            + "我们只读了这份启动脚本，没有按游戏逐个认，所以说不出装了哪些、各自多大。"
+        return LF("ui.launcher.basis", launcher.scriptName,
+                  String(SteamLauncherProbe.maxScriptBytes),
+                  launcher.verb.rawValue, launcher.appID)
     }
 }
 
@@ -1648,7 +1649,7 @@ struct AppListRow: View {
             VStack(alignment: .leading, spacing: MMGap.xxs) {
                 Text(app.name).font(.body).lineLimit(1)
                 if goneFromDirectory {
-                    Text("已在目录里消失，待重新载入")
+                    Text(L("ui.uninstall.row_gone"))
                         .font(.caption)
                         .foregroundStyle(MMColor.caution)
                         .lineLimit(1)
@@ -1667,7 +1668,7 @@ struct AppListRow: View {
                         // 版本号长度不可控（ChatGPT 是 26.924.22138），不限行就会折成两行
                         // 把整行撑高。这里不能用 fixedSize：它会把空间全部划给大小，
                         // 反过来把 "6.9.3" 这种短版本号截成 "6.…"。让大小优先、版本让步。
-                        Text(app.version.isEmpty ? "未知版本" : app.version)
+                        Text(app.version.isEmpty ? L("ui.uninstall.unknown_version") : app.version)
                             .lineLimit(1)
                             .truncationMode(.tail)
                         Text(MMFormat.bytes(app.size))
@@ -1683,12 +1684,12 @@ struct AppListRow: View {
             Spacer(minLength: MMGap.sm)
 
             if goneFromDirectory {
-                Text("不在磁盘")
+                Text(L("ui.uninstall.not_on_disk"))
                     .font(.caption.weight(.medium))
                     .foregroundStyle(MMColor.caution)
             } else if app.residuals.isEmpty == false {
                 VStack(alignment: .trailing, spacing: MMGap.xxs) {
-                    Text("\(app.residuals.count) 项残留")
+                    Text(LF("ui.uninstall.row_residual_count", MMFormat.count(app.residuals.count)))
                         .font(.caption.weight(.medium))
                         .foregroundStyle(MMColor.accent)
                     Text(MMFormat.bytes(app.residualSize))
@@ -1697,7 +1698,7 @@ struct AppListRow: View {
                         .monospacedDigit()
                 }
             } else if app.isSystemOwned {
-                MMBadge("系统应用", tint: MMColor.secondaryLabel)
+                MMBadge(L("ui.uninstall.system_app"), tint: MMColor.secondaryLabel)
             }
         }
         .padding(.horizontal, MMGap.md)
@@ -1773,10 +1774,11 @@ struct AppDetailView: View {
 
     private var statsCards: some View {
         HStack(spacing: MMGap.sm) {
-            MMStatItem("应用大小", MMFormat.bytes(app.size))
-            MMStatItem("包含文件", app.fileCount.map { MMFormat.count($0) } ?? "测量中")
-            MMStatItem("残留大小", MMFormat.bytes(app.residualSize))
-            MMStatItem("残留项", MMFormat.count(app.residuals.count))
+            MMStatItem(L("ui.field.app_size"), MMFormat.bytes(app.size))
+            MMStatItem(L("ui.field.included_files"),
+                       app.fileCount.map { MMFormat.count($0) } ?? L("format.measuring"))
+            MMStatItem(L("ui.field.residual_size"), MMFormat.bytes(app.residualSize))
+            MMStatItem(L("ui.field.residual_items"), MMFormat.count(app.residuals.count))
         }
     }
 
@@ -1812,22 +1814,23 @@ struct AppDetailView: View {
 
     private var infoSection: some View {
         VStack(alignment: .leading, spacing: MMGap.sm) {
-            Text("基本信息").font(.headline)
+            Text(L("ui.uninstall.info_header")).font(.headline)
             VStack(alignment: .leading, spacing: MMGap.xs) {
-                MMKeyRow("来源", app.sourceValue)
+                MMKeyRow(L("ui.field.source"), app.sourceValue)
                 if let receipt = app.sourceReceipt {
-                    MMKeyRow("来源凭据", receipt, monospaced: true)
+                    MMKeyRow(L("ui.field.source_receipt"), receipt, monospaced: true)
                 }
                 if let command = app.sourceCommand {
-                    MMKeyRow("对应命令", command, monospaced: true)
+                    MMKeyRow(L("ui.field.source_command"), command, monospaced: true)
                 }
-                MMKeyRow("包名", app.bundleID, monospaced: true)
-                MMKeyRow("版本", app.version.isEmpty ? "" : "\(app.version) (\(app.build))")
-                MMKeyRow("开发者", app.developer.isEmpty ? "" : "\(app.developer)（来自代码签名）")
-                MMKeyRow("最低系统", app.minSystemVersion)
-                MMKeyRow("可执行文件", app.executable)
+                MMKeyRow(L("ui.field.bundle_id"), app.bundleID, monospaced: true)
+                MMKeyRow(L("ui.field.version"), app.version.isEmpty ? "" : "\(app.version) (\(app.build))")
+                MMKeyRow(L("ui.field.developer"),
+                         app.developer.isEmpty ? "" : LF("ui.uninstall.developer_signed", app.developer))
+                MMKeyRow(L("ui.field.min_system"), app.minSystemVersion)
+                MMKeyRow(L("ui.field.executable"), app.executable)
                 if let launcher = app.steamLauncherValue {
-                    MMKeyRow("启动器", launcher, monospaced: true)
+                    MMKeyRow(L("ui.launcher.name"), launcher, monospaced: true)
                     if let basis = app.steamLauncherBasis {
                         Text(basis)
                             .font(.caption)
@@ -1835,8 +1838,8 @@ struct AppDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                MMKeyRow("修改时间", MMFormat.dateTime(app.modificationDate))
-                MMKeyRow("所在文件夹", (app.path as NSString).deletingLastPathComponent)
+                MMKeyRow(L("ui.field.modified"), MMFormat.dateTime(app.modificationDate))
+                MMKeyRow(L("ui.field.folder"), (app.path as NSString).deletingLastPathComponent)
             }
             .textSelection(.enabled)
 
@@ -1854,18 +1857,20 @@ struct AppDetailView: View {
     private var residualSection: some View {
         VStack(alignment: .leading, spacing: MMGap.sm) {
             HStack(spacing: MMGap.sm) {
-                Text(app.bodyDeletable ? "将一并移除的残留" : "残留 · 不会修改").font(.headline)
+                Text(app.bodyDeletable ? L("ui.uninstall.residual_header")
+                                       : L("ui.uninstall.residual_readonly_header")).font(.headline)
                 if unselectedCount > 0 {
-                    MMBadge("\(unselectedCount) 项默认不勾选", tint: MMColor.caution, systemImage: "exclamationmark.triangle")
+                    MMBadge(LF("ui.uninstall.unselected_badge", MMFormat.count(unselectedCount)),
+                            tint: MMColor.caution, systemImage: "exclamationmark.triangle")
                 }
                 Spacer(minLength: MMGap.sm)
-                Text("按包名与容器证据匹配 · 不含其他应用的共享文件")
+                Text(L("ui.uninstall.residual_match_note"))
                     .font(.caption)
                     .foregroundStyle(MMColor.tertiaryLabel)
                 if app.bodyDeletable {
                     // 本体不给删时这一屏没有任何东西会被移走，"全选"就是死控件。
                     Button(action: onToggleAll) {
-                        Label("全选可删项", systemImage: "checklist")
+                        Label(L("ui.action.select_deletable"), systemImage: "checklist")
                     }
                     .controlSize(.small)
                     .buttonStyle(.borderless)
@@ -1875,14 +1880,14 @@ struct AppDetailView: View {
             if app.isSystemOwned {
                 // 这一句只管"不扫"；"不删"是本体那一层的另一个决定，说在下面那块。
                 // 两句分开是 `docs/analysis/uninstaller-app-body-risk.md` §5 第 2 条的要求。
-                Text("系统自带应用不提供残留扫描：它的容器与偏好由系统管理，清掉也不会回收空间。")
+                Text(L("ui.uninstall.system_no_scan_note"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                     .padding(MMGap.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(MMColor.recessedSurface, in: RoundedRectangle(cornerRadius: MMRadius.control, style: .continuous))
             } else if app.residuals.isEmpty {
-                Text("没有按当前敏感度匹配到残留文件。")
+                Text(L("ui.uninstall.residual_no_match"))
                     .font(.caption)
                     .foregroundStyle(MMColor.secondaryLabel)
                     .padding(MMGap.md)
@@ -1901,13 +1906,13 @@ struct AppDetailView: View {
                 }
 
                 Button(role: .destructive, action: onUninstallWithResiduals) {
-                    Label("卸载应用并移除勾选的残留", systemImage: "trash")
+                    Label(L("ui.uninstall.uninstall_with_residuals"), systemImage: "trash")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(MMColor.destructive)
 
-                Button("仅卸载应用，保留所有残留", action: onUninstallAppOnly)
+                Button(L("ui.uninstall.app_only_keep_residuals"), action: onUninstallAppOnly)
                     .controlSize(.small)
                     .buttonStyle(.borderless)
             } else {
@@ -1916,7 +1921,7 @@ struct AppDetailView: View {
                 // 两处只读说同一种话，读的人不需要先学会我们的枚举。
                 HStack(alignment: .top, spacing: MMGap.sm) {
                     MMBadge(risk: .readOnly)
-                    Text("这是 Apple 提供的应用，仅供查看，MacMaster 不提供删除入口。")
+                    Text(L("ui.uninstall.system_readonly_note"))
                         .font(.caption)
                         .foregroundStyle(MMColor.secondaryLabel)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1940,7 +1945,7 @@ struct AppDetailView: View {
                             .font(.caption)
                             .foregroundStyle(MMColor.tertiaryLabel)
                         Spacer(minLength: MMGap.sm)
-                        Text("\(group.items.count) 项")
+                        Text(LF("ui.uninstall.group_count", MMFormat.count(group.items.count)))
                             .font(.caption).monospacedDigit()
                             .foregroundStyle(MMColor.secondaryLabel)
                     }
@@ -1973,7 +1978,7 @@ struct AppDetailView: View {
 
     private var confirmationNote: String {
         let size = MMFormat.bytes(totalSelectedSize)
-        return "卸载会把 \(app.name) 以及勾选的 \(selectedCount) 项残留（合计 \(size)）移到废纸篓，可在 15 秒内或「最近操作」中撤回。"
+        return LF("ui.uninstall.confirm_note", app.name, MMFormat.count(selectedCount), size)
     }
 
     private var selectedCount: Int {
@@ -2015,7 +2020,7 @@ struct ResidualRow: View {
                 }
                 .buttonStyle(.borderless)
                 .controlSize(.small)
-                .help("在访达中显示")
+                .help(L("ui.action.reveal_in_finder"))
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onToggle)
@@ -2044,7 +2049,7 @@ struct OrphanRow: View {
     var body: some View {
         MMItemRow(
             title: item.name,
-            subtitle: "\(item.displayPath) · 在已装应用里找不到 \(item.owner)",
+            subtitle: LF("ui.orphan.row_subtitle", item.displayPath, item.owner),
             value: MMFormat.bytes(item.size),
             risk: .caution,
             systemImage: item.category.icon,
@@ -2057,7 +2062,7 @@ struct OrphanRow: View {
             }
             .buttonStyle(.borderless)
             .controlSize(.small)
-            .help("在访达中显示")
+            .help(L("ui.action.reveal_in_finder"))
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onToggle)

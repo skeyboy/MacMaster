@@ -1,0 +1,12 @@
+# p58-uninstaller-l10n-capture.sh 12-en-watch  2026-10-20 12:48:35 +0800  app=/tmp/mm-app-p58/MacMaster.app
+# repo: 5a0dfcd-dirty   # digest: tree=5a0dfcd+2b395748 app=5a0dfcd+2b395748
+# env: MM_APPEARANCE=light MM_OPEN_MODULE=uninstaller MM_LANGUAGE=en MM_UNINSTALL_CONFIRM_FIXTURE_HOME=/tmp/mmapps MM_UNINSTALL_CONFIRM_MODE=none MM_APPS_WATCH_FIXTURE_DIR=/tmp/mmapps/Applications MM_WINDOW_SIZE=1400x1000
+# 夹具：P33b=/tmp/macmaster-p33b-nesting.CY0kPx｜Steam=/tmp/macmaster-steam-fixture.v6xLWw｜废纸篓=/tmp/mmtrash（假 home=/tmp/mmhome）｜监听=/tmp/mmapps
+# 期望：同一档卡片的英文：被消失的应用名（Highball）与路径照原样，句子换英文
+# 中间动作：./Scripts/apps-watch-fixture.sh depart（窗口出现后 3s 执行，再等 10s）
+sandbox_extension_issue_file_to_process failed for /tmp/mm-app-p58/MacMaster.app: 1 (Operation not permitted)
+MM_APPEARANCE=light 已强制 light 外观（仅本进程，不改系统设置）
+MM_LANGUAGE=en 已生效：界面按这一档取文案（已写入 UserDefaults 的 app.language）
+MM_WINDOW_SIZE=1400x1000 请求 1400x1000pt，窗口实际 1400x1000pt
+# 执行中间动作：./Scripts/apps-watch-fixture.sh depart
+已改动 /tmp/mmapps/Applications：删掉 Highball.app，新增 Notion.app

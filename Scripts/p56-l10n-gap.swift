@@ -17,6 +17,8 @@
 //      这一类在本仓的界面文件里几乎没有，量的是"先翻哪一面"的排序，不是对外主张。
 //
 //  用法：swift Scripts/p56-l10n-gap.swift
+//        swift Scripts/p56-l10n-gap.swift --by-file        # 每个面下面再列逐文件
+//        swift Scripts/p56-l10n-gap.swift --lines=Uninstaller   # 只打缺口行原文（不数数）
 //
 
 import Foundation
@@ -50,7 +52,10 @@ func isHan(_ scalar: Unicode.Scalar) -> Bool {
 }
 
 /// 一行里有没有含汉字的字符串字面量；顺带回注释状态（块注释可以跨行）。
-func scan(line: String, inBlock: inout Bool) -> Bool {
+/// `--lines` 那一档要的是**同一把尺子**认出来的字面量正文，所以这里顺手把它们收进 `into`：
+/// 另写一遍"什么算字面量"迟早会和上面的口径分家，那正是这个脚本来要防的事。
+/// 计数路径传一个不用的数组，判据一个字没改。
+func scan(line: String, inBlock: inout Bool, into: inout [String]) -> Bool {
     let chars = Array(line)
     var index = 0
     var foundHan = false
@@ -84,7 +89,12 @@ func scan(line: String, inBlock: inout Bool) -> Bool {
                 if let v = c.unicodeScalars.first, isHan(v) { hanInThisString = true }
                 j += 1
             }
-            if hanInThisString { foundHan = true }
+            if hanInThisString {
+                foundHan = true
+                // `j` 停在收尾引号上（终止）或行尾（跨行字面量，这一行剩下的都不再判），
+                // 两种情况 `(index+1)..<j` 都是正文本身。
+                into.append(String(chars[(index + 1)..<min(j, chars.count)]))
+            }
             index = inString ? chars.count : j + 1   // 跨行字面量：这一行剩下的都不再判
             continue
         }
@@ -98,10 +108,23 @@ func countWired(_ line: String) -> Bool {
     return false
 }
 
-print("面             文件   缺口行   已接行")
 // `--by-file`：在每个面下面再列逐文件的两列。写文档时要指名道姓地说"哪一面还剩多少"，
 // 只有小计的话，"壳层 95 行"会被读成"MainWindow 还没接完"。
+//
+// `--lines[=子串]`（P58 加）：不数数，只把尺子认出来的**缺口行原文**逐行打出来，
+// 给了子串就只打路径含该子串的文件。为什么不让下游各写各的 grep：`[一-鿿]` 在 BSD grep
+// 走字节序会把 `·` 认成汉字，而注释里的中文在这一档正是最吵的一类噪声。
+// 这一档只打原文、不打表（含最后那行合计）；两档互斥由 `linesMode` 是否为 nil 决定。
+// 打印条数与逐文件小计同源——现读 `--lines=Sources/MMUninstaller` 得 275 条，正是卸载页那一面
+// 九个非零文件的小计求和，所以这一档可以直接当分派清单用，不必手抄表。
 let byFile = CommandLine.arguments.contains("--by-file")
+let linesArg = CommandLine.arguments.first { $0 == "--lines" || $0.hasPrefix("--lines=") }
+let linesMode: String? = linesArg.map { arg in
+    arg == "--lines" ? "" : String(arg.dropFirst("--lines=".count))
+}
+if linesMode == nil {
+    print("面             文件   缺口行   已接行")
+}
 var totalFiles = 0, totalGaps = 0, totalWired = 0
 for surface in surfaces {
     let files = swiftFiles(in: surface.dir)
@@ -109,10 +132,16 @@ for surface in surfaces {
     var rows: [(String, Int, Int)] = []
     for path in files {
         var fileGaps = 0, fileWired = 0
+        var fileLines: [(Int, [String])] = []
         if let text = try? String(contentsOfFile: path, encoding: .utf8) {
             var inBlock = false
-            for line in text.components(separatedBy: "\n") {
-                if scan(line: line, inBlock: &inBlock) { fileGaps += 1 }
+            let parts = text.components(separatedBy: "\n")
+            for (offset, line) in parts.enumerated() {
+                var lits: [String] = []
+                if scan(line: line, inBlock: &inBlock, into: &lits) {
+                    fileGaps += 1
+                    fileLines.append((offset + 1, lits))
+                }
                 // 注释行里出现的 L("…") 只是说明，不是真的接了文案。
                 if inBlock == false,
                    line.trimmingCharacters(in: .whitespaces).hasPrefix("//") == false,
@@ -122,8 +151,15 @@ for surface in surfaces {
         gaps += fileGaps
         wired += fileWired
         rows.append((path, fileGaps, fileWired))
+        if let filter = linesMode, path.contains(filter) {
+            for (lineno, lits) in fileLines {
+                print("\(path):\(lineno)\t" + lits.joined(separator: " | "))
+            }
+        }
     }
-    print("\(surface.name.padding(toLength: 14, withPad: " ", startingAt: 0)) \(String(files.count).padding(toLength: 6, withPad: " ", startingAt: 0))\(String(gaps).padding(toLength: 8, withPad: " ", startingAt: 0))\(String(wired).padding(toLength: 8, withPad: " ", startingAt: 0))")
+    if linesMode == nil {
+        print("\(surface.name.padding(toLength: 14, withPad: " ", startingAt: 0)) \(String(files.count).padding(toLength: 6, withPad: " ", startingAt: 0))\(String(gaps).padding(toLength: 8, withPad: " ", startingAt: 0))\(String(wired).padding(toLength: 8, withPad: " ", startingAt: 0))")
+    }
     if byFile {
         for row in rows.sorted(by: { $0.1 > $1.1 }) {
             print("    \(String(row.1).padding(toLength: 5, withPad: " ", startingAt: 0))\(String(row.2).padding(toLength: 5, withPad: " ", startingAt: 0))  \(row.0)")
@@ -133,4 +169,6 @@ for surface in surfaces {
     totalGaps += gaps
     totalWired += wired
 }
-print("合计            \(String(totalFiles).padding(toLength: 6, withPad: " ", startingAt: 0))\(String(totalGaps).padding(toLength: 8, withPad: " ", startingAt: 0))\(String(totalWired).padding(toLength: 8, withPad: " ", startingAt: 0))")
+if linesMode == nil {
+    print("合计            \(String(totalFiles).padding(toLength: 6, withPad: " ", startingAt: 0))\(String(totalGaps).padding(toLength: 8, withPad: " ", startingAt: 0))\(String(totalWired).padding(toLength: 8, withPad: " ", startingAt: 0))")
+}

@@ -37,9 +37,9 @@ enum ContainerScanner {
         guard FileManager.default.fileExists(atPath: root.path, isDirectory: &isDirectory), isDirectory.boolValue else { return }
 
         // 容器根自己就可能是包名形态（少见），先按通用规则过一次名称。
-        if let reason = context.matcher.reason(for: root, bundleID: context.bundleID,
-                                              allowContains: context.sensitivity.rank > 0) {
-            collector.add(url: root, category: entry.category, reason: reason, riskOverride: .caution)
+        if let evidence = context.matcher.evidence(for: root, bundleID: context.bundleID,
+                                                  allowContains: context.sensitivity.rank > 0) {
+            collector.add(url: root, category: entry.category, evidence: evidence, riskOverride: .caution)
         }
 
         let children: [URL]
@@ -59,7 +59,7 @@ enum ContainerScanner {
             // 类别跟着清单走：Group Containers 要标成共享容器，否则 UI 上
             // "可能被其他应用共用"这句提示就丢了。
             collector.add(url: child, category: entry.category,
-                          reason: containerReason(child, context: context),
+                          evidence: containerEvidence(child, context: context),
                           riskOverride: .caution)
             // 其中的缓存：可重建，默认可选。父目录不在删除根里就不重复计数。
             addRebuildableSubpaths(of: child, context: context, collector: &collector)
@@ -88,13 +88,13 @@ enum ContainerScanner {
         return context.matcher.matches(fileURL: child, bundleID: context.bundleID)
     }
 
-    private static func containerReason(_ child: URL,
-                                        context: ResidualScanner.ResidualScanContext) -> String {
+    private static func containerEvidence(_ child: URL,
+                                          context: ResidualScanner.ResidualScanContext) -> ResidualEvidence {
         if let identifier = metadataIdentifier(in: child) {
-            return "容器元数据标识 \(identifier)"
+            return ResidualEvidence(.containerMetadata, identifier)
         }
-        return context.matcher.reason(for: child, bundleID: context.bundleID, allowContains: true)
-            ?? "容器目录名对应包名"
+        return context.matcher.evidence(for: child, bundleID: context.bundleID, allowContains: true)
+            ?? ResidualEvidence(.containerName)
     }
 
     /// 只有可重建的子目录默认可选；Documents / Application Support 这些绝不自动勾。
@@ -105,13 +105,14 @@ enum ContainerScanner {
             let url = container.appendingPathComponent(subpath, isDirectory: true)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             collector.add(url: url, category: .containerCache,
-                          reason: "容器内可重建缓存（\(subpath)）")
+                          evidence: ResidualEvidence(.containerCache, subpath))
         }
         // WebKit 的磁盘存储也在容器里，deep 档才收，风险仍由类别决定。
         if context.sensitivity == .deep {
             let webKit = container.appendingPathComponent("Data/Library/WebKit", isDirectory: true)
             guard FileManager.default.fileExists(atPath: webKit.path) else { return }
-            collector.add(url: webKit, category: .webKit, reason: "容器内 WebKit 数据（\(webKit.lastPathComponent)）")
+            collector.add(url: webKit, category: .webKit,
+                          evidence: ResidualEvidence(.containerWebKit, webKit.lastPathComponent))
         }
     }
 

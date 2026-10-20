@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import MMCore
 
 // MARK: - Steam 启动器型 bundle（只认，不说）
 //
@@ -204,6 +205,6 @@ public enum SteamGameLibraryCaveat {
     /// 而光路径就有 35 个字符——接在后面等于没写。
     public static func note(children: [String]?) -> String? {
         guard let children, children.contains(directoryName) else { return nil }
-        return "这一项内含 \(directoryName) 目录，已装游戏通常在它下面；删掉这一项会连游戏一起删。"
+        return LF("ui.launcher.steam_library_note", directoryName)
     }
 }

@@ -24,17 +24,17 @@ public enum ResidualSensitivity: String, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .strict: "严格"
-        case .enhanced: "增强"
-        case .deep: "深度"
+        case .strict: L("ui.sensitivity.strict")
+        case .enhanced: L("ui.sensitivity.enhanced")
+        case .deep: L("ui.sensitivity.deep")
         }
     }
 
     public var note: String {
         switch self {
-        case .strict: "只按包名与完整名称匹配，最不容易误删"
-        case .enhanced: "额外接受包含匹配，并进入厂商子目录一层"
-        case .deep: "多层递归，命中最多，但每条都要自己看过"
+        case .strict: L("ui.sensitivity.strict_note")
+        case .enhanced: L("ui.sensitivity.enhanced_note")
+        case .deep: L("ui.sensitivity.deep_note")
         }
     }
 
@@ -562,9 +562,9 @@ public enum ResidualScanner {
             // strict 只接受精确/包名前缀；enhanced 起才接受包含匹配。
             let allowContains = context.sensitivity.rank > ResidualSensitivity.strict.rank
                 && (entry.allowsContains || descent > 0)
-            if let reason = context.matcher.reason(for: child, bundleID: context.bundleID,
-                                                   allowContains: allowContains) {
-                collector.add(url: child, category: entry.category, reason: reason)
+            if let evidence = context.matcher.evidence(for: child, bundleID: context.bundleID,
+                                                       allowContains: allowContains) {
+                collector.add(url: child, category: entry.category, evidence: evidence)
                 continue
             }
             if descent > 0, isLibraryRoot == false || isDirectory(child) {
@@ -584,9 +584,9 @@ public enum ResidualScanner {
         guard depth <= limit, isDirectory(url) else { return }
         guard let children = listChildren(of: url, collector: &collector) else { return }
         for child in children {
-            if let reason = context.matcher.reason(for: child, bundleID: context.bundleID, allowContains: true) {
+            if let evidence = context.matcher.evidence(for: child, bundleID: context.bundleID, allowContains: true) {
                 collector.add(url: child, category: entry.category,
-                              reason: "\(reason)（位于 \(url.lastPathComponent) 内）")
+                              evidence: evidence.found(inside: url.lastPathComponent))
                 continue
             }
             if depth < limit {
