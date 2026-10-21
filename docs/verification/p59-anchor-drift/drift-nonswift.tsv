@@ -1,0 +1,14 @@
+DRIFT	doc=docs/analysis/release-decisions.md:15	move=Scripts/make-app.sh:124 -> Scripts/make-app.sh:123	reason=唯一命中原文	| <key>NSHumanReadableCopyright</key>
+DRIFT	doc=docs/analysis/release-readiness.md:4926	move=Scripts/make-app.sh:124 -> Scripts/make-app.sh:123	reason=唯一命中原文	| <key>NSHumanReadableCopyright</key>
+DRIFT	doc=docs/analysis/release-readiness.md:4939	move=Scripts/make-app.sh:124 -> Scripts/make-app.sh:123	reason=唯一命中原文	| <key>NSHumanReadableCopyright</key>
+DRIFT	doc=docs/analysis/uninstally-adoption.md:102	move=Scripts/make-app.sh:101 -> Scripts/make-app.sh:100	reason=唯一命中原文	| <key>CFBundleURLTypes</key>
+DRIFT	doc=docs/analysis/uninstally-adoption.md:102	move=Scripts/make-app.sh:78 -> Scripts/make-app.sh:77	reason=唯一命中原文	| # `CFBundleURLTypes` 里那个 scheme 的另一个出处是 MMUninstaller 的
+DRIFT	doc=docs/analysis/uninstally-adoption.md:103	move=Scripts/make-app.sh:124 -> Scripts/make-app.sh:123	reason=唯一命中原文	| <key>NSHumanReadableCopyright</key>
+UNRESOLVED	doc=docs/analysis/uninstally-adoption.md:19	src=Scripts/make-app.sh:138	reason=工作区里 0 处命中（0 处以上需人工认）	| SIGN_FLAGS=(--force --deep --sign - --timestamp=none)
+DRIFT	doc=docs/analysis/uninstally-adoption.md:243	move=Scripts/make-app.sh:101 -> Scripts/make-app.sh:100	reason=唯一命中原文	| <key>CFBundleURLTypes</key>
+DRIFT	doc=docs/analysis/website-audit.md:31	move=Scripts/make-app.sh:118 -> Scripts/make-app.sh:117	reason=唯一命中原文	| <key>LSMinimumSystemVersion</key>
+DRIFT	doc=docs/analysis/disk-volume-enumeration.md:5	move=Scripts/mm-provenance.sh:49 -> Scripts/mm-provenance.sh:51	reason=唯一命中原文	| local root=${1:?用法: mm_source_digest <仓库根>}
+UNRESOLVED	doc=docs/analysis/feature-roadmap.md:1500	src=Scripts/mm-provenance.sh:47	reason=工作区里 0 处命中（0 处以上需人工认）	| MM_SOURCE_PATHS=(Sources Packages Resources Package.swift ':(exclude)Packages/*/Tests/**')
+DRIFT	doc=docs/analysis/uninstaller-deep-residual-scope.md:256	move=Scripts/mm-provenance.sh:49 -> Scripts/mm-provenance.sh:51	reason=唯一命中原文	| local root=${1:?用法: mm_source_digest <仓库根>}
+UNRESOLVED	doc=docs/analysis/uninstally-adoption.md:271	src=Scripts/mm-provenance.sh:47	reason=工作区里 0 处命中（0 处以上需人工认）	| MM_SOURCE_PATHS=(Sources Packages Resources Package.swift ':(exclude)Packages/*/Tests/**')
+DRIFT	doc=docs/analysis/release-readiness.md:3372	move=docs/analysis/release-readiness.md:2392 -> docs/analysis/release-readiness.md:2401	reason=唯一命中原文	| "System Settings" 那一串（同一窗口按 `--pid` 查就有）。**按名字查会静默落到"没有窗口"那一支，

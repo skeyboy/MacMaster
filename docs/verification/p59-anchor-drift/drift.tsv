@@ -1,0 +1,20 @@
+DRIFT	doc=docs/analysis/feature-roadmap.md:1038	move=Sources/MacMaster/SettingsView.swift:358 -> Sources/MacMaster/SettingsView.swift:386	reason=唯一命中原文	| private func checkForUpdates() {
+DRIFT	doc=docs/analysis/fidelity-shell.md:101	move=Sources/MacMaster/SettingsView.swift:90 -> Sources/MacMaster/SettingsView.swift:110	reason=唯一命中原文	| if let error = loginItem.lastError {
+DRIFT	doc=docs/analysis/fidelity-shell.md:102	move=Sources/MacMaster/SettingsView.swift:142 -> Sources/MacMaster/SettingsView.swift:170	reason=唯一命中原文	| Section("通知") {
+DRIFT	doc=docs/analysis/fidelity-shell.md:102	move=Sources/MacMaster/SettingsView.swift:144 -> Sources/MacMaster/SettingsView.swift:172	reason=唯一命中原文	| // 这里两个开关照样拨得动、`requestAuthorization` 也不会再弹——不说破就是假绿。
+DRIFT	doc=docs/analysis/fidelity-shell.md:102	move=Sources/MacMaster/SettingsView.swift:169 -> Sources/MacMaster/SettingsView.swift:197	reason=唯一命中原文	| .task { await notifications.refresh() }
+DRIFT	doc=docs/analysis/fidelity-shell.md:118	move=Sources/MacMaster/SettingsView.swift:134 -> Sources/MacMaster/SettingsView.swift:162	reason=唯一命中原文	| Picker("更新间隔", selection: $settings.monitorRefreshInterval) {
+DRIFT	doc=docs/analysis/fidelity-shell.md:121	move=Sources/MacMaster/SettingsView.swift:122 -> Sources/MacMaster/SettingsView.swift:150	reason=唯一命中原文	| private var monitorSettings: some View {
+DRIFT	doc=docs/analysis/fidelity-shell.md:122	move=Sources/MacMaster/SettingsView.swift:160 -> Sources/MacMaster/SettingsView.swift:188	reason=唯一命中原文	| Text("CPU ≥ 85% 或内存 ≥ 90% 时发送系统通知（跨阈值触发，5 分钟冷却）")
+DRIFT	doc=docs/analysis/fidelity-shell.md:123	move=Sources/MacMaster/SettingsView.swift:172 -> Sources/MacMaster/SettingsView.swift:200	reason=唯一命中原文	| private var cleanerSettings: some View {
+DRIFT	doc=docs/analysis/fidelity-shell.md:124	move=Sources/MacMaster/SettingsView.swift:179 -> Sources/MacMaster/SettingsView.swift:207	reason=唯一命中原文	| // 这一句以前写的是"设置已持久化；清理模块接入这些开关后生效"。
+DRIFT	doc=docs/analysis/fidelity-shell.md:125	move=Sources/MacMaster/SettingsView.swift:226 -> Sources/MacMaster/SettingsView.swift:254	reason=唯一命中原文	| Button("清空删除历史", role: .destructive) { confirmClearHistory = true }
+DRIFT	doc=docs/analysis/fidelity-shell.md:126	move=Sources/MacMaster/SettingsView.swift:302 -> Sources/MacMaster/SettingsView.swift:330	reason=唯一命中原文	| private var aboutView: some View {
+DRIFT	doc=docs/analysis/fidelity-shell.md:127	move=Sources/MacMaster/SettingsView.swift:263 -> Sources/MacMaster/SettingsView.swift:291	reason=唯一命中原文	| .confirmationDialog("清空删除历史？", isPresented: $confirmClearHistory, titleVisibility: .visible) {
+UNRESOLVED	doc=docs/analysis/fidelity-shell.md:171	src=Sources/MacMaster/SettingsView.swift:220	reason=工作区里 4 处命中（4 处以上需人工认）	| } else {
+DRIFT	doc=docs/analysis/release-decisions.md:17	move=Sources/MacMaster/SettingsView.swift:321 -> Sources/MacMaster/SettingsView.swift:349	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")
+DRIFT	doc=docs/analysis/release-decisions.md:38	move=Sources/MacMaster/SettingsView.swift:321 -> Sources/MacMaster/SettingsView.swift:349	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")
+DRIFT	doc=docs/analysis/release-readiness.md:3926	move=Sources/MacMaster/SettingsView.swift:334 -> Sources/MacMaster/SettingsView.swift:362	reason=唯一命中原文	| Button("反馈问题") {}
+DRIFT	doc=docs/analysis/release-readiness.md:4937	move=Sources/MacMaster/SettingsView.swift:321 -> Sources/MacMaster/SettingsView.swift:349	reason=唯一命中原文	| MMKeyRow("许可", "尚未选择许可")
+DRIFT	doc=docs/analysis/uninstaller-app-body-risk.md:555	move=Sources/MacMaster/SettingsView.swift:169 -> Sources/MacMaster/SettingsView.swift:197	reason=唯一命中原文	| .task { await notifications.refresh() }
+DRIFT	doc=docs/analysis/uninstaller-app-body-risk.md:563	move=Sources/MacMaster/SettingsView.swift:169 -> Sources/MacMaster/SettingsView.swift:197	reason=唯一命中原文	| .task { await notifications.refresh() }

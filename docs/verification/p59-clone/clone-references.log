@@ -1,0 +1,16 @@
+# clone-references.sh 参考仓库状态（模式：check）
+# date: 2026-10-20 17:56:05 +0800
+# 表源: docs/analysis/reference-repos.md §2（逐行现读，本脚本不另存一份 commit）
+# 抽出 8 行
+缺   Mole  docs/github-references/Mole
+缺   Pearcleaner  docs/github-references/Pearcleaner
+缺   OverSight  docs/github-references/OverSight
+缺   disktree  docs/github-references/disktree
+缺   stats  docs/github-references/stats
+缺   SwiftFormat  docs/github-references/SwiftFormat
+缺   Uninstally  docs/github-references/uninstally
+缺   lemon-cleaner  docs/lemon-cleaner
+结论：8 项不达标。引用审计（./Scripts/p16-citation-audit.sh）现在仍跑得动，
+        但那一批引用会全落进「定位不到文件因而没试行号判据的」那一支，
+        「命参考仓库」那一格是 0——**那是没取到，不是文档没引**，别看错。
+        补齐：./Scripts/clone-references.sh --fetch
