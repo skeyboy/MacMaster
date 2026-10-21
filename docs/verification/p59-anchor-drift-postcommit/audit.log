@@ -1,6 +1,6 @@
 # p16 citation audit
-# date: 2026-10-21 16:19:18
-# repo: 9ca0b83-dirty branch=main
+# date: 2026-10-21 16:38:54
+# repo: 6354937-dirty branch=main
 # docs scanned: 48 个真抽了 / 48 个入库 .md（两个数不等就是有文件没被读到）
 # index: 本仓库 1685 个跟踪文件 / 参考仓库 5611 个 / SDK 头文件 6274 个
 # vocab: 本仓库源码 token 10298 个（已排除本脚本自身，见第 1 步②）
