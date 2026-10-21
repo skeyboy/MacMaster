@@ -1,0 +1,32 @@
+# date: 2026-10-21T09:31:54Z
+# repo: 143aeee branch=main
+# run: 39568660418
+
+## gh run view --json（run 的结论，不是 watch 的退出码）
+{"attempt":3,"conclusion":"success","databaseId":39568660418,"event":"push","headSha":"63549379b0eecc2d2905c49b43db10e85cb7e4e1","status":"completed","url":"https://github.com/skeyboy/MacMaster/actions/runs/39568660418","workflowName":"打包并发版"}
+
+## gh run view --json jobs（13 步逐步结论）
+{"conclusion":"success","name":"构建并打包（macOS latest arm64）","steps":[{"c":"success","n":"Set up job"},{"c":"success","n":"取码"},{"c":"success","n":"定档版本号与 tag"},{"c":"success","n":"记构建环境"},{"c":"success","n":"九包全量单测"},{"c":"success","n":"留一份单测日志"},{"c":"success","n":"构建 .app"},{"c":"success","n":"打成 zip 与 dmg，并当场验一遍"},{"c":"success","n":"留安装包本身（Actions 产物，保留 30 天）"},{"c":"success","n":"建 Release（缺就建）"},{"c":"success","n":"上传附件"},{"c":"success","n":"Post 取码"},{"c":"success","n":"Complete job"}]}
+
+## 九包全量单测那一步在 CI 机器上读到的结论行（原样抄自 gh run view --log）
+构建并打包（macOS latest arm64）	九包全量单测	2026-10-21T09:22:27.4943880Z 合计：879 个测试，0 个失败，1 个跳过
+
+## gh release view v1.1.0（远端 Release 本体）
+{"isDraft":false,"isPrerelease":false,"name":"MacMaster 1.1.0","publishedAt":"2026-10-21T09:24:24Z","tagName":"v1.1.0","targetCommitish":"63549379b0eecc2d2905c49b43db10e85cb7e4e1","url":"https://github.com/skeyboy/MacMaster/releases/tag/v1.1.0"}
+
+## 三个附件（名称/字节/API digest）
+{"digest":"sha256:03ef04f081b929271c43ef77a94af556a61b08dae6b537a9c4db7b108ff9d440","name":"MacMaster-1.1.0-1-SHA256SUMS.txt","size":176}
+{"digest":"sha256:49b213fd3dfb9df23f8a663b1d697c98511afd14930b9df506d0423a501d22be","name":"MacMaster-1.1.0-1.dmg","size":4031078}
+{"digest":"sha256:402fe8238e6fe59954449cd1a5c608e0b84e938d84306e4dcb6e0003f4e332cd","name":"MacMaster-1.1.0-1.zip","size":3397112}
+
+## gh release list（Latest 现在指谁）
+MacMaster 1.1.0	Latest	v1.1.0	2026-10-21T09:24:24Z
+MacMaster 1.0.1		v1.0.1	2026-10-13T04:56:37Z
+MacMaster 1.0.0		v1.0.0	2026-10-08T04:52:57Z
+
+## tag 与分支的远端落点
+143aeeeb53e6f001c2c0262c82f31447b5d86b21	refs/heads/main
+43de55e20f9bc7cbe61c9efb1fffd42146cc0a24	refs/tags/v1.1.0
+
+## v1.1.0 那枚 tag peel 到的提交
+6354937

@@ -1,0 +1,19 @@
+# p35b-release-verify.sh v1.1.0  2026-10-21 17:25:59 +0800
+# repo: 143aeee-dirty branch=main
+# api: https://api.github.com/repos/skeyboy/MacMaster
+# release: id=419368091 tag=v1.1.0 name=MacMaster 1.1.0 target=6354937 draft=False prerelease=False published=2026-10-21T09:24:24Z
+# release: body_len=11257 字符  body_head='# MacMaster 1.1.0（构建 1）\n'
+# asset: MacMaster-1.1.0-1-SHA256SUMS.txt  176 字节  id=661982758  api-digest=03ef04f081b929271c43ef77a94af556a61b08dae6b537a9c4db7b108ff9d440  state=uploaded
+# asset: MacMaster-1.1.0-1.dmg  4031078 字节  id=661982762  api-digest=49b213fd3dfb9df23f8a663b1d697c98511afd14930b9df506d0423a501d22be  state=uploaded
+# asset: MacMaster-1.1.0-1.zip  3397112 字节  id=661982752  api-digest=402fe8238e6fe59954449cd1a5c608e0b84e938d84306e4dcb6e0003f4e332cd  state=uploaded
+# notes: 逐字相等=True  剥尾部空白后相等=True  （正文 11257 字符 / 文件 11257 字符 / 文件 24003 字节）
+# sums-file: MacMaster-1.1.0-1-SHA256SUMS.txt（176 字节）
+# sums-line: 402fe8238e6fe59954449cd1a5c608e0b84e938d84306e4dcb6e0003f4e332cd  MacMaster-1.1.0-1.zip
+# sums-line: 49b213fd3dfb9df23f8a663b1d697c98511afd14930b9df506d0423a501d22be  MacMaster-1.1.0-1.dmg
+# sha256: MacMaster-1.1.0-1.dmg  本地=49b213fd3dfb9df23f8a663b1d697c98511afd14930b9df506d0423a501d22be  与 api 报的=相同  与清单里写的=相同
+# sha256: MacMaster-1.1.0-1.zip  本地=402fe8238e6fe59954449cd1a5c608e0b84e938d84306e4dcb6e0003f4e332cd  与 api 报的=相同  与清单里写的=相同
+# plist: CFBundleShortVersionString=1.1.0;CFBundleVersion=1;LSMinimumSystemVersion=14.0;MMGitCommit=6354937;MMSourceDigest=6354937+e3b0c442;
+# check: 版本号 1.1.0（期望 1.1.0）构建 1 → 对
+# check: MMGitCommit=6354937 → 干净树（不带 -dirty）
+# check: 指纹段 产物=e3b0c442 本地工作树=9a0d5ed8 → 编译输入 不同
+产物 plist 的版本号 / 提交号 / 指纹段有一条不符
